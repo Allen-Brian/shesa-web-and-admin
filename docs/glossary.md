@@ -30,13 +30,13 @@ Announcements are created in Shesa Exco and delivered through Connect forums and
 
 ### Autonomy switch
 
-**A per-Org-node flag that lets a node manage its own membership and finance independently of its parent.**
+**A per-Scope flag that lets a node manage its own membership and finance independently of its parent.**
 
 When a Branch turns autonomy on, its finance configuration (charges, currency, treasury) is its own, and parent-level admins lose write authority over those domains for that subtree.
 
 **What it is NOT:** a permission. Autonomy is a structural property of the node; permissions still flow through roles and flags.
 
-**In code:** boolean on `core.org_nodes`; consulted by the policy module and RLS.
+**In code:** boolean on `core.scopes`; consulted by the policy module and RLS.
 
 ---
 
@@ -50,7 +50,7 @@ A Chapter has many Batches; a Batch contains Members and may contain Houses.
 
 **What it is NOT:** a Branch or Chapter (those are higher in the hierarchy). Not a Sector (Sectors are functional, not cohort-based).
 
-**In code:** `core.org_nodes` row with `node_type = 'batch'`.
+**In code:** `core.scopes` row with `scope_type = 'batch'`.
 
 ### Branch
 
@@ -60,7 +60,7 @@ Shesa's hierarchy starts with Mainstream → Branch → Chapter → Batch → Ho
 
 **What it is NOT:** a Chapter (a finer subdivision within a Branch). Not a Sector (Sectors cut across the hierarchy).
 
-**In code:** `core.org_nodes` row with `node_type = 'branch'`.
+**In code:** `core.scopes` row with `scope_type = 'branch'`.
 
 ---
 
@@ -74,11 +74,11 @@ A Branch contains many Chapters; a Chapter contains Batches.
 
 **What it is NOT:** a Batch (Batches are cohorts inside Chapters). Not a Branch.
 
-**In code:** `core.org_nodes` row with `node_type = 'chapter'`.
+**In code:** `core.scopes` row with `scope_type = 'chapter'`.
 
 ### Charge
 
-**A financial obligation defined at an Org-node level that becomes a Member-level Obligation when applied.**
+**A financial obligation defined at a Scope level that becomes a Member-level Obligation when applied.**
 
 Charges can be recurring (monthly, yearly, bi-yearly) or one-time. They target either individual Members or organizational bodies (a whole Chapter, all Members of a Batch). When generated, a Charge produces one Obligation per target Member.
 
@@ -136,7 +136,7 @@ In Shesa: receives MTN MoMo and Orange Money webhooks, runs daily scheduled task
 
 ### Exception
 
-**A finance rule that overrides a Charge for specific Members or Org-nodes.**
+**A finance rule that overrides a Charge for specific Members or Scopes.**
 
 Exceptions are defined by criteria — years since exit, batch, age, House, or named individual — and modify or waive the Obligation that would otherwise be generated.
 
@@ -146,7 +146,7 @@ Exceptions are defined by criteria — years since exit, batch, age, House, or n
 
 ### Exco
 
-**Short for Executive Committee — the governance body of an Org-node.**
+**Short for Executive Committee — the governance body of a Scope.**
 
 The `apps/exco` application is the dashboard used by executive committees to manage their members, governance, positions, events, and announcements.
 
@@ -166,7 +166,7 @@ Optional grouping below the Batch level. Used by some Branches; not all hierarch
 
 **What it is NOT:** a Sector (Houses are nested under Batches; Sectors cut across the tree).
 
-**In code:** `core.org_nodes` row with `node_type = 'house'`.
+**In code:** `core.scopes` row with `scope_type = 'house'`.
 
 ---
 
@@ -178,7 +178,7 @@ Optional grouping below the Batch level. Used by some Branches; not all hierarch
 
 For Mobile Money payments over flaky Cameroonian 3G, a timed-out request that actually succeeded server-side must not double-charge when the client retries.
 
-**What it is NOT:** a `traceId`. Each retry gets a new `traceId` for observability; the idempotency key is the *same* across all retries of one user action.
+**What it is NOT:** a `traceId`. Each retry gets a new `traceId` for observability; the idempotency key is the _same_ across all retries of one user action.
 
 **In code:** generated client-side per critical mutation; the server dedupes via `core.idempotency_keys`. See [ADR-0015](adr/0015-idempotency-keys-mandatory.md).
 
@@ -252,27 +252,27 @@ Shesa has exactly one Mainstream node.
 
 **What it is NOT:** a Branch (Mainstream sits one level above Branches).
 
-**In code:** `core.org_nodes` row with `node_type = 'mainstream'`, `parent_id IS NULL`.
+**In code:** `core.scopes` row with `scope_type = 'mainstream'`, `parent_id IS NULL`.
 
 ### Member
 
-**An individual person who belongs to one or more Org-nodes in Shesa.**
+**An individual person who belongs to one or more Scopes in Shesa.**
 
 Members have a profile, a Status, optional Positions, and a finance record. The Member lifecycle is: create → invite → claim → active / passive / transfer / exit.
 
 **What it is NOT:** a Position (a Position is held by a Member). Not a `auth.users` row alone (an unclaimed Member exists in `core.memberships` before any `auth.users` row is linked).
 
-**In code:** `core.members` profile + `core.memberships` (one row per Org-node the Member belongs to) + a linked `auth.users.id`.
+**In code:** `core.members` profile + `core.memberships` (one row per Scope the Member belongs to) + a linked `auth.users.id`.
 
 ### Membership
 
-**The Member's belonging to a specific Org-node, with a Status (active / passive / transferred / exited).**
+**The Member's belonging to a specific Scope, with a Status (active / passive / transferred / exited).**
 
 A Member typically has one active Branch membership, may have multiple Sector memberships, and accrues a status history over time.
 
 **What it is NOT:** the Member (the person). Not a Role (a Role is an authority granted on top of a Membership).
 
-**In code:** `core.memberships` (member_id, org_node_id, status, valid_from, valid_to).
+**In code:** `core.memberships` (member_id, scope_id, status, valid_from, valid_to).
 
 ### Mobile Money
 
@@ -298,15 +298,15 @@ When a Charge runs (monthly recurring, one-time apply, etc.), it produces one Ob
 
 **In code:** `finance.obligations`. Generated by the Obligation Engine. Phase 3.
 
-### Org node
+### Scope
 
 **A node in Shesa's hierarchy — Mainstream, Branch, Chapter, Batch, House, or Sector.**
 
 The umbrella concept that lets the policy module say "this Member is an admin of this node and everything under it."
 
-**What it is NOT:** a Member. Members belong TO Org nodes; they are not nodes themselves.
+**What it is NOT:** a Member. Members belong TO Scopes; they are not nodes themselves.
 
-**In code:** `core.org_nodes` (one table for all node types, with a `node_type` discriminator).
+**In code:** `core.scopes` (one table for all node types, with a `scope_type` discriminator).
 
 ### Outbox
 
@@ -344,23 +344,23 @@ Permissions are the atomic unit of authorization in Shesa. Server Action code as
 
 ### Permission flag
 
-**A granular permission grant attached to a Member at an Org-node — e.g. Editor, Recruiter, Announcer.**
+**A granular permission grant attached to a Member at a Scope — e.g. Editor, Recruiter, Announcer.**
 
 Flags are narrower than functional Roles: a Member can be a Recruiter for Branch X without being an Admin.
 
 **What it is NOT:** a Functional role (Admin, Finance — broader). Not a Position (which is publicly visible).
 
-**In code:** `core.permission_flags` (member_id, flag, org_node_id).
+**In code:** `core.permission_flags` (member_id, flag, scope_id).
 
 ### Position
 
-**An elected or appointed role inside an Org-node — President, Vice President, Secretary, Treasurer, Financial Secretary, PRO, etc.**
+**An elected or appointed role inside a Scope — President, Vice President, Secretary, Treasurer, Financial Secretary, PRO, etc.**
 
 A Position confers a bundle of Permissions plus a visible badge on the Member's profile. Positions have terms and expire.
 
 **What it is NOT:** a Permission flag (Positions are publicly visible; flags are quieter grants). Not a functional Role (which is broader and not tied to elected office).
 
-**In code:** `core.positions` (member_id, position_type, org_node_id, valid_from, valid_to).
+**In code:** `core.positions` (member_id, position_type, scope_id, valid_from, valid_to).
 
 ---
 
@@ -370,7 +370,7 @@ A Position confers a bundle of Permissions plus a visible badge on the Member's 
 
 **A document issued to a Member acknowledging a Payment.**
 
-Receipts cite the Payment, the Obligations fulfilled, the date, and the issuing Org-node.
+Receipts cite the Payment, the Obligations fulfilled, the date, and the issuing Scope.
 
 **What it is NOT:** a Payment (which is the financial fact). Not a Ledger entry (which is the internal accounting record).
 
@@ -390,7 +390,7 @@ Jobs posted by a Recruiter go through an approval step before publishing.
 
 **The thing a Permission acts on — a Member, a Charge, a Forum post, a Branch, etc.**
 
-The policy module evaluates `(action, resource)` pairs. Resources are typed and scoped to Org-nodes.
+The policy module evaluates `(action, resource)` pairs. Resources are typed and scoped to Scopes.
 
 **What it is NOT:** a generic "anything." Resources are explicit types known to the policy module.
 
@@ -400,11 +400,11 @@ The policy module evaluates `(action, resource)` pairs. Resources are typed and 
 
 **A broad named permission group, currently Admin or Finance.**
 
-A Functional role grants its bundle of Permissions at a specific Org-node (and everything under it, unless autonomy intervenes).
+A Functional role grants its bundle of Permissions at a specific Scope (and everything under it, unless autonomy intervenes).
 
 **What it is NOT:** a Permission flag (narrower) or a Position (visible badge).
 
-**In code:** `core.role_grants` (member_id, role, org_node_id).
+**In code:** `core.role_grants` (member_id, role, scope_id).
 
 ---
 
@@ -418,7 +418,7 @@ A Member may belong to multiple Sectors regardless of their Branch / Chapter / B
 
 **What it is NOT:** a House or Batch (those are cohort-based, nested in Chapters / Batches).
 
-**In code:** `core.org_nodes` row with `node_type = 'sector'`. Membership in a Sector is just another `core.memberships` row.
+**In code:** `core.scopes` row with `scope_type = 'sector'`. Membership in a Sector is just another `core.memberships` row.
 
 ### Server Action
 
@@ -466,7 +466,7 @@ A transfer ends the old Membership and opens a new one, preserving the Status hi
 
 ### Treasury
 
-**An Org-node's running balance and inflow / outflow summary.**
+**A Scope's running balance and inflow / outflow summary.**
 
 The Treasury aggregates Ledger entries: total Income, total Expenses, current Balance, by period.
 

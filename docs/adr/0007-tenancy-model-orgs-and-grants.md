@@ -28,51 +28,54 @@ Mainstream
 - **House** — sub-cohort within a Batch.
 - **Sector** — functional grouping (cross-cutting; may not always fit in the strict tree).
 
-Each node is a row in `core.org_nodes` with a `node_type` and a `parent_id`. Some node types carry an **autonomy switch** (per the roadmap) — when on, the node manages its own membership / finance independently of its parent.
+Each node is a row in **`core.scopes`** with a `scope_type` and a `parent_scope_id`. Some scope types carry an **autonomy switch** (per the roadmap) — when on, the scope manages its own membership / finance independently of its parent.
+
+> _Naming note:_ this ADR previously called the table `core.org_nodes` (`node_type`). The Phase 0 planning session locked the names to `core.scopes` / `scope_type` (matching the Phase 0 spec §7) so the table name reads naturally with the policy module's "scope-aware permission check" language. The domain terms (Branch, Chapter, etc.) and the conceptual model are unchanged.
 
 ### Membership
 
-- **Members** belong to one or more org nodes (`core.memberships`). A member is typically in one Branch but may sit in multiple Sectors.
+- **Members** belong to one or more scopes (`core.memberships`). A member is typically in one Branch but may sit in multiple Sectors.
 - **Membership lifecycle:** create → invite → claim → active / passive / transfer / exit (per the roadmap's Member Engine).
 - **Status history** is append-only in `core.membership_status_history`.
 
-### Roles, flags, positions — scoped to nodes
+### Roles, flags, positions — scoped to scopes
 
 Three orthogonal kinds of "authority":
 
-- **Functional roles** (Admin, Finance) — granted to a member at a node; they govern the node and everything under it (unless the child has the autonomy switch on).
-- **Permission flags** (Editor, Recruiter, Announcer) — granular grants attached to a member at a node.
+- **Functional roles** (Admin, Finance) — granted to a member at a scope; they govern the scope and everything under it (unless the child has the autonomy switch on).
+- **Permission flags** (Editor, Recruiter, Announcer) — granular grants attached to a member at a scope.
 - **Position badges** (President, Vice President, Secretary, Treasurer, Financial Secretary, PRO, etc.) — represent elected / appointed positions; they confer permission bundles plus appear in the UI.
 
-All three carry a **scope**: `(node_type, node_id)`. Resolution at request time:
+All three carry a **scope reference**: `(scope_type, scope_id)`. Resolution at request time:
 
 ```
 effective_permissions(member) =
   union of (
-    permissions implied by functional roles at any ancestor node (clipped by autonomy),
-    permissions of permission flags at any ancestor node,
+    permissions implied by functional roles at any ancestor scope (clipped by autonomy),
+    permissions of permission flags at any ancestor scope,
     permissions of position badges currently active
   )
-in_scope_nodes(member) = the set of nodes covered by those grants
+in_scope_set(member) = the set of scopes covered by those grants
 ```
 
 The policy module ([ADR-0006](0006-casl-for-authorization.md)) and Postgres RLS both consume this resolution.
 
 ### Audit
 
-Every grant/revoke is audited (`core.role_history`, `core.position_history`). Expiration is supported on flags and positions.
+Every grant/revoke is audited centrally (`audit.audit_entries` per spec §11) AND in per-entity history tables (`core.role_history`, `core.position_history`) for queryable timelines. The two are populated together by the security-definer helper that performs the change. Expiration is supported on flags and positions.
 
 ## Consequences
 
 - One model handles every authority pattern in the roadmap without special cases.
-- The hierarchy is reflected at the database level; queries to "everything under Branch X" are straightforward.
-- Adding a new node type (e.g. a sub-sector later) is one new `node_type` value, not a schema change.
-- Autonomy switch is a per-node opt-out; default is "inherit from parent."
-- Exact table shapes are finalized in Phase 1 (Core Domain) — this ADR locks the conceptual model, not the columns.
+- The hierarchy is reflected at the database level; queries to "everything under Branch X" are straightforward via recursive CTEs over `parent_scope_id`.
+- Adding a new scope type (e.g. a sub-sector later) is one new `scope_type` value, not a schema change.
+- Autonomy switch is a per-scope opt-out; default is "inherit from parent."
+- Exact table shapes are finalized in E2 (Phase 0 — the `core.scopes` + `core.scope_capabilities` + `core.profiles` migration) and E3 (the RBAC tables) — this ADR locks the conceptual model.
 
 ## Alternatives considered
 
 - **Flat `user.role` column** — rejected: can't express role-at-Branch-X-but-not-Branch-Y.
 - **Per-tenant schemas** — rejected: there's one tenant (Mainstream); the tree is org structure, not isolation. And see [ADR-0003](0003-schema-per-domain-single-postgres.md).
-- **Separate hierarchy table per type** (Branches, Chapters, Batches as different tables) — rejected: makes "fetch this node's ancestors / descendants" a polymorphic mess. A single `org_nodes` table with a `node_type` discriminator and a `parent_id` keeps recursive CTEs simple.
-- **Materialized closure table for the hierarchy** — considered: useful at scale; deferred. Recursive CTEs over `parent_id` are fast enough at Shesa's expected size.
+- **Separate hierarchy table per type** (Branches, Chapters, Batches as different tables) — rejected: makes "fetch this node's ancestors / descendants" a polymorphic mess. A single `core.scopes` table with a `scope_type` discriminator and a `parent_scope_id` keeps recursive CTEs simple.
+- **Materialized closure table for the hierarchy** — considered: useful at scale; deferred. Recursive CTEs over `parent_scope_id` are fast enough at Shesa's expected size.
+- **`org_nodes` / `node_type` naming** — used in earlier drafts; renamed in Phase 0 planning to `scopes` / `scope_type` so policy code reads cleanly (`policy.can(member, action, { scopeId })`) instead of mixing two vocabularies.
