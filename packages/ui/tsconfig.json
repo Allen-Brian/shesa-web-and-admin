@@ -1,0 +1,5 @@
+{
+  "extends": "@shesa/tsconfig/nextjs",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "tailwind.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,47 @@
+{
+  "name": "@shesa/supabase",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Supabase client factories (browser / server / service-role), shared cookie config, generated DB types.",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./browser": {
+      "types": "./src/browser.ts",
+      "import": "./src/browser.ts"
+    },
+    "./server": {
+      "types": "./src/server.ts",
+      "import": "./src/server.ts"
+    },
+    "./middleware": {
+      "types": "./src/middleware.ts",
+      "import": "./src/middleware.ts"
+    },
+    "./service-role": {
+      "types": "./src/service-role.ts",
+      "import": "./src/service-role.ts"
+    },
+    "./types": {
+      "types": "./src/types.gen.ts",
+      "import": "./src/types.gen.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@shesa/config": "workspace:*",
+    "@shesa/types": "workspace:*",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.10"
+  },
+  "devDependencies": {
+    "@shesa/tsconfig": "workspace:*",
+    "typescript": "^5.7.2"
+  }
+}
