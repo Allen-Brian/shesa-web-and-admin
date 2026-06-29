@@ -1,0 +1,40 @@
+# Caddy reverse proxy — LOCAL DEV
+#
+# Routes *.shesa.test (resolved via /etc/hosts to 127.0.0.1) to the
+# corresponding app container in docker-compose.dev.yml.
+#
+# Each app block is added in E9 (auth) and E10 (web/exco/finance/connect)
+# as those apps are scaffolded. Today this file holds only the global
+# block and the placeholder for the auth app.
+#
+# HTTP only (no TLS) — local dev cookies are set without `Secure` so the
+# browser accepts them on http://*.shesa.test. The prod Caddyfile uses
+# HTTPS with Let's Encrypt — see Caddyfile.prod.
+
+{
+	# Disable auto-HTTPS for *.shesa.test — local HTTP is intentional.
+	auto_https off
+	admin off
+}
+
+# Placeholder — replaced when apps/auth lands in E9.
+#
+# auth.shesa.test:80 {
+# 	reverse_proxy auth:3001
+# }
+#
+# web.shesa.test:80 {
+# 	reverse_proxy web:3000
+# }
+#
+# exco.shesa.test:80 {
+# 	reverse_proxy exco:3002
+# }
+#
+# finance.shesa.test:80 {
+# 	reverse_proxy finance:3003
+# }
+#
+# connect.shesa.test:80 {
+# 	reverse_proxy connect:3004
+# }

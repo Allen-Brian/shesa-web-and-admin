@@ -1,0 +1,38 @@
+# Caddy reverse proxy — STAGING & PRODUCTION
+#
+# Sits behind Cloudflare (Full Strict mode). Caddy gets its own
+# Let's Encrypt cert via ACME for the apex domain + all subdomains, so
+# both TLS legs are real certs (not Cloudflare origin certs). This keeps
+# Caddy portable — moving off Cloudflare doesn't require regenerating
+# certs.
+#
+# Each app block is added in E10 / E14 as the production stack is wired.
+# This file holds the global config + the apex domain configuration
+# pattern; app-specific blocks are added per the schedule:
+#
+#   E9   → auth.shesa.org / auth.staging.shesa.org
+#   E10  → web/exco/finance/connect.{,staging.}shesa.org
+#   E14  → final stack assembly + secrets wiring
+
+{
+	# Real email here when Caddy gets its own — used by Let's Encrypt for
+	# expiry notifications. Override per env via a Docker Swarm secret.
+	email {$LETSENCRYPT_EMAIL}
+
+	# Trust Cloudflare's X-Forwarded-For so logs show real client IPs,
+	# not Cloudflare edge IPs. The full Cloudflare IP list is published
+	# at https://www.cloudflare.com/ips/ and rotates infrequently.
+	servers {
+		trusted_proxies cloudflare
+	}
+}
+
+# Placeholder app blocks — uncommented as each app lands.
+#
+# auth.shesa.org {
+# 	reverse_proxy auth:3001
+# 	encode gzip zstd
+# 	header X-Frame-Options "SAMEORIGIN"
+# 	header X-Content-Type-Options "nosniff"
+# 	header Referrer-Policy "strict-origin-when-cross-origin"
+# }

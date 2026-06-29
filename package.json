@@ -16,6 +16,22 @@
     "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,yaml,yml,scss,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,yaml,yml,scss,css}\"",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:status": "supabase status",
+    "db:reset": "supabase db reset",
+    "db:migrate:new": "supabase migration new",
+    "db:migrate": "supabase migration up",
+    "db:diff": "supabase db diff",
+    "db:diff:remote": "supabase db diff --linked",
+    "db:lint": "supabase db lint",
+    "db:types": "supabase gen types typescript --local --schema public --schema core > packages/supabase/src/types.gen.ts",
+    "db:types:remote": "supabase gen types typescript --linked --schema public --schema core > packages/supabase/src/types.gen.ts",
+    "db:link": "node scripts/db-link.mjs",
+    "db:push": "node scripts/db-push.mjs",
+    "db:pull": "supabase db pull --linked",
+    "env:init": "node scripts/env-init.mjs",
+    "env:check": "node scripts/env-check.mjs",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -24,6 +40,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^15.2.11",
     "prettier": "^3.4.2",
+    "supabase": "^2.108.0",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
   }
