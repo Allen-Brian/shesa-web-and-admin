@@ -9,20 +9,28 @@ Locked decisions for hosting, deployment, and operations. **Managed everything, 
 
 ## 1. Stack summary
 
-| Layer                       | Choice                                                     | Region                        |
-| --------------------------- | ---------------------------------------------------------- | ----------------------------- |
-| Database                    | Supabase (managed Postgres)                                | Frankfurt `eu-central-1`      |
-| Authentication              | Supabase Auth                                              | Frankfurt                     |
-| Object storage / media      | Supabase Storage                                           | Frankfurt                     |
-| Edge Functions              | Supabase Edge Functions (Deno)                             | Global (Supabase-managed)     |
-| Compute (Next.js apps)      | Contabo VPS + Docker Swarm                                 | Germany (Frankfurt-area)      |
-| Background queue (later)    | Self-hosted Redis on the Contabo VPS — see [ADR-0018](../adr/0018-self-hosted-redis-on-api-droplet.md) | Germany |
-| CDN / DNS / TLS edge / DDoS | Cloudflare                                                 | Global (African edge)         |
-| Source / CI                 | GitHub + GitHub Actions + GitHub Container Registry         | —                             |
-| Errors                      | Sentry (frontend + server)                                 | —                             |
-| Logs / uptime               | One free log tier + uptime monitor                         | —                             |
+| Layer                       | Choice                                                                                                 | Region                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------- |
+| Database                    | Supabase (managed Postgres)                                                                            | Frankfurt `eu-central-1`  |
+| Authentication              | Supabase Auth                                                                                          | Frankfurt                 |
+| Object storage / media      | Supabase Storage                                                                                       | Frankfurt                 |
+| Edge Functions              | Supabase Edge Functions (Deno)                                                                         | Global (Supabase-managed) |
+| Compute (Next.js apps)      | Contabo VPS + Docker Swarm                                                                             | Germany (Frankfurt-area)  |
+| Background queue (later)    | Self-hosted Redis on the Contabo VPS — see [ADR-0018](../adr/0018-self-hosted-redis-on-api-droplet.md) | Germany                   |
+| CDN / DNS / TLS edge / DDoS | Cloudflare                                                                                             | Global (African edge)     |
+| Source / CI                 | GitHub + GitHub Actions + GitHub Container Registry                                                    | —                         |
+| Errors                      | Sentry (frontend + server)                                                                             | —                         |
+| Logs / uptime               | One free log tier + uptime monitor                                                                     | —                         |
 
 **Co-location rule:** Supabase + the Contabo VPS both in the Frankfurt area so the Server Action → Postgres hop is local. Cross-region placement is forbidden. See [ADR-0016](../adr/0016-everything-in-frankfurt.md).
+
+---
+
+## 1.1 Note — the Phase 0 spec's Vercel mention is overridden
+
+The Phase 0 spec (`docs/phase-0/spec.md` §2.10) mentions deploying frontend apps to Vercel. **That sentence is overridden.** Shesa frontends ship as Docker images to the Contabo VPS via Docker Swarm per [ADR-0026](../adr/0026-docker-swarm-for-staging-prod.md). The deployment table above is authoritative; any later spec / doc / PR that re-introduces Vercel as the frontend host should cite a _new_ superseding ADR before being merged.
+
+The decision rationale (taken during the Phase 0 planning session): keeping all compute on one Contabo VPS preserves a single billing line, a single set of Docker Swarm secrets, and the latency story for the future Tier B worker container (see [ADR-0032](../adr/0032-hybrid-background-jobs.md)) — splitting frontends onto Vercel would fragment all three for limited upside given Cloudflare already handles edge caching for static assets.
 
 ---
 
@@ -38,11 +46,11 @@ Locked decisions for hosting, deployment, and operations. **Managed everything, 
 
 ## 3. Environments
 
-| Env     | Database                          | Compute                          | Notes                                              |
-| ------- | --------------------------------- | -------------------------------- | -------------------------------------------------- |
-| local   | Supabase CLI (Docker)             | `pnpm dev` for each app          | Free; mirrors prod schema                          |
-| staging | Supabase project (free tier)      | Staging Contabo VPS (small)      | Free Supabase + cheapest Contabo plan              |
-| prod    | Supabase Pro (when justified)     | Prod Contabo VPS (right-sized)   | Pro for daily backups, no pausing, PITR add-on    |
+| Env     | Database                      | Compute                        | Notes                                          |
+| ------- | ----------------------------- | ------------------------------ | ---------------------------------------------- |
+| local   | Supabase CLI (Docker)         | `pnpm dev` for each app        | Free; mirrors prod schema                      |
+| staging | Supabase project (free tier)  | Staging Contabo VPS (small)    | Free Supabase + cheapest Contabo plan          |
+| prod    | Supabase Pro (when justified) | Prod Contabo VPS (right-sized) | Pro for daily backups, no pausing, PITR add-on |
 
 Local: Supabase CLI brings up a full Supabase stack (Postgres, GoTrue, Storage, Realtime, Edge Function runtime) in Docker. Apps run with `pnpm dev`.
 
@@ -104,14 +112,14 @@ See [ADR-0032](../adr/0032-hybrid-background-jobs.md).
 
 ## 8. Observability
 
-| Concern               | Tool                                            | Cost      |
-| --------------------- | ----------------------------------------------- | --------- |
-| Errors (FE + server)  | Sentry                                          | Free tier |
-| Logs                  | One free log tier (Better Stack / Axiom)        | Free tier |
-| Uptime                | Uptime monitor pinging `/api/health` per app    | Free tier |
-| Health checks         | `/api/health` on each app                       | —         |
-| DB performance / logs | Supabase dashboard                              | Included  |
-| Host metrics          | Contabo VPS dashboards + alerts                 | Included  |
+| Concern               | Tool                                         | Cost      |
+| --------------------- | -------------------------------------------- | --------- |
+| Errors (FE + server)  | Sentry                                       | Free tier |
+| Logs                  | One free log tier (Better Stack / Axiom)     | Free tier |
+| Uptime                | Uptime monitor pinging `/api/health` per app | Free tier |
+| Health checks         | `/api/health` on each app                    | —         |
+| DB performance / logs | Supabase dashboard                           | Included  |
+| Host metrics          | Contabo VPS dashboards + alerts              | Included  |
 
 - Propagate `traceId` (UUID) from the client through Server Actions / Edge Functions into logs and Sentry for end-to-end tracing.
 - Full metrics / distributed tracing (Prometheus / Grafana / OpenTelemetry) deferred until traffic justifies the cost and ops.
@@ -140,14 +148,14 @@ See [ADR-0032](../adr/0032-hybrid-background-jobs.md).
 
 ## 11. Approximate monthly cost (early production)
 
-| Item                                    | Approx USD / mo                   |
-| --------------------------------------- | --------------------------------- |
-| Supabase Pro (prod)                     | $25–35 (later — free at launch)   |
-| Contabo VPS prod + staging              | $10–20 (cheapest plans cover it)  |
-| Cloudflare                              | $0                                |
-| Sentry / logs / uptime                  | $0 (free tiers)                   |
-| Object storage (Supabase Storage)       | ~$0–5                             |
-| **Total**                               | **~$10–60 / mo (~6k–35k FCFA)**   |
+| Item                              | Approx USD / mo                  |
+| --------------------------------- | -------------------------------- |
+| Supabase Pro (prod)               | $25–35 (later — free at launch)  |
+| Contabo VPS prod + staging        | $10–20 (cheapest plans cover it) |
+| Cloudflare                        | $0                               |
+| Sentry / logs / uptime            | $0 (free tiers)                  |
+| Object storage (Supabase Storage) | ~$0–5                            |
+| **Total**                         | **~$10–60 / mo (~6k–35k FCFA)**  |
 
 Well within the Cameroonian early-stage budget envelope.
 

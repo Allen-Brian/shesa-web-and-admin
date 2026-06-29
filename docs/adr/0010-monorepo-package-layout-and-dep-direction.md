@@ -14,21 +14,25 @@ Define a **strict package map** and enforce a **one-way downward** import direct
 
 ### Apps
 
-| App           | Stack           | Purpose                                                         |
-| ------------- | --------------- | --------------------------------------------------------------- |
-| `apps/web`    | Next.js         | Public website + CMS                                            |
-| `apps/exco`   | React or Next   | Governance dashboard for executive committees                   |
-| `apps/finance`| React or Next   | Finance application (charges, payments, treasury, reports)      |
-| `apps/connect`| React or Next   | Forums, jobs, achievements, live sessions, polls                |
+| App            | Stack         | Purpose                                                                                                                                                                                                       |
+| -------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`     | Next.js       | Public website + CMS                                                                                                                                                                                          |
+| `apps/auth`    | Next.js       | Central authentication (login / logout / reset / invite / OAuth callback) at `auth.shesa.org`. Writes the shared Supabase session cookie scoped to the apex domain so the other apps' middleware can read it. |
+| `apps/exco`    | React or Next | Governance dashboard for executive committees                                                                                                                                                                 |
+| `apps/finance` | React or Next | Finance application (charges, payments, treasury, reports)                                                                                                                                                    |
+| `apps/connect` | React or Next | Forums, jobs, achievements, live sessions, polls                                                                                                                                                              |
 
 ### Packages
 
-| Package              | Owns                                                                              | Must NOT contain                                |
-| -------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `packages/ui`        | shadcn/ui components (copy-pasted), Tailwind config, shared design tokens         | Domain logic, Supabase imports, app-specific UX |
-| `packages/types`     | Cross-package shared domain types (TypeScript)                                    | Runtime code                                    |
-| `packages/domain`    | Zod schemas, domain errors, business-rule helpers                                 | UI, Supabase client construction, app code      |
-| `packages/supabase`  | Supabase client factories, generated DB types, RLS helper utilities               | UI, domain logic                                |
+| Package                  | Owns                                                                                                                                    | Must NOT contain                                          |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `packages/ui`            | shadcn/ui components (copy-pasted), Tailwind config, shared design tokens                                                               | Domain logic, Supabase imports, app-specific UX           |
+| `packages/types`         | Cross-package shared domain types (TypeScript)                                                                                          | Runtime code                                              |
+| `packages/domain`        | Zod schemas, domain errors, business-rule helpers, policy module                                                                        | UI, Supabase client construction, app code                |
+| `packages/supabase`      | Supabase client factories (browser / server / service-role), generated DB types, cookie config for cross-subdomain session, RLS helpers | UI, domain logic                                          |
+| `packages/config`        | Runtime config — Zod-validated env schema, public URL helpers, feature-flag plumbing                                                    | Build-only configs (those live in tooling packages below) |
+| `packages/eslint-config` | Shared ESLint flat config (base + Next preset)                                                                                          | Runtime code                                              |
+| `packages/tsconfig`      | Shared `tsconfig` bases (base, Next, Node)                                                                                              | Runtime code                                              |
 
 ### Hard rules
 

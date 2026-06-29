@@ -33,14 +33,14 @@ How we name branches and write commits. Enforced by tooling ([§6](#6-enforcemen
 - `<scope>` = the package or domain (same list as commit scopes, [§3](#3-commit-messages--conventional-commits)).
 - Reference the GitHub issue in the PR description (GitHub links it automatically). If you prefer the id in the branch: `<type>/<issue-id>-<scope>-<desc>`.
 
-| Branch                                | Means                                    |
-| ------------------------------------- | ---------------------------------------- |
-| `feat/finance-charge-create`          | New charge-create feature in finance app |
-| `fix/ui-button-disabled-state`        | Bug fix in the shared Button             |
-| `refactor/core-membership-status`     | Refactor membership status enum          |
-| `chore/ci-turbo-cache`                | CI tweak                                  |
-| `docs/adr-tenancy-model`              | An ADR                                    |
-| `hotfix/payment-double-record`        | Urgent fix off `main`                    |
+| Branch                            | Means                                    |
+| --------------------------------- | ---------------------------------------- |
+| `feat/finance-charge-create`      | New charge-create feature in finance app |
+| `fix/ui-button-disabled-state`    | Bug fix in the shared Button             |
+| `refactor/core-membership-status` | Refactor membership status enum          |
+| `chore/ci-turbo-cache`            | CI tweak                                 |
+| `docs/adr-tenancy-model`          | An ADR                                   |
+| `hotfix/payment-double-record`    | Urgent fix off `main`                    |
 
 Branch types mirror the commit types: `feat`, `fix`, `hotfix`, `chore`, `refactor`, `docs`, `test`, `perf`, `ci`, `build`.
 
@@ -73,21 +73,23 @@ Keep your branch current by **rebasing your own feature branch onto `develop`** 
 
 **Apps:**
 
-- `web`, `exco`, `finance`, `connect`
+- `web`, `auth`, `exco`, `finance`, `connect`
 
 **Domains** (matching the schema split):
 
-- `core`, `finance-domain`, `cms`, `connect-domain`
+- `core`, `finance-domain`, `cms`, `connect-domain`, `audit`, `notifications`
 
-(The `-domain` suffix on `finance-domain` / `connect-domain` disambiguates from the `finance` / `connect` apps.)
+(The `-domain` suffix on `finance-domain` / `connect-domain` disambiguates from the `finance` / `connect` apps. `audit` and `notifications` schemas have no app counterpart so they don't need the suffix.)
 
 **Shared packages:**
 
-- `ui`, `types`, `domain`, `supabase`
+- `ui`, `types`, `domain`, `supabase`, `config`, `eslint-config`, `tsconfig`
+
+(`config` is the runtime config package — env validation, public URL helpers. Use the `infra` scope below for build-tool config edits like turbo.json or root tsconfig.)
 
 **Infra / meta:**
 
-- `config`, `infra`, `ci`, `docs`, `deps`
+- `infra`, `ci`, `docs`, `deps`
 
 **Repo-wide catch-all:**
 
@@ -175,18 +177,40 @@ GitHub repo settings to switch on: squash merge as default, require PR review, r
 module.exports = {
   extends: ['@commitlint/config-conventional'],
   rules: {
-    'scope-enum': [2, 'always', [
-      // apps
-      'web', 'exco', 'finance', 'connect',
-      // domains (schema-aligned)
-      'core', 'finance-domain', 'cms', 'connect-domain',
-      // shared packages
-      'ui', 'types', 'domain', 'supabase',
-      // infra / meta
-      'config', 'infra', 'ci', 'docs', 'deps',
-      // repo-wide catch-all
-      'repo',
-    ]],
+    'scope-enum': [
+      2,
+      'always',
+      [
+        // apps
+        'web',
+        'auth',
+        'exco',
+        'finance',
+        'connect',
+        // domains (schema-aligned)
+        'core',
+        'finance-domain',
+        'cms',
+        'connect-domain',
+        'audit',
+        'notifications',
+        // shared packages
+        'ui',
+        'types',
+        'domain',
+        'supabase',
+        'config',
+        'eslint-config',
+        'tsconfig',
+        // infra / meta
+        'infra',
+        'ci',
+        'docs',
+        'deps',
+        // repo-wide catch-all
+        'repo',
+      ],
+    ],
     'scope-empty': [2, 'never'],
     'subject-case': [2, 'always', 'lower-case'],
     'header-max-length': [2, 'always', 72],

@@ -13,23 +13,32 @@ Apps and packages each own exactly one concern (SRP at the package level).
 
 ### Apps
 
-| App           | Stack            | Purpose                                                              |
-| ------------- | ---------------- | -------------------------------------------------------------------- |
-| `apps/web`    | Next.js          | Public website + CMS                                                 |
-| `apps/exco`   | React or Next.js | Governance dashboard for executive committees                        |
-| `apps/finance`| React or Next.js | Finance application (charges, payments, treasury, reports, exceptions)|
-| `apps/connect`| React or Next.js | Forums, jobs, achievements, live sessions, polls                     |
+| App            | Stack            | Purpose                                                                                                                                                                                                       |
+| -------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`     | Next.js          | Public website + CMS                                                                                                                                                                                          |
+| `apps/auth`    | Next.js          | Central authentication at `auth.shesa.org` — login / logout / reset / invite / OAuth callback. Writes the shared Supabase session cookie scoped to the apex domain so the other apps' middleware can read it. |
+| `apps/exco`    | React or Next.js | Governance dashboard for executive committees                                                                                                                                                                 |
+| `apps/finance` | React or Next.js | Finance application (charges, payments, treasury, reports, exceptions)                                                                                                                                        |
+| `apps/connect` | React or Next.js | Forums, jobs, achievements, live sessions, polls                                                                                                                                                              |
 
-Stack per app is the call of whoever scaffolds it — Next.js when SEO / SSR / Server Actions help; plain React (Vite) when a single-page dashboard is enough.
+Stack per app is the call of whoever scaffolds it — Next.js when SEO / SSR / Server Actions help; plain React (Vite) when a single-page dashboard is enough. `apps/auth` is Next.js because cookie writes require Server Actions / Route Handlers.
 
-### Packages
+### Packages — runtime
 
-| Package              | Owns                                                                                          | Must NOT contain                                                |
-| -------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `packages/ui`        | shadcn/ui components (copy-pasted in), Tailwind config, shared CSS variables, `cn()` helper   | Domain logic, Supabase imports, app-specific UX                 |
-| `packages/types`     | Cross-package shared domain types (TypeScript)                                                | Runtime code                                                    |
-| `packages/domain`    | Zod schemas, domain errors, business-rule helpers, policy module, generic utils & validators  | UI, Supabase client construction, app-specific code             |
-| `packages/supabase`  | Supabase client factories (browser, server, service-role), generated DB types, RLS helpers    | UI, domain logic                                                |
+| Package             | Owns                                                                                                                            | Must NOT contain                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `packages/ui`       | shadcn/ui components (copy-pasted in), Tailwind config, shared CSS variables, `cn()` helper                                     | Domain logic, Supabase imports, app-specific UX                   |
+| `packages/types`    | Cross-package shared domain types (TypeScript)                                                                                  | Runtime code                                                      |
+| `packages/domain`   | Zod schemas, domain errors, business-rule helpers, policy module, generic utils & validators                                    | UI, Supabase client construction, app-specific code               |
+| `packages/supabase` | Supabase client factories (browser, server, service-role), generated DB types, cookie config scoped to apex domain, RLS helpers | UI, domain logic                                                  |
+| `packages/config`   | Runtime config — Zod-validated env schema, public URL helpers, feature flags                                                    | UI, build-only configs (those live in the tooling packages below) |
+
+### Packages — tooling (build-time only, not in the runtime dep graph)
+
+| Package                  | Owns                                                                                      |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| `packages/eslint-config` | Shared ESLint flat config (base preset + Next preset). Consumed via `extends` / `import`. |
+| `packages/tsconfig`      | Shared `tsconfig` bases (base, Next, Node). Consumed via `extends`.                       |
 
 ### Where does a type live?
 
@@ -46,20 +55,25 @@ Imports flow **one way only — downward**. Enforced by `dependency-cruiser` in 
 
 ```mermaid
 flowchart TD
-  apps["apps/* (web, exco, finance, connect)"]
+  apps["apps/* (web, auth, exco, finance, connect)"]
   ui["packages/ui"]
   supa["packages/supabase"]
   domain["packages/domain"]
+  config["packages/config"]
   types["packages/types"]
 
   apps --> ui
   apps --> supa
   apps --> domain
+  apps --> config
 
   ui --> types
   supa --> types
   domain --> types
+  config --> types
 ```
+
+Tooling packages (`packages/eslint-config`, `packages/tsconfig`) are intentionally omitted from this runtime graph — they're consumed at build time via `extends` / preset references, not via JS imports, so `dependency-cruiser` doesn't gate them.
 
 Hard rules:
 
@@ -84,11 +98,11 @@ We use **shadcn/ui's copy-paste model** — components live in `packages/ui/src/
 
 ## 4. Atoms vs molecules vs app components
 
-| Tier             | Lives in                | Knows about                                | Examples                                       |
-| ---------------- | ----------------------- | ------------------------------------------ | ---------------------------------------------- |
-| Atom / primitive | `packages/ui/components`| Nothing but its own props                  | Button, Input, Badge, Avatar (shadcn-shipped)  |
-| Molecule         | `packages/ui/components`| Only atoms + light internal state          | Form, Dialog, Dropdown, Card, Tabs, DataTable  |
-| App component    | the **app** (`apps/*`)  | Domain data, Supabase, routing             | MemberCard, ChargeRow, BranchSwitcher          |
+| Tier             | Lives in                 | Knows about                       | Examples                                      |
+| ---------------- | ------------------------ | --------------------------------- | --------------------------------------------- |
+| Atom / primitive | `packages/ui/components` | Nothing but its own props         | Button, Input, Badge, Avatar (shadcn-shipped) |
+| Molecule         | `packages/ui/components` | Only atoms + light internal state | Form, Dialog, Dropdown, Card, Tabs, DataTable |
+| App component    | the **app** (`apps/*`)   | Domain data, Supabase, routing    | MemberCard, ChargeRow, BranchSwitcher         |
 
 Test for "does this belong in `packages/ui`?": _Could every Shesa app use it without knowing what a Member or a Charge is?_ If no — it's an app component.
 
@@ -96,19 +110,19 @@ Test for "does this belong in `packages/ui`?": _Could every Shesa app use it wit
 
 ## 5. Naming
 
-| Thing            | Convention                                  | Example                             |
-| ---------------- | ------------------------------------------- | ----------------------------------- |
-| React component  | `PascalCase.tsx`, default export OR named   | `MemberCard.tsx`                    |
-| Hook             | `useThing.ts`, camelCase                    | `useCurrentMember.ts`               |
-| Server Action    | `verbResource.ts` or `actions.ts`           | `createCharge.ts`                   |
-| Util             | camelCase, named export, pure               | `formatCurrency.ts`                 |
-| Type file        | camelCase or PascalCase, grouped by domain  | `member.ts`                         |
-| Folder           | kebab-case                                  | `member-profile/`                   |
-| Package          | `@shesa/kebab-case`                         | `@shesa/ui`                         |
-| Boolean prop     | `is` / `has` / `can` / `should`             | `isLoading`, `canSubmit`            |
-| Interface / type | PascalCase, no `I` prefix                   | `Member`, not `IMember`             |
-| Constant         | SCREAMING_SNAKE_CASE                        | `MAX_BULK_IMPORT_ROWS`              |
-| CSS variable     | semantic, kebab-case                        | `--color-primary`, `--space-4`      |
+| Thing            | Convention                                 | Example                        |
+| ---------------- | ------------------------------------------ | ------------------------------ |
+| React component  | `PascalCase.tsx`, default export OR named  | `MemberCard.tsx`               |
+| Hook             | `useThing.ts`, camelCase                   | `useCurrentMember.ts`          |
+| Server Action    | `verbResource.ts` or `actions.ts`          | `createCharge.ts`              |
+| Util             | camelCase, named export, pure              | `formatCurrency.ts`            |
+| Type file        | camelCase or PascalCase, grouped by domain | `member.ts`                    |
+| Folder           | kebab-case                                 | `member-profile/`              |
+| Package          | `@shesa/kebab-case`                        | `@shesa/ui`                    |
+| Boolean prop     | `is` / `has` / `can` / `should`            | `isLoading`, `canSubmit`       |
+| Interface / type | PascalCase, no `I` prefix                  | `Member`, not `IMember`        |
+| Constant         | SCREAMING_SNAKE_CASE                       | `MAX_BULK_IMPORT_ROWS`         |
+| CSS variable     | semantic, kebab-case                       | `--color-primary`, `--space-4` |
 
 ---
 
@@ -121,28 +135,28 @@ Test for "does this belong in `packages/ui`?": _Could every Shesa app use it wit
 
 DRY — single source of truth per concern:
 
-| Concern               | Single source                                                         |
-| --------------------- | --------------------------------------------------------------------- |
-| DB row shapes         | `packages/supabase/types.gen.ts` (regenerated after migrations)       |
-| API contracts         | Zod schemas in `packages/domain/validators/`                          |
-| Domain types          | `packages/types/`                                                     |
-| UI components         | `packages/ui/`                                                        |
-| Currency / date format| `packages/domain/utils/`                                              |
-| Permission checks     | `packages/domain/policy/`                                             |
+| Concern                | Single source                                                   |
+| ---------------------- | --------------------------------------------------------------- |
+| DB row shapes          | `packages/supabase/types.gen.ts` (regenerated after migrations) |
+| API contracts          | Zod schemas in `packages/domain/validators/`                    |
+| Domain types           | `packages/types/`                                               |
+| UI components          | `packages/ui/`                                                  |
+| Currency / date format | `packages/domain/utils/`                                        |
+| Permission checks      | `packages/domain/policy/`                                       |
 
-**The senior caveat — don't over-DRY.** Three similar lines is cheaper than a premature abstraction. Rule of three: abstract on the *third* genuine repetition.
+**The senior caveat — don't over-DRY.** Three similar lines is cheaper than a premature abstraction. Rule of three: abstract on the _third_ genuine repetition.
 
 ---
 
 ## 7. Enforcement
 
-| Rule                                       | Enforced by                                                                  |
-| ------------------------------------------ | ---------------------------------------------------------------------------- |
-| Dependency direction (§2)                  | `dependency-cruiser` in CI — fails the build on illegal imports              |
-| `packages/ui` not importing supabase/domain| ESLint `no-restricted-imports` scoped to `packages/ui`                        |
-| Service-role key never in browser bundle   | ESLint `no-restricted-imports` on the service-role client export             |
-| Lint & format consistency                  | shared config + lint-staged + husky pre-commit + GitHub Actions              |
-| Type safety / no `any` drift               | `tsc --noEmit` in CI, TypeScript strict mode                                  |
-| Naming / structure                         | Code review checklist + this document linked in every PR template            |
+| Rule                                        | Enforced by                                                       |
+| ------------------------------------------- | ----------------------------------------------------------------- |
+| Dependency direction (§2)                   | `dependency-cruiser` in CI — fails the build on illegal imports   |
+| `packages/ui` not importing supabase/domain | ESLint `no-restricted-imports` scoped to `packages/ui`            |
+| Service-role key never in browser bundle    | ESLint `no-restricted-imports` on the service-role client export  |
+| Lint & format consistency                   | shared config + lint-staged + husky pre-commit + GitHub Actions   |
+| Type safety / no `any` drift                | `tsc --noEmit` in CI, TypeScript strict mode                      |
+| Naming / structure                          | Code review checklist + this document linked in every PR template |
 
 A rule with no automated check is a suggestion. Wire each row above into CI before the team grows past a handful of developers.
