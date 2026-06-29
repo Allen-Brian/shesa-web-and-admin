@@ -11,5 +11,6 @@ export * from './member-ref';
 export * from './scope';
 export * from './role-key';
 export * from './permission-key';
+export * from './permission-checker';
 export * from './audit-action';
 export * from './notification-channel';
