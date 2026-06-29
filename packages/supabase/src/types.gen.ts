@@ -7,6 +7,76 @@ export type Json =
   | Json[]
 
 export type Database = {
+  audit: {
+    Tables: {
+      audit_entries: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_schema: string
+          entity_table: string
+          id: string
+          ip_address: unknown
+          metadata: Json
+          scope_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_schema: string
+          entity_table: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json
+          scope_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_schema?: string
+          entity_table?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json
+          scope_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      log_event: {
+        Args: {
+          p_action: string
+          p_entity_id?: string
+          p_entity_schema: string
+          p_entity_table: string
+          p_ip_address?: unknown
+          p_metadata?: Json
+          p_scope_id?: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   core: {
     Tables: {
       permissions: {
@@ -110,6 +180,44 @@ export type Database = {
             columns: ["scope_id"]
             isOneToOne: false
             referencedRelation: "scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_history: {
+        Row: {
+          action: string
+          audit_entry_id: string | null
+          changed_at: string
+          changed_by: string | null
+          id: string
+          prior_snapshot: Json | null
+          role_assignment_id: string
+        }
+        Insert: {
+          action: string
+          audit_entry_id?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          prior_snapshot?: Json | null
+          role_assignment_id: string
+        }
+        Update: {
+          action?: string
+          audit_entry_id?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          prior_snapshot?: Json | null
+          role_assignment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_history_role_assignment_id_fkey"
+            columns: ["role_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "role_assignments"
             referencedColumns: ["id"]
           },
         ]
@@ -438,6 +546,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  audit: {
+    Enums: {},
+  },
   core: {
     Enums: {
       scope_type: [
