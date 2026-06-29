@@ -4,14 +4,14 @@ Step-by-step procedures for ops, deploys, and incident response. Written so you 
 
 ## Contents
 
-_(Populated as runbooks are written. The first ones will land alongside the Phase 0 infrastructure work.)_
+- **[local-dev-setup.md](local-dev-setup.md)** — fresh-machine to running stack: prereqs, `/etc/hosts`, first-time Supabase pull, daily workflow, troubleshooting. Run `pnpm dev:open` after `pnpm db:start` to open every live URL in your browser.
 
-Expected initial runbooks:
+Pending (added as their epic ships):
 
-- **deploy-to-staging.md** — pushing a Docker image to the staging Contabo VPS via Docker Swarm.
-- **deploy-to-production.md** — promoting a staging image to production.
-- **rollback.md** — reverting a bad deploy.
-- **supabase-migration.md** — applying a database migration safely.
+- **deploy-to-staging.md** — pushing a Docker image to the staging Contabo VPS via Docker Swarm. Lands with E14.
+- **deploy-to-production.md** — promoting a staging image to production. Lands with E14.
+- **rollback.md** — reverting a bad deploy. Lands with E14.
+- **supabase-migration.md** — applying a database migration safely against staging/prod. Lands with E13 (CI auto-apply).
 
 ## Writing a runbook
 
