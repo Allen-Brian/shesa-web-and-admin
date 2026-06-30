@@ -36,8 +36,11 @@ const serverEnvSchema = z.object({
   /** Resend API key for transactional email. Server-only. */
   RESEND_API_KEY: z.string().min(1),
 
-  /** Default `From:` address for outbound mail. */
-  EMAIL_FROM: z.string().email(),
+  /** Default `From:` address for outbound mail. Resend accepts both a
+   *  bare address (`dev@shesa.test`) and the SMTP-standard display-name
+   *  form (`Shesa Dev <dev@shesa.test>`), so `.email()` is too strict —
+   *  we just require non-empty and trust the provider's parser. */
+  EMAIL_FROM: z.string().min(1),
 
   /** SMS provider mode — Phase 0 uses the stub log adapter. */
   SMS_PROVIDER_MODE: z.enum(['stub', 'live']).default('stub'),

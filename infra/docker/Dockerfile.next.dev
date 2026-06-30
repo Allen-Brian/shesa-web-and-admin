@@ -20,22 +20,21 @@ FROM node:22-alpine
 # enable` is idempotent.
 RUN corepack enable
 
-# Non-root user. node:22-alpine already ships a `node` user (UID 1000),
-# so reuse it rather than fighting the GID-already-exists conflict that
-# `addgroup -g 1000 app` would cause. On macOS Docker Desktop UID/GID
-# are remapped transparently; on Linux CI it matches a typical dev UID.
+# Non-root would be nicer, but Docker creates anonymous volumes (the ones
+# we mount over /app/node_modules etc. to mask the host's macOS binaries)
+# as root:root with no inheritance, which would EACCES every `pnpm
+# install`. On macOS Docker Desktop the UID is remapped to the host user
+# at the bind-mount boundary, so running as root inside doesn't leak
+# root-owned files onto the host. For Linux CI a proper entrypoint with
+# `chown` would be the correct fix — but for local dev on Mac this is
+# both simpler and equivalent in practice.
 
-# pnpm's content-addressable store. Mounting it as a named volume in
-# compose means `pnpm install` after a `compose down` doesn't re-fetch
-# every package.
-#
-# Create /pnpm BEFORE the USER switch so the `node` user owns it — the
-# named volume mount inherits the dir's ownership on first attach, so
-# without this `pnpm install` (running as `node`) hits EACCES.
+# pnpm's content-addressable store, persisted across container recreates
+# via the named volume mounted at /pnpm/store in compose.
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 ENV PNPM_STORE_DIR=/pnpm/store
-RUN mkdir -p /pnpm/store && chown -R node:node /pnpm
+RUN mkdir -p /pnpm/store
 
 # Which app this image runs and on which port. Compose passes these per
 # service so a single Dockerfile drives every app. Default APP_DIR=auth
@@ -51,7 +50,7 @@ ENV APP_PORT=${APP_PORT}
 WORKDIR /app
 EXPOSE ${APP_PORT}
 
-USER node
+# USER stays default (root) — see anon-volume note above.
 
 # Install just this app's workspace deps (with the trailing `...`,
 # pnpm follows the transitive workspace dep graph but skips siblings

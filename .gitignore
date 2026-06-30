@@ -1,5 +1,9 @@
 # Dependencies
 node_modules/
+# pnpm content-addressable store — populated when an in-Docker `pnpm
+# install` writes to the bind-mount root instead of the configured
+# /pnpm/store volume. Local-only, never committed.
+.pnpm-store/
 
 # Build outputs
 .next/

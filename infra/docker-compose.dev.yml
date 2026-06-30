@@ -34,27 +34,28 @@
 name: shesa-dev
 
 services:
-  caddy:
-    # Pinned major: catches breaking config changes at upgrade time
-    # rather than on a random pull.
-    image: caddy:2-alpine
-    container_name: shesa-caddy
-    restart: unless-stopped
-    ports:
-      - '80:80'
-      # 443 mapped too in case we ever turn on local self-signed TLS;
-      # today Caddyfile.dev has auto_https off.
-      - '443:443'
-    volumes:
-      - ./caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
-      # Persist Caddy's data (cert store, ACME state) across restarts so
-      # we don't re-issue every time. Unused in dev today but harmless.
-      - caddy-data:/data
-      - caddy-config:/config
-    networks:
-      - shesa
-    depends_on:
-      - auth
+  # Caddy is the reverse proxy that turns *.shesa.test into per-app routes
+  # so the apex-scoped Supabase Auth cookie can be tested across local
+  # subdomains. It comes back online when E10 ships the other app shells
+  # and we actually need cross-subdomain SSO — until then, the single
+  # auth app publishes its port directly to the host, avoiding a Docker
+  # Hub pull from networks where registry-1.docker.io is unreliable.
+  #
+  # caddy:
+  #   image: caddy:2-alpine
+  #   container_name: shesa-caddy
+  #   restart: unless-stopped
+  #   ports:
+  #     - '80:80'
+  #     - '443:443'
+  #   volumes:
+  #     - ./caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+  #     - caddy-data:/data
+  #     - caddy-config:/config
+  #   networks:
+  #     - shesa
+  #   depends_on:
+  #     - auth
 
   auth:
     build:
@@ -94,8 +95,12 @@ services:
       # passes --hostname 0.0.0.0, but env-pinning belt-and-braces in case
       # the script is edited.
       HOSTNAME: 0.0.0.0
-    expose:
-      - '3001'
+    # Publish 3001 directly to the host while Caddy is offline. Browser
+    # hits http://localhost:3001 to reach the auth app. When Caddy comes
+    # back, drop `ports:` and use `expose:` instead so only Caddy can
+    # reach the container.
+    ports:
+      - '3001:3001'
     volumes:
       # Bind-mount the whole repo for hot reload. `:cached` is a macOS
       # perf hint (read-from-host slightly stale; tolerable for source).
