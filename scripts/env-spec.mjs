@@ -122,17 +122,8 @@ export const ENV_VARS = [
     },
     description: 'Finance app URL.',
   },
-  {
-    name: 'NEXT_PUBLIC_CONNECT_APP_URL',
-    scope: 'client',
-    source: 'derived',
-    defaults: {
-      local: 'http://connect.shesa.test:3004',
-      staging: 'https://connect.staging.shesa.org',
-      production: 'https://connect.shesa.org',
-    },
-    description: 'Connect (forums, jobs, etc.) URL.',
-  },
+  // apps/connect was dropped from Phase 0; restore this entry if it
+  // returns later — paired removal in packages/config/src/env.client.ts.
 
   // ───────────────────────────────────────────────────────────────────
   // SECTION: Supabase  (per-env; local values captured from `supabase status`)

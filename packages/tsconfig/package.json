@@ -6,11 +6,13 @@
   "exports": {
     "./base": "./base.json",
     "./nextjs": "./nextjs.json",
-    "./node": "./node.json"
+    "./node": "./node.json",
+    "./react": "./react.json"
   },
   "files": [
     "base.json",
     "nextjs.json",
-    "node.json"
+    "node.json",
+    "react.json"
   ]
 }

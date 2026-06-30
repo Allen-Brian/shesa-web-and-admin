@@ -13,7 +13,6 @@ export const appUrls = {
   auth: clientEnv.NEXT_PUBLIC_AUTH_APP_URL,
   exco: clientEnv.NEXT_PUBLIC_EXCO_APP_URL,
   finance: clientEnv.NEXT_PUBLIC_FINANCE_APP_URL,
-  connect: clientEnv.NEXT_PUBLIC_CONNECT_APP_URL,
 } as const;
 
 export type AppUrlKey = keyof typeof appUrls;

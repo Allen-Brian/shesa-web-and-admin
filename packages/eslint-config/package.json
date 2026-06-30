@@ -6,11 +6,13 @@
   "description": "Shared ESLint flat configs for Shesa. Base preset + Next preset.",
   "exports": {
     ".": "./index.js",
-    "./next": "./next.js"
+    "./next": "./next.js",
+    "./react": "./react.js"
   },
   "files": [
     "index.js",
-    "next.js"
+    "next.js",
+    "react.js"
   ],
   "dependencies": {
     "@eslint/js": "^9.17.0",

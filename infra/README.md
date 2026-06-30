@@ -10,7 +10,7 @@ infra/
 ├── caddy/
 │   ├── Caddyfile.dev          local vhost routing (*.shesa.test)
 │   └── Caddyfile.prod         staging/prod vhost routing (*.shesa.org)
-├── docker-compose.dev.yml     local Compose stack (auth lands E9; others E10)
+├── docker-compose.dev.yml     local Compose stack (auth/web/exco/finance)
 └── docker-compose.prod.yml    Swarm stack (added in E14)
 ```
 
@@ -24,7 +24,7 @@ infra/
 
 ## One Dockerfile, every app
 
-Rather than five `apps/<app>/Dockerfile.dev` wrappers that all duplicate the same Node + pnpm + non-root-user setup, `infra/docker/Dockerfile.next.dev` takes `APP_DIR` + `APP_PORT` build args and runs the right app's `pnpm dev`. Each app's service in `docker-compose.dev.yml` passes its own values:
+Rather than per-app `Dockerfile.dev` wrappers that all duplicate the same Node + pnpm setup, `infra/docker/Dockerfile.next.dev` takes `APP_DIR` + `APP_PORT` build args and runs the right app's `pnpm dev` (Next.js for `web` / `auth`; Vite for `exco` / `finance`). Each app's service in `docker-compose.dev.yml` passes its own values:
 
 ```yaml
 auth:
@@ -36,7 +36,7 @@ auth:
       APP_PORT: 3001
 ```
 
-When the four other apps land in E10 they get their own service block — no per-app Dockerfile required.
+The Dockerfile filename keeps the `.next.dev` suffix for legacy reasons; it's framework-agnostic — `pnpm --filter @shesa/<app> dev` invokes whichever toolchain that package defines.
 
 ## Local dev setup
 

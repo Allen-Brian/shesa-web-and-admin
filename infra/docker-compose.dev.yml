@@ -156,6 +156,71 @@ services:
     networks:
       - shesa
 
+  exco:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile.next.dev
+      args:
+        APP_DIR: exco
+        APP_PORT: 3002
+    container_name: shesa-exco
+    restart: unless-stopped
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    env_file:
+      - path: ../.env.local
+        required: false
+    environment:
+      # SPA: Vite reads NEXT_PUBLIC_* from .env.local at the workspace
+      # root (via loadEnv in vite.config.ts). No server-side overrides
+      # needed because the browser always hits Supabase directly.
+      HOSTNAME: 0.0.0.0
+    ports:
+      - '3002:3002'
+    volumes:
+      - ../:/app:cached
+      - /app/node_modules
+      - /app/apps/exco/node_modules
+      - /app/apps/exco/dist
+      - /app/packages/config/node_modules
+      - /app/packages/domain/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/ui/node_modules
+      - pnpm-store:/pnpm/store
+    networks:
+      - shesa
+
+  finance:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile.next.dev
+      args:
+        APP_DIR: finance
+        APP_PORT: 3003
+    container_name: shesa-finance
+    restart: unless-stopped
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    env_file:
+      - path: ../.env.local
+        required: false
+    environment:
+      HOSTNAME: 0.0.0.0
+    ports:
+      - '3003:3003'
+    volumes:
+      - ../:/app:cached
+      - /app/node_modules
+      - /app/apps/finance/node_modules
+      - /app/apps/finance/dist
+      - /app/packages/config/node_modules
+      - /app/packages/domain/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/ui/node_modules
+      - pnpm-store:/pnpm/store
+    networks:
+      - shesa
+
 networks:
   # Explicit network name so it shows up readably in `docker network ls`.
   shesa:

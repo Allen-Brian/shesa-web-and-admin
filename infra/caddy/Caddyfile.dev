@@ -3,8 +3,12 @@
 # Routes *.shesa.test (resolved via /etc/hosts to 127.0.0.1) to the
 # corresponding app container in docker-compose.dev.yml.
 #
-# Each app block lights up as that app lands. Today: `auth` only (E9).
-# `web` / `exco` / `finance` / `connect` will be added in E10.
+# Each app block lights up as that app lands. Phase 0 ships:
+#   - auth   (E9)
+#   - web    (E10)
+#   - exco   (E10, Vite SPA)
+#   - finance(E10, Vite SPA)
+# apps/connect is intentionally NOT in Phase 0.
 #
 # HTTP only (no TLS) — local dev cookies are set without `Secure` so the
 # browser accepts them on http://*.shesa.test. The prod Caddyfile uses
@@ -22,7 +26,8 @@ auth.shesa.test:80 {
 	reverse_proxy auth:3001
 }
 
-# Stubs — uncomment as each app's compose service ships in E10.
+# Stubs — uncomment alongside the corresponding compose service when
+# the Caddy container can pull from Docker Hub on this network.
 #
 # web.shesa.test:80 {
 # 	reverse_proxy web:3000
@@ -34,8 +39,4 @@ auth.shesa.test:80 {
 #
 # finance.shesa.test:80 {
 # 	reverse_proxy finance:3003
-# }
-#
-# connect.shesa.test:80 {
-# 	reverse_proxy connect:3004
 # }

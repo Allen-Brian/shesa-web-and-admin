@@ -26,12 +26,13 @@ const clientEnvSchema = z.object({
   /** Supabase anon key. Public — the service-role key is in `env.server`. */
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
 
-  /** Per-app public URLs (used for cross-app links in the UI). */
+  /** Per-app public URLs (used for cross-app links in the UI).
+   *  apps/connect was dropped from Phase 0; if it returns later, add it
+   *  back here AND in scripts/env-spec.mjs in lockstep. */
   NEXT_PUBLIC_WEB_APP_URL: z.string().url(),
   NEXT_PUBLIC_AUTH_APP_URL: z.string().url(),
   NEXT_PUBLIC_EXCO_APP_URL: z.string().url(),
   NEXT_PUBLIC_FINANCE_APP_URL: z.string().url(),
-  NEXT_PUBLIC_CONNECT_APP_URL: z.string().url(),
 });
 
 export type ClientEnv = z.infer<typeof clientEnvSchema>;
@@ -53,5 +54,4 @@ export const clientEnv: ClientEnv = clientEnvSchema.parse({
   NEXT_PUBLIC_AUTH_APP_URL: process.env.NEXT_PUBLIC_AUTH_APP_URL,
   NEXT_PUBLIC_EXCO_APP_URL: process.env.NEXT_PUBLIC_EXCO_APP_URL,
   NEXT_PUBLIC_FINANCE_APP_URL: process.env.NEXT_PUBLIC_FINANCE_APP_URL,
-  NEXT_PUBLIC_CONNECT_APP_URL: process.env.NEXT_PUBLIC_CONNECT_APP_URL,
 });
