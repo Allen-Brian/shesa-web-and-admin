@@ -1,0 +1,131 @@
+# docker-compose.dev.yml — local development stack for Shesa.
+#
+# WHAT THIS GIVES YOU
+#   - Every Shesa app running in a Linux container (same OS as prod) so
+#     "works on my machine" bugs surface at first dev commit, not at
+#     first staging deploy.
+#   - Caddy as the local reverse proxy on :80, routing
+#     `*.shesa.test` → the corresponding app's container port. Without
+#     Caddy each app would be on a different localhost port and the
+#     apex-scoped Supabase Auth cookie wouldn't be shareable across
+#     subdomains (browsers treat per-port localhost variants as
+#     separate sites).
+#
+# WHAT'S NOT IN HERE
+#   - Supabase. The Supabase CLI (`pnpm db:start`) runs its own Docker
+#     stack on its own ports — keeping it separate means `db:reset` /
+#     `db:start` work the same whether or not this compose stack is up.
+#     Containers reach Supabase at `host.docker.internal:54321`;
+#     browsers reach it at `127.0.0.1:54321` (NEXT_PUBLIC_* values).
+#
+# PREREQUISITES (one-time)
+#   1. Add to /etc/hosts:
+#        127.0.0.1 auth.shesa.test web.shesa.test exco.shesa.test \
+#                  finance.shesa.test connect.shesa.test
+#   2. `pnpm db:start` to bring up local Supabase.
+#   3. `pnpm env:init` to write .env.local at the repo root.
+#
+# USAGE
+#   docker compose -f infra/docker-compose.dev.yml up           (foreground)
+#   docker compose -f infra/docker-compose.dev.yml up -d        (detached)
+#   docker compose -f infra/docker-compose.dev.yml logs -f auth (tail one)
+#   docker compose -f infra/docker-compose.dev.yml down         (stop+rm)
+
+name: shesa-dev
+
+services:
+  caddy:
+    # Pinned major: catches breaking config changes at upgrade time
+    # rather than on a random pull.
+    image: caddy:2-alpine
+    container_name: shesa-caddy
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      # 443 mapped too in case we ever turn on local self-signed TLS;
+      # today Caddyfile.dev has auto_https off.
+      - '443:443'
+    volumes:
+      - ./caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      # Persist Caddy's data (cert store, ACME state) across restarts so
+      # we don't re-issue every time. Unused in dev today but harmless.
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - shesa
+    depends_on:
+      - auth
+
+  auth:
+    build:
+      # Build context is the REPO ROOT so the Dockerfile can see the
+      # whole workspace (pnpm-lock.yaml, packages/*, etc.).
+      context: ..
+      dockerfile: infra/docker/Dockerfile.next.dev
+      args:
+        APP_DIR: auth
+        APP_PORT: 3001
+    container_name: shesa-auth
+    restart: unless-stopped
+    # Mac/Win Docker Desktop provides host.docker.internal automatically;
+    # Linux needs the explicit host-gateway mapping below.
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    env_file:
+      # .env.local lives at the repo root. `required: false` so a fresh
+      # checkout that hasn't run `pnpm env:init` yet doesn't error at
+      # compose-parse time — it'll fail at boot when Next's env Zod
+      # check finds the missing vars, which is the correct failure mode.
+      - path: ../.env.local
+        required: false
+    environment:
+      # Server-side overrides — from INSIDE the container, 127.0.0.1 is
+      # the container itself. host.docker.internal routes to the host
+      # machine where Supabase CLI is listening on :54321.
+      #
+      # Next.js's .env loader does NOT overwrite existing process.env
+      # values, so these compose-set vars take precedence over whatever
+      # .env.local has on disk (which still uses 127.0.0.1 for the
+      # browser-side NEXT_PUBLIC_* mirrors).
+      SUPABASE_URL: http://host.docker.internal:54321
+      SUPABASE_DB_URL: postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      # Bind to 0.0.0.0 inside the container so Caddy on a sibling
+      # container can reach it. The app's own `pnpm dev` script already
+      # passes --hostname 0.0.0.0, but env-pinning belt-and-braces in case
+      # the script is edited.
+      HOSTNAME: 0.0.0.0
+    expose:
+      - '3001'
+    volumes:
+      # Bind-mount the whole repo for hot reload. `:cached` is a macOS
+      # perf hint (read-from-host slightly stale; tolerable for source).
+      - ../:/app:cached
+      # Mask host's node_modules — they contain macOS Mach-O binaries
+      # (esbuild, sharp, etc.) that crash inside Alpine. Anonymous volumes
+      # let the container populate its own Linux-native trees.
+      - /app/node_modules
+      - /app/apps/auth/node_modules
+      - /app/apps/auth/.next
+      - /app/packages/config/node_modules
+      - /app/packages/domain/node_modules
+      - /app/packages/supabase/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/ui/node_modules
+      # Named volume for pnpm's content-addressable store — survives
+      # container recreates, so reinstalls don't re-download.
+      - pnpm-store:/pnpm/store
+    networks:
+      - shesa
+
+networks:
+  # Explicit network name so it shows up readably in `docker network ls`.
+  shesa:
+    name: shesa-dev
+
+volumes:
+  pnpm-store:
+    name: shesa-pnpm-store
+  caddy-data:
+    name: shesa-caddy-data
+  caddy-config:
+    name: shesa-caddy-config

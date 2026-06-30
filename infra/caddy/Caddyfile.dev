@@ -3,9 +3,8 @@
 # Routes *.shesa.test (resolved via /etc/hosts to 127.0.0.1) to the
 # corresponding app container in docker-compose.dev.yml.
 #
-# Each app block is added in E9 (auth) and E10 (web/exco/finance/connect)
-# as those apps are scaffolded. Today this file holds only the global
-# block and the placeholder for the auth app.
+# Each app block lights up as that app lands. Today: `auth` only (E9).
+# `web` / `exco` / `finance` / `connect` will be added in E10.
 #
 # HTTP only (no TLS) — local dev cookies are set without `Secure` so the
 # browser accepts them on http://*.shesa.test. The prod Caddyfile uses
@@ -17,11 +16,13 @@
 	admin off
 }
 
-# Placeholder — replaced when apps/auth lands in E9.
-#
-# auth.shesa.test:80 {
-# 	reverse_proxy auth:3001
-# }
+# auth app (apps/auth, port 3001). The login / forgot-password / reset
+# pages live here; this is the cookie writer for cross-subdomain SSO.
+auth.shesa.test:80 {
+	reverse_proxy auth:3001
+}
+
+# Stubs — uncomment as each app's compose service ships in E10.
 #
 # web.shesa.test:80 {
 # 	reverse_proxy web:3000

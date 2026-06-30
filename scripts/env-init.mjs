@@ -160,34 +160,44 @@ function resolveLocalValue(v, supabaseValues) {
 }
 
 /**
- * Run `supabase status` and parse the human-readable output into the var
- * names we use. Returns `null` if the command fails or the stack isn't up.
+ * Run `supabase status -o env --override-name ...` and parse the
+ * key=value output. The CLI's `-o env` mode is a stable contract;
+ * `--override-name` lets us request the env names we use directly,
+ * which avoids a brittle regex pass over the human-readable status.
  *
- * The CLI doesn't have a stable machine-readable mode for `status`, so we
- * parse the labeled lines. If Supabase ever changes the output, this
- * function fails loudly (returns null, dev sees the warning, fills in
- * manually) — not silently captures wrong values.
+ * Returns `null` if the command fails or the stack isn't up.
  */
 function trySupabaseStatus() {
+  // Map Supabase's internal status keys → our env names. Order doesn't
+  // matter; --override-name takes multiple values.
+  const overrides = [
+    'api.url=SHESA_API_URL',
+    'auth.anon_key=SHESA_ANON_KEY',
+    'auth.service_role_key=SHESA_SERVICE_ROLE_KEY',
+    'db.url=SHESA_DB_URL',
+  ];
+
   let raw;
   try {
-    raw = execSync('pnpm supabase status', {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    raw = execSync(
+      `pnpm supabase status -o env ${overrides.map((o) => `--override-name ${o}`).join(' ')}`,
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+    );
   } catch {
     return null;
   }
 
-  const grab = (label) => {
-    const m = raw.match(new RegExp(`^\\s*${label}:\\s*(.+)$`, 'm'));
+  const grab = (name) => {
+    // env-mode output is `NAME="value"` per line. Tolerate either quoted
+    // or unquoted values, and ignore the pnpm wrapper's lines.
+    const m = raw.match(new RegExp(`^${name}="?([^"\\n]+)"?$`, 'm'));
     return m ? m[1].trim() : undefined;
   };
 
-  const apiUrl = grab('API URL');
-  const anon = grab('anon key');
-  const service = grab('service_role key');
-  const dbUrl = grab('DB URL');
+  const apiUrl = grab('SHESA_API_URL');
+  const anon = grab('SHESA_ANON_KEY');
+  const service = grab('SHESA_SERVICE_ROLE_KEY');
+  const dbUrl = grab('SHESA_DB_URL');
 
   if (!apiUrl || !anon || !service) return null;
 
