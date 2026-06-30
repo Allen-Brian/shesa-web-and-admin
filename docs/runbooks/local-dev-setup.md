@@ -192,6 +192,32 @@ Did you add the `/etc/hosts` block in step 2? `ping -c 1 auth.shesa.test` should
 
 Make sure local Supabase is running first (`pnpm db:start` then `pnpm db:status` should print a JSON with `API_URL`). The CLI silently writes an empty file when the local stack isn't up — known footgun.
 
+### `supabase functions serve` returns 503 "name resolution failed"
+
+Symptom: `pnpm supabase functions serve` runs but every request to `http://127.0.0.1:54321/functions/v1/<name>` returns `HTTP 503` with body `{"message":"name resolution failed"}`. `docker ps` shows no `supabase_edge_runtime_*` container.
+
+Cause: the Supabase CLI's edge-runtime container failed to start (silent during `serve` startup). Usually a Docker DNS issue or a stuck image pull. Kong (the API gateway) is up, accepts the request, can't reach the missing upstream → "name resolution failed" comes back to the caller.
+
+Fixes, in order of likelihood:
+
+```bash
+# 1. Restart Docker Desktop (fixes most macOS DNS flakes)
+pnpm db:stop
+# (right-click Docker menubar icon → Restart, wait for whale to settle)
+pnpm db:start
+
+# 2. Pre-pull the edge runtime image manually
+docker pull public.ecr.aws/supabase/edge-runtime:v1.69.1   # version varies — match the CLI version
+
+# 3. Verify the runtime can resolve npm registry from inside Docker
+docker run --rm alpine nslookup registry.npmjs.org
+
+# 4. If on a corporate network / VPN: confirm Docker is allowed
+#    to reach registry-1.docker.io and registry.npmjs.org.
+```
+
+The function code is unaffected by this — Edge Functions deployed to Supabase Cloud (and CI's ephemeral runners) work without this local hiccup. Use the cloud-deployed staging environment for end-to-end verification while the local issue is being resolved.
+
 ### Cookies set in dev but `Secure` flag breaks them
 
 Local cookies are set with `secure: false` (see `packages/supabase/src/cookie-config.ts`) precisely because `*.shesa.test` is HTTP. If you ever see "Secure" cookie warnings locally, check `APP_ENV` in `.env.local` is `local` — the cookie-config branches on it.
