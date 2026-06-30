@@ -52,6 +52,77 @@ pnpm db:reset                  # full reset + re-apply + re-seed
 
 Once committed and merged to `develop`, CI applies it to staging automatically. Promote to `main` to roll out to prod.
 
+## Migration conflicts and merge order
+
+When two devs add migrations to the same model in parallel branches, here's what actually happens.
+
+### Ordering rule: filename timestamp
+
+Supabase tracks applied migrations in `supabase_migrations.schema_migrations` (a row per filename). On every `supabase db push`, the CLI applies any **missing** migrations in **filename-timestamp order** — not commit order, not merge order. The filename is the source of truth.
+
+`pnpm db:migrate:new <name>` produces `<YYYYMMDDHHMMSS>_<name>.sql` automatically, so timestamps don't collide between devs as long as nobody hand-renames a file.
+
+### Three scenarios
+
+**1. Independent tables — the easy case.**
+
+```
+Dev A:  20260629_100000_add_currency_rates.sql      (touches finance.currency_rates)
+Dev B:  20260629_110000_add_member_phone.sql        (touches core.members)
+```
+
+Both PRs merge to `develop`. CI applies in timestamp order: A, then B. Staging ends up with both. No conflict.
+
+**2. Same table, additive changes.**
+
+```
+Dev A:  20260629_100000_add_member_phone.sql        (ALTER TABLE core.members ADD COLUMN phone TEXT)
+Dev B:  20260629_110000_add_member_email.sql        (ALTER TABLE core.members ADD COLUMN email TEXT)
+```
+
+Both apply cleanly in order. Staging has both columns.
+
+**3. Out-of-order timestamps — the gotcha.**
+
+- Dev B branches off `develop` on Monday, creates `20260629_100000_B.sql`.
+- Dev A branches the next day, creates `20260630_100000_A.sql` (newer timestamp).
+- Dev A merges first (Wednesday). CI applies `A` to staging.
+- Dev B's PR still in review. Friday it merges.
+
+Now `develop` has both files. CI sees one new migration to apply (B's). It applies `20260629_100000_B.sql` **after** A's, even though B's timestamp is older. **Dev B tested B locally against a DB that did not have A applied** — if B's SQL references something A altered, it fails at staging-apply time, leaving the deploy half-done.
+
+### Two rules and one safety net that prevent this
+
+**Rule 1 — Rebase onto `develop` before merge.** When your PR is ready and `develop` has moved on, rebase (or merge `develop` into your branch). The PR's CI then runs against a fresh DB with every migration applied in real order, including any that merged ahead of you. If your migration breaks after the others land, CI catches it before merge.
+
+**Rule 2 — If your timestamp is now older than something on `develop`, rename the file.** Don't ship out-of-order:
+
+```bash
+# Old: 20260629_100000_B.sql, but 20260630_100000_A.sql is already on develop
+mv supabase/migrations/20260629_100000_B.sql \
+   supabase/migrations/$(date -u +%Y%m%d%H%M%S)_B.sql
+git add -A && git commit --amend
+```
+
+This guarantees B applies after A everywhere — local, staging, prod. The CLI won't complain because the filename is "new" everywhere.
+
+**Safety net — CI runs every PR against a fresh DB.** The `db-test.yml` workflow (lands in E13) starts from empty, applies every migration in order, runs `pnpm db:test`. If two devs' migrations are incompatible, CI fails the second PR's status check; merge stays blocked until the rebase + fix.
+
+### Things you actually run
+
+| Situation                                                     | Command                                                    |
+| ------------------------------------------------------------- | ---------------------------------------------------------- |
+| See if your branch has migrations that diverge from `develop` | `git diff develop -- supabase/migrations/`                 |
+| Compare your local schema with what staging actually has      | `pnpm db:link --env staging && pnpm db:diff:remote`        |
+| Manually apply pending migrations to staging (breakglass)     | `pnpm db:push` — branch + production safety rails built in |
+| Sync schema **from** staging back to local (drift recovery)   | `pnpm db:pull`                                             |
+
+### One-line rules to internalize
+
+- **Filename = ordering.** Commit order doesn't matter. Merge order doesn't matter. Filename does.
+- **Migration history on `develop`/`main` is immutable.** Once merged, never edit; supersede with a new migration.
+- **Schema drift is a thing to watch for.** `pnpm db:diff:remote` against staging right after a deploy should return nothing — if it shows differences, someone made a manual change in the Supabase dashboard (don't).
+
 ## Adding test fixtures (shared dev data)
 
 `seed.sql` is the contract for test data every dev (and staging) sees. When you need a fixture another phase will rely on (e.g. an Exco-created Member that Connect needs for forum testing), add an `INSERT` to `seed.sql` using a **stable UUID** and `ON CONFLICT DO NOTHING`. Commit. Every dev's `pnpm db:reset` and staging's next deploy will pick it up.
