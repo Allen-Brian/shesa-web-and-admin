@@ -27,12 +27,15 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { serverEnv } from '@shesa/config/env.server';
+
 import { getServerClient } from '@/lib/supabase-server';
+import { safeRedirect } from '@/lib/safe-redirect';
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const code = url.searchParams.get('code');
-  const next = sanitizeNext(url.searchParams.get('next'));
+  const next = safeRedirect(url.searchParams.get('next'), serverEnv.APP_BASE_DOMAIN);
 
   if (!code) {
     return redirectWithError(url, next, 'missing_code');
@@ -55,22 +58,9 @@ export async function GET(req: NextRequest) {
 
   // The cookies have been set on the response that supabase-ssr is
   // currently composing. Returning a redirect carries them along — the
-  // browser stores the cookie and follows to `next`.
+  // browser stores the cookie and follows to `next` (which `safeRedirect`
+  // has already constrained to the apex domain).
   return NextResponse.redirect(new URL(next, url.origin), { status: 303 });
-}
-
-/**
- * Validate the `next` redirect param so an attacker can't bounce the
- * authenticated user to a malicious origin. Allow only same-origin
- * relative paths.
- */
-function sanitizeNext(raw: string | null): string {
-  if (!raw) return '/';
-  // Block protocol-relative (//evil.com), absolute (http://...), and
-  // backslash variants that some browsers normalize to forward slashes.
-  if (raw.startsWith('//') || raw.includes('://') || raw.includes('\\')) return '/';
-  if (!raw.startsWith('/')) return '/';
-  return raw;
 }
 
 function redirectWithError(currentUrl: URL, next: string, code: string): NextResponse {
