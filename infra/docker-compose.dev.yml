@@ -57,6 +57,40 @@ services:
   #   depends_on:
   #     - auth
 
+  web:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile.next.dev
+      args:
+        APP_DIR: web
+        APP_PORT: 3000
+    container_name: shesa-web
+    restart: unless-stopped
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    env_file:
+      - path: ../.env.local
+        required: false
+    environment:
+      SUPABASE_URL: http://host.docker.internal:54321
+      SUPABASE_DB_URL: postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      HOSTNAME: 0.0.0.0
+    ports:
+      - '3000:3000'
+    volumes:
+      - ../:/app:cached
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/apps/web/.next
+      - /app/packages/config/node_modules
+      - /app/packages/domain/node_modules
+      - /app/packages/supabase/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/ui/node_modules
+      - pnpm-store:/pnpm/store
+    networks:
+      - shesa
+
   auth:
     build:
       # Build context is the REPO ROOT so the Dockerfile can see the
