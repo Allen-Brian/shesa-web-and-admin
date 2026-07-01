@@ -1,6 +1,6 @@
 # Onboarding
 
-> **Skeleton** — sections marked _(populates when …)_ fill in as the monorepo is scaffolded.
+> **The concrete Phase 0 setup lives in [phase-0/local-setup.md](phase-0/local-setup.md) and the full runbook at [runbooks/local-dev-setup.md](runbooks/local-dev-setup.md).** This file is the pre-scaffolding orientation; the sections below overlap those docs. When they disagree, the phase-0/ docs win.
 
 Welcome to Shesa. This guide gets you from a fresh laptop to a running local stack.
 
