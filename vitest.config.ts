@@ -16,10 +16,19 @@ import { defineConfig } from 'vitest/config';
  * pragma once RTL + jsdom land in a follow-up commit.
  */
 export default defineConfig({
+  // Automatic React runtime so component tests don't need `import React`
+  // at the top of every file. Vitest uses esbuild for TSX transform;
+  // esbuild's default jsx setting is 'transform' (classic), which
+  // rewrites <Foo /> to `React.createElement(...)` and blows up when
+  // React isn't in scope. `automatic` matches Next / Vite behavior.
+  esbuild: {
+    jsx: 'automatic',
+  },
   test: {
     include: ['packages/**/*.test.{ts,tsx}', 'apps/**/*.test.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/.next/**', '**/build/**'],
     globals: false,
     passWithNoTests: true,
+    setupFiles: ['./vitest.setup.ts'],
   },
 });
