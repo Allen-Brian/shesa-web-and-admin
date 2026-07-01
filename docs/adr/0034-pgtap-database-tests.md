@@ -25,7 +25,7 @@ The Phase 0 spec §20 already calls for "RLS prevents unauthorized reads/writes,
 - The CLI runner is **`supabase test db`** (which uses `pg_prove` under the hood). Aliased as **`pnpm db:test`** in the root `package.json`.
 - The `pgtap` extension is installed via migration in its own `pgtap` schema (per Supabase's recommended layout), so it's reproducible across local, staging, and prod databases.
 - Each test file declares its expected count with `SELECT plan(N);` and finishes with `SELECT * FROM finish();` — TAP output is machine-readable and CI-friendly.
-- **`db:test` is a required status check on `develop` and `main`** (the gating for E13's CI). RLS / permission-checker correctness is the highest-risk surface in Phase 0 — a green pipeline with red database tests is the exact failure mode this rule exists to prevent.
+- **`db:test` is a required status check on `develop` and `master`** (the gating for E13's CI). RLS / permission-checker correctness is the highest-risk surface in Phase 0 — a green pipeline with red database tests is the exact failure mode this rule exists to prevent.
 
 ## Consequences
 

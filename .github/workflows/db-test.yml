@@ -18,7 +18,7 @@ on:
       - 'packages/supabase/**'
       - '.github/workflows/db-test.yml'
   push:
-    branches: [develop, main]
+    branches: [develop, master]
 
 concurrency:
   group: db-test-${{ github.workflow }}-${{ github.head_ref || github.ref }}

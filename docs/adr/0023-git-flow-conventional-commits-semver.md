@@ -11,11 +11,11 @@ Git history, branching, and versioning either are a tool (clean bisects, automat
 ## Decision
 
 - **Hosting:** **GitHub.**
-- **Branch model:** `main` (production, protected) ← `develop` (integration / staging, protected) ← `<type>/<scope>-<desc>` (short-lived). No `release/*` branches.
-- **Merge strategy:** feature → `develop` is **squash merge** (PR title = the squash commit). `develop` → `main` is a **merge commit** + SemVer tag.
-- **Versioning:** **monorepo-wide SemVer tag per release on `main`** (`vMAJOR.MINOR.PATCH`). Packages are internal workspace deps (not published); revisit `changesets` only if shared packages are ever published externally.
+- **Branch model:** `master` (production, protected) ← `develop` (integration / staging, protected) ← `<type>/<scope>-<desc>` (short-lived). No `release/*` branches.
+- **Merge strategy:** feature → `develop` is **squash merge** (PR title = the squash commit). `develop` → `master` is a **merge commit** + SemVer tag.
+- **Versioning:** **monorepo-wide SemVer tag per release on `master`** (`vMAJOR.MINOR.PATCH`). Packages are internal workspace deps (not published); revisit `changesets` only if shared packages are ever published externally.
 - **Commits: Conventional Commits** with a **required scope** from a locked enum (`scope-empty: 'never'`; repo-wide changes use the `repo` scope).
-- **Hotfix:** branch from `main` → PR to `main` → tag → back-merge / cherry-pick to `develop`.
+- **Hotfix:** branch from `master` → PR to `master` → tag → back-merge / cherry-pick to `develop`.
 
 ### Commit scope enum
 

@@ -71,7 +71,7 @@ Files live under `supabase/tests/*.test.sql`. `pnpm test:db` spins up a scratch 
 
 ## CI enforcement
 
-- `.github/workflows/ci.yml` runs `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` on every PR + push to `develop`/`main`.
+- `.github/workflows/ci.yml` runs `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` on every PR + push to `develop`/`master`.
 - `.github/workflows/db-test.yml` runs `pnpm test:db` after booting the Supabase CLI in the runner.
-- Both are configured as **required status checks** for `develop` and `main` under branch protection — a red pgTAP run is a hard merge block.
+- Both are configured as **required status checks** for `develop` and `master` under branch protection — a red pgTAP run is a hard merge block.
 - Deploy workflows won't run until BOTH have succeeded at the same head SHA.

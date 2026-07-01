@@ -11,15 +11,15 @@ How we name branches and write commits. Enforced by tooling ([§6](#6-enforcemen
 
 | Branch                  | Role             | Protected     | Deploys to |
 | ----------------------- | ---------------- | ------------- | ---------- |
-| `main`                  | Production       | yes (PR-only) | production |
+| `master`                | Production       | yes (PR-only) | production |
 | `develop`               | Integration      | yes (PR-only) | staging    |
 | `<type>/<scope>-<desc>` | Short-lived work | no            | —          |
 
 - Feature / fix branches are cut from **`develop`** and merged back into `develop`.
-- Only `develop` may PR into `main` (the production promotion).
-- Hotfixes are the exception: cut from **`main`**, merged to `main`, then back-merged (or cherry-picked) into `develop` so the two never diverge.
+- Only `develop` may PR into `master` (the production promotion).
+- Hotfixes are the exception: cut from **`master`**, merged to `master`, then back-merged (or cherry-picked) into `develop` so the two never diverge.
 - A branch is **deleted on merge** and holds **one concern** only.
-- **No `release/*` branches.** `develop` IS the integration / staging branch; promotion is `develop → main` and that IS the release.
+- **No `release/*` branches.** `develop` IS the integration / staging branch; promotion is `develop → master` and that IS the release.
 
 ---
 
@@ -40,11 +40,11 @@ How we name branches and write commits. Enforced by tooling ([§6](#6-enforcemen
 | `refactor/core-membership-status` | Refactor membership status enum          |
 | `chore/ci-turbo-cache`            | CI tweak                                 |
 | `docs/adr-tenancy-model`          | An ADR                                   |
-| `hotfix/payment-double-record`    | Urgent fix off `main`                    |
+| `hotfix/payment-double-record`    | Urgent fix off `master`                  |
 
 Branch types mirror the commit types: `feat`, `fix`, `hotfix`, `chore`, `refactor`, `docs`, `test`, `perf`, `ci`, `build`.
 
-Keep your branch current by **rebasing your own feature branch onto `develop`** before opening the PR. Never rebase shared branches (`develop`, `main`).
+Keep your branch current by **rebasing your own feature branch onto `develop`** before opening the PR. Never rebase shared branches (`develop`, `master`).
 
 ---
 
@@ -141,10 +141,10 @@ feat(finance): Added charges and fixed buttons  → multiple concerns, past tens
 ## 4. Merge strategy & releases
 
 - **Feature → `develop`: squash merge.** The PR title (in conventional format) becomes the single squash commit, so `develop` history is one clean commit per feature. Requires a green pipeline + reviewer approval; source branch auto-deleted.
-- **`develop` → `main`: merge commit** at a production release, then **tag `main`**.
+- **`develop` → `master`: merge commit** at a production release, then **tag `master`**.
 - **Tags: SemVer** `vMAJOR.MINOR.PATCH` (feature → minor, fix → patch, breaking → major).
 - **One monorepo-wide tag per release.** Packages are internal workspace deps (not published to a registry); apps deploy as a set; tag ties cleanly to image-tag rollback.
-- Hotfix: PR into `main`, tag a patch, then merge / cherry-pick back to `develop`.
+- Hotfix: PR into `master`, tag a patch, then merge / cherry-pick back to `develop`.
 
 Optional automation (later): Conventional Commits feed a changelog generator and auto version bumps.
 
@@ -225,7 +225,7 @@ module.exports = {
 ```
 Branch:  <type>/<scope>-<desc>        feat/finance-charge-create
 Commit:  <type>(<scope>): <subject>   feat(finance): add manual cash payment recording
-Flow:    branch off develop → PR → squash-merge → develop→main = release
-Hotfix:  branch off main → PR → tag → merge back to develop
-Rebase:  your own branch onto develop; never develop/main
+Flow:    branch off develop → PR → squash-merge → develop→master = release
+Hotfix:  branch off master → PR → tag → merge back to develop
+Rebase:  your own branch onto develop; never develop/master
 ```

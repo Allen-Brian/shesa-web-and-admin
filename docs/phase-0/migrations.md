@@ -28,7 +28,7 @@ pnpm db:diff          # show what a migration would look like from the current D
 Migrations apply automatically on merge:
 
 - Merge to `develop` → `deploy-staging.yml` runs `supabase link --project-ref <staging_ref> && supabase db push` before the container redeploy.
-- Merge to `main` → `deploy-production.yml` does the same for prod, gated by the GitHub Environment approval.
+- Merge to `master` → `deploy-production.yml` does the same for prod, gated by the GitHub Environment approval.
 
 **Never run `db:push` manually against prod.** The workflow does it after linking to the right project, using the `SUPABASE_ACCESS_TOKEN` scoped to that environment. Running it locally with your own token bypasses the audit trail the workflow leaves.
 

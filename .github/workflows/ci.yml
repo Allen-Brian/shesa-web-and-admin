@@ -2,7 +2,7 @@ name: CI
 
 # Runs on every PR and every push to a long-lived branch. Serves two
 # roles: fast feedback for authors, and the required-status gate that
-# branch protection enforces on develop / main.
+# branch protection enforces on develop / master.
 #
 # Deliberately excludes the DB tests (pgTAP) — those live in db-test.yml
 # so a docker-compose spin-up failure doesn't fail the whole matrix.
@@ -11,7 +11,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [develop, main]
+    branches: [develop, master]
 
 concurrency:
   # One in-flight run per branch — cancels older runs when a newer push

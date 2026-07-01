@@ -73,10 +73,10 @@ Local: Supabase CLI brings up a full Supabase stack (Postgres, GoTrue, Storage, 
 
 ```
 feature/*  --PR-->  develop  --(auto)-->     STAGING (Contabo)
-develop    --PR-->  main     --(manual approval)-->  PRODUCTION (Contabo)
+develop    --PR-->  master   --(manual approval)-->  PRODUCTION (Contabo)
 ```
 
-- Only `develop` may open a PR into `main`. Both protected.
+- Only `develop` may open a PR into `master`. Both protected.
 - Every PR pipeline must be green to merge.
 
 ### Pipeline stages (monorepo, pnpm + Turborepo — affected-only)
