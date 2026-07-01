@@ -20,6 +20,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:db": "supabase test db",
+    "test:e2e": "pnpm --filter @shesa/auth test:e2e",
+    "test:e2e:install": "pnpm --filter @shesa/auth test:e2e:install",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,yaml,yml,scss,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,yaml,yml,scss,css}\"",
     "db:start": "supabase start",
