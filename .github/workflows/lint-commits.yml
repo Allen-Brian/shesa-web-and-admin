@@ -1,0 +1,49 @@
+name: Lint commits
+
+# Runs commitlint on PR titles + every commit in a PR. Enforces the
+# conventional-commits shape declared in docs/standards/git-conventions.md
+# (scope enum lives in commitlint.config.js at the repo root).
+#
+# Failing here blocks merge — the PR title becomes the squash-merge
+# commit message, so it must satisfy the same rules as individual
+# commits.
+
+on:
+  pull_request:
+    types: [opened, reopened, edited, synchronize]
+
+jobs:
+  commitlint:
+    name: commitlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # commitlint --from / --to needs the full range of commits in
+          # the PR, not just the last one.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: echo "$PR_TITLE" | pnpm commitlint
+
+      - name: Lint commits in PR
+        run: |
+          pnpm commitlint \
+            --from ${{ github.event.pull_request.base.sha }} \
+            --to ${{ github.event.pull_request.head.sha }} \
+            --verbose
