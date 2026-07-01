@@ -6,13 +6,10 @@
 # Caddy portable — moving off Cloudflare doesn't require regenerating
 # certs.
 #
-# Each app block is added in E10 / E14 as the production stack is wired.
-# This file holds the global config + the apex domain configuration
-# pattern; app-specific blocks are added per the schedule:
-#
-#   E9   → auth.shesa.org / auth.staging.shesa.org
-#   E10  → web/exco/finance/connect.{,staging.}shesa.org
-#   E14  → final stack assembly + secrets wiring
+# Same file drives staging (staging.shesa.org apex) and production
+# (shesa.org apex). The apex domain comes from the compose stack's env
+# at deploy time; Caddy interpolates {$APP_BASE_DOMAIN} from the
+# environment Docker sets on the caddy container.
 
 {
 	# Real email here when Caddy gets its own — used by Let's Encrypt for
@@ -27,12 +24,50 @@
 	}
 }
 
-# Placeholder app blocks — uncommented as each app lands.
-#
-# auth.shesa.org {
-# 	reverse_proxy auth:3001
-# 	encode gzip zstd
-# 	header X-Frame-Options "SAMEORIGIN"
-# 	header X-Content-Type-Options "nosniff"
-# 	header Referrer-Policy "strict-origin-when-cross-origin"
-# }
+# Shared security-header snippet — applied per vhost via `import`.
+# Keeps each app block short and consistent.
+(security_headers) {
+	header X-Frame-Options "SAMEORIGIN"
+	header X-Content-Type-Options "nosniff"
+	header Referrer-Policy "strict-origin-when-cross-origin"
+	header Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	# HSTS: preload not enabled until we're sure we won't need to roll
+	# back the apex to http (unlikely, but preloading is one-way).
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+}
+
+# ─────────────────────────────────────────────────────────────────────
+# apex + www — the public website (Next.js SSR)
+# ─────────────────────────────────────────────────────────────────────
+{$APP_BASE_DOMAIN}, www.{$APP_BASE_DOMAIN} {
+	encode gzip zstd
+	import security_headers
+	reverse_proxy web:3000
+}
+
+# ─────────────────────────────────────────────────────────────────────
+# auth — the central auth app (Next.js). Writes the apex-domain cookie.
+# ─────────────────────────────────────────────────────────────────────
+auth.{$APP_BASE_DOMAIN} {
+	encode gzip zstd
+	import security_headers
+	reverse_proxy auth:3001
+}
+
+# ─────────────────────────────────────────────────────────────────────
+# exco — Vite SPA served by nginx on port 80 in the exco container
+# ─────────────────────────────────────────────────────────────────────
+exco.{$APP_BASE_DOMAIN} {
+	encode gzip zstd
+	import security_headers
+	reverse_proxy exco:80
+}
+
+# ─────────────────────────────────────────────────────────────────────
+# finance — Vite SPA served by nginx on port 80 in the finance container
+# ─────────────────────────────────────────────────────────────────────
+finance.{$APP_BASE_DOMAIN} {
+	encode gzip zstd
+	import security_headers
+	reverse_proxy finance:80
+}
