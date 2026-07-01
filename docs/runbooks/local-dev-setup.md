@@ -1,18 +1,28 @@
 # Local dev setup
 
-How to take a fresh machine to a running Shesa stack. Follow once per machine; the daily workflow at the bottom is what you run every day after.
+How to take a fresh machine to a running Shesa stack.
+
+The setup is in three parts. **Part 1 (Database) is required for either app mode.** Then pick **Part 2 (Local)** OR **Part 3 (Local Docker)** based on what you're doing:
+
+| You want to…                                       | Use Part…  | Why                                                                                |
+| -------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------- |
+| Iterate on UI or Server Actions fast               | 2 (Local)  | No container overhead; hot reload is instant                                       |
+| Debug something that only reproduces in production | 3 (Docker) | Matches staging/prod topology — same Alpine, same networking                       |
+| Test cross-subdomain cookies across several apps   | 3 (Docker) | Caddy fronts everything at `*.shesa.test`; browsers treat them as separate origins |
+
+You can switch between Part 2 and Part 3 freely — same code, same `.env.local`, same database. Just don't run both at the same time (they share the app ports).
 
 ---
 
 ## Prerequisites — install once per machine
 
-| Tool              | Why                                      | Install (macOS)                            |
-| ----------------- | ---------------------------------------- | ------------------------------------------ |
-| Node 22+          | The runtime                              | `brew install node` (or `nvm install 22`)  |
-| pnpm 9.15+        | Package manager (auto via corepack)      | comes with Node 22; just `corepack enable` |
-| Docker            | Runs the Supabase stack locally          | https://docker.com/products/docker-desktop |
-| Git               | Cloning + commits                        | `brew install git`                         |
-| GitHub CLI (`gh`) | Auditing staging/prod secrets (optional) | `brew install gh` then `gh auth login`     |
+| Tool              | Why                                             | Install (macOS)                            |
+| ----------------- | ----------------------------------------------- | ------------------------------------------ |
+| Node 22+          | The runtime                                     | `brew install node` (or `nvm install 22`)  |
+| pnpm 9.15+        | Package manager (auto via corepack)             | ships with Node 22; just `corepack enable` |
+| Docker Desktop    | Runs Supabase locally and (optionally) the apps | https://docker.com/products/docker-desktop |
+| Git               | Cloning + commits                               | `brew install git`                         |
+| GitHub CLI (`gh`) | Auditing staging/prod secrets (optional)        | `brew install gh` then `gh auth login`     |
 
 Verify each:
 
@@ -23,135 +33,234 @@ docker --version
 git --version
 ```
 
----
-
-## One-time setup
-
-### 1. Clone + install
+Clone + install workspace deps:
 
 ```bash
 git clone git@github.com:Evar-SF27/Shesa-App.git
 cd "Shesa-App"
 corepack enable                  # honors the project's pnpm@9.15.0 pin
-pnpm install                     # ~30s (uses pnpm's content-addressable store)
+pnpm install                     # ~30 s
 ```
 
-If `corepack enable` complains about an existing yarn pin in `~/package.json`, the project-level `packageManager` field overrides it for this repo — install should proceed normally.
+If `corepack enable` complains about an existing yarn pin in `~/package.json`, the project-level `packageManager` field overrides it for this repo — install proceeds normally.
 
-### 2. Add `/etc/hosts` entries
+---
 
-Cross-subdomain auth cookies (the whole "log in once on auth.shesa.test, stay logged in everywhere" story) only work when the browser resolves Shesa subdomains as distinct hosts. Browsers refuse to set `domain=.localhost` cookies — so we use a `*.shesa.test` pattern locally.
+## Part 1 — Database (required)
 
-Add this block to `/etc/hosts` (requires `sudo`):
+Supabase runs as its own Docker stack managed by the Supabase CLI, separate from the apps. It exposes Postgres, GoTrue (Auth), Storage, Realtime, Studio, and Mailpit on ports `54321-54324`.
 
-```
-# Shesa local dev
-127.0.0.1 web.shesa.test
-127.0.0.1 auth.shesa.test
-127.0.0.1 exco.shesa.test
-127.0.0.1 finance.shesa.test
-127.0.0.1 connect.shesa.test
-```
-
-Verify: `ping -c 1 auth.shesa.test` should respond from `127.0.0.1`.
-
-### 3. Boot Supabase locally (first time = slow)
+### 1.1. Boot Supabase
 
 ```bash
 pnpm db:start
 ```
 
-First run pulls ~2 GB of Docker images (Postgres, GoTrue, Storage, Realtime, Studio, Mailpit, postgres-meta). Plan for ~5–10 min depending on bandwidth. Subsequent boots take seconds — the images are cached on your machine.
+First run pulls ~2 GB of images. Plan for 5–10 min depending on bandwidth. Subsequent boots take seconds — images cache on your machine.
 
-If the pull times out (we've hit transient Docker Hub rate limits), wait a minute and retry — the CLI resumes where it left off.
+If the pull times out (transient Docker Hub rate limits), wait a minute and retry. The CLI resumes where it left off.
 
-### 4. Generate `.env.local`
+### 1.2. Apply migrations + seed
+
+```bash
+pnpm db:migrate       # apply pending migrations from supabase/migrations/*.sql
+```
+
+The seed runs automatically on `db:start` (via `supabase/config.toml`'s `[db.seed]` block). If you need to force a fresh state:
+
+```bash
+pnpm db:reset         # drops everything, re-applies migrations, re-runs seed
+```
+
+### 1.3. Generate the Supabase types file
+
+```bash
+pnpm db:types
+```
+
+Writes `packages/supabase/src/types.gen.ts` from the live schema. Re-run after every migration. **Local Supabase must be running** — the CLI silently writes an empty file otherwise (known footgun).
+
+### 1.4. Verify it worked
+
+```bash
+pnpm db:status
+```
+
+Should print a JSON block with `API_URL`, `DB_URL`, `ANON_KEY`, and `SERVICE_ROLE_KEY`. Then browse to:
+
+- **Supabase Studio** — http://127.0.0.1:54323 (GUI over the local DB)
+- **Mailpit** — http://127.0.0.1:54324 (catches emails Supabase would have sent)
+
+In Studio you should see the `core`, `audit`, and `notifications` schemas, plus the seeded Mainstream + Shesa Buea Branch rows under `core.scopes`.
+
+### 1.5. Daily database commands
+
+```bash
+pnpm db:start                     # boot (fast after first time)
+pnpm db:stop                      # stop (data persists in Docker volume)
+pnpm db:reset                     # wipe + re-migrate + re-seed
+pnpm db:migrate:new <name>        # scaffold a new migration file
+pnpm db:migrate                   # apply pending migrations
+pnpm db:test                      # run the pgTAP suite
+```
+
+You don't need to `db:stop` at end of day — leaving Docker running uses ~1.5 GB of memory but is otherwise harmless.
+
+---
+
+## Part 2 — Local (native apps)
+
+The apps run directly on your macOS Node, no containers. Fastest iteration; hot reload is instant. **Requires Part 1 (Database) running.**
+
+### 2.1. Generate `.env.local`
 
 ```bash
 pnpm env:init
 ```
 
-This writes `.env.local` (mode `0600`, gitignored) with sensible defaults and captures the Supabase keys from `pnpm db:status` automatically. The output lists any vars left as placeholders (typically `RESEND_API_KEY` if you don't have a Resend sandbox key yet — fine to leave blank in local dev; SMS_PROVIDER_MODE=stub keeps email and SMS silent).
+Writes `.env.local` at the repo root (mode `0600`, gitignored) with sensible defaults, captures the Supabase keys from `pnpm db:status`, and symlinks the file into each Next app's directory (`apps/auth/.env.local`, `apps/web/.env.local`) — Next reads env from the app folder, not the workspace root.
 
-To audit:
-
-```bash
-pnpm env:check
-```
-
-### 5. Generate Supabase TypeScript types
+The output lists any placeholders. Typically you'll see `RESEND_API_KEY` left blank. For local dev, set it to any non-empty string:
 
 ```bash
-pnpm db:types
+# Edit .env.local (or via any text editor)
+RESEND_API_KEY=placeholder-no-real-email-yet
 ```
 
-Writes `packages/supabase/src/types.gen.ts` from the live schema. Re-run after every migration.
+Real Resend key only needed if you're exercising the password-reset email flow.
+
+### 2.2. Add `/etc/hosts` entries (optional but recommended)
+
+Only needed if you want to test cross-subdomain behavior (the shared cookie between apps). Skip if you're just working on one app.
+
+```bash
+sudo sh -c 'echo "127.0.0.1 auth.shesa.test web.shesa.test exco.shesa.test finance.shesa.test" >> /etc/hosts'
+```
+
+Verify: `ping -c 1 auth.shesa.test` responds from `127.0.0.1`.
+
+Cross-subdomain cookies only work when the browser resolves Shesa subdomains as distinct hosts — browsers refuse `domain=.localhost` cookies. **Without `/etc/hosts` you can still run each app individually at `localhost:<port>`, but the SSO handoff between apps won't demonstrate.**
+
+### 2.3. Start the apps
+
+Everything at once (Turborepo runs each app's `dev` script in parallel):
+
+```bash
+pnpm dev
+```
+
+Or just one:
+
+```bash
+pnpm --filter @shesa/auth dev     # → http://localhost:3001
+pnpm --filter @shesa/web dev      # → http://localhost:3000
+pnpm --filter @shesa/exco dev     # → http://localhost:3002
+pnpm --filter @shesa/finance dev  # → http://localhost:3003
+```
+
+### 2.4. Ports
+
+| App     | URL                   | Notes                    |
+| ------- | --------------------- | ------------------------ |
+| auth    | http://localhost:3001 | Next.js (Server Actions) |
+| web     | http://localhost:3000 | Next.js (public site)    |
+| exco    | http://localhost:3002 | Vite React SPA           |
+| finance | http://localhost:3003 | Vite React SPA           |
+
+With `/etc/hosts` set, replace `localhost` with the app's subdomain (`auth.shesa.test`, etc.) — same ports, but the shared apex cookie now works across them.
+
+### 2.5. Verify
+
+Open http://localhost:3001 — you should see the sign-in card. Log in with a user you seed via Supabase Studio (Studio → Authentication → Users → Add user). DevTools → Application → Cookies should show `sb-*` entries after sign-in.
 
 ---
 
-## Daily workflow
+## Part 3 — Local Docker
+
+The apps run in Alpine containers, same shape as staging/production. Slower iteration than Part 2 (first-run install inside container is ~10 min on slow networks), but catches "works on my machine, breaks in prod" issues before they hit deploy. **Requires Part 1 (Database) running.**
+
+### 3.1. `/etc/hosts` (required)
+
+Docker mode reverse-proxies via Caddy at `*.shesa.test:80`, so the hosts entries are non-optional here:
 
 ```bash
-pnpm db:start         # boot Supabase (fast after the first time)
-pnpm dev              # boot the apps via Turborepo (apps land in E9/E10; today this is a no-op)
-pnpm dev:open         # open every running URL in the default browser
+sudo sh -c 'echo "127.0.0.1 auth.shesa.test web.shesa.test exco.shesa.test finance.shesa.test" >> /etc/hosts'
 ```
 
-`pnpm dev:open` is the "one command for everything" — probes each known URL, opens only the ones that respond. Today (post-E2, pre-E9) that's Supabase Studio + Mailpit. As apps ship, their URLs auto-add (edit `scripts/dev-open.mjs` per the inline TODO in the URLS array).
+### 3.2. `.env.local` (same as Part 2)
 
-### What `pnpm dev:open` opens
-
-| Service                       | URL                            | Available after |
-| ----------------------------- | ------------------------------ | --------------- |
-| Supabase Studio (DB GUI)      | http://127.0.0.1:54323         | `pnpm db:start` |
-| Mailpit (local email catcher) | http://127.0.0.1:54324         | `pnpm db:start` |
-| Shesa Auth                    | http://auth.shesa.test:3001    | E9 lands        |
-| Shesa Web                     | http://web.shesa.test:3000     | E10 lands       |
-| Shesa Exco                    | http://exco.shesa.test:3002    | E10 lands       |
-| Shesa Finance                 | http://finance.shesa.test:3003 | E10 lands       |
-| Shesa Connect                 | http://connect.shesa.test:3004 | E10 lands       |
-
-Supabase API URL (`http://127.0.0.1:54321`) is checked for reachability but not opened — it's an API surface, not a browsable page.
-
-### When you're done for the day
+If you haven't already:
 
 ```bash
-pnpm db:stop          # stops the Supabase containers; data persists in a Docker volume
+pnpm env:init
 ```
 
-You don't need to stop — leaving Docker running uses ~1.5 GB of memory but is otherwise harmless. `pnpm db:start` again the next day picks up where you left off.
+The compose file overrides `SUPABASE_URL` and `SUPABASE_DB_URL` to `host.docker.internal:*` inside the container (the container can't reach `127.0.0.1` of your host directly), while `NEXT_PUBLIC_SUPABASE_URL` stays at `127.0.0.1:*` for the browser bundle. Next's env loader doesn't clobber existing `process.env`, so the compose override wins — see [`infra/README.md`](../../infra/README.md) for the full networking table.
+
+### 3.3. Start the stack
+
+```bash
+pnpm compose:up
+```
+
+Under the hood: `docker compose -f infra/docker-compose.dev.yml up --build`.
+
+First run:
+
+- builds the parameterized `Dockerfile.next.dev` image (~30 s once, cached after)
+- runs `pnpm install --filter <app>...` inside each container (5–10 min on slow networks; hits the internal named-volume pnpm store on subsequent runs)
+- boots `pnpm dev` per app
+
+Subsequent runs skip the image build and re-use the pnpm store, so start-up is 30 s + Next's own boot.
+
+Handy commands:
+
+```bash
+pnpm compose:up                                                     # foreground, live logs
+docker compose -f infra/docker-compose.dev.yml up -d                # detached
+pnpm compose:logs                                                   # follow logs of everything
+docker compose -f infra/docker-compose.dev.yml logs -f auth         # one service
+pnpm compose:down                                                   # stop + remove containers (volumes persist)
+```
+
+### 3.4. Access the apps
+
+Currently — see [`infra/docker-compose.dev.yml`](../../infra/docker-compose.dev.yml) — the auth container publishes port 3001 directly to the host, and Caddy is commented out because pulling `caddy:2-alpine` from Docker Hub has been flaky on our network.
+
+That means, for now:
+
+- **auth** → http://localhost:3001 (or http://auth.shesa.test:3001 if hosts are set)
+- **web / exco / finance** — their compose services are wired but Caddy isn't fronting them; open at `localhost:<port>` in the compose configuration once the images build.
+
+When Docker Hub connectivity is reliable, uncomment the `caddy` service in the compose file and the `web.shesa.test:80` / `exco.shesa.test:80` / `finance.shesa.test:80` blocks in `infra/caddy/Caddyfile.dev`. From that point on you hit `http://<app>.shesa.test` (no port) and Caddy routes to the right container.
+
+### 3.5. Verify
+
+Same as Part 2 §2.5 — open the auth URL, log in, check cookies. With Caddy on, the cookie's `Domain` should be `.shesa.test` (readable from any subdomain).
 
 ---
 
-## Common operations
+## Common operations (either mode)
 
-### Add a new migration
+### Add a migration
 
 ```bash
-pnpm db:migrate:new <descriptive_name>   # creates supabase/migrations/<timestamp>_<name>.sql
+pnpm db:migrate:new <descriptive_name>
+# → supabase/migrations/<timestamp>_<name>.sql
 ```
 
 Edit the file, then:
 
 ```bash
-pnpm db:migrate         # apply pending migrations (no data loss)
-pnpm db:types           # regenerate TS types
-# OR
-pnpm db:reset           # WIPE + apply all + re-seed (use for dev iteration)
-pnpm db:types
+pnpm db:migrate          # apply forward (no data loss)
+pnpm db:types            # regenerate TS types
 ```
 
-### Reset the local DB
-
-```bash
-pnpm db:reset
-```
-
-Drops every table, re-applies every migration, re-runs `seed.sql`. Local-only — safe to run as often as you want.
+For iterative development, `pnpm db:reset` is safer — it starts clean.
 
 ### Add shared test data
 
-Edit `supabase/seed.sql`. Use stable UUIDs + `ON CONFLICT DO NOTHING` so re-running is idempotent. Commit. Every dev's next `db:reset` and staging's next deploy picks it up.
+Edit `supabase/seed.sql`. Use stable UUIDs + `ON CONFLICT DO NOTHING` so re-running is idempotent. Commit. Every dev's next `db:reset` and every deploy picks it up.
 
 ### Inspect the database directly
 
@@ -159,87 +268,84 @@ Edit `supabase/seed.sql`. Use stable UUIDs + `ON CONFLICT DO NOTHING` so re-runn
 docker exec -it supabase_db_Shesa_App psql -U postgres -d postgres
 ```
 
-(Or use Supabase Studio at http://127.0.0.1:54323 — easier for browsing.)
+(Or use Supabase Studio — easier for browsing.)
+
+### Run the tests
+
+```bash
+pnpm test                # unit + component (Vitest + RTL, ~700 ms)
+pnpm test:db             # pgTAP suite (needs local Supabase running)
+pnpm test:e2e:install    # download Chromium (~180 MB, one time)
+pnpm test:e2e            # Playwright login smoke
+```
 
 ### Stop everything
 
 ```bash
-pnpm db:stop
-docker system prune -f             # optional: reclaim disk if you don't plan to dev for a while
+pnpm compose:down        # if you used Part 3
+pnpm db:stop             # stops Supabase
+docker system prune -f   # optional: reclaim disk if you're taking a break
 ```
 
 ---
 
 ## Troubleshooting
 
-### "Docker is not running"
+### Database
 
-Open Docker Desktop and wait for the whale icon to stop animating. Then re-run.
+**"Docker is not running"** — Open Docker Desktop and wait for the whale icon to stop animating.
 
-### "failed to pull docker image" / TLS timeout
+**"failed to pull docker image" / TLS timeout** — Docker Hub is flaky, especially from Cameroon. Wait a minute and retry `pnpm db:start`. Persistent? Configure a mirror in Docker Desktop → Settings → Docker Engine:
 
-Transient registry issues (Docker Hub, ECR, GHCR). Wait a minute and retry `pnpm db:start`. If persistent, check `docker info` and your network. On corporate networks, ensure Docker is allowed to reach `registry-1.docker.io`, `public.ecr.aws`, and `ghcr.io`.
-
-### Port already in use (54321 / 54322 / 54323 / 54324)
-
-Another Supabase project is running. List them: `docker ps | grep supabase_`. Stop the conflicting one with `docker stop <container>`, or rename our project in `supabase/config.toml` (`project_id`).
-
-### `auth.shesa.test` doesn't resolve / cookies don't share
-
-Did you add the `/etc/hosts` block in step 2? `ping -c 1 auth.shesa.test` should reply from `127.0.0.1`. If not, `sudo dscacheutil -flushcache` (macOS) to flush DNS cache.
-
-### `pnpm db:types` overwrites the file with empty content
-
-Make sure local Supabase is running first (`pnpm db:start` then `pnpm db:status` should print a JSON with `API_URL`). The CLI silently writes an empty file when the local stack isn't up — known footgun.
-
-### `supabase functions serve` returns 503 "name resolution failed"
-
-Symptom: `pnpm supabase functions serve` runs but every request to `http://127.0.0.1:54321/functions/v1/<name>` returns `HTTP 503` with body `{"message":"name resolution failed"}`. `docker ps` shows no `supabase_edge_runtime_*` container.
-
-Cause: the Supabase CLI's edge-runtime container failed to start (silent during `serve` startup). Usually a Docker DNS issue or a stuck image pull. Kong (the API gateway) is up, accepts the request, can't reach the missing upstream → "name resolution failed" comes back to the caller.
-
-Fixes, in order of likelihood:
-
-```bash
-# 1. Restart Docker Desktop (fixes most macOS DNS flakes)
-pnpm db:stop
-# (right-click Docker menubar icon → Restart, wait for whale to settle)
-pnpm db:start
-
-# 2. Pre-pull the edge runtime image manually
-docker pull public.ecr.aws/supabase/edge-runtime:v1.69.1   # version varies — match the CLI version
-
-# 3. Verify the runtime can resolve npm registry from inside Docker
-docker run --rm alpine nslookup registry.npmjs.org
-
-# 4. If on a corporate network / VPN: confirm Docker is allowed
-#    to reach registry-1.docker.io and registry.npmjs.org.
+```json
+"registry-mirrors": ["https://mirror.gcr.io"]
 ```
 
-The function code is unaffected by this — Edge Functions deployed to Supabase Cloud (and CI's ephemeral runners) work without this local hiccup. Use the cloud-deployed staging environment for end-to-end verification while the local issue is being resolved.
+**Port already in use (54321 / 54322 / 54323 / 54324)** — Another Supabase project is running. `docker ps | grep supabase_`, then `docker stop <container>`.
 
-### Cookies set in dev but `Secure` flag breaks them
+**`pnpm db:types` produces an empty file** — Local Supabase wasn't running. `pnpm db:start` first, verify with `pnpm db:status`, then re-run.
 
-Local cookies are set with `secure: false` (see `packages/supabase/src/cookie-config.ts`) precisely because `*.shesa.test` is HTTP. If you ever see "Secure" cookie warnings locally, check `APP_ENV` in `.env.local` is `local` — the cookie-config branches on it.
+**`supabase functions serve` returns 503 "name resolution failed"** — The edge-runtime container failed to start. Fixes in order of likelihood:
 
----
+```bash
+pnpm db:stop && (restart Docker Desktop) && pnpm db:start
+docker pull public.ecr.aws/supabase/edge-runtime:v1.69.1   # match the CLI version
+```
 
-## What "working" looks like after setup
+### Local (Part 2)
 
-A successful first-run leaves you with:
+**`Runtime ZodError: APP_ENV: undefined`** — `.env.local` isn't reaching the app. Next reads it from `apps/<app>/`, not the workspace root. Fix:
 
-- Supabase Studio open at http://127.0.0.1:54323 — you can see the `core` schema with `scopes`, `scope_capabilities`, `profiles`
-- `core.scopes` contains the seeded Mainstream + Shesa Buea Branch rows
-- Mailpit open at http://127.0.0.1:54324 — empty inbox (no emails yet; auth lands in E9)
-- `pnpm typecheck` passes (5/5 packages green)
+```bash
+pnpm env:init --force        # regenerates .env.local AND re-creates the symlinks into apps/auth + apps/web
+```
 
-Once apps ship in E9/E10, `pnpm dev:open` will additionally open each app's URL — log in once on `auth.shesa.test`, navigate to `finance.shesa.test`, you're already logged in.
+**`UnrecognizedActionError: Server Action was not found on the server`** — Stale action ID in the browser after a dev restart. Hard-refresh (Cmd+Shift+R). If it recurs on every restart, check `.env.local` has `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` set (env-init generates it with a fixed local value; if it went missing, re-run `pnpm env:init --force`).
+
+**Port 3000 / 3001 / 3002 / 3003 already in use** — Something's left over.
+
+```bash
+lsof -ti :3001 | xargs kill
+```
+
+**`auth.shesa.test` doesn't resolve** — `/etc/hosts` entries missing. See §2.2. `sudo dscacheutil -flushcache` on macOS to flush DNS after editing.
+
+### Local Docker (Part 3)
+
+**Docker Hub TLS handshake timeout on `pnpm compose:up`** — Cameroonian-network-to-Docker-Hub failure mode. Same registry mirror fix as the DB section. Or just retry — usually transient.
+
+**EACCES writing to `/app/node_modules` inside the container** — Anon volume ownership. Should be fixed in the current `Dockerfile.next.dev` (runs as root on macOS Docker Desktop). If you see it, `pnpm compose:down`, `docker volume rm shesa-pnpm-store`, `pnpm compose:up` to rebuild.
+
+**Container running but `curl localhost:3001` returns 500** — Look at the logs (`pnpm compose:logs`). Common causes: missing env value (Zod error at boot), Next hasn't finished compiling on first request, or a recently-added workspace dep isn't installed inside the container (fix: `docker compose -f infra/docker-compose.dev.yml exec auth pnpm install --frozen-lockfile --filter '@shesa/auth...'`, then `docker compose -f infra/docker-compose.dev.yml restart auth`).
+
+**Cookies set in dev but `Secure` flag breaks them** — Local cookies are set with `secure: false` because `*.shesa.test` and `localhost:*` are HTTP. If you ever see "Secure" cookie warnings locally, check `APP_ENV=local` in `.env.local` — the cookie config branches on it.
 
 ---
 
 ## Related
 
 - [`supabase/README.md`](../../supabase/README.md) — DB workflow + branch→env promotion model
-- [`infra/README.md`](../../infra/README.md) — Docker/Caddy architecture for local + staging + prod
+- [`infra/README.md`](../../infra/README.md) — Docker + Caddy architecture, inside-container vs in-browser networking
+- [`docs/phase-0/`](../phase-0/) — what shipped in Phase 0 and how to use it
 - [`docs/standards/git-conventions.md`](../standards/git-conventions.md) — commit format + branch naming
 - [`docs/adr/0007-tenancy-model-orgs-and-grants.md`](../adr/0007-tenancy-model-orgs-and-grants.md) — what's in the `core.scopes` table you're now looking at in Studio
