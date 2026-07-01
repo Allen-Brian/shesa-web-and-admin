@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+/// <reference types="@testing-library/jest-dom" />
 
 /**
  * Button — component-level smoke.
