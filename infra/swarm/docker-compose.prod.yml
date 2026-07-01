@@ -39,7 +39,15 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     environment:
-      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-ops@shesa.org}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-ops@shesaconnect.com}
+      # Per-app hostnames — Caddy vhosts interpolate these directly.
+      # Staging uses sibling shape (staging-<app>.shesaconnect.com);
+      # production will use apex + subdomain. Same Caddyfile, different
+      # values.
+      WEB_DOMAIN: ${WEB_DOMAIN}
+      AUTH_DOMAIN: ${AUTH_DOMAIN}
+      EXCO_DOMAIN: ${EXCO_DOMAIN}
+      FINANCE_DOMAIN: ${FINANCE_DOMAIN}
     networks:
       - shesa
     deploy:
@@ -58,12 +66,17 @@ services:
     environment:
       APP_ENV: ${SHESA_ENV}
       NEXT_PUBLIC_APP_ENV: ${SHESA_ENV}
+      # `APP_BASE_DOMAIN` is the *cookie* base domain — auth sets its
+      # session cookie with `Domain=.${APP_BASE_DOMAIN}` so every app
+      # under that ancestor can read it. NOT necessarily the web app's
+      # hostname (staging uses `shesaconnect.com` as the cookie domain
+      # so it covers all four `staging-*.shesaconnect.com` siblings).
       APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
       NEXT_PUBLIC_APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
-      NEXT_PUBLIC_WEB_APP_URL: https://${APP_BASE_DOMAIN}
-      NEXT_PUBLIC_AUTH_APP_URL: https://auth.${APP_BASE_DOMAIN}
-      NEXT_PUBLIC_EXCO_APP_URL: https://exco.${APP_BASE_DOMAIN}
-      NEXT_PUBLIC_FINANCE_APP_URL: https://finance.${APP_BASE_DOMAIN}
+      NEXT_PUBLIC_WEB_APP_URL: https://${WEB_DOMAIN}
+      NEXT_PUBLIC_AUTH_APP_URL: https://${AUTH_DOMAIN}
+      NEXT_PUBLIC_EXCO_APP_URL: https://${EXCO_DOMAIN}
+      NEXT_PUBLIC_FINANCE_APP_URL: https://${FINANCE_DOMAIN}
       # Secrets injected via /run/secrets/* — see the secrets: block on
       # each app service below.
     secrets:
@@ -95,10 +108,10 @@ services:
       NEXT_PUBLIC_APP_ENV: ${SHESA_ENV}
       APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
       NEXT_PUBLIC_APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
-      NEXT_PUBLIC_WEB_APP_URL: https://${APP_BASE_DOMAIN}
-      NEXT_PUBLIC_AUTH_APP_URL: https://auth.${APP_BASE_DOMAIN}
-      NEXT_PUBLIC_EXCO_APP_URL: https://exco.${APP_BASE_DOMAIN}
-      NEXT_PUBLIC_FINANCE_APP_URL: https://finance.${APP_BASE_DOMAIN}
+      NEXT_PUBLIC_WEB_APP_URL: https://${WEB_DOMAIN}
+      NEXT_PUBLIC_AUTH_APP_URL: https://${AUTH_DOMAIN}
+      NEXT_PUBLIC_EXCO_APP_URL: https://${EXCO_DOMAIN}
+      NEXT_PUBLIC_FINANCE_APP_URL: https://${FINANCE_DOMAIN}
     secrets:
       - supabase_url
       - supabase_anon_key

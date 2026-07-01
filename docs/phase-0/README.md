@@ -53,9 +53,9 @@ For decisions behind these deliverables, see the [ADR index](../adr/README.md). 
 13. Enqueue notification → pgmq → dispatch → send-email → Resend test message arrives
 14. `send-sms-stub` logs the would-be SMS with `provider=stub`
 15. Anon upload to `member-documents` blocked; anon read of `public-gallery` allowed
-16. CI green on a PR; staging deploys on push to `develop`; prod deploys on push to `main` with manual approval
+16. CI green on a PR; staging deploys on push to `develop`; prod deploys on push to `master` with manual approval
 17. `apps/connect` is INTENTIONALLY absent — Connect is out of Phase 0 scope
-18. Staging cross-subdomain SSO through Cloudflare + Caddy: login at `auth.shesa.org`, session readable at `finance.shesa.org` (real cert at origin + `cf-ray` header in path)
+18. Staging cross-subdomain SSO through Cloudflare + Caddy: login at `staging-auth.shesaconnect.com`, session readable at `staging-finance.shesaconnect.com` (real cert at origin + `cf-ray` header in path)
 
 ## Deferred to Phase 1+
 

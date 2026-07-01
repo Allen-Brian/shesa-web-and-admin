@@ -121,7 +121,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # One build job per app, tagged with both the branch and the SHA
-      # so rollbacks can pin to a specific SHA.
+      # so rollbacks can pin to a specific SHA. The NEXT_PUBLIC_* build
+      # args are inlined into the client bundle at build time (Next/Vite),
+      # so they MUST match the env's real hostnames — a runtime env var
+      # would come too late.
       - name: Build + push auth image
         uses: docker/build-push-action@v6
         with:
@@ -130,6 +133,12 @@ jobs:
           build-args: |
             APP_DIR=auth
             APP_PORT=3001
+            NEXT_PUBLIC_APP_ENV=staging
+            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
+            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
+            NEXT_PUBLIC_AUTH_APP_URL=https://${{ vars.AUTH_DOMAIN }}
+            NEXT_PUBLIC_EXCO_APP_URL=https://${{ vars.EXCO_DOMAIN }}
+            NEXT_PUBLIC_FINANCE_APP_URL=https://${{ vars.FINANCE_DOMAIN }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/shesa-auth:staging
             ghcr.io/${{ github.repository_owner }}/shesa-auth:staging-${{ github.sha }}
@@ -145,6 +154,12 @@ jobs:
           build-args: |
             APP_DIR=web
             APP_PORT=3000
+            NEXT_PUBLIC_APP_ENV=staging
+            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
+            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
+            NEXT_PUBLIC_AUTH_APP_URL=https://${{ vars.AUTH_DOMAIN }}
+            NEXT_PUBLIC_EXCO_APP_URL=https://${{ vars.EXCO_DOMAIN }}
+            NEXT_PUBLIC_FINANCE_APP_URL=https://${{ vars.FINANCE_DOMAIN }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/shesa-web:staging
             ghcr.io/${{ github.repository_owner }}/shesa-web:staging-${{ github.sha }}
@@ -159,6 +174,12 @@ jobs:
           file: infra/docker/Dockerfile.vite.prod
           build-args: |
             APP_DIR=exco
+            NEXT_PUBLIC_APP_ENV=staging
+            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
+            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
+            NEXT_PUBLIC_AUTH_APP_URL=https://${{ vars.AUTH_DOMAIN }}
+            NEXT_PUBLIC_EXCO_APP_URL=https://${{ vars.EXCO_DOMAIN }}
+            NEXT_PUBLIC_FINANCE_APP_URL=https://${{ vars.FINANCE_DOMAIN }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/shesa-exco:staging
             ghcr.io/${{ github.repository_owner }}/shesa-exco:staging-${{ github.sha }}
@@ -173,6 +194,12 @@ jobs:
           file: infra/docker/Dockerfile.vite.prod
           build-args: |
             APP_DIR=finance
+            NEXT_PUBLIC_APP_ENV=staging
+            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
+            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
+            NEXT_PUBLIC_AUTH_APP_URL=https://${{ vars.AUTH_DOMAIN }}
+            NEXT_PUBLIC_EXCO_APP_URL=https://${{ vars.EXCO_DOMAIN }}
+            NEXT_PUBLIC_FINANCE_APP_URL=https://${{ vars.FINANCE_DOMAIN }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/shesa-finance:staging
             ghcr.io/${{ github.repository_owner }}/shesa-finance:staging-${{ github.sha }}
@@ -182,7 +209,9 @@ jobs:
 
       # Docker swarm deploy over ssh. The vps is set up as a
       # single-node swarm; `docker stack deploy` is idempotent and does a
-      # rolling update per service.
+      # rolling update per service. The `env:` block below is what the
+      # ssh-action injects into the remote shell — the compose file reads
+      # these via ${VAR} interpolation.
       - name: Deploy stack to staging VPS
         uses: appleboy/ssh-action@v1
         with:
@@ -190,16 +219,26 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          # `docker login` on the vps to pull from ghcr; then pull each
-          # tagged image; then re-deploy the stack.
+          envs: SHESA_ENV,SHESA_IMAGE_TAG,GHCR_OWNER,APP_BASE_DOMAIN,WEB_DOMAIN,AUTH_DOMAIN,EXCO_DOMAIN,FINANCE_DOMAIN,LETSENCRYPT_EMAIL,GHCR_TOKEN,GHCR_ACTOR
           script: |
             set -euo pipefail
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
-              -u ${{ github.actor }} --password-stdin
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_ACTOR" --password-stdin
             cd /opt/shesa
             git fetch origin develop
             git reset --hard origin/develop
             docker stack deploy -c infra/swarm/docker-compose.prod.yml shesa
+        env:
+          SHESA_ENV: staging
+          SHESA_IMAGE_TAG: staging-${{ github.sha }}
+          GHCR_OWNER: ${{ github.repository_owner }}
+          APP_BASE_DOMAIN: ${{ vars.APP_BASE_DOMAIN }}
+          WEB_DOMAIN: ${{ vars.WEB_DOMAIN }}
+          AUTH_DOMAIN: ${{ vars.AUTH_DOMAIN }}
+          EXCO_DOMAIN: ${{ vars.EXCO_DOMAIN }}
+          FINANCE_DOMAIN: ${{ vars.FINANCE_DOMAIN }}
+          LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_ACTOR: ${{ github.actor }}
 
 # ─────────────────────────────────────────────────────────────────────
 # REQUIRED SECRETS (staging environment)
@@ -217,6 +256,12 @@ jobs:
 # REQUIRED VARIABLES (staging environment, non-secret)
 #
 #   SUPABASE_PROJECT_REF     — the staging project's ref (e.g. `abcd1234`)
+#   APP_BASE_DOMAIN          — cookie base domain (e.g. `shesaconnect.com`)
+#   WEB_DOMAIN               — e.g. `staging.shesaconnect.com`
+#   AUTH_DOMAIN              — e.g. `staging-auth.shesaconnect.com`
+#   EXCO_DOMAIN              — e.g. `staging-exco.shesaconnect.com`
+#   FINANCE_DOMAIN           — e.g. `staging-finance.shesaconnect.com`
+#   LETSENCRYPT_EMAIL        — inbox that gets ACME expiry notices
 #
 # The staging VPS + these secrets aren't in place yet. When they are,
 # this workflow starts firing green.

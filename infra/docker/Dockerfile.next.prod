@@ -68,15 +68,24 @@ RUN node -e "const f='apps/${APP_DIR}/next.config.ts'; \
                fs.writeFileSync(f, s); \
              }"
 
+# Per-env values that Next inlines into the client bundle at build time.
+# The workflow passes real values via --build-arg; the defaults below
+# just let a local `docker build` succeed without extra flags.
+ARG NEXT_PUBLIC_APP_ENV=production
+ARG NEXT_PUBLIC_APP_BASE_DOMAIN=shesaconnect.com
+ARG NEXT_PUBLIC_WEB_APP_URL=https://shesaconnect.com
+ARG NEXT_PUBLIC_AUTH_APP_URL=https://auth.shesaconnect.com
+ARG NEXT_PUBLIC_EXCO_APP_URL=https://exco.shesaconnect.com
+ARG NEXT_PUBLIC_FINANCE_APP_URL=https://finance.shesaconnect.com
+
 # Zod schemas in packages/config parse process.env at module load, which
 # means `next build` needs enough env to satisfy them. Dummy values are
-# fine for BUILD time — every runtime value comes from Docker Swarm
-# secrets when the container starts, and Next inlines only NEXT_PUBLIC_*
-# into the bundle.
+# fine for BUILD time — every non-public runtime value comes from Docker
+# Swarm secrets when the container starts.
 ENV APP_ENV=production \
-    NEXT_PUBLIC_APP_ENV=production \
-    APP_BASE_DOMAIN=shesa.org \
-    NEXT_PUBLIC_APP_BASE_DOMAIN=shesa.org \
+    NEXT_PUBLIC_APP_ENV=${NEXT_PUBLIC_APP_ENV} \
+    APP_BASE_DOMAIN=${NEXT_PUBLIC_APP_BASE_DOMAIN} \
+    NEXT_PUBLIC_APP_BASE_DOMAIN=${NEXT_PUBLIC_APP_BASE_DOMAIN} \
     SUPABASE_URL=https://build.time.placeholder.example.com \
     NEXT_PUBLIC_SUPABASE_URL=https://build.time.placeholder.example.com \
     SUPABASE_ANON_KEY=build-time-placeholder \
@@ -87,10 +96,10 @@ ENV APP_ENV=production \
     EMAIL_FROM='Shesa <build@placeholder.example.com>' \
     SMS_PROVIDER_MODE=stub \
     NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000 \
-    NEXT_PUBLIC_WEB_APP_URL=https://shesa.org \
-    NEXT_PUBLIC_AUTH_APP_URL=https://auth.shesa.org \
-    NEXT_PUBLIC_EXCO_APP_URL=https://exco.shesa.org \
-    NEXT_PUBLIC_FINANCE_APP_URL=https://finance.shesa.org
+    NEXT_PUBLIC_WEB_APP_URL=${NEXT_PUBLIC_WEB_APP_URL} \
+    NEXT_PUBLIC_AUTH_APP_URL=${NEXT_PUBLIC_AUTH_APP_URL} \
+    NEXT_PUBLIC_EXCO_APP_URL=${NEXT_PUBLIC_EXCO_APP_URL} \
+    NEXT_PUBLIC_FINANCE_APP_URL=${NEXT_PUBLIC_FINANCE_APP_URL}
 
 RUN pnpm --filter "@shesa/${APP_DIR}" build
 

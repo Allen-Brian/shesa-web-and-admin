@@ -31,17 +31,24 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     PNPM_STORE_DIR=/pnpm/store pnpm install --frozen-lockfile --filter "@shesa/${APP_DIR}..."
 
 # NEXT_PUBLIC_* values are inlined into the bundle at build time (vite
-# via the `define:` shim in the app's vite.config.ts). The values baked
-# in HERE are placeholders — the real per-env values are baked in when
-# CI rebuilds the image, sourcing them from GitHub Actions env-vars.
-ENV NEXT_PUBLIC_APP_ENV=production \
-    NEXT_PUBLIC_APP_BASE_DOMAIN=shesa.org \
+# via the `define:` shim in the app's vite.config.ts). The workflow
+# passes real values via --build-arg; the defaults below just let a
+# local `docker build` succeed without extra flags.
+ARG NEXT_PUBLIC_APP_ENV=production
+ARG NEXT_PUBLIC_APP_BASE_DOMAIN=shesaconnect.com
+ARG NEXT_PUBLIC_WEB_APP_URL=https://shesaconnect.com
+ARG NEXT_PUBLIC_AUTH_APP_URL=https://auth.shesaconnect.com
+ARG NEXT_PUBLIC_EXCO_APP_URL=https://exco.shesaconnect.com
+ARG NEXT_PUBLIC_FINANCE_APP_URL=https://finance.shesaconnect.com
+
+ENV NEXT_PUBLIC_APP_ENV=${NEXT_PUBLIC_APP_ENV} \
+    NEXT_PUBLIC_APP_BASE_DOMAIN=${NEXT_PUBLIC_APP_BASE_DOMAIN} \
     NEXT_PUBLIC_SUPABASE_URL=https://build.time.placeholder.example.com \
     NEXT_PUBLIC_SUPABASE_ANON_KEY=build-time-placeholder \
-    NEXT_PUBLIC_WEB_APP_URL=https://shesa.org \
-    NEXT_PUBLIC_AUTH_APP_URL=https://auth.shesa.org \
-    NEXT_PUBLIC_EXCO_APP_URL=https://exco.shesa.org \
-    NEXT_PUBLIC_FINANCE_APP_URL=https://finance.shesa.org
+    NEXT_PUBLIC_WEB_APP_URL=${NEXT_PUBLIC_WEB_APP_URL} \
+    NEXT_PUBLIC_AUTH_APP_URL=${NEXT_PUBLIC_AUTH_APP_URL} \
+    NEXT_PUBLIC_EXCO_APP_URL=${NEXT_PUBLIC_EXCO_APP_URL} \
+    NEXT_PUBLIC_FINANCE_APP_URL=${NEXT_PUBLIC_FINANCE_APP_URL}
 
 RUN pnpm --filter "@shesa/${APP_DIR}" build
 

@@ -3,7 +3,7 @@
 Two environments, one VPS each (per ADR-0026), one auto-deploy pipeline per branch.
 
 - Merge to `develop` → staging deploys automatically
-- Merge to `main` → production deploys after a **manual approval** click
+- Merge to `master` → production deploys after a **manual approval** click
 
 ## Overview
 
@@ -20,7 +20,7 @@ DB test ─────┤       ▼
              │                            db push        stack deploy
              │                            (staging)      (staging VPS)
              ▼
-      ── same for main → production ──
+      ── same for master → production ──
 ```
 
 The gate job in each deploy workflow uses `github-script` to check that BOTH `CI` and `DB test (pgTAP)` succeeded at the current head SHA before allowing `migrate` + `deploy` to run. This handles the workflow_run ordering: `CI` finishing first triggers the deploy workflow, but the gate skips it until `DB test` also lands green.
@@ -37,11 +37,17 @@ The gate job in each deploy workflow uses `github-script` to check that BOTH `CI
 | `SUPABASE_ACCESS_TOKEN` | https://supabase.com/dashboard/account/tokens    |
 | `SUPABASE_DB_PASSWORD`  | project's Postgres password                      |
 
-And a non-secret **Variable**:
+And non-secret **Variables**:
 
-| Variable               | Value                                                  |
-| ---------------------- | ------------------------------------------------------ |
-| `SUPABASE_PROJECT_REF` | e.g. `abcdefghijklmnop` — from the project's dashboard |
+| Variable               | Staging value                       | Production value           |
+| ---------------------- | ----------------------------------- | -------------------------- |
+| `SUPABASE_PROJECT_REF` | staging project ref                 | production project ref     |
+| `APP_BASE_DOMAIN`      | `shesaconnect.com`                  | `shesaconnect.com`         |
+| `WEB_DOMAIN`           | `staging.shesaconnect.com`          | `shesaconnect.com`         |
+| `AUTH_DOMAIN`          | `staging-auth.shesaconnect.com`     | `auth.shesaconnect.com`    |
+| `EXCO_DOMAIN`          | `staging-exco.shesaconnect.com`     | `exco.shesaconnect.com`    |
+| `FINANCE_DOMAIN`       | `staging-finance.shesaconnect.com`  | `finance.shesaconnect.com` |
+| `LETSENCRYPT_EMAIL`    | inbox that gets ACME expiry notices | same                       |
 
 The `production` environment ALSO needs a **Deployment protection rule** with required reviewers (Settings → Environments → production → Deployment protection rules) so `migrate` + `deploy` both wait for a human click before running.
 

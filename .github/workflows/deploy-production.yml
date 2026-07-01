@@ -1,6 +1,6 @@
 name: Deploy — production
 
-# Same shape as deploy-staging.yml but on push to main and gated by a
+# Same shape as deploy-staging.yml but on push to master and gated by a
 # GITHUB ENVIRONMENT PROTECTION RULE (manual approval + optional
 # waiters). Configured under Settings → Environments → production.
 #
@@ -11,7 +11,7 @@ on:
   workflow_run:
     workflows: [CI, 'DB test (pgTAP)']
     types: [completed]
-    branches: [main]
+    branches: [master]
 
 concurrency:
   group: deploy-production
@@ -112,6 +112,12 @@ jobs:
           build-args: |
             APP_DIR=auth
             APP_PORT=3001
+            NEXT_PUBLIC_APP_ENV=production
+            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
+            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
+            NEXT_PUBLIC_AUTH_APP_URL=https://${{ vars.AUTH_DOMAIN }}
+            NEXT_PUBLIC_EXCO_APP_URL=https://${{ vars.EXCO_DOMAIN }}
+            NEXT_PUBLIC_FINANCE_APP_URL=https://${{ vars.FINANCE_DOMAIN }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/shesa-auth:production
             ghcr.io/${{ github.repository_owner }}/shesa-auth:production-${{ github.sha }}
@@ -127,6 +133,12 @@ jobs:
           build-args: |
             APP_DIR=web
             APP_PORT=3000
+            NEXT_PUBLIC_APP_ENV=production
+            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
+            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
+            NEXT_PUBLIC_AUTH_APP_URL=https://${{ vars.AUTH_DOMAIN }}
+            NEXT_PUBLIC_EXCO_APP_URL=https://${{ vars.EXCO_DOMAIN }}
+            NEXT_PUBLIC_FINANCE_APP_URL=https://${{ vars.FINANCE_DOMAIN }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/shesa-web:production
             ghcr.io/${{ github.repository_owner }}/shesa-web:production-${{ github.sha }}
@@ -141,6 +153,12 @@ jobs:
           file: infra/docker/Dockerfile.vite.prod
           build-args: |
             APP_DIR=exco
+            NEXT_PUBLIC_APP_ENV=production
+            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
+            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
+            NEXT_PUBLIC_AUTH_APP_URL=https://${{ vars.AUTH_DOMAIN }}
+            NEXT_PUBLIC_EXCO_APP_URL=https://${{ vars.EXCO_DOMAIN }}
+            NEXT_PUBLIC_FINANCE_APP_URL=https://${{ vars.FINANCE_DOMAIN }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/shesa-exco:production
             ghcr.io/${{ github.repository_owner }}/shesa-exco:production-${{ github.sha }}
@@ -155,6 +173,12 @@ jobs:
           file: infra/docker/Dockerfile.vite.prod
           build-args: |
             APP_DIR=finance
+            NEXT_PUBLIC_APP_ENV=production
+            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
+            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
+            NEXT_PUBLIC_AUTH_APP_URL=https://${{ vars.AUTH_DOMAIN }}
+            NEXT_PUBLIC_EXCO_APP_URL=https://${{ vars.EXCO_DOMAIN }}
+            NEXT_PUBLIC_FINANCE_APP_URL=https://${{ vars.FINANCE_DOMAIN }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/shesa-finance:production
             ghcr.io/${{ github.repository_owner }}/shesa-finance:production-${{ github.sha }}
@@ -169,14 +193,26 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+          envs: SHESA_ENV,SHESA_IMAGE_TAG,GHCR_OWNER,APP_BASE_DOMAIN,WEB_DOMAIN,AUTH_DOMAIN,EXCO_DOMAIN,FINANCE_DOMAIN,LETSENCRYPT_EMAIL,GHCR_TOKEN,GHCR_ACTOR
           script: |
             set -euo pipefail
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
-              -u ${{ github.actor }} --password-stdin
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_ACTOR" --password-stdin
             cd /opt/shesa
-            git fetch origin main
-            git reset --hard origin/main
+            git fetch origin master
+            git reset --hard origin/master
             docker stack deploy -c infra/swarm/docker-compose.prod.yml shesa
+        env:
+          SHESA_ENV: production
+          SHESA_IMAGE_TAG: production-${{ github.sha }}
+          GHCR_OWNER: ${{ github.repository_owner }}
+          APP_BASE_DOMAIN: ${{ vars.APP_BASE_DOMAIN }}
+          WEB_DOMAIN: ${{ vars.WEB_DOMAIN }}
+          AUTH_DOMAIN: ${{ vars.AUTH_DOMAIN }}
+          EXCO_DOMAIN: ${{ vars.EXCO_DOMAIN }}
+          FINANCE_DOMAIN: ${{ vars.FINANCE_DOMAIN }}
+          LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_ACTOR: ${{ github.actor }}
 
 # ─────────────────────────────────────────────────────────────────────
 # REQUIRED SECRETS (production environment)
@@ -195,9 +231,15 @@ jobs:
 # REQUIRED VARIABLES (production environment, non-secret)
 #
 #   SUPABASE_PROJECT_REF     — production project's ref
+#   APP_BASE_DOMAIN          — cookie base domain (e.g. `shesaconnect.com`)
+#   WEB_DOMAIN               — e.g. `shesaconnect.com`
+#   AUTH_DOMAIN              — e.g. `auth.shesaconnect.com`
+#   EXCO_DOMAIN              — e.g. `exco.shesaconnect.com`
+#   FINANCE_DOMAIN           — e.g. `finance.shesaconnect.com`
+#   LETSENCRYPT_EMAIL        — inbox that gets ACME expiry notices
 #
 # The production VPS is intentionally DEFERRED until staging has been
 # validated end-to-end. This workflow ships now so the plumbing is
 # reviewable, but it won't run green until you (a) provision the second
 # Contabo instance, (b) populate the production environment's secrets,
-# and (c) approve the deployment when the first push to main lands.
+# and (c) approve the deployment when the first push to master lands.

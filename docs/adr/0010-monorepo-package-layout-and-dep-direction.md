@@ -14,13 +14,13 @@ Define a **strict package map** and enforce a **one-way downward** import direct
 
 ### Apps
 
-| App            | Stack         | Purpose                                                                                                                                                                                                       |
-| -------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web`     | Next.js       | Public website + CMS                                                                                                                                                                                          |
-| `apps/auth`    | Next.js       | Central authentication (login / logout / reset / invite / OAuth callback) at `auth.shesa.org`. Writes the shared Supabase session cookie scoped to the apex domain so the other apps' middleware can read it. |
-| `apps/exco`    | React or Next | Governance dashboard for executive committees                                                                                                                                                                 |
-| `apps/finance` | React or Next | Finance application (charges, payments, treasury, reports)                                                                                                                                                    |
-| `apps/connect` | React or Next | Forums, jobs, achievements, live sessions, polls                                                                                                                                                              |
+| App            | Stack         | Purpose                                                                                                                                                                                                                                                                 |
+| -------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`     | Next.js       | Public website + CMS                                                                                                                                                                                                                                                    |
+| `apps/auth`    | Next.js       | Central authentication (login / logout / reset / invite / OAuth callback) at `auth.shesaconnect.com` (prod) / `staging-auth.shesaconnect.com` (staging). Writes the shared Supabase session cookie scoped to the apex domain so the other apps' middleware can read it. |
+| `apps/exco`    | React or Next | Governance dashboard for executive committees                                                                                                                                                                                                                           |
+| `apps/finance` | React or Next | Finance application (charges, payments, treasury, reports)                                                                                                                                                                                                              |
+| `apps/connect` | React or Next | Forums, jobs, achievements, live sessions, polls                                                                                                                                                                                                                        |
 
 ### Packages
 

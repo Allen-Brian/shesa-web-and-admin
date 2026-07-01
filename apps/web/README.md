@@ -1,6 +1,6 @@
 # @shesa/web — public website + CMS
 
-Runs at `web.shesa.test:3000` locally and `shesa.org` / `www.shesa.org` in staging / prod. Two responsibilities:
+Runs at `web.shesa.test:3000` locally, `staging.shesaconnect.com` on staging, and `shesaconnect.com` / `www.shesaconnect.com` in production. Two responsibilities:
 
 1. **Public website** — landing pages, member-facing content, the kind of thing search engines index. Next.js (SSR + ISR) for SEO and first-paint speed.
 2. **CMS routes** (Phase 5) — authoring UI for editors. Gated behind the apex-domain session cookie; uses Server Actions for mutations per ADR-0033.

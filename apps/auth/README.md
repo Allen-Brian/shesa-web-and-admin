@@ -1,6 +1,6 @@
 # @shesa/auth — central authentication app
 
-Runs at `auth.shesa.test:3001` locally and `auth.shesa.org` in staging / prod. Its single job: write the Supabase Auth session cookie scoped to the apex domain (`.shesa.org`) so every other Shesa app (`web`, `exco`, `finance`, `connect`) reads the same session without re-authenticating.
+Runs at `auth.shesa.test:3001` locally, `staging-auth.shesaconnect.com` on staging, and `auth.shesaconnect.com` in production. Its single job: write the Supabase Auth session cookie scoped to the apex domain (`.shesaconnect.com` in cloud envs) so every other Shesa app (`web`, `exco`, `finance`, `connect`) reads the same session without re-authenticating.
 
 ## Phase 0 scope
 
@@ -25,7 +25,7 @@ Browser  →  auth.shesa.test:3001  (this app, Caddy reverse proxy locally)
               └── /auth/callback          writes the apex-domain cookie
                   │
                   └── packages/supabase/src/server.ts
-                      → @supabase/ssr     cookie domain = .shesa.org
+                      → @supabase/ssr     cookie domain = .shesaconnect.com
                                          httpOnly + Secure + SameSite=Lax
 
 Then on every other Shesa subdomain:
@@ -66,4 +66,4 @@ src/
 
 ## Deployment
 
-Same `Dockerfile.next` as every other Shesa app (E14). Caddy / Cloudflare in front terminate TLS. Cloudflare zone for `shesa.org` proxies traffic to the Contabo VPS; the Caddy vhost for `auth.shesa.org` reverse-proxies to this container.
+Same `Dockerfile.next` as every other Shesa app (E14). Caddy / Cloudflare in front terminate TLS. Cloudflare zone for `shesaconnect.com` proxies traffic to the Contabo VPS; the Caddy vhost for the auth hostname (`staging-auth.shesaconnect.com` on staging, `auth.shesaconnect.com` on prod) reverse-proxies to this container.

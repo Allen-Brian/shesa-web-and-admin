@@ -1,6 +1,6 @@
 # @shesa/exco — Executive Committee dashboard (Vite SPA)
 
-Runs at `exco.shesa.test:3002` locally and `exco.shesa.org` in staging / prod. Members-only operational dashboard for executives — member management, role grants, audit views, finance summaries.
+Runs at `exco.shesa.test:3002` locally, `staging-exco.shesaconnect.com` on staging, and `exco.shesaconnect.com` in production. Members-only operational dashboard for executives — member management, role grants, audit views, finance summaries.
 
 Vite + React, not Next.js — no SEO needs (members-only), no SSR benefit, ship a smaller bundle for Cameroonian 3G.
 

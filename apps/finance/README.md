@@ -1,6 +1,6 @@
 # @shesa/finance — finance dashboard (Vite SPA)
 
-Runs at `finance.shesa.test:3003` locally and `finance.shesa.org` in staging / prod. An internal-facing dashboard for the treasury / charges / obligations / payments work that lands in Phase 3.
+Runs at `finance.shesa.test:3003` locally, `staging-finance.shesaconnect.com` on staging, and `finance.shesaconnect.com` in production. An internal-facing dashboard for the treasury / charges / obligations / payments work that lands in Phase 3.
 
 Vite + React, not Next.js — no SEO needs (members-only), no SSR benefit, and the simpler bundle ships faster on Cameroonian 3G.
 

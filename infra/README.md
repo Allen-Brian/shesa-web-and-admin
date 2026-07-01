@@ -9,18 +9,18 @@ infra/
 │   └── Dockerfile.next.dev    parameterized dev image (one file, five apps)
 ├── caddy/
 │   ├── Caddyfile.dev          local vhost routing (*.shesa.test)
-│   └── Caddyfile.prod         staging/prod vhost routing (*.shesa.org)
+│   └── Caddyfile.prod         staging/prod vhost routing (per-app env vars)
 ├── docker-compose.dev.yml     local Compose stack (auth/web/exco/finance)
 └── docker-compose.prod.yml    Swarm stack (added in E14)
 ```
 
 ## The three environments
 
-| Env        | Orchestrator            | Hostnames                       | TLS                                                  |
-| ---------- | ----------------------- | ------------------------------- | ---------------------------------------------------- |
-| local      | `docker compose`        | `*.shesa.test` via `/etc/hosts` | none (HTTP); cookies set without `Secure`            |
-| staging    | Docker Swarm on Contabo | `*.staging.shesa.org`           | Cloudflare proxy + Caddy origin cert (Let's Encrypt) |
-| production | Docker Swarm on Contabo | `*.shesa.org`                   | Cloudflare Full Strict + Caddy origin cert           |
+| Env        | Orchestrator            | Hostnames                                                                              | TLS                                                  |
+| ---------- | ----------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| local      | `docker compose`        | `*.shesa.test` via `/etc/hosts`                                                        | none (HTTP); cookies set without `Secure`            |
+| staging    | Docker Swarm on Contabo | `staging.shesaconnect.com` + `staging-{auth,exco,finance}.shesaconnect.com` (siblings) | Cloudflare proxy + Caddy origin cert (Let's Encrypt) |
+| production | Docker Swarm on Contabo | `shesaconnect.com` + `{auth,exco,finance}.shesaconnect.com` (apex + subdomains)        | Cloudflare Full Strict + Caddy origin cert           |
 
 ## One Dockerfile, every app
 
