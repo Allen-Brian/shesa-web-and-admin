@@ -17,7 +17,9 @@
     "compose:logs": "docker compose -f infra/docker-compose.dev.yml logs -f",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:db": "supabase test db",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,yaml,yml,scss,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,yaml,yml,scss,css}\"",
     "db:start": "supabase start",
@@ -47,6 +49,7 @@
     "prettier": "^3.4.2",
     "supabase": "^2.108.0",
     "turbo": "^2.3.3",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
   }
 }
