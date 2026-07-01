@@ -201,6 +201,22 @@ export const ENV_VARS = [
     description:
       'SMS provider mode. `stub` logs to console without sending. `live` enabled per-phase once a Cameroon-capable provider is wired (Phase 6).',
   },
+  {
+    name: 'NEXT_SERVER_ACTIONS_ENCRYPTION_KEY',
+    scope: 'server',
+    source: 'auto',
+    defaults: {
+      // Deterministic 32-byte hex value for local dev — matches across
+      // every teammate's laptop so shared branches don't invalidate each
+      // other's action IDs. NEVER use this string in staging / production.
+      local: '0000000000000000000000000000000000000000000000000000000000000000',
+    },
+    // `generate` is picked up by the staging/prod checklist emitter to
+    // print how to produce a real value for this var.
+    generate: 'openssl rand -hex 32',
+    description:
+      'Server-side key that signs Next.js Server Action IDs. Local: deterministic zero-key so IDs stay stable across dev restarts. Staging/prod: MUST be a fresh 32-byte hex per environment, stored as a GitHub secret; without it, action IDs shift on every deploy and every load-balanced pod, producing the UnrecognizedActionError seen in-app.',
+  },
 ];
 
 /**

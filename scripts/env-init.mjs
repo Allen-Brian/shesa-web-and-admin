@@ -28,11 +28,29 @@
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync, writeFileSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import {
+  existsSync,
+  writeFileSync,
+  readFileSync,
+  lstatSync,
+  symlinkSync,
+  unlinkSync,
+} from 'node:fs';
+import { join, relative } from 'node:path';
 import { ENVS, ENV_VARS, requiredFromUser } from './env-spec.mjs';
 
 const REPO_ROOT = process.cwd();
+
+/**
+ * Next.js reads .env.local from the folder containing its next.config,
+ * NOT from the workspace root. Rather than duplicate the file per app,
+ * symlink the root .env.local into each Next app's directory so all
+ * three (repo root + each Next app) point at the same bytes on disk.
+ *
+ * Vite apps (finance, exco) don't need this — their vite.config.ts
+ * loads env from the workspace root explicitly via `loadEnv`.
+ */
+const NEXT_APP_DIRS = ['apps/auth', 'apps/web'];
 
 // ─────────────────────────────────────────────────────────────────────
 // CLI argument parsing — keep it small and explicit; argparse is heavy.
@@ -128,6 +146,8 @@ function writeLocalEnv() {
   writeFileSync(file, lines.join('\n'), { mode: 0o600 });
   console.log(`✓ wrote ${file} (mode 0600)`);
 
+  linkNextAppEnvs(file);
+
   const stillMissing = ENV_VARS.filter((v) => {
     const value = resolveLocalValue(v, supabaseValues);
     return value === undefined || value === '';
@@ -140,6 +160,35 @@ function writeLocalEnv() {
     }
   } else {
     console.log('\nAll variables filled. Run `pnpm dev` to start the apps.');
+  }
+}
+
+/**
+ * Symlink the root .env.local into each Next app's directory so
+ * `next dev` picks it up. If a real file exists at the target path,
+ * leave it alone — the dev may have intentionally overridden values
+ * per app.
+ */
+function linkNextAppEnvs(rootEnvFile) {
+  for (const appDir of NEXT_APP_DIRS) {
+    const absAppDir = join(REPO_ROOT, appDir);
+    if (!existsSync(absAppDir)) continue;
+    const target = join(absAppDir, '.env.local');
+    const relTarget = relative(absAppDir, rootEnvFile);
+
+    if (existsSync(target)) {
+      const stats = lstatSync(target);
+      if (!stats.isSymbolicLink()) {
+        console.log(
+          `⚠ ${target} exists as a regular file — leaving it alone. Delete it and re-run --force to switch to the shared root .env.local.`,
+        );
+        continue;
+      }
+      // Already a symlink — refresh in case the path changed.
+      unlinkSync(target);
+    }
+    symlinkSync(relTarget, target);
+    console.log(`✓ linked ${target} → ${relTarget}`);
   }
 }
 
@@ -232,12 +281,20 @@ each value):
   for (const v of ENV_VARS) {
     // staging/prod: every supabase-* var is user-provided (from the
     // Supabase dashboard), since `supabase status` only knows local.
-    if (v.source === 'auto' || v.source === 'derived') {
-      // These have known defaults; not stored as secrets — set as repo vars instead.
-      console.log(
-        `  # repo variable (non-secret): ${v.name}=${v.defaults?.[env] ?? '<set per ADR>'}`,
-      );
-      console.log(`  gh variable set ${v.name} --env ${env} --body '${v.defaults?.[env] ?? ''}'`);
+    const hasRemoteDefault = v.defaults?.[env] !== undefined;
+    const isAutoOrDerived = v.source === 'auto' || v.source === 'derived';
+
+    if (isAutoOrDerived && hasRemoteDefault) {
+      // Known non-secret default for this env → set as repo variable.
+      console.log(`  # repo variable (non-secret): ${v.name}=${v.defaults[env]}`);
+      console.log(`  gh variable set ${v.name} --env ${env} --body '${v.defaults[env]}'`);
+    } else if (isAutoOrDerived && !hasRemoteDefault) {
+      // Auto-generated only in local — remote needs a real per-env
+      // secret. Print the var's own `generate` hint (e.g. `openssl rand
+      // -hex 32`) if one is declared in env-spec.
+      console.log(`  # ${v.description}`);
+      if (v.generate) console.log(`  # generate: ${v.generate}`);
+      console.log(`  gh secret set ${v.name} --env ${env}`);
     } else {
       console.log(`  # ${v.description}`);
       console.log(`  gh secret set ${v.name} --env ${env}`);
