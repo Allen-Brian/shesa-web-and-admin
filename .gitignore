@@ -11,6 +11,7 @@ out/
 dist/
 build/
 .turbo/
+.vite/
 *.tsbuildinfo
 
 # Environment & secrets — block everything by default, allow only .env.example

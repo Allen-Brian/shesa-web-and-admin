@@ -37,6 +37,26 @@
     "./scopes": {
       "types": "./src/scopes/index.ts",
       "import": "./src/scopes/index.ts"
+    },
+    "./members": {
+      "types": "./src/members/index.ts",
+      "import": "./src/members/index.ts"
+    },
+    "./imports": {
+      "types": "./src/imports/index.ts",
+      "import": "./src/imports/index.ts"
+    },
+    "./memberships": {
+      "types": "./src/memberships/index.ts",
+      "import": "./src/memberships/index.ts"
+    },
+    "./governance": {
+      "types": "./src/governance/index.ts",
+      "import": "./src/governance/index.ts"
+    },
+    "./registration": {
+      "types": "./src/registration/index.ts",
+      "import": "./src/registration/index.ts"
     }
   },
   "scripts": {

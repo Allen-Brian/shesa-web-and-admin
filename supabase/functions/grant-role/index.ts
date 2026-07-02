@@ -57,7 +57,11 @@ const ROLE_KEYS = [
 const inputSchema = z
   .object({
     userId: z.string().uuid(),
-    scopeId: z.string().uuid(),
+    // scopeId is nullable — a NULL scope means the grant is global.
+    // Only the `recruiter` role is allowed to be granted globally
+    // (§2.17); the check runs below in the handler once we've
+    // resolved the role key.
+    scopeId: z.string().uuid().nullable(),
     roleKey: z.enum(ROLE_KEYS),
     // Optional lifecycle window. starts_at defaults to NOW() in the
     // table; ends_at left null means "no expiration".
@@ -70,6 +74,43 @@ interface SuccessBody {
   assignmentId: string;
   alreadyExisted: boolean;
   traceId: string;
+}
+
+async function resolveMainstreamScopeId(
+  supabase: ReturnType<typeof createUserClient>,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('scopes' as never)
+    .select('id')
+    .eq('scope_type', 'mainstream')
+    .maybeSingle();
+  return data ? (data as { id: string }).id : null;
+}
+
+async function checkSixHolderCap(
+  supabase: ReturnType<typeof createUserClient>,
+  scopeId: string,
+): Promise<boolean> {
+  // Count admin+finance role assignments at the scope that are active
+  // AND not revoked AND within their lifecycle window. Mirrors the
+  // logic in core.enforce_six_holder_cap so a user-visible 409 fires
+  // before the DB backstop raises 23514.
+  const { data, error } = await supabase
+    .from('role_assignments' as never)
+    .select('id, roles!inner(key)', { count: 'exact', head: true })
+    .is('revoked_at', null)
+    .eq('scope_id', scopeId)
+    .lte('starts_at', new Date().toISOString())
+    .or('ends_at.is.null,ends_at.gt.' + new Date().toISOString())
+    .in('roles.key', ['mainstream_admin', 'branch_admin', 'batch_admin', 'finance']);
+  if (error) {
+    // Fail open here — the trigger is the definitive gate, and a
+    // spurious 500 on a benign grant is worse UX than a rare
+    // trigger-side 23514.
+    return true;
+  }
+  const count = (data as unknown as { length?: number } | null)?.length ?? 0;
+  return count < 6;
 }
 
 Deno.serve(async (req) => {
@@ -88,13 +129,54 @@ Deno.serve(async (req) => {
   const input = parsed.data;
   const supabase = createUserClient(ctx.jwt);
 
+  // ── Global-grant guard (§2.17) ──────────────────────────────────────
+  // A NULL scope_id is only legal for the `recruiter` role. For any
+  // other role, missing scope is a validation error (a common client
+  // bug we surface with a clear message rather than an opaque
+  // downstream failure).
+  if (input.scopeId === null && input.roleKey !== 'recruiter') {
+    return withCors(
+      req,
+      forbidden('global grants only allowed for recruiter', ctx.traceId, {
+        roleKey: input.roleKey,
+      }),
+    );
+  }
+
   // ── Policy check first (ADR-0006 layer 2) ───────────────────────────
+  // For scoped grants: check role.grant at the target scope.
+  // For global grants: check role.grant at Mainstream (only mainstream
+  // admins may hand out global grants).
+  const gateScopeId = input.scopeId ?? (await resolveMainstreamScopeId(supabase));
+  if (!gateScopeId) {
+    return withCors(req, internalError(ctx.traceId));
+  }
   const allowed = await authorize(supabase, ctx, {
     action: 'role.grant',
-    scopeId: input.scopeId,
+    scopeId: gateScopeId,
   });
   if (!allowed) {
-    return withCors(req, forbidden('role.grant', ctx.traceId, { scopeId: input.scopeId }));
+    return withCors(req, forbidden('role.grant', ctx.traceId, { scopeId: gateScopeId }));
+  }
+
+  // ── Six-holder cap fast-fail (Phase 1 §2.18) ────────────────────────
+  // Only applies to admin/finance keys at a real scope. Recruiter and
+  // global grants are exempt (the DB trigger has the same short-circuit
+  // logic; this is the friendly 409 UX path).
+  if (
+    input.scopeId !== null &&
+    (input.roleKey === 'mainstream_admin' ||
+      input.roleKey === 'branch_admin' ||
+      input.roleKey === 'batch_admin' ||
+      input.roleKey === 'finance')
+  ) {
+    const capOk = await checkSixHolderCap(supabase, input.scopeId);
+    if (!capOk) {
+      return withCors(
+        req,
+        conflict('CAP_EXCEEDED', 'admin+finance cap of 6 exceeded at this scope', ctx.traceId),
+      );
+    }
   }
 
   // ── Resolve roleKey → role.id ───────────────────────────────────────
@@ -137,18 +219,29 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   if (insertErr) {
+    // 23514 with CAP_EXCEEDED marker → trigger backstop fired. Surface
+    // to the caller as the same 409 the app-level fast-fail would have.
+    if (insertErr.code === '23514' && insertErr.message?.startsWith('CAP_EXCEEDED')) {
+      return withCors(
+        req,
+        conflict('CAP_EXCEEDED', 'admin+finance cap of 6 exceeded at this scope', ctx.traceId),
+      );
+    }
     // 23505 = unique_violation. The partial unique index says an active
     // assignment for this (user, scope, role) already exists — that's
     // an idempotent success, so resolve and return the existing id.
     if (insertErr.code === '23505') {
-      const existing = await supabase
+      let query = supabase
         .from('role_assignments' as never)
         .select('id')
         .eq('user_id', input.userId)
-        .eq('scope_id', input.scopeId)
         .eq('role_id', (role as { id: string }).id)
-        .is('revoked_at', null)
-        .maybeSingle();
+        .is('revoked_at', null);
+      // NULLS NOT DISTINCT: a NULL scope_id matches only NULL scope_id.
+      // Postgres-js .eq(null) filters incorrectly, so branch here.
+      query =
+        input.scopeId === null ? query.is('scope_id', null) : query.eq('scope_id', input.scopeId);
+      const existing = await query.maybeSingle();
 
       if (existing.data) {
         const body: SuccessBody = {

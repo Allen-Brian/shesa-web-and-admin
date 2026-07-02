@@ -12,8 +12,9 @@
 -- migrations need to be exercised. Future phases add their own blocks.
 --
 -- Sections in this file:
---   1. Org hierarchy fixtures (E2)
---   2. RBAC system roles, permissions, role_permissions (E3)
+--   1. Org hierarchy fixtures (Phase 0 E2 + Phase 1 E1.1)
+--   2. RBAC system roles, permissions, role_permissions (Phase 0 E3 +
+--      Phase 1 E1.1 adds scope.create / scope.update / scope.change_autonomy)
 
 -- =============================================================================
 -- Section 1. Org hierarchy (E2)
@@ -141,7 +142,43 @@ INSERT INTO core.permissions (id, key, description) VALUES
   ('22222222-0000-0000-0000-000000000011', 'connect.poll',        'Create polls in Connect.'),
   ('22222222-0000-0000-0000-000000000012', 'connect.job.approve', 'Approve and publish Recruiter-submitted job postings.'),
   -- audit
-  ('22222222-0000-0000-0000-000000000013', 'audit.read',          'Read audit_entries — full event log per scope.')
+  ('22222222-0000-0000-0000-000000000013', 'audit.read',          'Read audit_entries — full event log per scope.'),
+  -- Phase 1 E1.1 — org-management grain
+  ('22222222-0000-0000-0000-000000000014', 'scope.create',        'Create a new scope (Branch, Chapter, Sector, Batch) with parent + initial capabilities.'),
+  ('22222222-0000-0000-0000-000000000015', 'scope.update',        'Edit an existing scope: name, geography, currency (until finance exists), metadata.'),
+  ('22222222-0000-0000-0000-000000000016', 'scope.change_autonomy','Flip a chapter''s autonomy (autonomous ↔ grouping).'),
+  -- Phase 1 E1.2 — member engine grain
+  ('22222222-0000-0000-0000-000000000017', 'member.create',       'Create a new member (via UI, import, or admin form).'),
+  ('22222222-0000-0000-0000-000000000018', 'member.update',       'Edit protected member fields (full_name, batch, house, sector, entry_year).'),
+  -- Phase 1 E1.3 — Excel import
+  ('22222222-0000-0000-0000-000000000019', 'member.import',       'Upload and confirm Excel member-import batches.'),
+  -- Phase 1 E1.4 — membership lifecycle
+  ('22222222-0000-0000-0000-000000000020', 'membership.approve',  'Approve a join request into a geographic body.'),
+  ('22222222-0000-0000-0000-000000000021', 'membership.reject',   'Reject a join request into a geographic body.'),
+  ('22222222-0000-0000-0000-000000000022', 'membership.transfer', 'Initiate, approve, or reject a member transfer between geographic bodies.'),
+  ('22222222-0000-0000-0000-000000000023', 'membership.mark_passive', 'Flip a membership between active and passive.'),
+  ('22222222-0000-0000-0000-000000000024', 'registration.mark_paid',  'Mark a member''s registration fee as paid (non-gating flag).'),
+  -- Phase 1 E1.5 — finish §4.1 catalog
+  ('22222222-0000-0000-0000-000000000025', 'scope.manage_capabilities', 'Flip capability flags on a scope (treasury, dues, forum, active/passive labelling).'),
+  ('22222222-0000-0000-0000-000000000026', 'member.export',        'Export the member directory as CSV or Excel (crosses the RLS boundary).'),
+  -- Phase 1 E1.6 — positions
+  ('22222222-0000-0000-0000-000000000027', 'position.assign',      'Assign a position (badge) to a member at a scope.'),
+  ('22222222-0000-0000-0000-000000000028', 'position.remove',      'Remove an active position assignment.'),
+  -- Phase 2 — Exco governance flows
+  ('22222222-0000-0000-0000-000000000029', 'registration.waive',   'Waive a member''s registration fee.'),
+  ('22222222-0000-0000-0000-000000000030', 'event.create',         'Create a governance event.'),
+  ('22222222-0000-0000-0000-000000000031', 'event.update',         'Edit a draft or scheduled event.'),
+  ('22222222-0000-0000-0000-000000000032', 'event.publish',        'Publish an event.'),
+  ('22222222-0000-0000-0000-000000000033', 'event.cancel',         'Cancel an event.'),
+  ('22222222-0000-0000-0000-000000000034', 'event.archive',        'Archive an event.'),
+  ('22222222-0000-0000-0000-000000000035', 'event.contribution.review', 'Review event contribution settings (Finance approval placeholder).'),
+  ('22222222-0000-0000-0000-000000000036', 'announcement.create',  'Create an announcement draft.'),
+  ('22222222-0000-0000-0000-000000000037', 'announcement.update',  'Edit a draft or scheduled announcement.'),
+  ('22222222-0000-0000-0000-000000000038', 'announcement.publish', 'Publish an announcement.'),
+  ('22222222-0000-0000-0000-000000000039', 'announcement.archive', 'Archive an announcement.'),
+  ('22222222-0000-0000-0000-000000000040', 'member.bulk_action',   'Run a bulk action over a member selection.'),
+  ('22222222-0000-0000-0000-000000000041', 'command.search',       'Consume command-palette search results.'),
+  ('22222222-0000-0000-0000-000000000042', 'admin_notification.read', 'Read + mark-read the admin notification bell.')
 ON CONFLICT (key) DO NOTHING;
 
 -------------------------------------------------------------------------------
@@ -167,7 +204,21 @@ SELECT r.id, p.id
 FROM core.roles r
 INNER JOIN core.permissions p ON p.key IN (
   'scope.read', 'scope.manage',
+  -- Phase 1 E1.1 — org-management grain (adds create/update/autonomy).
+  'scope.create', 'scope.update', 'scope.change_autonomy',
   'member.read', 'member.manage',
+  -- Phase 1 E1.2 — member-engine grain (adds create/update).
+  'member.create', 'member.update',
+  -- Phase 1 E1.3 — Excel import
+  'member.import',
+  -- Phase 1 E1.4 — geographic body governance
+  'membership.approve', 'membership.reject',
+  'membership.transfer', 'membership.mark_passive',
+  'registration.mark_paid',
+  -- Phase 1 E1.5 — capability + export
+  'scope.manage_capabilities', 'member.export',
+  -- Phase 1 E1.6 — positions
+  'position.assign', 'position.remove',
   'role.grant', 'role.revoke',
   'finance.read',
   'cms.edit',
@@ -185,6 +236,16 @@ FROM core.roles r
 INNER JOIN core.permissions p ON p.key IN (
   'scope.read',
   'member.read', 'member.manage',
+  -- Phase 1 E1.2 — batch admins onboard batch members
+  'member.create', 'member.update',
+  -- Phase 1 E1.3 — batch admins can Excel-import their batch
+  'member.import',
+  -- Phase 1 E1.4 — batch admins can mark registration paid for their batch
+  'registration.mark_paid',
+  -- Phase 1 E1.5 — batch admins can export their batch roster
+  'member.export',
+  -- Phase 1 E1.6 — batch admins govern batch positions
+  'position.assign', 'position.remove',
   'role.grant',
   'finance.read',
   'cms.edit',
@@ -239,3 +300,70 @@ INNER JOIN core.permissions p ON p.key IN (
 )
 WHERE r.key = 'announcer'
 ON CONFLICT DO NOTHING;
+
+
+-- =============================================================================
+-- Section 3. Phase 1 E1.1 org fixtures — batches, houses, Other sector
+-- =============================================================================
+--
+-- All three groups (batches, houses, sectors) are mainstream-scoped rows
+-- in core.scopes — per E1.1's locked decision, only Branches and Chapters
+-- carry geographic hierarchy; everything else lives directly under the
+-- Mainstream root.
+--
+-- Idempotent via ON CONFLICT DO NOTHING on the natural key (slug for
+-- houses/sector, entry_year via the partial unique index for batches).
+
+-------------------------------------------------------------------------------
+-- 3.1 Batches — every intake year 1953 → 2026 (Phase 1 §2.2)
+-------------------------------------------------------------------------------
+-- Adding a batch year: bump the upper bound in the generate_series and
+-- re-run `db:reset`. The `create-next-year-batch` Edge Function keeps
+-- prod current on its own via pg_cron in Phase 2.
+
+INSERT INTO core.scopes (
+  name, slug, scope_type, parent_scope_id, entry_year, currency_code
+)
+SELECT
+  'Batch ' || y::text,
+  'batch-' || y::text,
+  'batch',
+  '00000000-0000-0000-0000-000000000001',
+  y,
+  'XAF'
+FROM generate_series(1953, 2026) AS y
+ON CONFLICT (slug) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- 3.2 Houses — the four seeded houses with colors (Phase 1 §2.3)
+-------------------------------------------------------------------------------
+-- Color lives in the metadata JSONB rather than a first-class column
+-- because it's UI-only. If a future feature reads color for filtering,
+-- lift it into a typed column then.
+
+INSERT INTO core.scopes (
+  id, name, slug, scope_type, parent_scope_id, currency_code, metadata
+) VALUES
+  ('33333333-0000-0000-0000-000000000001', 'St Thomas',  'st-thomas',  'house',
+   '00000000-0000-0000-0000-000000000001', 'XAF', '{"color":"blue"}'::jsonb),
+  ('33333333-0000-0000-0000-000000000002', 'St Peter',   'st-peter',   'house',
+   '00000000-0000-0000-0000-000000000001', 'XAF', '{"color":"yellow"}'::jsonb),
+  ('33333333-0000-0000-0000-000000000003', 'St Francis', 'st-francis', 'house',
+   '00000000-0000-0000-0000-000000000001', 'XAF', '{"color":"green"}'::jsonb),
+  ('33333333-0000-0000-0000-000000000004', 'St John',    'st-john',    'house',
+   '00000000-0000-0000-0000-000000000001', 'XAF', '{"color":"red"}'::jsonb)
+ON CONFLICT (id) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- 3.3 Sector — "Other" (Phase 1 §2.4)
+-------------------------------------------------------------------------------
+-- Mainstream Admin creates additional sectors via the create-sector Edge
+-- Function; "Other" is the fallback every member-creation form can pick
+-- so an incomplete import row still validates.
+
+INSERT INTO core.scopes (
+  id, name, slug, scope_type, parent_scope_id, currency_code
+) VALUES
+  ('44444444-0000-0000-0000-000000000001', 'Other', 'sector-other', 'sector',
+   '00000000-0000-0000-0000-000000000001', 'XAF')
+ON CONFLICT (id) DO NOTHING;

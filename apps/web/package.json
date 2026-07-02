@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Shesa public website (web.shesa.org) — landing pages, member-facing content, and the embedded CMS routes.",
+  "description": "Shesa public website (shesaconnect.com / www.shesaconnect.com) — landing pages, member-facing content, and the embedded CMS routes.",
   "scripts": {
     "dev": "next dev --port 3000 --hostname 0.0.0.0",
     "build": "next build",

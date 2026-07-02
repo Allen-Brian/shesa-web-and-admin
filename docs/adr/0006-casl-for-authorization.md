@@ -54,3 +54,10 @@ if (!policy.can(member, 'charge.create', { branchId })) {
 - **RLS only** — rejected: poor error UX, and clients ship with elevated trust (the BaaS pattern depends on the assumption that the client may try anything).
 - **Server Action policy only, no RLS** — rejected: no defense in depth.
 - **Oso / OPA** — considered: more powerful but more operational complexity (a separate policy service) than the team needs.
+
+## Phase 1 refinements (non-decision)
+
+The following are clarifications discovered while implementing this ADR, not new decisions. They're recorded here because they're load-bearing for anyone reading the checker's SQL cold.
+
+- **NULL `scope_id` denotes a global grant.** Phase 1 §2.17 introduced the Recruiter role, which applies at every scope. `core.role_assignments.scope_id` widened to nullable in Phase 1 E1.1 (see migration `20260701200000_alter_role_assignments_nullable_scope.sql`). `core.has_permission` and `core.get_user_permissions` were updated in the same migration to treat `scope_id IS NULL` as matching any target scope. Every RLS policy and permission-count trigger written after E1.1 must use `(scope_id IS NULL OR scope_id = X)` form — `scope_id = X` alone silently drops global grants under Postgres three-valued logic.
+- **Cached grants are UX, not security.** ADR-0035 introduces a client-side grants cache (`get-my-grants` Edge Function → Zustand session store) so SPA sidebars can render permission-gated nav without N `check-permission` round-trips. The cache is authoritative for optimistic render only; every write-path Edge Function still calls `core.has_permission` at the DB layer as the authoritative gate. A stale cache surfaces as a 403 on commit, never as an unauthorized write.

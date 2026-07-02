@@ -13,10 +13,47 @@ export const PERMISSION_KEYS = [
   // scopes
   'scope.read',
   'scope.manage',
+  // Phase 1 E1.1 — org-management grain
+  'scope.create',
+  'scope.update',
+  'scope.change_autonomy',
 
   // members
   'member.read',
   'member.manage',
+  // Phase 1 E1.2 — member-engine grain
+  'member.create',
+  'member.update',
+  // Phase 1 E1.3 — Excel import
+  'member.import',
+  // Phase 1 E1.4 — membership lifecycle
+  'membership.approve',
+  'membership.reject',
+  'membership.transfer',
+  'membership.mark_passive',
+  'registration.mark_paid',
+  // Phase 1 E1.5 — finish §4.1
+  'scope.manage_capabilities',
+  'member.export',
+  // Phase 1 E1.6 — positions
+  'position.assign',
+  'position.remove',
+
+  // Phase 2 — Exco governance flows
+  'registration.waive',
+  'event.create',
+  'event.update',
+  'event.publish',
+  'event.cancel',
+  'event.archive',
+  'event.contribution.review',
+  'announcement.create',
+  'announcement.update',
+  'announcement.publish',
+  'announcement.archive',
+  'member.bulk_action',
+  'command.search',
+  'admin_notification.read',
 
   // roles
   'role.grant',

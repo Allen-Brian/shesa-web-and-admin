@@ -15,9 +15,10 @@ const clientEnvSchema = z.object({
   /** App env name — `local` / `staging` / `production`. */
   NEXT_PUBLIC_APP_ENV: z.enum(ENVIRONMENT_NAMES),
 
-  /** Apex domain shared by every Shesa app (e.g. `shesa.org`). Used to scope
-   *  the Supabase Auth cookie so login at `auth.shesa.org` is visible to
-   *  `web.shesa.org`, `finance.shesa.org`, etc. — see ADR-0014. */
+  /** Apex domain shared by every Shesa app (`shesaconnect.com` in staging/prod,
+   *  `shesa.test` in local). Used to scope the Supabase Auth cookie so login
+   *  at `auth.shesaconnect.com` is visible to every other Shesa hostname —
+   *  see ADR-0014. */
   NEXT_PUBLIC_APP_BASE_DOMAIN: z.string().min(1),
 
   /** Supabase project URL. Public — anon key + RLS protects data. */

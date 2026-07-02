@@ -8,9 +8,9 @@
  * accept ABSOLUTE URLs at sibling Shesa subdomains, not only relative
  * paths. The earlier callback-local helper rejected everything but
  * relative paths, which would have stranded users at
- * `auth.shesa.org/dashboard` (404) after logging in from
- * `exco.shesa.org`. This module is the single place we widen that
- * rule, deliberately and audit-ably.
+ * `auth.shesaconnect.com/dashboard` (404) after logging in from
+ * `exco.shesaconnect.com`. This module is the single place we widen
+ * that rule, deliberately and audit-ably.
  *
  * Accepted:
  *   - Relative path starting with `/` (but not `//` — that's

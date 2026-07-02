@@ -11,13 +11,15 @@
  * apps/auth is the public entry point — there are no protected pages
  * here (the login page must be reachable while unauthenticated). So
  * no redirect logic — just refresh + pass through. The OTHER Shesa
- * apps (exco, finance, connect — E10) have their own middleware that
- * redirects to auth.shesa.org when no session is present.
+ * apps (web, exco, finance) either have their own middleware
+ * (Next.js apps) or a session-bridge fetch (Vite SPAs, see ADR-0035)
+ * that redirects to auth.shesaconnect.com when no session is present.
  *
  * Cookie handling: every set/refresh goes through
  * `packages/supabase/src/cookie-config.ts` which scopes the cookie to
- * the apex domain (`.shesa.org` in staging/prod, no domain in local)
- * — that's what makes the session visible across subdomains.
+ * the apex domain (`.shesaconnect.com` in staging/prod, `.shesa.test`
+ * in local) — that's what makes the session visible across
+ * subdomains.
  */
 
 import { NextResponse, type NextRequest } from 'next/server';

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { safeRedirect } from './safe-redirect';
 
-const APEX = 'shesa.org';
+const APEX = 'shesaconnect.com';
 
 describe('safeRedirect', () => {
   describe('accepts', () => {
@@ -11,15 +11,25 @@ describe('safeRedirect', () => {
     });
 
     it('an absolute URL under the apex', () => {
-      expect(safeRedirect('https://exco.shesa.org/x', APEX)).toBe('https://exco.shesa.org/x');
+      expect(safeRedirect('https://exco.shesaconnect.com/x', APEX)).toBe(
+        'https://exco.shesaconnect.com/x',
+      );
     });
 
     it('the apex bare (no subdomain)', () => {
-      expect(safeRedirect('https://shesa.org/', APEX)).toBe('https://shesa.org/');
+      expect(safeRedirect('https://shesaconnect.com/', APEX)).toBe('https://shesaconnect.com/');
     });
 
     it('a deep-nested subdomain of the apex', () => {
-      expect(safeRedirect('https://foo.bar.shesa.org/y', APEX)).toBe('https://foo.bar.shesa.org/y');
+      expect(safeRedirect('https://foo.bar.shesaconnect.com/y', APEX)).toBe(
+        'https://foo.bar.shesaconnect.com/y',
+      );
+    });
+
+    it('a staging sibling hostname (shares apex)', () => {
+      expect(safeRedirect('https://staging-exco.shesaconnect.com/x', APEX)).toBe(
+        'https://staging-exco.shesaconnect.com/x',
+      );
     });
   });
 
@@ -45,8 +55,8 @@ describe('safeRedirect', () => {
     });
 
     it('a host that only contains the apex as a suffix', () => {
-      // `evilshesa.org` ends with `shesa.org` but is not `*.shesa.org`.
-      expect(safeRedirect('https://evilshesa.org/x', APEX)).toBe('/');
+      // `evilshesaconnect.com` ends with `shesaconnect.com` but is not `*.shesaconnect.com`.
+      expect(safeRedirect('https://evilshesaconnect.com/x', APEX)).toBe('/');
     });
 
     it('a non-http scheme', () => {

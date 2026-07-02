@@ -9,11 +9,12 @@
  * cookies via the adapter we wired up in `getServerClient`.
  *
  * Because the cookie-config (`packages/supabase/src/cookie-config.ts`)
- * scopes to the apex domain (`.shesa.org` in staging/prod, no domain
- * in local), the session cookie is immediately visible to every other
- * Shesa subdomain (`web.shesa.org`, `finance.shesa.org`, etc.). The
- * "log in once, signed in everywhere" property of Shesa rides on this
- * one Route Handler getting the cookie write right.
+ * scopes to the apex domain (`.shesaconnect.com` in staging/prod,
+ * `.shesa.test` in local), the session cookie is immediately visible
+ * to every other Shesa hostname (`web.shesaconnect.com`,
+ * `finance.shesaconnect.com`, etc. — plus the sibling `staging-*` set
+ * in staging). The "log in once, signed in everywhere" property of
+ * Shesa rides on this one Route Handler getting the cookie write right.
  *
  * After exchange:
  *   - Success → redirect to the URL named in the `next` param (default

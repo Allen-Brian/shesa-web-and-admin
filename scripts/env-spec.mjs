@@ -57,11 +57,11 @@ export const ENV_VARS = [
     source: 'auto',
     defaults: {
       local: 'shesa.test',
-      staging: 'staging.shesa.org',
-      production: 'shesa.org',
+      staging: 'shesaconnect.com',
+      production: 'shesaconnect.com',
     },
     description:
-      'Apex domain shared by every Shesa app. Cookie domain is .<APP_BASE_DOMAIN> in staging/prod. Local uses /etc/hosts to map *.shesa.test to 127.0.0.1.',
+      'Apex domain shared by every Shesa app. Cookie domain is .<APP_BASE_DOMAIN> in staging/prod. Staging and production share the apex (staging uses sibling hostnames like staging-auth.shesaconnect.com), so a cookie set on .shesaconnect.com is visible in both envs — deliberate trade-off documented in memory project_domains.md. Local uses /etc/hosts to map *.shesa.test to 127.0.0.1.',
   },
   {
     name: 'NEXT_PUBLIC_APP_BASE_DOMAIN',
@@ -69,8 +69,8 @@ export const ENV_VARS = [
     source: 'derived',
     defaults: {
       local: 'shesa.test',
-      staging: 'staging.shesa.org',
-      production: 'shesa.org',
+      staging: 'shesaconnect.com',
+      production: 'shesaconnect.com',
     },
     description: 'Client-side mirror of APP_BASE_DOMAIN.',
   },
@@ -84,10 +84,11 @@ export const ENV_VARS = [
     source: 'derived',
     defaults: {
       local: 'http://web.shesa.test:3000',
-      staging: 'https://staging.shesa.org',
-      production: 'https://shesa.org',
+      staging: 'https://staging.shesaconnect.com',
+      production: 'https://shesaconnect.com',
     },
-    description: 'Public website URL.',
+    description:
+      'Public website URL. Staging + prod share apex shesaconnect.com; staging uses sibling hostnames (staging, staging-auth, …).',
   },
   {
     name: 'NEXT_PUBLIC_AUTH_APP_URL',
@@ -95,8 +96,8 @@ export const ENV_VARS = [
     source: 'derived',
     defaults: {
       local: 'http://auth.shesa.test:3001',
-      staging: 'https://auth.staging.shesa.org',
-      production: 'https://auth.shesa.org',
+      staging: 'https://staging-auth.shesaconnect.com',
+      production: 'https://auth.shesaconnect.com',
     },
     description: 'Central auth app URL (login / logout / invite callbacks).',
   },
@@ -106,8 +107,8 @@ export const ENV_VARS = [
     source: 'derived',
     defaults: {
       local: 'http://exco.shesa.test:3002',
-      staging: 'https://exco.staging.shesa.org',
-      production: 'https://exco.shesa.org',
+      staging: 'https://staging-exco.shesaconnect.com',
+      production: 'https://exco.shesaconnect.com',
     },
     description: 'Executive Committee dashboard URL.',
   },
@@ -117,8 +118,8 @@ export const ENV_VARS = [
     source: 'derived',
     defaults: {
       local: 'http://finance.shesa.test:3003',
-      staging: 'https://finance.staging.shesa.org',
-      production: 'https://finance.shesa.org',
+      staging: 'https://staging-finance.shesaconnect.com',
+      production: 'https://finance.shesaconnect.com',
     },
     description: 'Finance app URL.',
   },
@@ -187,8 +188,8 @@ export const ENV_VARS = [
     source: 'auto',
     defaults: {
       local: 'Shesa Dev <dev@shesa.test>',
-      staging: 'Shesa <noreply@staging.shesa.org>',
-      production: 'Shesa <noreply@shesa.org>',
+      staging: 'Shesa Staging <staging@shesaconnect.com>',
+      production: 'Shesa <noreply@shesaconnect.com>',
     },
     description:
       'Default From: address for outbound mail. Must match a verified Resend domain in staging/prod.',

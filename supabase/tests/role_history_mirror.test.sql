@@ -93,6 +93,23 @@ SELECT isnt(
 -- 2. Revoking sets revoked_at AND produces a role.revoked audit entry
 -------------------------------------------------------------------------------
 
+-- Phase 2 last-admin protection: the trigger blocks revoking the only
+-- active admin at a scope. Insert a companion mainstream_admin so the
+-- revocation below leaves one active admin — the mirror trigger is
+-- what this test is actually exercising.
+INSERT INTO auth.users (id, email, instance_id) VALUES
+  ('99999999-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'companion@shesa.test', '00000000-0000-0000-0000-000000000000')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO core.role_assignments (id, user_id, scope_id, role_id, granted_by)
+VALUES (
+  'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb9',
+  '99999999-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid,
+  current_setting('test.scope_id')::uuid,
+  current_setting('test.role_id')::uuid,
+  current_setting('test.user_id')::uuid
+) ON CONFLICT DO NOTHING;
+
 UPDATE core.role_assignments
 SET revoked_at = NOW(),
     revoked_by = current_setting('test.user_id')::uuid

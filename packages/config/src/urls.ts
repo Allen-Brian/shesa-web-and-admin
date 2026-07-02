@@ -20,13 +20,15 @@ export type AppUrlKey = keyof typeof appUrls;
 /**
  * The apex domain used to scope the shared Supabase Auth cookie.
  *
- * In staging/prod this is the bare domain (e.g. `shesa.org`); the
- * Supabase cookie is set with `domain=.shesa.org` for cross-subdomain
- * read access.
+ * In staging/prod this is `shesaconnect.com`; the Supabase cookie is
+ * set with `domain=.shesaconnect.com` for cross-subdomain read access.
+ * Staging and prod share the apex (staging uses sibling hostnames like
+ * `staging-auth.shesaconnect.com`), so a cookie set in one env is
+ * technically visible in the other — deliberate trade-off, see
+ * memory `project_domains.md`.
  *
- * In local dev (`localhost` / `127.0.0.1`) cookie-domain scoping doesn't
- * apply — every dev port is its own "site" to the browser. Components
- * that compose cross-subdomain URLs handle that case explicitly.
+ * In local dev (`shesa.test` via /etc/hosts) cookie-domain scoping
+ * applies but Secure is dropped since the runtime is http.
  */
 export const appBaseDomain = clientEnv.NEXT_PUBLIC_APP_BASE_DOMAIN;
 
