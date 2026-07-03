@@ -64,7 +64,7 @@ export function RequestsTransfersSwitcher({ scope, requests, transfers }: Switch
       </div>
 
       <Tabs defaultValue={defaultTab} className="flex min-h-0 flex-1 flex-col gap-4">
-        <TabsList>
+        <TabsList className="w-fit">
           <TabsTrigger value="requests">
             Requests
             <span className="ml-1.5 text-xs text-muted-foreground">({requests.length})</span>
