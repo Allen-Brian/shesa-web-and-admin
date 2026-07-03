@@ -23,28 +23,54 @@ import {
   toast,
 } from '@shesa/ui';
 
-import { removePosition, revokeRole, type ActionResult } from '../../governance-actions';
+import {
+  removePosition,
+  revokeRole,
+  type ActionResult,
+} from '@/app/(personas)/exco/clusters/branches/governance-actions';
 
-import { AssignPositionDialog } from './assign-position-dialog';
+import { AssignPositionDialog, type GovernanceMemberPickerRow } from './assign-position-dialog';
 import { GrantRoleDialog } from './grant-role-dialog';
-import type {
-  GovernanceMemberPickerRow,
-  PositionCatalogRow,
-  PositionHolderRow,
-  RoleHolderRow,
-} from './detail-view';
 
-interface GovernanceTabProps {
-  readonly scopeId: string;
-  readonly scopeLabel: string;
-  readonly positionCatalog: readonly PositionCatalogRow[];
-  readonly positionHolders: readonly PositionHolderRow[];
-  readonly roleHolders: readonly RoleHolderRow[];
-  readonly memberPicker: readonly GovernanceMemberPickerRow[];
-  readonly canManage: boolean;
+export interface GovernancePositionCatalogRow {
+  readonly id: string;
+  readonly name: string;
+  readonly sort_order: number;
+  readonly description: string | null;
 }
 
-export function GovernanceTab({
+export interface GovernancePositionHolderRow {
+  readonly assignmentId: string;
+  readonly positionCatalogId: string;
+  readonly positionName: string;
+  readonly memberId: string;
+  readonly memberName: string;
+  readonly customTitle: string | null;
+  readonly startsAt: string;
+}
+
+export interface GovernanceRoleHolderRow {
+  readonly assignmentId: string;
+  readonly userId: string;
+  readonly userLabel: string;
+  readonly roleKey: string;
+  readonly roleName: string;
+  readonly startsAt: string;
+}
+
+interface GovernancePanelProps {
+  readonly scopeId: string;
+  readonly scopeLabel: string;
+  readonly positionCatalog: readonly GovernancePositionCatalogRow[];
+  readonly positionHolders: readonly GovernancePositionHolderRow[];
+  readonly roleHolders: readonly GovernanceRoleHolderRow[];
+  readonly memberPicker: readonly GovernanceMemberPickerRow[];
+  readonly canManage: boolean;
+  readonly emptyCatalogHint?: string;
+  readonly emptyRolesHint?: string;
+}
+
+export function GovernancePanel({
   scopeId,
   scopeLabel,
   positionCatalog,
@@ -52,16 +78,18 @@ export function GovernanceTab({
   roleHolders,
   memberPicker,
   canManage,
-}: GovernanceTabProps) {
+  emptyCatalogHint,
+  emptyRolesHint,
+}: GovernancePanelProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [assignFor, setAssignFor] = useState<PositionCatalogRow | null>(null);
+  const [assignFor, setAssignFor] = useState<GovernancePositionCatalogRow | null>(null);
   const [grantOpen, setGrantOpen] = useState(false);
-  const [confirmPos, setConfirmPos] = useState<PositionHolderRow | null>(null);
-  const [confirmRole, setConfirmRole] = useState<RoleHolderRow | null>(null);
+  const [confirmPos, setConfirmPos] = useState<GovernancePositionHolderRow | null>(null);
+  const [confirmRole, setConfirmRole] = useState<GovernanceRoleHolderRow | null>(null);
 
   const positionsByCatalog = useMemo(() => {
-    const map = new Map<string, PositionHolderRow[]>();
+    const map = new Map<string, GovernancePositionHolderRow[]>();
     for (const h of positionHolders) {
       const list = map.get(h.positionCatalogId) ?? [];
       list.push(h);
@@ -85,7 +113,6 @@ export function GovernanceTab({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Position holders */}
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between gap-2">
           <div>
@@ -101,7 +128,7 @@ export function GovernanceTab({
         <div className="divide-y divide-border rounded-xl border border-border bg-card">
           {positionCatalog.length === 0 && (
             <div className="p-6 text-center text-sm text-muted-foreground">
-              No position catalog exists for branches yet.
+              {emptyCatalogHint ?? 'No position catalog exists for this scope yet.'}
             </div>
           )}
           {positionCatalog.map((cat) => {
@@ -182,7 +209,6 @@ export function GovernanceTab({
         </div>
       </section>
 
-      {/* Role holders */}
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between gap-2">
           <div>
@@ -204,7 +230,7 @@ export function GovernanceTab({
         <div className="rounded-xl border border-border bg-card">
           {roleHolders.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">
-              No roles granted at this branch yet.
+              {emptyRolesHint ?? 'No roles granted at this scope yet.'}
             </div>
           ) : (
             <ul className="divide-y divide-border">

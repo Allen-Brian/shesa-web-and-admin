@@ -17,16 +17,15 @@ import {
 export const dynamic = 'force-dynamic';
 
 interface BranchDetailPageProps {
-  readonly params: Promise<{ id: string }>;
+  readonly params: Promise<{ slug: string }>;
 }
 
 export default async function BranchDetailPage({ params }: BranchDetailPageProps) {
-  const { id } = await params;
+  const { slug } = await params;
   const supabase = await getServerClient();
 
   const [
     { data: scopeRow },
-    { data: branchRow },
     {
       data: { user },
     },
@@ -35,21 +34,25 @@ export default async function BranchDetailPage({ params }: BranchDetailPageProps
       .schema('core')
       .from('scopes')
       .select('id, name, slug, status, currency_code')
-      .eq('id', id)
+      .eq('slug', slug)
       .eq('scope_type', 'branch')
-      .maybeSingle(),
-    supabase
-      .schema('core')
-      .from('branches')
-      .select(
-        'scope_id, country_code, region, city, nickname, description, registration_fee_required, registration_fee_amount, registration_fee_currency, contact_email, contact_phone',
-      )
-      .eq('scope_id', id)
       .maybeSingle(),
     supabase.auth.getUser(),
   ]);
 
-  if (!scopeRow || !branchRow) notFound();
+  if (!scopeRow) notFound();
+  const id = scopeRow.id;
+
+  const { data: branchRow } = await supabase
+    .schema('core')
+    .from('branches')
+    .select(
+      'scope_id, country_code, region, city, nickname, description, registration_fee_required, registration_fee_amount, registration_fee_currency, contact_email, contact_phone',
+    )
+    .eq('scope_id', id)
+    .maybeSingle();
+
+  if (!branchRow) notFound();
 
   const [
     { data: chaptersRaw },

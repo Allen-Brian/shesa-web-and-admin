@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Badge, Building2, ChevronRight, Home, Layers, Network } from 'lucide-react';
+import { Badge, Building2, ChevronRight, GraduationCap, Home, Layers, Network } from 'lucide-react';
 
 import {
   Collapsible,
@@ -34,11 +34,12 @@ interface ClusterNavItem {
   readonly Icon: typeof Home;
 }
 
-// Clusters that have shipped so far. Order matches the sidebar reading
-// direction (Houses → Networks). Branches & Chapters / Batches land as
-// their epics build.
+// Clusters that have shipped so far. Order follows the association
+// hierarchy — geography (branches + chapters) first, then the
+// attribute-based groupings (batches / networks / houses).
 const CLUSTER_ITEMS: readonly ClusterNavItem[] = [
   { slug: 'branches', label: 'Branches & Chapters', Icon: Building2 },
+  { slug: 'batches', label: 'Batches', Icon: GraduationCap },
   { slug: 'networks', label: 'Professional Networks', Icon: Network },
   { slug: 'houses', label: 'Houses', Icon: Badge },
 ];

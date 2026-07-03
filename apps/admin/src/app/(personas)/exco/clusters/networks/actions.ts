@@ -167,8 +167,7 @@ export async function updateNetwork(
     };
   }
 
-  revalidatePath('/exco/clusters/networks');
-  revalidatePath(`/exco/clusters/networks/${v.scopeId}`);
+  revalidatePath('/exco/clusters/networks', 'layout');
   return { ok: true, scopeId: v.scopeId };
 }
 
@@ -196,8 +195,7 @@ export async function archiveNetwork(scopeId: string): Promise<ArchiveResult> {
       message: await extractInvokeMessage(error, 'Could not archive.'),
     };
   }
-  revalidatePath('/exco/clusters/networks');
-  revalidatePath(`/exco/clusters/networks/${scopeId}`);
+  revalidatePath('/exco/clusters/networks', 'layout');
   return { ok: true, scopeId };
 }
 

@@ -156,7 +156,7 @@ ON CONFLICT (scope_id) DO NOTHING;
 
 INSERT INTO core.roles (id, key, name, description) VALUES
   ('11111111-0000-0000-0000-000000000001', 'mainstream_admin', 'Mainstream Admin',
-   'Top-level admin: full authority across every scope (clipped by autonomy).'),
+   'Top-level admin: full authority across every scope (granted globally with NULL scope; reaches autonomous chapters).'),
   ('11111111-0000-0000-0000-000000000002', 'branch_admin', 'Branch Admin',
    'Authority over a Branch and everything under it.'),
   ('11111111-0000-0000-0000-000000000003', 'batch_admin', 'Batch Admin',
@@ -378,7 +378,7 @@ INSERT INTO core.scopes (
   name, slug, scope_type, parent_scope_id, entry_year, currency_code
 )
 SELECT
-  'Batch ' || y::text,
+  y::text || ' Batch',
   'batch-' || y::text,
   'batch',
   '00000000-0000-0000-0000-000000000001',
@@ -386,6 +386,14 @@ SELECT
   'XAF'
 FROM generate_series(1953, 2026) AS y
 ON CONFLICT (scope_type, slug) DO NOTHING;
+
+-- Backfill the detail-table row for every seeded batch. The migration
+-- 20260703220000_create_core_batches.sql runs this same INSERT for its
+-- own re-run safety; keeping it here means a fresh `db:reset` starts
+-- with each batch scope already 1:1 with its core.batches row.
+INSERT INTO core.batches (scope_id)
+SELECT id FROM core.scopes WHERE scope_type = 'batch'
+ON CONFLICT (scope_id) DO NOTHING;
 
 -------------------------------------------------------------------------------
 -- 3.2 Houses — the four seeded houses (Phase 1 §2.3, refined 2026-07-02)
@@ -581,23 +589,25 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -------------------------------------------------------------------------------
--- 4.4 core.role_assignments — grant the two roles at the mainstream root
+-- 4.4 core.role_assignments — grant the two roles globally (scope_id = NULL)
 -------------------------------------------------------------------------------
--- `mainstream_admin` at root gives Global Admin full authority over every
--- scope (clipped only by autonomy). `finance` at root gives Global Finance
--- read/write across every scope's finance surface.
+-- Global Admin + Global Finance are unconditional — they reach EVERY scope
+-- including autonomous chapters. A scope-bound grant at the mainstream root
+-- would be clipped by autonomy on the recursive-CTE walk (see 20260702200200);
+-- NULL scope bypasses that walk in `has_permission` and is the canonical
+-- shape for platform-wide superuser grants.
 
 INSERT INTO core.role_assignments (user_id, scope_id, role_id, starts_at)
 VALUES
   (
     '55555555-0000-0000-0000-000000000001',
-    '00000000-0000-0000-0000-000000000001',
+    NULL,
     '11111111-0000-0000-0000-000000000001',  -- mainstream_admin
     NOW()
   ),
   (
     '55555555-0000-0000-0000-000000000002',
-    '00000000-0000-0000-0000-000000000001',
+    NULL,
     '11111111-0000-0000-0000-000000000004',  -- finance
     NOW()
   )

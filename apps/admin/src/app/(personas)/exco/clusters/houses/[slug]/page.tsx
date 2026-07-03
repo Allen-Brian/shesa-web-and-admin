@@ -9,30 +9,32 @@ import { HouseRoster, type RosterRow } from './widgets/roster';
 export const dynamic = 'force-dynamic';
 
 interface HouseDetailPageProps {
-  readonly params: Promise<{ id: string }>;
+  readonly params: Promise<{ slug: string }>;
 }
 
 export default async function HouseDetailPage({ params }: HouseDetailPageProps) {
-  const { id } = await params;
+  const { slug } = await params;
   const supabase = await getServerClient();
 
-  const [{ data: houseRow }, { data: scopeRow }] = await Promise.all([
-    supabase
-      .schema('core')
-      .from('houses')
-      .select('scope_id, color, color_hex')
-      .eq('scope_id', id)
-      .maybeSingle(),
-    supabase
-      .schema('core')
-      .from('scopes')
-      .select('id, name, nickname')
-      .eq('id', id)
-      .eq('scope_type', 'house')
-      .maybeSingle(),
-  ]);
+  const { data: scopeRow } = await supabase
+    .schema('core')
+    .from('scopes')
+    .select('id, name, nickname')
+    .eq('slug', slug)
+    .eq('scope_type', 'house')
+    .maybeSingle();
 
-  if (!houseRow || !scopeRow) notFound();
+  if (!scopeRow) notFound();
+  const id = scopeRow.id;
+
+  const { data: houseRow } = await supabase
+    .schema('core')
+    .from('houses')
+    .select('scope_id, color, color_hex')
+    .eq('scope_id', id)
+    .maybeSingle();
+
+  if (!houseRow) notFound();
 
   // Members in this house — respects the caller's RLS reach per the
   // permission-scoped-roster rule locked 2026-07-02.

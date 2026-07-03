@@ -204,7 +204,7 @@ export function NetworksListView({ data, canCreate }: NetworksListViewProps) {
 
   const handleRowClicked = (e: RowClickedEvent<SerialRow>) => {
     if (!e.data) return;
-    router.push(`/exco/clusters/networks/${e.data.id}`);
+    router.push(`/exco/clusters/networks/${e.data.slug}`);
   };
 
   const massActions = useMemo<MassActions<SerialRow>>(

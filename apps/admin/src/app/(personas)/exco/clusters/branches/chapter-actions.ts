@@ -186,8 +186,7 @@ export async function createChapter(
     };
   }
 
-  revalidatePath('/exco/clusters/branches');
-  revalidatePath(`/exco/clusters/branches/${v.parentBranchId}`);
+  revalidatePath('/exco/clusters/branches', 'layout');
   return { ok: true, scopeId };
 }
 
@@ -232,8 +231,7 @@ export async function updateChapter(
     };
   }
 
-  revalidatePath('/exco/clusters/branches');
-  revalidatePath(`/exco/clusters/branches/${v.scopeId}`);
+  revalidatePath('/exco/clusters/branches', 'layout');
   return { ok: true, scopeId: v.scopeId };
 }
 
@@ -251,8 +249,7 @@ export async function archiveChapter(scopeId: string): Promise<ChapterActionResu
   if (error) {
     return { ok: false, scopeId, message: await extractInvokeMessage(error, 'Could not archive.') };
   }
-  revalidatePath('/exco/clusters/branches');
-  revalidatePath(`/exco/clusters/branches/${scopeId}`);
+  revalidatePath('/exco/clusters/branches', 'layout');
   return { ok: true, scopeId };
 }
 
@@ -271,7 +268,6 @@ export async function changeChapterAutonomy(
       message: await extractInvokeMessage(error, 'Could not change autonomy.'),
     };
   }
-  revalidatePath('/exco/clusters/branches');
-  revalidatePath(`/exco/clusters/branches/${scopeId}`);
+  revalidatePath('/exco/clusters/branches', 'layout');
   return { ok: true, scopeId };
 }

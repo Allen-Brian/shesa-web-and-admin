@@ -30,35 +30,28 @@ import {
   toast,
 } from '@shesa/ui';
 
-import { assignPositionWithRole } from '../../governance-actions';
+import { assignPositionWithRole } from '@/app/(personas)/exco/clusters/branches/governance-actions';
 
-import type { GovernanceMemberPickerRow, PositionCatalogRow } from './detail-view';
+import { GOVERNANCE_ROLE_OPTIONS, SUGGESTED_ROLE_BY_POSITION } from './role-options';
 
-const BRANCH_ROLE_OPTIONS = [
-  { key: 'branch_admin', label: 'Branch Admin' },
-  { key: 'branch_finance', label: 'Branch Finance' },
-];
+export interface GovernancePositionRow {
+  readonly id: string;
+  readonly name: string;
+}
 
-/**
- * Suggested role per position, per the 2026-07-03 governance spec:
- *   - President                    → branch_admin
- *   - Financial Secretary          → branch_finance
- *   - Treasurer                    → branch_finance
- *   - Everything else              → none (leave the toggle off)
- * The suggestion is a UI default; the officer can override.
- */
-const SUGGESTED_ROLE_BY_POSITION: Record<string, string | undefined> = {
-  President: 'branch_admin',
-  'Financial Secretary': 'branch_finance',
-  Treasurer: 'branch_finance',
-};
+export interface GovernanceMemberPickerRow {
+  readonly memberId: string;
+  readonly fullName: string;
+  readonly hasAccount: boolean;
+  readonly authUserId: string | null;
+}
 
 interface AssignPositionDialogProps {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
   readonly scopeId: string;
   readonly scopeLabel: string;
-  readonly position: PositionCatalogRow;
+  readonly position: GovernancePositionRow;
   readonly members: readonly GovernanceMemberPickerRow[];
 }
 
@@ -76,7 +69,7 @@ export function AssignPositionDialog({
   const [memberId, setMemberId] = useState<string | null>(null);
   const suggested = SUGGESTED_ROLE_BY_POSITION[position.name];
   const [grantRole, setGrantRole] = useState<boolean>(!!suggested);
-  const [roleKey, setRoleKey] = useState<string>(suggested ?? 'branch_admin');
+  const [roleKey, setRoleKey] = useState<string>(suggested ?? GOVERNANCE_ROLE_OPTIONS[0]!.key);
 
   const picked = useMemo(
     () => members.find((m) => m.memberId === memberId) ?? null,
@@ -115,9 +108,7 @@ export function AssignPositionDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Assign {position.name}</DialogTitle>
-          <DialogDescription>
-            {scopeLabel} · pick a branch member to hold this position.
-          </DialogDescription>
+          <DialogDescription>{scopeLabel} · pick a member to hold this position.</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-5">
@@ -131,7 +122,7 @@ export function AssignPositionDialog({
                   size="sm"
                   className="w-full justify-between px-3"
                 >
-                  <span className="truncate">{picked?.fullName ?? 'Pick a branch member'}</span>
+                  <span className="truncate">{picked?.fullName ?? 'Pick a member'}</span>
                   <Search className="h-4 w-4 opacity-60" />
                 </Button>
               </PopoverTrigger>
@@ -194,7 +185,7 @@ export function AssignPositionDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {BRANCH_ROLE_OPTIONS.map((r) => (
+                  {GOVERNANCE_ROLE_OPTIONS.map((r) => (
                     <SelectItem key={r.key} value={r.key}>
                       {r.label} <span className="text-muted-foreground">— {r.key}</span>
                     </SelectItem>

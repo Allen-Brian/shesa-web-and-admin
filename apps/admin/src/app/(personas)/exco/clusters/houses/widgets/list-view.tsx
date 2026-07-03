@@ -92,7 +92,7 @@ export function HousesListView({ data }: { readonly data: readonly HouseRow[] })
 
   const handleRowClicked = (e: RowClickedEvent<HouseRow>) => {
     if (!e.data) return;
-    router.push(`/exco/clusters/houses/${e.data.id}`);
+    router.push(`/exco/clusters/houses/${e.data.slug}`);
   };
 
   return (

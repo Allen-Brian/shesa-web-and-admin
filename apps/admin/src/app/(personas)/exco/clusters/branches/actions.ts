@@ -208,8 +208,7 @@ export async function updateBranch(
     };
   }
 
-  revalidatePath('/exco/clusters/branches');
-  revalidatePath(`/exco/clusters/branches/${v.scopeId}`);
+  revalidatePath('/exco/clusters/branches', 'layout');
   return { ok: true, scopeId: v.scopeId };
 }
 
@@ -227,7 +226,6 @@ export async function archiveBranch(scopeId: string): Promise<ArchiveResult> {
   if (error) {
     return { ok: false, scopeId, message: await extractInvokeMessage(error, 'Could not archive.') };
   }
-  revalidatePath('/exco/clusters/branches');
-  revalidatePath(`/exco/clusters/branches/${scopeId}`);
+  revalidatePath('/exco/clusters/branches', 'layout');
   return { ok: true, scopeId };
 }

@@ -29,14 +29,10 @@ import {
   toast,
 } from '@shesa/ui';
 
-import { grantRole } from '../../governance-actions';
+import { grantRole } from '@/app/(personas)/exco/clusters/branches/governance-actions';
 
-import type { GovernanceMemberPickerRow } from './detail-view';
-
-const BRANCH_ROLE_OPTIONS = [
-  { key: 'branch_admin', label: 'Branch Admin' },
-  { key: 'branch_finance', label: 'Branch Finance' },
-];
+import { GOVERNANCE_ROLE_OPTIONS } from './role-options';
+import type { GovernanceMemberPickerRow } from './assign-position-dialog';
 
 interface GrantRoleDialogProps {
   readonly open: boolean;
@@ -57,7 +53,7 @@ export function GrantRoleDialog({
   const [pending, startTransition] = useTransition();
   const [memberOpen, setMemberOpen] = useState(false);
   const [memberId, setMemberId] = useState<string | null>(null);
-  const [roleKey, setRoleKey] = useState<string>('branch_admin');
+  const [roleKey, setRoleKey] = useState<string>(GOVERNANCE_ROLE_OPTIONS[0]!.key);
 
   // Only members with linked auth accounts can hold a role.
   const eligible = useMemo(() => members.filter((m) => m.hasAccount && m.authUserId), [members]);
@@ -143,8 +139,8 @@ export function GrantRoleDialog({
               <div className="flex items-start gap-2 rounded-md bg-amber-50 p-2 text-xs text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>
-                  No branch member has a linked auth account. Invite an account first — a role can't
-                  be granted otherwise.
+                  No member has a linked auth account. Invite an account first — a role can't be
+                  granted otherwise.
                 </span>
               </div>
             )}
@@ -157,7 +153,7 @@ export function GrantRoleDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {BRANCH_ROLE_OPTIONS.map((r) => (
+                {GOVERNANCE_ROLE_OPTIONS.map((r) => (
                   <SelectItem key={r.key} value={r.key}>
                     {r.label} <span className="text-muted-foreground">— {r.key}</span>
                   </SelectItem>

@@ -642,6 +642,53 @@ export type Database = {
           },
         ]
       }
+      batches: {
+        Row: {
+          scope_id: string
+          ordinal: number | null
+          nickname: string | null
+          description: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          metadata: Record<string, unknown>
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          scope_id: string
+          ordinal?: number | null
+          nickname?: string | null
+          description?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          metadata?: Record<string, unknown>
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          scope_id?: string
+          ordinal?: number | null
+          nickname?: string | null
+          description?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          metadata?: Record<string, unknown>
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batches_scope_id_fkey"
+            columns: ["scope_id"]
+            isOneToOne: true
+            referencedRelation: "scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branches: {
         Row: {
           scope_id: string
@@ -1028,6 +1075,33 @@ export type Database = {
         Args: {
           p_scope_id: string
           p_new_kind: Database["core"]["Enums"]["chapter_kind"]
+        }
+        Returns: undefined
+      }
+      create_batch: {
+        Args: {
+          p_name: string
+          p_slug: string
+          p_entry_year: number
+          p_ordinal: number | null
+          p_nickname: string | null
+          p_description: string | null
+          p_contact_email: string | null
+          p_contact_phone: string | null
+          p_metadata?: Record<string, unknown>
+        }
+        Returns: string
+      }
+      update_batch: {
+        Args: {
+          p_scope_id: string
+          p_name: string | null
+          p_ordinal: number | null
+          p_nickname: string | null
+          p_description: string | null
+          p_contact_email: string | null
+          p_contact_phone: string | null
+          p_status: Database["core"]["Enums"]["scope_status"] | null
         }
         Returns: undefined
       }

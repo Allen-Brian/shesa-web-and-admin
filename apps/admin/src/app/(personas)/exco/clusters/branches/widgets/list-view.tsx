@@ -75,6 +75,7 @@ type SerialRow = {
   readonly serial: number | null;
   readonly _kind: 'branch' | 'chapter';
   readonly _parent_id: string | null;
+  readonly _parent_slug: string | null;
   readonly _has_children: boolean;
   readonly id: string;
   readonly name: string;
@@ -144,6 +145,7 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
         serial: index + 1,
         _kind: 'branch',
         _parent_id: null,
+        _parent_slug: null,
         _has_children: children.length > 0,
         id: b.id,
         name: b.name,
@@ -164,6 +166,7 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
           serial: null,
           _kind: 'chapter',
           _parent_id: c.parent_id,
+          _parent_slug: b.slug,
           _has_children: false,
           id: c.id,
           name: c.name,
@@ -333,10 +336,10 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
   const handleRowClicked = (e: RowClickedEvent<SerialRow>) => {
     if (!e.data) return;
     if (e.data._kind === 'chapter') {
-      router.push(`/exco/clusters/branches/${e.data._parent_id}/chapters/${e.data.id}`);
+      router.push(`/exco/clusters/branches/${e.data._parent_slug}/chapters/${e.data.slug}`);
       return;
     }
-    router.push(`/exco/clusters/branches/${e.data.id}`);
+    router.push(`/exco/clusters/branches/${e.data.slug}`);
   };
 
   const massActions = useMemo<MassActions<SerialRow>>(

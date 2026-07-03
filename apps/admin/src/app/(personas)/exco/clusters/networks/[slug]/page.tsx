@@ -10,16 +10,15 @@ import { NetworkRoster, type RosterRow } from './widgets/roster';
 export const dynamic = 'force-dynamic';
 
 interface NetworkDetailPageProps {
-  readonly params: Promise<{ id: string }>;
+  readonly params: Promise<{ slug: string }>;
 }
 
 export default async function NetworkDetailPage({ params }: NetworkDetailPageProps) {
-  const { id } = await params;
+  const { slug } = await params;
   const supabase = await getServerClient();
 
   const [
     { data: scopeRow },
-    { data: networkRow },
     {
       data: { user },
     },
@@ -28,19 +27,23 @@ export default async function NetworkDetailPage({ params }: NetworkDetailPagePro
       .schema('core')
       .from('scopes')
       .select('id, name, slug, status')
-      .eq('id', id)
+      .eq('slug', slug)
       .eq('scope_type', 'network')
-      .maybeSingle(),
-    supabase
-      .schema('core')
-      .from('networks')
-      .select('scope_id, short_name, description, icon, color_hex, sort_order')
-      .eq('scope_id', id)
       .maybeSingle(),
     supabase.auth.getUser(),
   ]);
 
-  if (!scopeRow || !networkRow) notFound();
+  if (!scopeRow) notFound();
+  const id = scopeRow.id;
+
+  const { data: networkRow } = await supabase
+    .schema('core')
+    .from('networks')
+    .select('scope_id, short_name, description, icon, color_hex, sort_order')
+    .eq('scope_id', id)
+    .maybeSingle();
+
+  if (!networkRow) notFound();
 
   // Members in this network — respects the caller's RLS reach per the
   // permission-scoped-roster rule locked 2026-07-02.

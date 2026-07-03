@@ -34,14 +34,19 @@ import {
 import type { ScopeStatus } from '@/components/clusters/cluster-list';
 import type { ExcoBadgeInfo } from '@/components/governance/exco-badge';
 import { MemberName } from '@/components/governance/member-name';
+import { GovernancePanel } from '@/components/governance/governance-panel';
+import type {
+  GovernancePositionCatalogRow,
+  GovernancePositionHolderRow,
+  GovernanceRoleHolderRow,
+} from '@/components/governance/governance-panel';
+import type { GovernanceMemberPickerRow as SharedGovernanceMemberPickerRow } from '@/components/governance/assign-position-dialog';
 
 import { archiveBranch } from '../../actions';
 import { archiveChapter } from '../../chapter-actions';
 import type { ChapterInitialValues } from '../../widgets/chapter-form';
 import { BranchFormDialog } from '../../widgets/branch-form-dialog';
 import { ChapterFormDialog } from '../../widgets/chapter-form-dialog';
-
-import { GovernanceTab } from './governance-tab';
 
 export interface BranchChapterRow {
   readonly id: string;
@@ -67,38 +72,10 @@ export interface BranchMemberRow {
   readonly location: string | null;
 }
 
-export interface PositionCatalogRow {
-  readonly id: string;
-  readonly name: string;
-  readonly sort_order: number;
-  readonly description: string | null;
-}
-
-export interface PositionHolderRow {
-  readonly assignmentId: string;
-  readonly positionCatalogId: string;
-  readonly positionName: string;
-  readonly memberId: string;
-  readonly memberName: string;
-  readonly customTitle: string | null;
-  readonly startsAt: string;
-}
-
-export interface RoleHolderRow {
-  readonly assignmentId: string;
-  readonly userId: string;
-  readonly userLabel: string;
-  readonly roleKey: string;
-  readonly roleName: string;
-  readonly startsAt: string;
-}
-
-export interface GovernanceMemberPickerRow {
-  readonly memberId: string;
-  readonly fullName: string;
-  readonly hasAccount: boolean;
-  readonly authUserId: string | null;
-}
+export type PositionCatalogRow = GovernancePositionCatalogRow;
+export type PositionHolderRow = GovernancePositionHolderRow;
+export type RoleHolderRow = GovernanceRoleHolderRow;
+export type GovernanceMemberPickerRow = SharedGovernanceMemberPickerRow;
 
 interface BranchDetailViewProps {
   readonly scopeId: string;
@@ -218,6 +195,7 @@ export function BranchDetailView(props: BranchDetailViewProps) {
         <TabsContent value="chapters" className="flex min-h-0 flex-1 flex-col gap-3">
           <ChaptersTab
             branchId={props.scopeId}
+            branchSlug={props.slug}
             branchName={props.name}
             branchGeography={{
               countryCode: props.countryCode,
@@ -232,7 +210,7 @@ export function BranchDetailView(props: BranchDetailViewProps) {
         </TabsContent>
 
         <TabsContent value="governance" className="flex min-h-0 flex-1 flex-col gap-3">
-          <GovernanceTab
+          <GovernancePanel
             scopeId={props.scopeId}
             scopeLabel={props.name}
             positionCatalog={props.positionCatalog}
@@ -240,6 +218,8 @@ export function BranchDetailView(props: BranchDetailViewProps) {
             roleHolders={props.roleHolders}
             memberPicker={props.memberPicker}
             canManage={props.canManageGovernance}
+            emptyCatalogHint="No position catalog exists for branches yet."
+            emptyRolesHint="No roles granted at this branch yet."
           />
         </TabsContent>
 
@@ -389,6 +369,7 @@ type ChapterConfirm = null | {
 
 function ChaptersTab({
   branchId,
+  branchSlug,
   branchName,
   branchGeography,
   chapters,
@@ -396,6 +377,7 @@ function ChaptersTab({
   onOpenNew,
 }: {
   readonly branchId: string;
+  readonly branchSlug: string;
   readonly branchName: string;
   readonly branchGeography: {
     readonly countryCode: string;
@@ -524,7 +506,7 @@ function ChaptersTab({
 
   const handleRowClicked = (e: RowClickedEvent<ChapterSerialRow>) => {
     if (!e.data) return;
-    router.push(`/exco/clusters/branches/${branchId}/chapters/${e.data.id}`);
+    router.push(`/exco/clusters/branches/${branchSlug}/chapters/${e.data.slug}`);
   };
 
   const massActions = useMemo<MassActions<ChapterSerialRow>>(

@@ -66,8 +66,7 @@ export async function assignPositionWithRole(input: {
     }
   }
 
-  revalidatePath('/exco/clusters/branches');
-  revalidatePath(`/exco/clusters/branches/${input.scopeId}`);
+  revalidatePath('/exco/clusters', 'layout');
   return { ok: true, warning };
 }
 
@@ -82,7 +81,7 @@ export async function removePosition(assignmentId: string, scopeId: string): Pro
       message: await extractInvokeMessage(error, 'Could not remove the position.'),
     };
   }
-  revalidatePath(`/exco/clusters/branches/${scopeId}`);
+  revalidatePath('/exco/clusters', 'layout');
   return { ok: true };
 }
 
@@ -102,7 +101,7 @@ export async function grantRole(input: {
   if (error) {
     return { ok: false, message: await extractInvokeMessage(error, 'Could not grant the role.') };
   }
-  revalidatePath(`/exco/clusters/branches/${input.scopeId}`);
+  revalidatePath('/exco/clusters', 'layout');
   return { ok: true };
 }
 
@@ -114,6 +113,6 @@ export async function revokeRole(assignmentId: string, scopeId: string): Promise
   if (error) {
     return { ok: false, message: await extractInvokeMessage(error, 'Could not revoke the role.') };
   }
-  revalidatePath(`/exco/clusters/branches/${scopeId}`);
+  revalidatePath('/exco/clusters', 'layout');
   return { ok: true };
 }

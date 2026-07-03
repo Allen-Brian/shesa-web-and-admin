@@ -29,6 +29,13 @@ import type { ChapterInitialValues } from '../../../../widgets/chapter-form';
 import { ChapterFormDialog } from '../../../../widgets/chapter-form-dialog';
 import type { ExcoBadgeInfo } from '@/components/governance/exco-badge';
 import { MemberName } from '@/components/governance/member-name';
+import {
+  GovernancePanel,
+  type GovernancePositionCatalogRow,
+  type GovernancePositionHolderRow,
+  type GovernanceRoleHolderRow,
+} from '@/components/governance/governance-panel';
+import type { GovernanceMemberPickerRow } from '@/components/governance/assign-position-dialog';
 
 export interface ChapterMemberRow {
   readonly id: string;
@@ -44,6 +51,7 @@ export interface ChapterMemberRow {
 
 interface ChapterDetailViewProps {
   readonly branchId: string;
+  readonly branchSlug: string;
   readonly branchName: string;
   readonly chapterId: string;
   readonly name: string;
@@ -63,8 +71,13 @@ interface ChapterDetailViewProps {
   readonly contactPhone: string | null;
   readonly memberCount: number;
   readonly members: readonly ChapterMemberRow[];
+  readonly positionCatalog: readonly GovernancePositionCatalogRow[];
+  readonly positionHolders: readonly GovernancePositionHolderRow[];
+  readonly roleHolders: readonly GovernanceRoleHolderRow[];
+  readonly memberPicker: readonly GovernanceMemberPickerRow[];
   readonly canUpdate: boolean;
   readonly canChangeAutonomy: boolean;
+  readonly canManageGovernance: boolean;
 }
 
 export function ChapterDetailView(props: ChapterDetailViewProps) {
@@ -130,7 +143,7 @@ export function ChapterDetailView(props: ChapterDetailViewProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
       <BackLink
-        href={`/exco/clusters/branches/${props.branchId}`}
+        href={`/exco/clusters/branches/${props.branchSlug}`}
         label={`Back to ${props.branchName}`}
       />
 
@@ -215,10 +228,28 @@ export function ChapterDetailView(props: ChapterDetailViewProps) {
         </TabsContent>
 
         <TabsContent value="governance" className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-            Chapter-level governance (position holders, role assignments) lands in the Governance
-            epic.
-          </div>
+          {isAutonomous ? (
+            <GovernancePanel
+              scopeId={props.chapterId}
+              scopeLabel={props.name}
+              positionCatalog={props.positionCatalog}
+              positionHolders={props.positionHolders}
+              roleHolders={props.roleHolders}
+              memberPicker={props.memberPicker}
+              canManage={props.canManageGovernance}
+              emptyCatalogHint="No position catalog exists for chapters yet."
+              emptyRolesHint="No roles granted at this chapter yet."
+            />
+          ) : (
+            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              <p>
+                <strong className="text-foreground">Grouping chapter.</strong> Governance is
+                inherited from <strong className="text-foreground">{props.branchName}</strong>.
+                Promote this chapter to autonomous first to give it its own positions and portal
+                access.
+              </p>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
