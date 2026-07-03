@@ -1,9 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { Inbox, ArrowLeftRight } from 'lucide-react';
-
-import { Button } from '@shesa/ui';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shesa/ui';
 
 import { RequestsPanel } from './requests-panel';
 import { TransfersPanel } from './transfers-panel';
@@ -45,21 +42,14 @@ interface SwitcherProps {
   readonly transfers: readonly TransferRow[];
 }
 
-type Panel = 'requests' | 'transfers';
-
 /**
- * The ONE place tabs appear inside Memberships — the internal switcher
- * between the Requests queue and the incoming Transfers queue. Both
- * queues live at the same scope and share the same header, so a chip
- * toggle beats separate URLs here (matches the spec: "one page, two
- * switcher panels").
- *
- * URL is not changed on toggle — the spec accepts local state here.
+ * Requests & Transfers switcher — uses the same Tabs primitive the
+ * branch-detail page uses so the look-and-feel matches the rest of
+ * the admin. Default tab picks up whichever queue has rows (Requests
+ * wins on tie).
  */
 export function RequestsTransfersSwitcher({ scope, requests, transfers }: SwitcherProps) {
-  const [panel, setPanel] = useState<Panel>(
-    requests.length === 0 && transfers.length > 0 ? 'transfers' : 'requests',
-  );
+  const defaultTab = requests.length === 0 && transfers.length > 0 ? 'transfers' : 'requests';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
@@ -73,66 +63,26 @@ export function RequestsTransfersSwitcher({ scope, requests, transfers }: Switch
         <p className="font-mono text-xs text-muted-foreground">{scope.slug}</p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Chip
-          active={panel === 'requests'}
-          onClick={() => setPanel('requests')}
-          count={requests.length}
-          label="Requests"
-          Icon={Inbox}
-        />
-        <Chip
-          active={panel === 'transfers'}
-          onClick={() => setPanel('transfers')}
-          count={transfers.length}
-          label="Transfers"
-          Icon={ArrowLeftRight}
-        />
-      </div>
+      <Tabs defaultValue={defaultTab} className="flex min-h-0 flex-1 flex-col gap-4">
+        <TabsList>
+          <TabsTrigger value="requests">
+            Requests
+            <span className="ml-1.5 text-xs text-muted-foreground">({requests.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="transfers">
+            Transfers
+            <span className="ml-1.5 text-xs text-muted-foreground">({transfers.length})</span>
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="flex min-h-0 flex-1 flex-col">
-        {panel === 'requests' ? (
+        <TabsContent value="requests" className="flex min-h-0 flex-1 flex-col">
           <RequestsPanel requests={requests} />
-        ) : (
-          <TransfersPanel transfers={transfers} />
-        )}
-      </div>
-    </div>
-  );
-}
+        </TabsContent>
 
-function Chip({
-  active,
-  onClick,
-  count,
-  label,
-  Icon,
-}: {
-  readonly active: boolean;
-  readonly onClick: () => void;
-  readonly count: number;
-  readonly label: string;
-  readonly Icon: typeof Inbox;
-}) {
-  return (
-    <Button
-      type="button"
-      variant={active ? 'default' : 'outline'}
-      size="sm"
-      onClick={onClick}
-      className="gap-2"
-    >
-      <Icon className="h-4 w-4" />
-      <span>{label}</span>
-      <span
-        className={
-          active
-            ? 'rounded-md bg-primary-foreground/20 px-1.5 py-0.5 text-xs font-mono'
-            : 'rounded-md bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground'
-        }
-      >
-        {count}
-      </span>
-    </Button>
+        <TabsContent value="transfers" className="flex min-h-0 flex-1 flex-col">
+          <TransfersPanel transfers={transfers} />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

@@ -39,11 +39,12 @@ type ConfirmState = null | {
 interface MembersTableProps {
   readonly scope: MembersPageScope;
   readonly rows: readonly MembersPageRow[];
+  readonly onAdd?: () => void;
 }
 
 const ENGAGEMENT_TIERS = ['dormant', 'normal', 'engaged', 'committed'] as const;
 
-export function MembersTable({ scope, rows }: MembersTableProps) {
+export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
   const router = useRouter();
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [search, setSearch] = useState('');
@@ -265,10 +266,9 @@ export function MembersTable({ scope, rows }: MembersTableProps) {
         search={search}
         onSearchChange={setSearch}
         gridApi={gridApi}
-        canCreate={false}
-        hideCreate
-        createLabel=""
-        onCreate={() => undefined}
+        canCreate={!!onAdd}
+        onCreate={() => onAdd?.()}
+        createLabel="Add member"
       />
       <DataTable<SerialRow>
         rowData={filtered as SerialRow[]}

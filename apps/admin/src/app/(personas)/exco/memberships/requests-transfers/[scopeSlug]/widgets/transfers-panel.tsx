@@ -1,10 +1,26 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftRight, Check, X } from 'lucide-react';
 
-import { Badge, Button, ConfirmDialog, toast } from '@shesa/ui';
+import {
+  Badge,
+  Button,
+  ConfirmDialog,
+  DataTable,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  EntityTablePanel,
+  toast,
+  type ColDef,
+  type GridApi,
+  type ICellRendererParams,
+  type RowClickedEvent,
+} from '@shesa/ui';
 
 import { approveTransfer } from '../../../actions';
 import type { TransferRow } from './switcher';
@@ -13,25 +29,40 @@ interface TransfersPanelProps {
   readonly transfers: readonly TransferRow[];
 }
 
+type SerialRow = TransferRow & { readonly serial: number };
+
 /**
  * Incoming transfers panel (destination view). Per the M1 flip:
  *   - This scope is the DESTINATION of every row here.
- *   - Approving fires `memberships/approve-transfer` which is
- *     destination-scoped — the current admin's grant here is what
- *     authorizes the approval. The M1 pgTAP case G asserts a
- *     source-only admin cannot approve.
- *   - The source scope's admin gets a notification event after
- *     approval; they don't appear here.
+ *   - Approving fires memberships/approve-transfer (destination-scoped).
+ *   - The source scope's admin gets a notification event after approval.
  *
- * Deny action is stubbed for now — the `memberships/reject-transfer`
- * Edge Function isn't shipped yet (deferred). The button is present so
- * the shape matches the Requests panel, but it toasts a "coming soon"
- * message and doesn't hit the server.
+ * Deny is stubbed pending its Edge Function.
  */
 export function TransfersPanel({ transfers }: TransfersPanelProps) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<TransferRow | null>(null);
   const [confirmDeny, setConfirmDeny] = useState<TransferRow | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const numbered = useMemo<readonly SerialRow[]>(
+    () => transfers.map((r, i) => ({ ...r, serial: i + 1 })),
+    [transfers],
+  );
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return numbered;
+    return numbered.filter((r) => {
+      if (r.full_name.toLowerCase().includes(q)) return true;
+      if (r.batch_name?.toLowerCase().includes(q)) return true;
+      if (r.email?.toLowerCase().includes(q)) return true;
+      if (r.source_scope_name.toLowerCase().includes(q)) return true;
+      return false;
+    });
+  }, [numbered, search]);
 
   const runApprove = (row: TransferRow) => {
     startTransition(async () => {
@@ -41,68 +72,135 @@ export function TransfersPanel({ transfers }: TransfersPanelProps) {
         return;
       }
       toast.success(`${row.full_name} transferred from ${row.source_scope_name}.`);
+      setSelected(null);
       router.refresh();
     });
   };
 
   const runDeny = () => {
-    // Placeholder — the deny path lands with a future Edge Function.
     toast.warning('Transfer denial is not implemented yet.');
+    setSelected(null);
   };
 
-  if (transfers.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-border p-8 text-center">
-        <p className="text-sm text-muted-foreground">
-          No pending incoming transfers. When a member requests to move here from another scope, the
-          request appears here for your approval.
-        </p>
-      </div>
-    );
-  }
+  const columnDefs = useMemo<ColDef<SerialRow>[]>(
+    () => [
+      {
+        headerName: 'S/N',
+        field: 'serial',
+        width: 72,
+        maxWidth: 72,
+        sortable: false,
+        filter: false,
+        suppressMovable: true,
+      },
+      { headerName: 'Name', field: 'full_name', flex: 2, minWidth: 200 },
+      {
+        headerName: 'Batch',
+        field: 'batch_name',
+        width: 140,
+        valueFormatter: (p) => p.value ?? '—',
+      },
+      {
+        headerName: 'From',
+        field: 'source_scope_name',
+        flex: 1.5,
+        minWidth: 180,
+        cellRenderer: (p: ICellRendererParams<SerialRow, string>) => (
+          <span className="inline-flex items-center gap-1">
+            <ArrowLeftRight className="h-3 w-3 text-muted-foreground" />
+            {p.value ?? '—'}
+          </span>
+        ),
+      },
+      {
+        headerName: 'Email',
+        field: 'email',
+        flex: 1.5,
+        minWidth: 180,
+        valueFormatter: (p) => p.value ?? '—',
+      },
+      {
+        headerName: 'Requested',
+        field: 'requested_at',
+        width: 140,
+        valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleDateString() : '—'),
+      },
+    ],
+    [],
+  );
+
+  const onRowClicked = (e: RowClickedEvent<SerialRow>) => {
+    if (!e.data) return;
+    setSelected(e.data);
+  };
 
   return (
-    <div className="flex flex-col gap-2">
-      {transfers.map((t) => (
-        <div
-          key={t.transfer_id}
-          className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <div className="flex flex-col gap-0.5">
-            <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
-              <span>{t.full_name}</span>
-              <Badge variant="outline" className="gap-1 text-xs">
-                <ArrowLeftRight className="h-3 w-3" />
-                {t.source_scope_name}
-              </Badge>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {[t.batch_name, t.email, t.phone].filter(Boolean).join(' · ') || '—'}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Requested {new Date(t.requested_at).toLocaleDateString()}
-              {t.reason && <span className="italic"> · &ldquo;{t.reason}&rdquo;</span>}
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2 sm:justify-end">
-            <Button type="button" size="sm" disabled={pending} onClick={() => runApprove(t)}>
-              <Check className="h-4 w-4" />
-              Approve
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={pending}
-              onClick={() => setConfirmDeny(t)}
-              className="text-destructive hover:text-destructive"
-            >
-              <X className="h-4 w-4" />
-              Deny
-            </Button>
-          </div>
-        </div>
-      ))}
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <EntityTablePanel
+        count={filtered.length}
+        countLabel={filtered.length === 1 ? 'transfer' : 'transfers'}
+        search={search}
+        onSearchChange={setSearch}
+        gridApi={gridApi}
+        canCreate={false}
+        hideCreate
+        createLabel=""
+        onCreate={() => undefined}
+      />
+
+      <DataTable<SerialRow>
+        rowData={filtered as SerialRow[]}
+        columnDefs={columnDefs}
+        getRowId={(p) => p.data.transfer_id}
+        onGridReady={(e) => setGridApi(e.api)}
+        onRowClicked={onRowClicked}
+        showColumnPicker={false}
+        selectable={false}
+      />
+
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent className="max-w-md">
+          {selected && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selected.full_name}</DialogTitle>
+                <DialogDescription>
+                  <span className="inline-flex items-center gap-1">
+                    Incoming transfer from
+                    <Badge variant="outline" className="gap-1 text-xs">
+                      <ArrowLeftRight className="h-3 w-3" />
+                      {selected.source_scope_name}
+                    </Badge>
+                  </span>
+                </DialogDescription>
+              </DialogHeader>
+              <DetailBlock row={selected} />
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={pending}
+                  onClick={() => setConfirmDeny(selected)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <X className="h-4 w-4" />
+                  Deny
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={pending}
+                  onClick={() => runApprove(selected)}
+                >
+                  <Check className="h-4 w-4" />
+                  Approve
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={!!confirmDeny}
@@ -110,12 +208,38 @@ export function TransfersPanel({ transfers }: TransfersPanelProps) {
         description="The member keeps their existing membership at their source scope. The requester is notified. (Note: denial flow is stubbed pending its Edge Function.)"
         confirmLabel="Deny"
         onConfirm={() => {
-          if (!confirmDeny) return;
           setConfirmDeny(null);
           runDeny();
         }}
         onCancel={() => setConfirmDeny(null)}
       />
+    </div>
+  );
+}
+
+function DetailBlock({ row }: { readonly row: TransferRow }) {
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-4 text-sm">
+      <Detail k="Batch" v={row.batch_name ?? '—'} />
+      <Detail k="Email" v={row.email ?? '—'} />
+      <Detail k="Phone" v={row.phone ?? '—'} />
+      <Detail k="From" v={row.source_scope_name} />
+      <Detail k="Requested" v={new Date(row.requested_at).toLocaleString()} />
+      {row.reason && (
+        <div className="flex flex-col gap-1 border-t border-border pt-2">
+          <span className="text-xs text-muted-foreground">Reason</span>
+          <span className="text-sm italic text-foreground">&ldquo;{row.reason}&rdquo;</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Detail({ k, v }: { readonly k: string; readonly v: string }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className="text-xs text-muted-foreground">{k}</span>
+      <span className="text-sm text-foreground">{v}</span>
     </div>
   );
 }

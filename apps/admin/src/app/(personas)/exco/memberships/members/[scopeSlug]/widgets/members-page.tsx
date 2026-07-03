@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { UserPlus } from 'lucide-react';
 
-import { Button, StatsCard } from '@shesa/ui';
+import { StatsCard } from '@shesa/ui';
 
 import type { ExcoBadgeInfo } from '@/components/governance/exco-badge';
 
@@ -51,19 +50,13 @@ export function MembersPage({ scope, rows }: MembersPageProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Memberships ·{' '}
-            {isBatch ? 'Batch' : scope.scope_type === 'chapter' ? 'Autonomous chapter' : 'Branch'}
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{scope.name}</h1>
-          <p className="font-mono text-xs text-muted-foreground">{scope.slug}</p>
+      <div className="flex flex-col gap-1">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Memberships ·{' '}
+          {isBatch ? 'Batch' : scope.scope_type === 'chapter' ? 'Autonomous chapter' : 'Branch'}
         </div>
-        <Button type="button" size="sm" onClick={() => setAddOpen(true)}>
-          <UserPlus className="h-4 w-4" />
-          Add member
-        </Button>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{scope.name}</h1>
+        <p className="font-mono text-xs text-muted-foreground">{scope.slug}</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -77,7 +70,7 @@ export function MembersPage({ scope, rows }: MembersPageProps) {
         )}
       </div>
 
-      <MembersTable scope={scope} rows={rows} />
+      <MembersTable scope={scope} rows={rows} onAdd={() => setAddOpen(true)} />
 
       <AddMemberDialog scope={scope} open={addOpen} onOpenChange={setAddOpen} />
     </div>
