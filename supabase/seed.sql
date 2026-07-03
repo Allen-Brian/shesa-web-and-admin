@@ -688,3 +688,255 @@ VALUES
     NOW()
   )
 ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- Section 5. Demo data — 2026-07-03 walkthrough
+-- =============================================================================
+--
+-- Populates enough member data to exercise every Memberships surface
+-- (Members table across branch / autonomous chapter / batch scopes,
+-- Requests queue on Buea, Transfers queue on Buea) so the platform is
+-- clickable end-to-end.
+--
+-- Volume:
+--   ~20 members per batch across seven recent batches
+--   (2018-2024) = 140 members total.
+--   ~60 memberships at Shesa Buea (active mix), plus scatter across
+--   Douala and DC.
+--   ~10 pending join requests targeting Shesa Buea.
+--   ~5 pending transfers from Douala/DC → Buea.
+--   ~10 chapter memberships (autonomous chapter Buea University).
+--
+-- All rows are pseudo-random but deterministic — we seed the generator
+-- with a fixed value so `supabase db reset` produces the same set every
+-- time.
+--
+-- Idempotent via ON CONFLICT DO NOTHING on the natural keys.
+
+DO $$
+DECLARE
+  v_batch          RECORD;
+  v_member_id      UUID;
+  v_house_id       UUID;
+  v_network_id     UUID;
+  v_member_num     INTEGER;
+  v_house_ids      UUID[] := ARRAY[
+    '33333333-0000-0000-0000-000000000001'::uuid, -- St Thomas
+    '33333333-0000-0000-0000-000000000002'::uuid, -- St Peter
+    '33333333-0000-0000-0000-000000000003'::uuid, -- St Francis
+    '33333333-0000-0000-0000-000000000004'::uuid  -- St John
+  ];
+  v_network_ids    UUID[];
+  v_first_names    TEXT[] := ARRAY[
+    'Ada','Bola','Chidi','Dele','Emeka','Femi','Gozie','Hauwa','Ifeanyi','Junaid',
+    'Kemi','Lola','Mumbi','Ngozi','Obiora','Peter','Rita','Sade','Tunde','Uche',
+    'Victor','Wale','Yemi','Zainab','Abel','Beatrice','Constance','Damaris','Eve','Faith'
+  ];
+  v_last_names     TEXT[] := ARRAY[
+    'Achieng','Bekele','Cissé','Diallo','Effiong','Fokou','Gueye','Habimana','Iwuoha','Jama',
+    'Kamau','Lumumba','Mbeki','Nkomo','Okafor','Petero','Quansah','Robi','Songha','Traoré',
+    'Ubomba','Vieira','Wangui','Xoliswa','Yaw','Zulu','Achebe','Balogun','Chukwuma','Diop'
+  ];
+  v_countries      TEXT[] := ARRAY['CM','CM','CM','CM','US','GB','FR','NG','GH','ZA'];
+  v_cities         TEXT[] := ARRAY['Buea','Douala','Yaoundé','Bamenda','New York','London','Paris','Lagos','Accra','Johannesburg'];
+  v_regions        TEXT[] := ARRAY['South-West','Littoral','Centre','North-West','New York','England','Île-de-France','Lagos','Greater Accra','Gauteng'];
+  v_buea_id        UUID := '00000000-0000-0000-0000-000000000010';
+  v_douala_id      UUID := '00000000-0000-0000-0000-000000000011';
+  v_dc_id          UUID := '00000000-0000-0000-0000-000000000012';
+  v_buea_uni_id    UUID := '00000000-0000-0000-0000-000000000020';
+  v_membership_id  UUID;
+  v_pick           INTEGER;
+  v_country_idx    INTEGER;
+BEGIN
+  -- Deterministic randomness
+  PERFORM setseed(0.4242);
+
+  -- Cache the seeded network ids in an array (5 networks in the seed).
+  SELECT ARRAY(SELECT id FROM core.scopes WHERE scope_type = 'network' ORDER BY slug)
+    INTO v_network_ids;
+
+  -- Iterate seven recent batches: 2018, 2019, 2020, 2021, 2022, 2023, 2024
+  FOR v_batch IN
+    SELECT id, entry_year FROM core.scopes
+    WHERE scope_type = 'batch' AND entry_year BETWEEN 2018 AND 2024
+    ORDER BY entry_year
+  LOOP
+    FOR v_member_num IN 1..20 LOOP
+      v_pick        := (v_member_num + v_batch.entry_year * 17) % 30 + 1;
+      v_country_idx := (v_member_num + v_batch.entry_year) % 10 + 1;
+      v_house_id    := v_house_ids[((v_member_num - 1) % 4) + 1];
+      v_network_id  := v_network_ids[((v_member_num - 1) % array_length(v_network_ids, 1)) + 1];
+
+      -- Build a deterministic UUID so ON CONFLICT is safe:
+      -- 88888888-YYYY-NNNN-0000-000000000000 where YYYY = batch year,
+      -- NNNN = zero-padded member number.
+      v_member_id := ('88888888-' ||
+                      lpad(v_batch.entry_year::text, 4, '0') || '-' ||
+                      lpad(v_member_num::text, 4, '0') || '-0000-000000000000')::uuid;
+
+      INSERT INTO core.members (
+        id, full_name, email, phone,
+        batch_scope_id, house_scope_id, network_scope_id,
+        entry_year, exit_year,
+        current_country, current_region_state, current_city
+      ) VALUES (
+        v_member_id,
+        v_first_names[v_pick] || ' ' || v_last_names[v_pick],
+        lower(v_first_names[v_pick]) || '.' || lower(v_last_names[v_pick]) ||
+          '.' || v_batch.entry_year || '@shesa.test',
+        '+237' || (100000 + (v_member_num * 137 + v_batch.entry_year) % 899999)::text,
+        v_batch.id, v_house_id, v_network_id,
+        v_batch.entry_year, v_batch.entry_year + 7,
+        v_countries[v_country_idx],
+        v_regions[v_country_idx],
+        v_cities[v_country_idx]
+      )
+      ON CONFLICT (id) DO NOTHING;
+
+      -- ── Membership distribution (based on member_num) ──
+      -- 1-10:  active at Shesa Buea (60% of members)
+      -- 11-13: active at Douala
+      -- 14-15: active at DC
+      -- 16-17: passive at Buea
+      -- 18:    active at Buea University Chapter
+      -- 19-20: no membership yet (candidate for join requests)
+      v_membership_id := gen_random_uuid();
+
+      IF v_member_num BETWEEN 1 AND 10 THEN
+        INSERT INTO core.memberships (
+          id, member_id, scope_id, membership_status, join_method, joined_at,
+          approved_at, approved_by, engagement
+        ) VALUES (
+          v_membership_id, v_member_id, v_buea_id, 'active', 'admin_added',
+          NOW() - (v_member_num || ' days')::interval,
+          NOW() - (v_member_num || ' days')::interval,
+          '55555555-0000-0000-0000-000000000001',
+          CASE (v_member_num % 4)
+            WHEN 0 THEN 'committed'::core.engagement_tier
+            WHEN 1 THEN 'engaged'::core.engagement_tier
+            WHEN 2 THEN 'normal'::core.engagement_tier
+            ELSE        'dormant'::core.engagement_tier
+          END
+        )
+        ON CONFLICT DO NOTHING;
+      ELSIF v_member_num BETWEEN 11 AND 13 THEN
+        INSERT INTO core.memberships (
+          id, member_id, scope_id, membership_status, join_method, joined_at,
+          approved_at, approved_by, engagement
+        ) VALUES (
+          v_membership_id, v_member_id, v_douala_id, 'active', 'admin_added',
+          NOW() - (v_member_num * 2 || ' days')::interval,
+          NOW() - (v_member_num * 2 || ' days')::interval,
+          '55555555-0000-0000-0000-000000000001',
+          'normal'::core.engagement_tier
+        )
+        ON CONFLICT DO NOTHING;
+      ELSIF v_member_num BETWEEN 14 AND 15 THEN
+        INSERT INTO core.memberships (
+          id, member_id, scope_id, membership_status, join_method, joined_at,
+          approved_at, approved_by, engagement
+        ) VALUES (
+          v_membership_id, v_member_id, v_dc_id, 'active', 'admin_added',
+          NOW() - (v_member_num * 3 || ' days')::interval,
+          NOW() - (v_member_num * 3 || ' days')::interval,
+          '55555555-0000-0000-0000-000000000001',
+          CASE (v_member_num % 2) WHEN 0 THEN 'engaged'::core.engagement_tier ELSE 'normal'::core.engagement_tier END
+        )
+        ON CONFLICT DO NOTHING;
+      ELSIF v_member_num BETWEEN 16 AND 17 THEN
+        INSERT INTO core.memberships (
+          id, member_id, scope_id, membership_status, join_method, joined_at,
+          approved_at, approved_by, engagement
+        ) VALUES (
+          v_membership_id, v_member_id, v_buea_id, 'passive', 'admin_added',
+          NOW() - '60 days'::interval,
+          NOW() - '60 days'::interval,
+          '55555555-0000-0000-0000-000000000001',
+          'dormant'::core.engagement_tier
+        )
+        ON CONFLICT DO NOTHING;
+      ELSIF v_member_num = 18 THEN
+        INSERT INTO core.memberships (
+          id, member_id, scope_id, membership_status, join_method, joined_at,
+          approved_at, approved_by, engagement
+        ) VALUES (
+          v_membership_id, v_member_id, v_buea_uni_id, 'active', 'admin_added',
+          NOW() - '30 days'::interval,
+          NOW() - '30 days'::interval,
+          '55555555-0000-0000-0000-000000000001',
+          'engaged'::core.engagement_tier
+        )
+        ON CONFLICT DO NOTHING;
+      END IF;
+      -- v_member_num 19, 20: intentionally no membership.
+
+      -- Registration status for the ones with a Shesa Buea membership.
+      -- Buea has no fee configured in seed, so fee_required stays FALSE
+      -- and every state resolves to 'not_required'. That's fine for the
+      -- demo — the Registration tab renders the "not required" pill and
+      -- the empty action-needed set, matching real behavior.
+      IF v_member_num BETWEEN 1 AND 17 THEN
+        INSERT INTO core.registration_status (
+          membership_id, fee_required
+        ) VALUES (
+          v_membership_id, FALSE
+        )
+        ON CONFLICT (membership_id) DO NOTHING;
+      END IF;
+    END LOOP;
+  END LOOP;
+
+  -- ── Pending join requests at Shesa Buea ──
+  -- Pull members 19/20 from batches 2020-2024 (5 batches × 2 = 10 rows)
+  -- and enqueue a pending membership at Buea. Buea admin sees these
+  -- in the Requests queue.
+  FOR v_batch IN
+    SELECT id, entry_year FROM core.scopes
+    WHERE scope_type = 'batch' AND entry_year BETWEEN 2020 AND 2024
+  LOOP
+    FOR v_member_num IN 19..20 LOOP
+      v_member_id := ('88888888-' ||
+                      lpad(v_batch.entry_year::text, 4, '0') || '-' ||
+                      lpad(v_member_num::text, 4, '0') || '-0000-000000000000')::uuid;
+
+      INSERT INTO core.memberships (
+        id, member_id, scope_id, membership_status, join_method, joined_at
+      ) VALUES (
+        gen_random_uuid(), v_member_id, v_buea_id, 'pending', 'self_request',
+        NOW() - (v_batch.entry_year - 2020 || ' days')::interval
+      )
+      ON CONFLICT DO NOTHING;
+    END LOOP;
+  END LOOP;
+
+  -- ── Pending transfers targeting Shesa Buea ──
+  -- Members currently at Douala who want to move to Buea (5 rows).
+  -- Buea admin sees these in the Transfers queue.
+  FOR v_batch IN
+    SELECT id, entry_year FROM core.scopes
+    WHERE scope_type = 'batch' AND entry_year BETWEEN 2020 AND 2024
+  LOOP
+    v_member_id := ('88888888-' ||
+                    lpad(v_batch.entry_year::text, 4, '0') || '-' ||
+                    lpad(11::text, 4, '0') || '-0000-000000000000')::uuid;
+
+    -- Skip if the member wasn't created or isn't at Douala.
+    IF EXISTS (
+      SELECT 1 FROM core.memberships
+      WHERE member_id = v_member_id AND scope_id = v_douala_id
+        AND membership_status = 'active'
+    ) THEN
+      INSERT INTO core.membership_transfers (
+        member_id, source_scope_id, destination_scope_id,
+        requested_by, reason, status
+      ) VALUES (
+        v_member_id, v_douala_id, v_buea_id,
+        '55555555-0000-0000-0000-000000000001',
+        'Relocating for work — closer to Buea office.',
+        'pending'
+      )
+      ON CONFLICT DO NOTHING;
+    END IF;
+  END LOOP;
+
+END $$;
