@@ -11,7 +11,7 @@ export function StatsCard({ label, value }: StatsCardProps) {
       className="flex min-w-[160px] flex-1 flex-col justify-center gap-2 rounded-lg border px-[18px] py-3 pl-3"
       style={{
         background:
-          'radial-gradient(298.84% 218.25% at 97.67% 103.47%, rgba(255,255,255,0.05) 0%, rgba(110,61,225,0.05) 100%), var(--color-card)',
+          'radial-gradient(298.84% 218.25% at 97.67% 103.47%, rgba(255,255,255,0.05) 0%, color-mix(in srgb, var(--color-primary) 5%, transparent) 100%), var(--color-card)',
         borderColor: 'var(--color-border)',
       }}
     >

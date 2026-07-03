@@ -1,12 +1,17 @@
-@import '@shesa/ui/styles/tokens.css';
+/**
+ * Web app global styles. Delegates all design-token + Tailwind wiring to
+ * @shesa/ui — matching the admin app's setup so both stay in sync.
+ */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import '@shesa/ui/styles/tokens.css';
 
 @layer base {
   html,
   body {
-    @apply h-full bg-background text-foreground antialiased;
+    height: 100%;
+    background: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }

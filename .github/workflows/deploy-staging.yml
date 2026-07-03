@@ -120,32 +120,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # One build job per app, tagged with both the branch and the SHA
-      # so rollbacks can pin to a specific SHA. The NEXT_PUBLIC_* build
-      # args are inlined into the client bundle at build time (Next/Vite),
-      # so they MUST match the env's real hostnames — a runtime env var
-      # would come too late.
-      - name: Build + push auth image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: infra/docker/Dockerfile.next.prod
-          build-args: |
-            APP_DIR=auth
-            APP_PORT=3001
-            NEXT_PUBLIC_APP_ENV=staging
-            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
-            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
-            NEXT_PUBLIC_AUTH_APP_URL=https://${{ vars.AUTH_DOMAIN }}
-            NEXT_PUBLIC_EXCO_APP_URL=https://${{ vars.EXCO_DOMAIN }}
-            NEXT_PUBLIC_FINANCE_APP_URL=https://${{ vars.FINANCE_DOMAIN }}
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/shesa-auth:staging
-            ghcr.io/${{ github.repository_owner }}/shesa-auth:staging-${{ github.sha }}
-          push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
+      # Post-pivot (ADR-0040): two apps — web + admin. One build job each,
+      # tagged with both the branch and the SHA so rollbacks can pin.
+      # NEXT_PUBLIC_* build args are inlined into the client bundle at
+      # build time (Next.js), so they MUST match the env's real
+      # hostnames — a runtime env var would come too late.
       - name: Build + push web image
         uses: docker/build-push-action@v6
         with:
@@ -157,9 +136,7 @@ jobs:
             NEXT_PUBLIC_APP_ENV=staging
             NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
             NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
-            NEXT_PUBLIC_AUTH_APP_URL=https://${{ vars.AUTH_DOMAIN }}
-            NEXT_PUBLIC_EXCO_APP_URL=https://${{ vars.EXCO_DOMAIN }}
-            NEXT_PUBLIC_FINANCE_APP_URL=https://${{ vars.FINANCE_DOMAIN }}
+            NEXT_PUBLIC_ADMIN_APP_URL=https://${{ vars.ADMIN_DOMAIN }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/shesa-web:staging
             ghcr.io/${{ github.repository_owner }}/shesa-web:staging-${{ github.sha }}
@@ -167,42 +144,21 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build + push exco image (vite spa served by caddy)
+      - name: Build + push admin image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: infra/docker/Dockerfile.vite.prod
+          file: infra/docker/Dockerfile.next.prod
           build-args: |
-            APP_DIR=exco
+            APP_DIR=admin
+            APP_PORT=3002
             NEXT_PUBLIC_APP_ENV=staging
             NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
             NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
-            NEXT_PUBLIC_AUTH_APP_URL=https://${{ vars.AUTH_DOMAIN }}
-            NEXT_PUBLIC_EXCO_APP_URL=https://${{ vars.EXCO_DOMAIN }}
-            NEXT_PUBLIC_FINANCE_APP_URL=https://${{ vars.FINANCE_DOMAIN }}
+            NEXT_PUBLIC_ADMIN_APP_URL=https://${{ vars.ADMIN_DOMAIN }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/shesa-exco:staging
-            ghcr.io/${{ github.repository_owner }}/shesa-exco:staging-${{ github.sha }}
-          push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build + push finance image (vite spa served by caddy)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: infra/docker/Dockerfile.vite.prod
-          build-args: |
-            APP_DIR=finance
-            NEXT_PUBLIC_APP_ENV=staging
-            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
-            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
-            NEXT_PUBLIC_AUTH_APP_URL=https://${{ vars.AUTH_DOMAIN }}
-            NEXT_PUBLIC_EXCO_APP_URL=https://${{ vars.EXCO_DOMAIN }}
-            NEXT_PUBLIC_FINANCE_APP_URL=https://${{ vars.FINANCE_DOMAIN }}
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/shesa-finance:staging
-            ghcr.io/${{ github.repository_owner }}/shesa-finance:staging-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/shesa-admin:staging
+            ghcr.io/${{ github.repository_owner }}/shesa-admin:staging-${{ github.sha }}
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -219,7 +175,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          envs: SHESA_ENV,SHESA_IMAGE_TAG,GHCR_OWNER,APP_BASE_DOMAIN,WEB_DOMAIN,AUTH_DOMAIN,EXCO_DOMAIN,FINANCE_DOMAIN,LETSENCRYPT_EMAIL,GHCR_TOKEN,GHCR_ACTOR
+          envs: SHESA_ENV,SHESA_IMAGE_TAG,GHCR_OWNER,APP_BASE_DOMAIN,WEB_DOMAIN,ADMIN_DOMAIN,LETSENCRYPT_EMAIL,GHCR_TOKEN,GHCR_ACTOR
           script: |
             set -euo pipefail
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_ACTOR" --password-stdin
@@ -233,9 +189,7 @@ jobs:
           GHCR_OWNER: ${{ github.repository_owner }}
           APP_BASE_DOMAIN: ${{ vars.APP_BASE_DOMAIN }}
           WEB_DOMAIN: ${{ vars.WEB_DOMAIN }}
-          AUTH_DOMAIN: ${{ vars.AUTH_DOMAIN }}
-          EXCO_DOMAIN: ${{ vars.EXCO_DOMAIN }}
-          FINANCE_DOMAIN: ${{ vars.FINANCE_DOMAIN }}
+          ADMIN_DOMAIN: ${{ vars.ADMIN_DOMAIN }}
           LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_ACTOR: ${{ github.actor }}
@@ -258,9 +212,7 @@ jobs:
 #   SUPABASE_PROJECT_REF     — the staging project's ref (e.g. `abcd1234`)
 #   APP_BASE_DOMAIN          — cookie base domain (e.g. `shesaconnect.com`)
 #   WEB_DOMAIN               — e.g. `staging.shesaconnect.com`
-#   AUTH_DOMAIN              — e.g. `staging-auth.shesaconnect.com`
-#   EXCO_DOMAIN              — e.g. `staging-exco.shesaconnect.com`
-#   FINANCE_DOMAIN           — e.g. `staging-finance.shesaconnect.com`
+#   ADMIN_DOMAIN             — e.g. `staging-admin.shesaconnect.com`
 #   LETSENCRYPT_EMAIL        — inbox that gets ACME expiry notices
 #
 # The staging VPS + these secrets aren't in place yet. When they are,

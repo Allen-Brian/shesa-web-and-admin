@@ -7,12 +7,16 @@
  * Phase 1 §7.1 template changes — commitlint won't catch the drift,
  * but a validate-member-import that accepts what the SPA won't will
  * feel like a bug.
+ *
+ * Naming note: "sector" was renamed to "network" on 2026-07-02. The
+ * template column stays `network` (CSV column name); the DB column is
+ * `members.network_scope_id`.
  */
 
 export interface SeedContext {
   batchesByYear: Map<number, string>;
   housesByName: Map<string, string>;
-  sectorsByName: Map<string, string>;
+  networksByName: Map<string, string>;
 }
 
 export interface NormalizedMemberRow {
@@ -22,7 +26,7 @@ export interface NormalizedMemberRow {
   phone: string | null;
   batch_scope_id: string;
   house_scope_id: string;
-  sector_scope_id: string;
+  network_scope_id: string;
   field: string | null;
   entry_year: number | null;
   exit_year: number | null;
@@ -38,7 +42,7 @@ export interface ImportRowInput {
   phone?: unknown;
   batch_entry_year?: unknown;
   house?: unknown;
-  sector?: unknown;
+  network?: unknown;
   field?: unknown;
   entry_year?: unknown;
   exit_year?: unknown;
@@ -104,13 +108,13 @@ export function validateImportRow(raw: ImportRowInput, seed: SeedContext): Valid
     else normalized.house_scope_id = houseId;
   }
 
-  const sectorName = normalizeString(raw.sector);
-  if (!sectorName) {
-    errors.push('sector is required');
+  const networkName = normalizeString(raw.network);
+  if (!networkName) {
+    errors.push('network is required');
   } else {
-    const sectorId = seed.sectorsByName.get(normalizeKey(sectorName));
-    if (!sectorId) errors.push(`sector "${sectorName}" does not match a seeded sector`);
-    else normalized.sector_scope_id = sectorId;
+    const networkId = seed.networksByName.get(normalizeKey(networkName));
+    if (!networkId) errors.push(`network "${networkName}" does not match a seeded network`);
+    else normalized.network_scope_id = networkId;
   }
 
   normalized.field = normalizeString(raw.field);
@@ -157,12 +161,12 @@ export async function loadSeedContext(supabase: {
   const { data, error } = await supabase
     .from('scopes')
     .select('id, name, scope_type, entry_year')
-    .in('scope_type', ['batch', 'house', 'sector']);
+    .in('scope_type', ['batch', 'house', 'network']);
   if (error) throw error;
 
   const batchesByYear = new Map<number, string>();
   const housesByName = new Map<string, string>();
-  const sectorsByName = new Map<string, string>();
+  const networksByName = new Map<string, string>();
 
   for (const row of (data as Array<{
     id: string;
@@ -174,10 +178,10 @@ export async function loadSeedContext(supabase: {
       batchesByYear.set(row.entry_year, row.id);
     } else if (row.scope_type === 'house') {
       housesByName.set(row.name.trim().toLowerCase(), row.id);
-    } else if (row.scope_type === 'sector') {
-      sectorsByName.set(row.name.trim().toLowerCase(), row.id);
+    } else if (row.scope_type === 'network') {
+      networksByName.set(row.name.trim().toLowerCase(), row.id);
     }
   }
 
-  return { batchesByYear, housesByName, sectorsByName };
+  return { batchesByYear, housesByName, networksByName };
 }

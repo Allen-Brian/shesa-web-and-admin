@@ -15,7 +15,7 @@ const SIDEBAR_COOKIE_NAME = 'shesa:sidebar';
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = '19rem';
 const SIDEBAR_WIDTH_MOBILE = '18rem';
-const SIDEBAR_WIDTH_ICON = '4.5rem';
+const SIDEBAR_WIDTH_ICON = '5rem';
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
 
 type SidebarContextValue = {
@@ -419,10 +419,10 @@ const sidebarMenuButtonVariants = cva(
     'data-[active=true]:[background-image:var(--gradient-primary)] data-[active=true]:text-sidebar-primary-foreground data-[active=true]:font-medium data-[active=true]:[&>svg]:text-sidebar-primary-foreground',
     'data-[active=true]:hover:text-sidebar-primary-foreground data-[active=true]:[&:hover>svg]:text-sidebar-primary-foreground',
     // Collapsed-icon mode: square pill, centered, label + trailing chevron hidden.
-    'group-data-[collapsible=icon]:!size-11 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center',
+    'group-data-[collapsible=icon]:!size-14 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center',
     'group-data-[collapsible=icon]:[&>span]:hidden group-data-[collapsible=icon]:[&>svg:not(:first-child)]:hidden',
-    // Icons render at 20px; labels truncate.
-    '[&>span:last-child]:truncate [&>svg]:size-5 [&>svg]:shrink-0',
+    // Icons render at 24px (scaled with SIDEBAR_WIDTH_ICON = 5rem); labels truncate.
+    '[&>span:last-child]:truncate [&>svg]:size-6 [&>svg]:shrink-0',
   ].join(' '),
   {
     variants: {
@@ -542,7 +542,7 @@ const SidebarMenuSubButton = React.forwardRef<HTMLAnchorElement, SidebarMenuSubB
         data-size={size}
         data-active={isActive}
         className={cn(
-          'flex h-10 min-w-0 -translate-x-px items-center gap-3 overflow-hidden rounded-md px-3 text-sidebar-foreground outline-none ring-sidebar-ring transition-colors focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-5 [&>svg]:shrink-0 [&>svg]:text-sidebar-foreground',
+          'flex h-11 min-w-0 -translate-x-px items-center gap-3 overflow-hidden rounded-md px-3 text-sidebar-foreground outline-none ring-sidebar-ring transition-colors focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-6 [&>svg]:shrink-0 [&>svg]:text-sidebar-foreground',
           // Hover (non-active): no background change; text + icon switch to primary.
           'hover:bg-primary/10 hover:text-primary [&:hover>svg]:text-primary',
           // Active: same look as hover — no bg, text + icon primary, slightly heavier weight.

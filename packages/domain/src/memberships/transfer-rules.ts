@@ -9,7 +9,7 @@
  *
  * Disallowed:
  *   * anything → grouping chapter (grouping chapters can't hold memberships)
- *   * anything → non-geographic scope (batch / house / sector)
+ *   * anything → non-geographic scope (batch / house / network)
  *   * source = destination
  *
  * This function doesn't check authorization — that's `membership.transfer`

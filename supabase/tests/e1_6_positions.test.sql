@@ -2,7 +2,7 @@
 --
 -- Covers:
 --   A. Catalog uniqueness — (scope_type, LOWER(name)) unique.
---   B. Catalog scope_type restriction — house/sector rejected by CHECK.
+--   B. Catalog scope_type restriction — house/network rejected by CHECK.
 --   C. Assignment scope-type match — Branch position on a chapter rejected.
 --   D. One active assignment per (member, scope, position).
 --   E. President trigger fires an in-app notification when the assigned
@@ -33,7 +33,7 @@ VALUES (
   '00000000-0000-0000-0000-000000000001'
 );
 
-INSERT INTO core.members (id, full_name, email, batch_scope_id, house_scope_id, sector_scope_id)
+INSERT INTO core.members (id, full_name, email, batch_scope_id, house_scope_id, network_scope_id)
 VALUES
   (
     '33333333-4444-0000-0000-000000000001', 'E1.6 Member No Admin', 'e16-noadmin@shesa.test',
@@ -93,10 +93,10 @@ SELECT throws_ok(
 -------------------------------------------------------------------------------
 
 -- Insert an autonomous chapter for the mismatch test.
-INSERT INTO core.scopes (id, name, slug, scope_type, parent_scope_id, chapter_kind, is_autonomous)
+INSERT INTO core.scopes (id, name, slug, scope_type, parent_scope_id, chapter_kind)
 VALUES (
   '33333333-1111-0000-0000-000000000002', 'E1.6 Test Chapter', 'e16-test-chapter', 'chapter',
-  '33333333-1111-0000-0000-000000000001', 'autonomous', TRUE
+  '33333333-1111-0000-0000-000000000001', 'autonomous'
 );
 
 SELECT throws_ok(

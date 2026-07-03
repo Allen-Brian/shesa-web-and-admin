@@ -1,63 +1,39 @@
 /**
- * Canonical CORS allowlist for Shesa's cross-origin surfaces.
+ * Canonical CORS allowlist — collapsed to admin's own origin per env
+ * after the Phase 2 pivot (ADR-0040 supersedes ADR-0035).
  *
- * Two consumers today:
- *   1. `apps/auth/src/app/api/session/route.ts` — the SPA session bridge
- *      (ADR-0035). Vite SPAs at `exco.*` / `finance.*` origin-check into
- *      this endpoint to hydrate their session store.
- *   2. `supabase/functions/_shared/cors.ts` — Edge Function preflight
- *      and response CORS headers, for direct-from-browser mutations.
+ * Rationale: the pivot retired `apps/auth` (which owned the
+ * credentialed cross-origin `/api/session` endpoint) and merged the
+ * two Vite SPAs into a Next.js `apps/admin`. Every authenticated write
+ * from admin now runs through Server Actions — same-origin — so no
+ * browser-side call crosses an origin at all. `apps/web` stays public
+ * (no authenticated calls). The only origin that remains in the
+ * allowlist is `apps/admin` per env, kept for the rare case of a
+ * client component calling an Edge Function directly.
  *
- * The Edge Function copy is duplicated (Deno import paths don't reach
- * into `packages/config` reliably). Keep them in sync — the Edge
- * Function file has a "KEEP IN SYNC WITH …" comment pointing here.
+ * Consumer today:
+ *   1. `supabase/functions/_shared/cors.ts` — Edge Function preflight +
+ *      response CORS headers. The Deno-side file duplicates this list
+ *      (KEEP IN SYNC comment there points here).
  *
- * Explicit hostnames, NOT wildcards. A credentialed `staging-*.…`
- * wildcard trusts any DNS name someone could stand up under that
- * prefix; the surface isn't worth the risk when the list is 12 items
- * and rarely changes.
+ * If a future flow needs a wider allowlist (e.g. a public form on
+ * `apps/web` posting to an Edge Function), add the specific entry then.
+ * No pre-provisioning.
  */
 
 import type { EnvironmentName } from '@shesa/types';
 
 const LOCAL_ORIGINS = [
-  'http://web.shesa.test:3000',
-  'http://auth.shesa.test:3001',
-  'http://exco.shesa.test:3002',
-  'http://finance.shesa.test:3003',
-  // Bare localhost fallbacks — some Docker/browser combos hit these
-  // rather than the /etc/hosts alias.
-  'http://localhost:3000',
-  'http://localhost:3001',
+  'http://admin.shesa.test:3002',
   'http://localhost:3002',
-  'http://localhost:3003',
   // Supabase Functions dev runner.
   'http://127.0.0.1:54321',
 ] as const;
 
-const STAGING_ORIGINS = [
-  'https://staging.shesaconnect.com',
-  'https://staging-auth.shesaconnect.com',
-  'https://staging-exco.shesaconnect.com',
-  'https://staging-finance.shesaconnect.com',
-] as const;
+const STAGING_ORIGINS = ['https://staging-admin.shesaconnect.com'] as const;
 
-const PRODUCTION_ORIGINS = [
-  'https://shesaconnect.com',
-  'https://www.shesaconnect.com',
-  'https://auth.shesaconnect.com',
-  'https://exco.shesaconnect.com',
-  'https://finance.shesaconnect.com',
-] as const;
+const PRODUCTION_ORIGINS = ['https://admin.shesaconnect.com'] as const;
 
-/**
- * Return the allowlist for a given env. Non-local envs include
- * staging + production together on purpose — the two share the
- * `.shesaconnect.com` apex (see memory `project_domains.md`), and a
- * request from `staging-exco.shesaconnect.com` may legitimately hit
- * a shared function during a preview. If envs need hard isolation
- * later, split by APP_ENV here.
- */
 export function corsAllowlistFor(env: EnvironmentName): readonly string[] {
   if (env === 'local') return LOCAL_ORIGINS;
   return [...STAGING_ORIGINS, ...PRODUCTION_ORIGINS];

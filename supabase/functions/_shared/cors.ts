@@ -1,43 +1,28 @@
 /**
- * CORS handling for Edge Functions.
+ * CORS handling for Edge Functions — collapsed to admin's origin per
+ * env after the Phase 2 pivot (ADR-0040 supersedes ADR-0035).
  *
- * Browser-side Server Actions are same-origin so CORS doesn't apply to
- * them. But Edge Functions are also callable from:
- *   - Cross-subdomain dev (auth.shesa.test → some Edge Function)
- *   - The `supabase functions serve` dev runner from `localhost:54321`
- *   - Direct curl/postman calls during debugging
+ * Server Actions on `apps/admin` are same-origin with Supabase, so no
+ * browser-side call from admin crosses an origin. `apps/web` is public
+ * (no authenticated calls). This list exists for the rare case of a
+ * client component calling an Edge Function directly.
  *
  * ─── KEEP IN SYNC WITH packages/config/src/cors-allowlist.ts ────────
  * That module is the canonical list; this file duplicates it because
  * Deno-run Edge Functions can't reliably import from `packages/*`.
- * If you change one, change both — a divergence surfaces as a
- * "works in the SPA, fails in the Edge Function" (or reverse) bug
- * that's hard to attribute.
+ * If you change one, change both.
  * ────────────────────────────────────────────────────────────────────
  */
 
 const ALLOWED_ORIGINS = new Set<string>([
-  // Local dev (per /etc/hosts alias + bare localhost fallbacks)
-  'http://web.shesa.test:3000',
-  'http://auth.shesa.test:3001',
-  'http://exco.shesa.test:3002',
-  'http://finance.shesa.test:3003',
-  'http://localhost:3000',
-  'http://localhost:3001',
+  // Local dev
+  'http://admin.shesa.test:3002',
   'http://localhost:3002',
-  'http://localhost:3003',
   'http://127.0.0.1:54321',
-  // Staging (sibling hostnames sharing the shesaconnect.com apex)
-  'https://staging.shesaconnect.com',
-  'https://staging-auth.shesaconnect.com',
-  'https://staging-exco.shesaconnect.com',
-  'https://staging-finance.shesaconnect.com',
+  // Staging
+  'https://staging-admin.shesaconnect.com',
   // Production
-  'https://shesaconnect.com',
-  'https://www.shesaconnect.com',
-  'https://auth.shesaconnect.com',
-  'https://exco.shesaconnect.com',
-  'https://finance.shesaconnect.com',
+  'https://admin.shesaconnect.com',
 ]);
 
 const ALLOWED_HEADERS = [

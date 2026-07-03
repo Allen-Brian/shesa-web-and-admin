@@ -1,6 +1,6 @@
 # 0035 — SPA session bridge (`/api/session` on apps/auth)
 
-- **Status:** accepted
+- **Status:** superseded by ADR-0040
 - **Date:** 2026-07-01
 - **Deciders:** Lead
 

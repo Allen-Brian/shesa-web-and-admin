@@ -31,7 +31,9 @@ export async function logEvent(
   ctx: RequestContext,
   args: AuditArgs,
 ): Promise<void> {
-  const { error } = await client.rpc('log_event' as never, {
+  // log_event lives in the `audit` schema. Without the schema hint,
+  // PostgREST resolves against `public` and 404s.
+  const { error } = await client.schema('audit' as never).rpc('log_event' as never, {
     p_action: args.action,
     p_entity_schema: args.entitySchema,
     p_entity_table: args.entityTable,

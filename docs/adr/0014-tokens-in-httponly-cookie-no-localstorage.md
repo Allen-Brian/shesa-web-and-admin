@@ -34,3 +34,9 @@ The shared cookie domain gives **SSO across all Shesa subdomains** (web / exco /
 - **`localStorage` for tokens** (Supabase's default `@supabase/supabase-js` browser config) — rejected: XSS exposure.
 - **`sessionStorage`** — rejected: still JS-readable.
 - **Per-app auth (no SSO)** — rejected: bad UX for members using multiple Shesa apps.
+
+## Phase 2 refinement (non-decision) — even stronger post-pivot
+
+The Phase 2 pivot (ADR-0040) merged the two Vite SPAs into one Next.js `apps/admin` and retired `apps/auth`. Result: **no session token lives in JS at all** — not the refresh token (which this ADR always kept in the httpOnly cookie), and not the access token either (which ADR-0035's SPA session bridge briefly exposed to JS on the SPAs before that bridge was superseded). Server Actions in `apps/admin` run server-side; the cookie is httpOnly; the client bundle can't see either token. ADR-0014's original stance is _stronger_ post-pivot than at Phase 1's launch.
+
+The "per-app auth (no SSO)" alternative this ADR rejected in Phase 0 (before four apps existed) is now the pivot's chosen path — but with the apex-scoped cookie preserved as a future-proofing seam, not for present-day cross-app session sharing. Two Next.js apps, each owning its login page, each reading the same apex cookie server-side if we ever need to share. The "bad UX" concern from the rejected alternative doesn't apply post-pivot because there are only two apps and `apps/web` is public.

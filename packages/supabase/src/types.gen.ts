@@ -108,6 +108,7 @@ export type Database = {
           email: string | null
           id: string
           phone: string | null
+          preferred_persona: string | null
           updated_at: string
         }
         Insert: {
@@ -117,6 +118,7 @@ export type Database = {
           email?: string | null
           id: string
           phone?: string | null
+          preferred_persona?: string | null
           updated_at?: string
         }
         Update: {
@@ -126,6 +128,7 @@ export type Database = {
           email?: string | null
           id?: string
           phone?: string | null
+          preferred_persona?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -331,39 +334,60 @@ export type Database = {
       }
       scopes: {
         Row: {
+          chapter_kind: Database["core"]["Enums"]["chapter_kind"] | null
+          city: string | null
+          country: string | null
           created_at: string
+          created_by: string | null
           currency_code: string
+          entry_year: number | null
           id: string
-          is_active: boolean
-          is_autonomous: boolean
+          metadata: Record<string, unknown>
           name: string
+          nickname: string | null
           parent_scope_id: string | null
+          region_state: string | null
           scope_type: Database["core"]["Enums"]["scope_type"]
           slug: string
+          status: Database["core"]["Enums"]["scope_status"]
           updated_at: string
         }
         Insert: {
+          chapter_kind?: Database["core"]["Enums"]["chapter_kind"] | null
+          city?: string | null
+          country?: string | null
           created_at?: string
+          created_by?: string | null
           currency_code?: string
+          entry_year?: number | null
           id?: string
-          is_active?: boolean
-          is_autonomous?: boolean
+          metadata?: Record<string, unknown>
           name: string
+          nickname?: string | null
           parent_scope_id?: string | null
+          region_state?: string | null
           scope_type: Database["core"]["Enums"]["scope_type"]
           slug: string
+          status?: Database["core"]["Enums"]["scope_status"]
           updated_at?: string
         }
         Update: {
+          chapter_kind?: Database["core"]["Enums"]["chapter_kind"] | null
+          city?: string | null
+          country?: string | null
           created_at?: string
+          created_by?: string | null
           currency_code?: string
+          entry_year?: number | null
           id?: string
-          is_active?: boolean
-          is_autonomous?: boolean
+          metadata?: Record<string, unknown>
           name?: string
+          nickname?: string | null
           parent_scope_id?: string | null
+          region_state?: string | null
           scope_type?: Database["core"]["Enums"]["scope_type"]
           slug?: string
+          status?: Database["core"]["Enums"]["scope_status"]
           updated_at?: string
         }
         Relationships: [
@@ -372,6 +396,507 @@ export type Database = {
             columns: ["parent_scope_id"]
             isOneToOne: false
             referencedRelation: "scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      members: {
+        Row: {
+          batch_scope_id: string
+          created_at: string
+          created_by: string | null
+          current_city: string | null
+          current_country: string | null
+          current_region_state: string | null
+          date_of_birth: string | null
+          display_name: string | null
+          email: string | null
+          entry_year: number | null
+          exit_year: number | null
+          field: string | null
+          full_name: string
+          gender: string | null
+          house_scope_id: string
+          id: string
+          member_status: string
+          network_scope_id: string
+          phone: string | null
+          profile_photo_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          batch_scope_id: string
+          created_at?: string
+          created_by?: string | null
+          current_city?: string | null
+          current_country?: string | null
+          current_region_state?: string | null
+          date_of_birth?: string | null
+          display_name?: string | null
+          email?: string | null
+          entry_year?: number | null
+          exit_year?: number | null
+          field?: string | null
+          full_name: string
+          gender?: string | null
+          house_scope_id: string
+          id?: string
+          member_status?: string
+          network_scope_id: string
+          phone?: string | null
+          profile_photo_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          batch_scope_id?: string
+          created_at?: string
+          created_by?: string | null
+          current_city?: string | null
+          current_country?: string | null
+          current_region_state?: string | null
+          date_of_birth?: string | null
+          display_name?: string | null
+          email?: string | null
+          entry_year?: number | null
+          exit_year?: number | null
+          field?: string | null
+          full_name?: string
+          gender?: string | null
+          house_scope_id?: string
+          id?: string
+          member_status?: string
+          network_scope_id?: string
+          phone?: string | null
+          profile_photo_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "members_batch_scope_id_fkey"
+            columns: ["batch_scope_id"]
+            isOneToOne: false
+            referencedRelation: "scopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "members_house_scope_id_fkey"
+            columns: ["house_scope_id"]
+            isOneToOne: false
+            referencedRelation: "scopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "members_network_scope_id_fkey"
+            columns: ["network_scope_id"]
+            isOneToOne: false
+            referencedRelation: "scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memberships: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          join_method: string
+          joined_at: string | null
+          left_at: string | null
+          member_id: string
+          membership_status: string
+          rejected_at: string | null
+          rejected_by: string | null
+          scope_id: string
+          transferred_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          join_method: string
+          joined_at?: string | null
+          left_at?: string | null
+          member_id: string
+          membership_status?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          scope_id: string
+          transferred_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          join_method?: string
+          joined_at?: string | null
+          left_at?: string | null
+          member_id?: string
+          membership_status?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          scope_id?: string
+          transferred_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_scope_id_fkey"
+            columns: ["scope_id"]
+            isOneToOne: false
+            referencedRelation: "scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      houses: {
+        Row: {
+          scope_id: string
+          color: string
+          color_hex: string
+          sort_order: number
+          metadata: Record<string, unknown>
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          scope_id: string
+          color: string
+          color_hex: string
+          sort_order?: number
+          metadata?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          scope_id?: string
+          color?: string
+          color_hex?: string
+          sort_order?: number
+          metadata?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "houses_scope_id_fkey"
+            columns: ["scope_id"]
+            isOneToOne: true
+            referencedRelation: "scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      networks: {
+        Row: {
+          scope_id: string
+          short_name: string
+          description: string | null
+          icon: string | null
+          color_hex: string | null
+          sort_order: number
+          metadata: Record<string, unknown>
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          scope_id: string
+          short_name: string
+          description?: string | null
+          icon?: string | null
+          color_hex?: string | null
+          sort_order?: number
+          metadata?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          scope_id?: string
+          short_name?: string
+          description?: string | null
+          icon?: string | null
+          color_hex?: string | null
+          sort_order?: number
+          metadata?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "networks_scope_id_fkey"
+            columns: ["scope_id"]
+            isOneToOne: true
+            referencedRelation: "scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      branches: {
+        Row: {
+          scope_id: string
+          country_code: string
+          region: string
+          city: string
+          nickname: string | null
+          description: string | null
+          registration_fee_required: boolean
+          registration_fee_amount: number | null
+          registration_fee_currency: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          metadata: Record<string, unknown>
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          scope_id: string
+          country_code: string
+          region: string
+          city: string
+          nickname?: string | null
+          description?: string | null
+          registration_fee_required?: boolean
+          registration_fee_amount?: number | null
+          registration_fee_currency?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          metadata?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          scope_id?: string
+          country_code?: string
+          region?: string
+          city?: string
+          nickname?: string | null
+          description?: string | null
+          registration_fee_required?: boolean
+          registration_fee_amount?: number | null
+          registration_fee_currency?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          metadata?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branches_scope_id_fkey"
+            columns: ["scope_id"]
+            isOneToOne: true
+            referencedRelation: "scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chapters: {
+        Row: {
+          scope_id: string
+          country_code: string
+          region: string
+          city: string
+          nickname: string | null
+          description: string | null
+          registration_fee_required: boolean
+          registration_fee_amount: number | null
+          registration_fee_currency: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          metadata: Record<string, unknown>
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          scope_id: string
+          country_code: string
+          region: string
+          city: string
+          nickname?: string | null
+          description?: string | null
+          registration_fee_required?: boolean
+          registration_fee_amount?: number | null
+          registration_fee_currency?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          metadata?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          scope_id?: string
+          country_code?: string
+          region?: string
+          city?: string
+          nickname?: string | null
+          description?: string | null
+          registration_fee_required?: boolean
+          registration_fee_amount?: number | null
+          registration_fee_currency?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          metadata?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapters_scope_id_fkey"
+            columns: ["scope_id"]
+            isOneToOne: true
+            referencedRelation: "scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      position_catalog: {
+        Row: {
+          id: string
+          scope_type: Database["core"]["Enums"]["scope_type"]
+          name: string
+          description: string | null
+          sort_order: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          scope_type: Database["core"]["Enums"]["scope_type"]
+          name: string
+          description?: string | null
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          scope_type?: Database["core"]["Enums"]["scope_type"]
+          name?: string
+          description?: string | null
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      position_assignments: {
+        Row: {
+          id: string
+          member_id: string
+          scope_id: string
+          position_catalog_id: string
+          custom_title: string | null
+          starts_at: string
+          ends_at: string | null
+          assigned_by: string | null
+          removed_at: string | null
+          removed_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          member_id: string
+          scope_id: string
+          position_catalog_id: string
+          custom_title?: string | null
+          starts_at?: string
+          ends_at?: string | null
+          assigned_by?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          member_id?: string
+          scope_id?: string
+          position_catalog_id?: string
+          custom_title?: string | null
+          starts_at?: string
+          ends_at?: string | null
+          assigned_by?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "position_assignments_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "position_assignments_scope_id_fkey"
+            columns: ["scope_id"]
+            isOneToOne: false
+            referencedRelation: "scopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "position_assignments_position_catalog_id_fkey"
+            columns: ["position_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "position_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_accounts: {
+        Row: {
+          id: string
+          member_id: string
+          auth_user_id: string | null
+          claim_status: string
+          invited_at: string | null
+          claimed_at: string | null
+          last_invitation_sent_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          member_id: string
+          auth_user_id?: string | null
+          claim_status?: string
+          invited_at?: string | null
+          claimed_at?: string | null
+          last_invitation_sent_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          member_id?: string
+          auth_user_id?: string | null
+          claim_status?: string
+          invited_at?: string | null
+          claimed_at?: string | null
+          last_invitation_sent_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_accounts_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]
@@ -395,15 +920,128 @@ export type Database = {
         }
         Returns: boolean
       }
+      create_network: {
+        Args: {
+          p_name: string
+          p_slug: string
+          p_short_name: string
+          p_description: string | null
+          p_icon: string | null
+          p_color_hex: string | null
+          p_sort_order: number
+          p_metadata?: Record<string, unknown>
+        }
+        Returns: string
+      }
+      update_network: {
+        Args: {
+          p_scope_id: string
+          p_name: string | null
+          p_short_name: string | null
+          p_description: string | null
+          p_icon: string | null
+          p_color_hex: string | null
+          p_sort_order: number | null
+          p_status: Database["core"]["Enums"]["scope_status"] | null
+        }
+        Returns: undefined
+      }
+      create_branch: {
+        Args: {
+          p_name: string
+          p_slug: string
+          p_country_code: string
+          p_region: string
+          p_city: string
+          p_currency_code: string
+          p_nickname: string | null
+          p_description: string | null
+          p_registration_fee_required: boolean
+          p_registration_fee_amount: number | null
+          p_registration_fee_currency: string | null
+          p_contact_email: string | null
+          p_contact_phone: string | null
+          p_metadata?: Record<string, unknown>
+        }
+        Returns: string
+      }
+      update_branch: {
+        Args: {
+          p_scope_id: string
+          p_name: string | null
+          p_country_code: string | null
+          p_region: string | null
+          p_city: string | null
+          p_currency_code: string | null
+          p_nickname: string | null
+          p_description: string | null
+          p_registration_fee_required: boolean | null
+          p_registration_fee_amount: number | null
+          p_registration_fee_currency: string | null
+          p_contact_email: string | null
+          p_contact_phone: string | null
+          p_status: Database["core"]["Enums"]["scope_status"] | null
+        }
+        Returns: undefined
+      }
+      create_chapter: {
+        Args: {
+          p_parent_branch_id: string
+          p_chapter_kind: Database["core"]["Enums"]["chapter_kind"]
+          p_name: string
+          p_slug: string
+          p_country_code: string
+          p_region: string
+          p_city: string
+          p_currency_code: string | null
+          p_nickname: string | null
+          p_description: string | null
+          p_registration_fee_required: boolean | null
+          p_registration_fee_amount: number | null
+          p_registration_fee_currency: string | null
+          p_contact_email: string | null
+          p_contact_phone: string | null
+          p_metadata?: Record<string, unknown>
+        }
+        Returns: string
+      }
+      update_chapter: {
+        Args: {
+          p_scope_id: string
+          p_name: string | null
+          p_country_code: string | null
+          p_region: string | null
+          p_city: string | null
+          p_currency_code: string | null
+          p_nickname: string | null
+          p_description: string | null
+          p_registration_fee_required: boolean | null
+          p_registration_fee_amount: number | null
+          p_registration_fee_currency: string | null
+          p_contact_email: string | null
+          p_contact_phone: string | null
+          p_status: Database["core"]["Enums"]["scope_status"] | null
+        }
+        Returns: undefined
+      }
+      change_chapter_autonomy: {
+        Args: {
+          p_scope_id: string
+          p_new_kind: Database["core"]["Enums"]["chapter_kind"]
+        }
+        Returns: undefined
+      }
     }
     Enums: {
+      chapter_kind: "autonomous" | "grouping"
+      scope_status: "active" | "inactive" | "archived"
       scope_type:
         | "mainstream"
         | "branch"
         | "chapter"
         | "batch"
         | "house"
-        | "sector"
+        | "network"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -551,13 +1189,15 @@ export const Constants = {
   },
   core: {
     Enums: {
+      chapter_kind: ["autonomous", "grouping"],
+      scope_status: ["active", "inactive", "archived"],
       scope_type: [
         "mainstream",
         "branch",
         "chapter",
         "batch",
         "house",
-        "sector",
+        "network",
       ],
     },
   },

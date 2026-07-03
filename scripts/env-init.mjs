@@ -44,13 +44,14 @@ const REPO_ROOT = process.cwd();
 /**
  * Next.js reads .env.local from the folder containing its next.config,
  * NOT from the workspace root. Rather than duplicate the file per app,
- * symlink the root .env.local into each Next app's directory so all
- * three (repo root + each Next app) point at the same bytes on disk.
+ * symlink the root .env.local into each Next app's directory so both
+ * apps + repo root point at the same bytes on disk.
  *
- * Vite apps (finance, exco) don't need this — their vite.config.ts
- * loads env from the workspace root explicitly via `loadEnv`.
+ * Post-pivot (ADR-0040): two apps — admin + web, both Next.js. The
+ * retired auth/exco/finance apps came out of this list in the same
+ * pass that deleted their source directories.
  */
-const NEXT_APP_DIRS = ['apps/auth', 'apps/web'];
+const NEXT_APP_DIRS = ['apps/admin', 'apps/web'];
 
 // ─────────────────────────────────────────────────────────────────────
 // CLI argument parsing — keep it small and explicit; argparse is heavy.

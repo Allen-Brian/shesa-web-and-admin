@@ -13,7 +13,6 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
-    "./tailwind.config": "./tailwind.config.ts",
     "./styles/tokens.css": "./src/theme/tokens.css",
     "./rich-editor": {
       "types": "./src/rich-editor/index.ts",
@@ -67,13 +66,13 @@
   "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^4.0.0"
   },
   "devDependencies": {
     "@shesa/tsconfig": "workspace:*",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^4.0.0",
     "typescript": "^5.7.2"
   }
 }

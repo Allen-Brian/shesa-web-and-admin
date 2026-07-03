@@ -4,12 +4,12 @@ import { validateImportRow, type SeedContext } from './validation';
 
 const BATCH_2010 = 'aaaaaaaa-0000-0000-0000-000000002010';
 const HOUSE_THOMAS = 'aaaaaaaa-0000-0000-0000-00000000ff01';
-const SECTOR_OTHER = 'aaaaaaaa-0000-0000-0000-00000000ff02';
+const NETWORK_OTHER = 'aaaaaaaa-0000-0000-0000-00000000ff02';
 
 const seed: SeedContext = {
   batchesByYear: new Map([[2010, BATCH_2010]]),
   housesByName: new Map([['st thomas', HOUSE_THOMAS]]),
-  sectorsByName: new Map([['other', SECTOR_OTHER]]),
+  networksByName: new Map([['other', NETWORK_OTHER]]),
 };
 
 describe('validateImportRow', () => {
@@ -20,7 +20,7 @@ describe('validateImportRow', () => {
         email: 'Ada@Shesa.Test',
         batch_entry_year: 2010,
         house: 'St Thomas',
-        sector: 'Other',
+        network: 'Other',
       },
       seed,
     );
@@ -28,7 +28,7 @@ describe('validateImportRow', () => {
     expect(result.errors).toEqual([]);
     expect(result.normalized.batch_scope_id).toBe(BATCH_2010);
     expect(result.normalized.house_scope_id).toBe(HOUSE_THOMAS);
-    expect(result.normalized.sector_scope_id).toBe(SECTOR_OTHER);
+    expect(result.normalized.network_scope_id).toBe(NETWORK_OTHER);
     // Email normalization: lowercased.
     expect(result.normalized.email).toBe('ada@shesa.test');
     // Exit year defaulted from entry_year (= batch_entry_year here) + 7.
@@ -42,7 +42,7 @@ describe('validateImportRow', () => {
         phone: '+237600000000',
         batch_entry_year: 2010,
         house: 'St Thomas',
-        sector: 'Other',
+        network: 'Other',
       },
       seed,
     );
@@ -58,7 +58,7 @@ describe('validateImportRow', () => {
     expect(result.errors).toContain('email or phone is required');
     expect(result.errors).toContain('batch_entry_year is required');
     expect(result.errors).toContain('house is required');
-    expect(result.errors).toContain('sector is required');
+    expect(result.errors).toContain('network is required');
   });
 
   it('flags a batch that does not resolve to a seeded row', () => {
@@ -68,7 +68,7 @@ describe('validateImportRow', () => {
         email: 'barbara@shesa.test',
         batch_entry_year: 9999,
         house: 'St Thomas',
-        sector: 'Other',
+        network: 'Other',
       },
       seed,
     );
@@ -76,20 +76,20 @@ describe('validateImportRow', () => {
     expect(result.errors).toContain('batch_entry_year 9999 does not match a seeded batch');
   });
 
-  it('resolves house and sector case-insensitively', () => {
+  it('resolves house and network case-insensitively', () => {
     const result = validateImportRow(
       {
         full_name: 'Case Insensitive',
         email: 'ci@shesa.test',
         batch_entry_year: 2010,
         house: '  st THOMAS  ',
-        sector: 'OTHER',
+        network: 'OTHER',
       },
       seed,
     );
     expect(result.status).toBe('valid');
     expect(result.normalized.house_scope_id).toBe(HOUSE_THOMAS);
-    expect(result.normalized.sector_scope_id).toBe(SECTOR_OTHER);
+    expect(result.normalized.network_scope_id).toBe(NETWORK_OTHER);
   });
 
   it('rejects exit_year < entry_year', () => {
@@ -101,7 +101,7 @@ describe('validateImportRow', () => {
         entry_year: 2010,
         exit_year: 2005,
         house: 'St Thomas',
-        sector: 'Other',
+        network: 'Other',
       },
       seed,
     );
@@ -116,7 +116,7 @@ describe('validateImportRow', () => {
         email: 'de@shesa.test',
         batch_entry_year: 2010,
         house: 'St Thomas',
-        sector: 'Other',
+        network: 'Other',
       },
       seed,
     );

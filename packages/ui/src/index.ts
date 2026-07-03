@@ -36,6 +36,7 @@ export {
 } from './components/card';
 export { Checkbox } from './components/checkbox';
 export { Collapsible, CollapsibleContent, CollapsibleTrigger } from './components/collapsible';
+export { ColorField, type ColorFieldProps } from './components/color-field';
 export {
   Command,
   CommandDialog,
@@ -113,7 +114,7 @@ export {
   SheetTrigger,
 } from './components/sheet';
 export { Skeleton } from './components/skeleton';
-export { Toaster } from './components/sonner';
+export { Toaster, toast } from './components/sonner';
 export { Switch } from './components/switch';
 export {
   Table,
@@ -138,6 +139,15 @@ export {
   type DataTableProps,
   type DataTableVariant,
 } from './components/data-table/data-table';
+export type {
+  ColDef,
+  GridApi,
+  GridReadyEvent,
+  ICellRendererParams,
+  RowClickedEvent,
+  SelectionChangedEvent,
+  ValueFormatterParams,
+} from 'ag-grid-community';
 export { ColumnPicker } from './components/data-table/column-picker';
 export { MassActionsBar, type MassActions } from './components/data-table/mass-actions';
 export { TablePagination } from './components/data-table/table-pagination';
@@ -167,7 +177,13 @@ export { Tag, type TagColorTheme, type TagSize } from './components/tag';
 export { TagList, type TagListItem } from './components/tag-list';
 export { TagDragDropPicker } from './components/tag-drag-drop-picker';
 export { TextIcon } from './components/text-icon';
-export { ThemeProvider, useTheme, type ThemeMode } from './components/theme-provider';
+export {
+  ThemeProvider,
+  useTheme,
+  THEME_INIT_SCRIPT,
+  THEME_STORAGE_KEY,
+  type ThemeMode,
+} from './components/theme-provider';
 export { ThemeToggle } from './components/theme-toggle';
 
 // ─── Hooks ────────────────────────────────────────────────────────────

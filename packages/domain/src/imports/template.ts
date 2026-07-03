@@ -53,9 +53,9 @@ export const IMPORT_TEMPLATE_COLUMNS: readonly TemplateColumn[] = [
     example: 'St Thomas',
   },
   {
-    key: 'sector',
+    key: 'network',
     required: true,
-    description: 'Sector name (e.g. Other, or any Mainstream-seeded sector).',
+    description: 'Professional network name (e.g. Other, or any Mainstream-seeded network).',
     example: 'Other',
   },
   {

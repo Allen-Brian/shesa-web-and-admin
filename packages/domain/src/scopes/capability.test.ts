@@ -59,8 +59,8 @@ describe('resolveScopeCapabilities', () => {
     expect(caps.canHaveForum).toBe(true);
   });
 
-  it('gives sectors no capabilities (labels, not org units)', () => {
-    const caps = resolveScopeCapabilities({ scopeType: 'sector' });
+  it('gives networks no capabilities (labels, not org units)', () => {
+    const caps = resolveScopeCapabilities({ scopeType: 'network' });
     expect(caps.canManageMembers).toBe(false);
     expect(caps.canHaveTreasury).toBe(false);
     expect(caps.canHaveWebsitePage).toBe(false);

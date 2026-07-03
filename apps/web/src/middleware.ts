@@ -1,13 +1,16 @@
 /**
  * Web-app middleware.
  *
- * Mirror of apps/auth/src/middleware.ts: refresh the session on every
- * request via `supabase.auth.getUser()` so expired access tokens get
- * silently rotated using the refresh token in the cookie.
+ * Refreshes the session on every request via `supabase.auth.getUser()`
+ * so expired access tokens get silently rotated using the refresh token
+ * in the apex-scoped cookie. If a user is signed in on admin, that
+ * session flows here transparently — future Phase 5 CMS surfaces will
+ * be able to read it without any additional plumbing.
  *
- * Like the auth app, web is mostly PUBLIC — the homepage / CMS-rendered
- * content reachable without a session. We do NOT redirect-when-no-session
- * here. The CMS admin routes (Phase 5) will add their own gate.
+ * Post-pivot (ADR-0040): web is FULLY PUBLIC — no auth-gated routes.
+ * Authoring lives on apps/admin under the Editor persona; web only
+ * renders the published output (SSG/ISR). No redirect-when-no-session
+ * here on purpose.
  */
 
 import { NextResponse, type NextRequest } from 'next/server';

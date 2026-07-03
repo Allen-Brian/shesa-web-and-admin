@@ -27,13 +27,9 @@ const clientEnvSchema = z.object({
   /** Supabase anon key. Public — the service-role key is in `env.server`. */
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
 
-  /** Per-app public URLs (used for cross-app links in the UI).
-   *  apps/connect was dropped from Phase 0; if it returns later, add it
-   *  back here AND in scripts/env-spec.mjs in lockstep. */
+  /** Per-app public URLs. Post-pivot (ADR-0040): only web + admin remain. */
   NEXT_PUBLIC_WEB_APP_URL: z.string().url(),
-  NEXT_PUBLIC_AUTH_APP_URL: z.string().url(),
-  NEXT_PUBLIC_EXCO_APP_URL: z.string().url(),
-  NEXT_PUBLIC_FINANCE_APP_URL: z.string().url(),
+  NEXT_PUBLIC_ADMIN_APP_URL: z.string().url(),
 });
 
 export type ClientEnv = z.infer<typeof clientEnvSchema>;
@@ -52,7 +48,5 @@ export const clientEnv: ClientEnv = clientEnvSchema.parse({
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_WEB_APP_URL: process.env.NEXT_PUBLIC_WEB_APP_URL,
-  NEXT_PUBLIC_AUTH_APP_URL: process.env.NEXT_PUBLIC_AUTH_APP_URL,
-  NEXT_PUBLIC_EXCO_APP_URL: process.env.NEXT_PUBLIC_EXCO_APP_URL,
-  NEXT_PUBLIC_FINANCE_APP_URL: process.env.NEXT_PUBLIC_FINANCE_APP_URL,
+  NEXT_PUBLIC_ADMIN_APP_URL: process.env.NEXT_PUBLIC_ADMIN_APP_URL,
 });

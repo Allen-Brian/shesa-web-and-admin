@@ -57,8 +57,8 @@ export function EntityTablePanel({
   const showActiveSlotEnabled =
     showActiveOnly !== undefined && onShowActiveOnlyChange !== undefined;
   return (
-    <div className="flex shrink-0 items-center gap-3 rounded-xl border border-border bg-card px-4 py-2">
-      <div className="flex flex-1 items-center gap-3">
+    <div className="flex shrink-0 items-center gap-3 rounded-xl border border-border bg-card px-2 py-2">
+      <div className="flex flex-1 items-center gap-3 ml-2">
         <span className="whitespace-nowrap text-sm font-medium text-foreground">
           {count} {countLabel}
         </span>

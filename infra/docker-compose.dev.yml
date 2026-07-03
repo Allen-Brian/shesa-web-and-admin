@@ -20,10 +20,12 @@
 #
 # PREREQUISITES (one-time)
 #   1. Add to /etc/hosts:
-#        127.0.0.1 auth.shesa.test web.shesa.test exco.shesa.test \
-#                  finance.shesa.test connect.shesa.test
+#        127.0.0.1 web.shesa.test admin.shesa.test
 #   2. `pnpm db:start` to bring up local Supabase.
 #   3. `pnpm env:init` to write .env.local at the repo root.
+#
+# Post-pivot (ADR-0040): two apps only — web + admin. The retired
+# auth/exco/finance services were dropped in the same migration.
 #
 # USAGE
 #   docker compose -f infra/docker-compose.dev.yml up           (foreground)
@@ -34,28 +36,9 @@
 name: shesa-dev
 
 services:
-  # Caddy is the reverse proxy that turns *.shesa.test into per-app routes
-  # so the apex-scoped Supabase Auth cookie can be tested across local
-  # subdomains. It comes back online when E10 ships the other app shells
-  # and we actually need cross-subdomain SSO — until then, the single
-  # auth app publishes its port directly to the host, avoiding a Docker
-  # Hub pull from networks where registry-1.docker.io is unreliable.
-  #
-  # caddy:
-  #   image: caddy:2-alpine
-  #   container_name: shesa-caddy
-  #   restart: unless-stopped
-  #   ports:
-  #     - '80:80'
-  #     - '443:443'
-  #   volumes:
-  #     - ./caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
-  #     - caddy-data:/data
-  #     - caddy-config:/config
-  #   networks:
-  #     - shesa
-  #   depends_on:
-  #     - auth
+  # Caddy dev reverse-proxy is deferred until we actually need
+  # cross-subdomain testing between web and admin. Each service
+  # publishes its port directly to the host in the meantime.
 
   web:
     build:
@@ -91,130 +74,34 @@ services:
     networks:
       - shesa
 
-  auth:
+  admin:
     build:
-      # Build context is the REPO ROOT so the Dockerfile can see the
-      # whole workspace (pnpm-lock.yaml, packages/*, etc.).
       context: ..
       dockerfile: infra/docker/Dockerfile.next.dev
       args:
-        APP_DIR: auth
-        APP_PORT: 3001
-    container_name: shesa-auth
+        APP_DIR: admin
+        APP_PORT: 3002
+    container_name: shesa-admin
     restart: unless-stopped
-    # Mac/Win Docker Desktop provides host.docker.internal automatically;
-    # Linux needs the explicit host-gateway mapping below.
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     env_file:
-      # .env.local lives at the repo root. `required: false` so a fresh
-      # checkout that hasn't run `pnpm env:init` yet doesn't error at
-      # compose-parse time — it'll fail at boot when Next's env Zod
-      # check finds the missing vars, which is the correct failure mode.
       - path: ../.env.local
         required: false
     environment:
-      # Server-side overrides — from INSIDE the container, 127.0.0.1 is
-      # the container itself. host.docker.internal routes to the host
-      # machine where Supabase CLI is listening on :54321.
-      #
-      # Next.js's .env loader does NOT overwrite existing process.env
-      # values, so these compose-set vars take precedence over whatever
-      # .env.local has on disk (which still uses 127.0.0.1 for the
-      # browser-side NEXT_PUBLIC_* mirrors).
       SUPABASE_URL: http://host.docker.internal:54321
       SUPABASE_DB_URL: postgresql://postgres:postgres@host.docker.internal:54322/postgres
-      # Bind to 0.0.0.0 inside the container so Caddy on a sibling
-      # container can reach it. The app's own `pnpm dev` script already
-      # passes --hostname 0.0.0.0, but env-pinning belt-and-braces in case
-      # the script is edited.
-      HOSTNAME: 0.0.0.0
-    # Publish 3001 directly to the host while Caddy is offline. Browser
-    # hits http://localhost:3001 to reach the auth app. When Caddy comes
-    # back, drop `ports:` and use `expose:` instead so only Caddy can
-    # reach the container.
-    ports:
-      - '3001:3001'
-    volumes:
-      # Bind-mount the whole repo for hot reload. `:cached` is a macOS
-      # perf hint (read-from-host slightly stale; tolerable for source).
-      - ../:/app:cached
-      # Mask host's node_modules — they contain macOS Mach-O binaries
-      # (esbuild, sharp, etc.) that crash inside Alpine. Anonymous volumes
-      # let the container populate its own Linux-native trees.
-      - /app/node_modules
-      - /app/apps/auth/node_modules
-      - /app/apps/auth/.next
-      - /app/packages/config/node_modules
-      - /app/packages/domain/node_modules
-      - /app/packages/supabase/node_modules
-      - /app/packages/types/node_modules
-      - /app/packages/ui/node_modules
-      # Named volume for pnpm's content-addressable store — survives
-      # container recreates, so reinstalls don't re-download.
-      - pnpm-store:/pnpm/store
-    networks:
-      - shesa
-
-  exco:
-    build:
-      context: ..
-      dockerfile: infra/docker/Dockerfile.next.dev
-      args:
-        APP_DIR: exco
-        APP_PORT: 3002
-    container_name: shesa-exco
-    restart: unless-stopped
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
-    env_file:
-      - path: ../.env.local
-        required: false
-    environment:
-      # SPA: Vite reads NEXT_PUBLIC_* from .env.local at the workspace
-      # root (via loadEnv in vite.config.ts). No server-side overrides
-      # needed because the browser always hits Supabase directly.
       HOSTNAME: 0.0.0.0
     ports:
       - '3002:3002'
     volumes:
       - ../:/app:cached
       - /app/node_modules
-      - /app/apps/exco/node_modules
-      - /app/apps/exco/dist
+      - /app/apps/admin/node_modules
+      - /app/apps/admin/.next
       - /app/packages/config/node_modules
       - /app/packages/domain/node_modules
-      - /app/packages/types/node_modules
-      - /app/packages/ui/node_modules
-      - pnpm-store:/pnpm/store
-    networks:
-      - shesa
-
-  finance:
-    build:
-      context: ..
-      dockerfile: infra/docker/Dockerfile.next.dev
-      args:
-        APP_DIR: finance
-        APP_PORT: 3003
-    container_name: shesa-finance
-    restart: unless-stopped
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
-    env_file:
-      - path: ../.env.local
-        required: false
-    environment:
-      HOSTNAME: 0.0.0.0
-    ports:
-      - '3003:3003'
-    volumes:
-      - ../:/app:cached
-      - /app/node_modules
-      - /app/apps/finance/node_modules
-      - /app/apps/finance/dist
-      - /app/packages/config/node_modules
-      - /app/packages/domain/node_modules
+      - /app/packages/supabase/node_modules
       - /app/packages/types/node_modules
       - /app/packages/ui/node_modules
       - pnpm-store:/pnpm/store

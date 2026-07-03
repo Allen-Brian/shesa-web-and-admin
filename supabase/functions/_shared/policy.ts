@@ -40,7 +40,12 @@ export async function authorize(
 ): Promise<boolean> {
   if (!ctx.userId) return false;
 
-  const { data, error } = await client.rpc('has_permission' as never, {
+  // has_permission lives in the `core` schema. Without the schema hint,
+  // PostgREST resolves against the first exposed schema (public), where
+  // the function doesn't exist — the RPC then 404s and `authorize`
+  // fails closed. Explicitly schema-scoping fixes every mutation
+  // Edge Function that funnels through this helper.
+  const { data, error } = await client.schema('core' as never).rpc('has_permission' as never, {
     p_user_id: ctx.userId,
     p_scope_id: args.scopeId,
     p_permission_key: args.action,

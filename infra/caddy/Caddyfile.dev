@@ -3,12 +3,8 @@
 # Routes *.shesa.test (resolved via /etc/hosts to 127.0.0.1) to the
 # corresponding app container in docker-compose.dev.yml.
 #
-# Each app block lights up as that app lands. Phase 0 ships:
-#   - auth   (E9)
-#   - web    (E10)
-#   - exco   (E10, Vite SPA)
-#   - finance(E10, Vite SPA)
-# apps/connect is intentionally NOT in Phase 0.
+# Post-pivot (ADR-0040): two apps only — admin + web, both Next.js.
+# The retired auth / exco / finance vhosts are gone.
 #
 # HTTP only (no TLS) — local dev cookies are set without `Secure` so the
 # browser accepts them on http://*.shesa.test. The prod Caddyfile uses
@@ -20,23 +16,14 @@
 	admin off
 }
 
-# auth app (apps/auth, port 3001). The login / forgot-password / reset
-# pages live here; this is the cookie writer for cross-subdomain SSO.
-auth.shesa.test:80 {
-	reverse_proxy auth:3001
+# Admin app (apps/admin, port 3002). Owns its own login pages; writes
+# the apex-scoped session cookie so it's readable on web.shesa.test.
+admin.shesa.test:80 {
+	reverse_proxy admin:3002
 }
 
-# Stubs — uncomment alongside the corresponding compose service when
-# the Caddy container can pull from Docker Hub on this network.
-#
-# web.shesa.test:80 {
-# 	reverse_proxy web:3000
-# }
-#
-# exco.shesa.test:80 {
-# 	reverse_proxy exco:3002
-# }
-#
-# finance.shesa.test:80 {
-# 	reverse_proxy finance:3003
-# }
+# Public web app (apps/web, port 3000). Fully public; consumes the
+# session cookie only for `signed in as X` UI hints — no gated routes.
+web.shesa.test:80 {
+	reverse_proxy web:3000
+}

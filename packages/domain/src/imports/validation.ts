@@ -6,7 +6,7 @@
  *   - The Exco UI's import review screen (client, on inline edit).
  *
  * Doesn't hit the DB — the `seedContext` supplies the reference sets
- * (batches, houses, sectors) needed to resolve labels to scope ids.
+ * (batches, houses, networks) needed to resolve labels to scope ids.
  * Duplicate detection is a SEPARATE step (findDuplicateSignals in
  * ../members/duplicate-detection.ts); this fn only asserts each row's
  * standalone validity.
@@ -15,6 +15,8 @@
  *   valid    — every required field present and every reference resolved
  *   invalid  — at least one error attached
  *   pending  — never returned; that's the DB-default before validation
+ *
+ * Naming note: `sector` was renamed to `network` on 2026-07-02.
  */
 
 import { defaultExitYear } from '../members/exit-year';
@@ -26,7 +28,7 @@ export type ImportRowInput = {
   phone?: string;
   batch_entry_year?: string | number;
   house?: string;
-  sector?: string;
+  network?: string;
   field?: string;
   entry_year?: string | number;
   exit_year?: string | number;
@@ -38,7 +40,7 @@ export type ImportRowInput = {
 export interface SeedContext {
   batchesByYear: Map<number, string>; // year → scope_id
   housesByName: Map<string, string>; // normalized name → scope_id
-  sectorsByName: Map<string, string>; // normalized name → scope_id
+  networksByName: Map<string, string>; // normalized name → scope_id
 }
 
 export interface NormalizedMemberRow {
@@ -48,7 +50,7 @@ export interface NormalizedMemberRow {
   phone: string | null;
   batch_scope_id: string;
   house_scope_id: string;
-  sector_scope_id: string;
+  network_scope_id: string;
   field: string | null;
   entry_year: number | null;
   exit_year: number | null;
@@ -120,16 +122,16 @@ export function validateImportRow(raw: ImportRowInput, seed: SeedContext): Valid
     }
   }
 
-  // Sector — required, must resolve.
-  const sectorName = normalizeString(raw.sector);
-  if (!sectorName) {
-    errors.push('sector is required');
+  // Network — required, must resolve.
+  const networkName = normalizeString(raw.network);
+  if (!networkName) {
+    errors.push('network is required');
   } else {
-    const sectorId = seed.sectorsByName.get(normalizeKey(sectorName));
-    if (!sectorId) {
-      errors.push(`sector "${sectorName}" does not match a seeded sector`);
+    const networkId = seed.networksByName.get(normalizeKey(networkName));
+    if (!networkId) {
+      errors.push(`network "${networkName}" does not match a seeded network`);
     } else {
-      normalized.sector_scope_id = sectorId;
+      normalized.network_scope_id = networkId;
     }
   }
 

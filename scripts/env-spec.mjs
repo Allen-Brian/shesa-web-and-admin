@@ -88,43 +88,22 @@ export const ENV_VARS = [
       production: 'https://shesaconnect.com',
     },
     description:
-      'Public website URL. Staging + prod share apex shesaconnect.com; staging uses sibling hostnames (staging, staging-auth, …).',
+      'Public website URL. Post-pivot (ADR-0040): stays fully public; no auth-gated routes.',
   },
   {
-    name: 'NEXT_PUBLIC_AUTH_APP_URL',
+    name: 'NEXT_PUBLIC_ADMIN_APP_URL',
     scope: 'client',
     source: 'derived',
     defaults: {
-      local: 'http://auth.shesa.test:3001',
-      staging: 'https://staging-auth.shesaconnect.com',
-      production: 'https://auth.shesaconnect.com',
+      local: 'http://admin.shesa.test:3002',
+      staging: 'https://staging-admin.shesaconnect.com',
+      production: 'https://admin.shesaconnect.com',
     },
-    description: 'Central auth app URL (login / logout / invite callbacks).',
+    description:
+      'Merged admin app URL (Next.js). Hosts three personas: Exco / Finance / Editor per ADR-0040. Owns its own login pages; no central apps/auth.',
   },
-  {
-    name: 'NEXT_PUBLIC_EXCO_APP_URL',
-    scope: 'client',
-    source: 'derived',
-    defaults: {
-      local: 'http://exco.shesa.test:3002',
-      staging: 'https://staging-exco.shesaconnect.com',
-      production: 'https://exco.shesaconnect.com',
-    },
-    description: 'Executive Committee dashboard URL.',
-  },
-  {
-    name: 'NEXT_PUBLIC_FINANCE_APP_URL',
-    scope: 'client',
-    source: 'derived',
-    defaults: {
-      local: 'http://finance.shesa.test:3003',
-      staging: 'https://staging-finance.shesaconnect.com',
-      production: 'https://finance.shesaconnect.com',
-    },
-    description: 'Finance app URL.',
-  },
-  // apps/connect was dropped from Phase 0; restore this entry if it
-  // returns later — paired removal in packages/config/src/env.client.ts.
+  // Post-pivot: apps/auth, apps/exco, apps/finance retired per ADR-0040.
+  // Their per-app URL entries were dropped in the same migration.
 
   // ───────────────────────────────────────────────────────────────────
   // SECTION: Supabase  (per-env; local values captured from `supabase status`)

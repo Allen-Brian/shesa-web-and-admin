@@ -2,7 +2,7 @@
 --
 -- Covers:
 --   A. Contact-required constraint (email OR phone).
---   B. Scope-type FK trigger — batch/house/sector columns must reference
+--   B. Scope-type FK trigger — batch/house/network columns must reference
 --      the correct scope_type.
 --   C. Exit-after-entry constraint.
 --   D. Duplicate-detection indexes exist and are hit by the intended
@@ -39,8 +39,8 @@ VALUES (
   NULL
 );
 
--- Pick real seeded batch/house/sector ids for FK tests.
--- Seed provides at least: Batch 1953 (any batch year), St Thomas house, Other sector.
+-- Pick real seeded batch/house/network ids for FK tests.
+-- Seed provides at least: Batch 1953 (any batch year), St Thomas house, Other network.
 
 -------------------------------------------------------------------------------
 -- A) Contact-required CHECK: email AND phone both NULL rejected
@@ -48,7 +48,7 @@ VALUES (
 
 SELECT throws_ok(
   $$ INSERT INTO core.members (full_name, email, phone,
-       batch_scope_id, house_scope_id, sector_scope_id)
+       batch_scope_id, house_scope_id, network_scope_id)
      VALUES ('No Contact', NULL, NULL,
        (SELECT id FROM core.scopes WHERE slug = 'batch-1953'),
        '33333333-0000-0000-0000-000000000001',
@@ -75,7 +75,7 @@ VALUES (
 
 SELECT throws_ok(
   $$ INSERT INTO core.members (full_name, email,
-       batch_scope_id, house_scope_id, sector_scope_id)
+       batch_scope_id, house_scope_id, network_scope_id)
      VALUES ('Bad FK', 'bad-fk@shesa.test',
        '77777777-3333-0000-0000-000000000001',                          -- WRONG: a branch, not a batch
        '33333333-0000-0000-0000-000000000001',
@@ -86,18 +86,18 @@ SELECT throws_ok(
   'members: passing a branch id in batch_scope_id rejected by scope-type trigger'
 );
 
--- House column pointing at a sector — rejected.
+-- House column pointing at a network — rejected.
 SELECT throws_ok(
   $$ INSERT INTO core.members (full_name, email,
-       batch_scope_id, house_scope_id, sector_scope_id)
+       batch_scope_id, house_scope_id, network_scope_id)
      VALUES ('Bad FK 2', 'bad-fk2@shesa.test',
        (SELECT id FROM core.scopes WHERE slug = 'batch-1953'),
-       '44444444-0000-0000-0000-000000000001',                          -- WRONG: sector in house slot
+       '44444444-0000-0000-0000-000000000001',                          -- WRONG: network in house slot
        '44444444-0000-0000-0000-000000000001'
      ) $$,
   '23514',
   NULL,
-  'members: passing a sector id in house_scope_id rejected by scope-type trigger'
+  'members: passing a network id in house_scope_id rejected by scope-type trigger'
 );
 
 -------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
   $$ INSERT INTO core.members (full_name, email, entry_year, exit_year,
-       batch_scope_id, house_scope_id, sector_scope_id)
+       batch_scope_id, house_scope_id, network_scope_id)
      VALUES ('Time Traveller', 'tt@shesa.test', 2010, 2005,
        (SELECT id FROM core.scopes WHERE slug = 'batch-1953'),
        '33333333-0000-0000-0000-000000000001',
@@ -144,7 +144,7 @@ SELECT ok(
 -- Insert a member row as superuser (bypasses RLS).
 INSERT INTO core.members (
   id, full_name, email,
-  batch_scope_id, house_scope_id, sector_scope_id
+  batch_scope_id, house_scope_id, network_scope_id
 )
 VALUES (
   '77777777-4444-0000-0000-000000000001',

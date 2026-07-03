@@ -85,8 +85,8 @@ export function resolveScopeCapabilities(scope: ScopeShape): ScopeCapabilities {
         canHaveForum: true,
       };
 
-    case 'sector':
-      // Sectors are labels, not org units. No capabilities of their own.
+    case 'network':
+      // Networks are labels, not org units. No capabilities of their own.
       return { ...NONE };
 
     default: {

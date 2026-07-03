@@ -45,9 +45,7 @@ services:
       # production will use apex + subdomain. Same Caddyfile, different
       # values.
       WEB_DOMAIN: ${WEB_DOMAIN}
-      AUTH_DOMAIN: ${AUTH_DOMAIN}
-      EXCO_DOMAIN: ${EXCO_DOMAIN}
-      FINANCE_DOMAIN: ${FINANCE_DOMAIN}
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN}
     networks:
       - shesa
     deploy:
@@ -58,27 +56,47 @@ services:
         constraints:
           - node.role == manager
 
-  auth:
-    # `${SHESA_IMAGE_TAG}` is exported by the deploy workflow's SSH step
-    # to the SHA-tagged image just pushed to ghcr. Rollback = re-deploy
-    # with a prior SHA in that env var.
-    image: ghcr.io/${GHCR_OWNER}/shesa-auth:${SHESA_IMAGE_TAG}
+  web:
+    image: ghcr.io/${GHCR_OWNER}/shesa-web:${SHESA_IMAGE_TAG}
     environment:
       APP_ENV: ${SHESA_ENV}
       NEXT_PUBLIC_APP_ENV: ${SHESA_ENV}
-      # `APP_BASE_DOMAIN` is the *cookie* base domain — auth sets its
-      # session cookie with `Domain=.${APP_BASE_DOMAIN}` so every app
-      # under that ancestor can read it. NOT necessarily the web app's
-      # hostname (staging uses `shesaconnect.com` as the cookie domain
-      # so it covers all four `staging-*.shesaconnect.com` siblings).
       APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
       NEXT_PUBLIC_APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
       NEXT_PUBLIC_WEB_APP_URL: https://${WEB_DOMAIN}
-      NEXT_PUBLIC_AUTH_APP_URL: https://${AUTH_DOMAIN}
-      NEXT_PUBLIC_EXCO_APP_URL: https://${EXCO_DOMAIN}
-      NEXT_PUBLIC_FINANCE_APP_URL: https://${FINANCE_DOMAIN}
-      # Secrets injected via /run/secrets/* — see the secrets: block on
-      # each app service below.
+      NEXT_PUBLIC_ADMIN_APP_URL: https://${ADMIN_DOMAIN}
+    secrets:
+      - supabase_url
+      - supabase_anon_key
+      - supabase_service_role_key
+      - supabase_db_url
+      - resend_api_key
+      - next_server_actions_encryption_key
+    networks:
+      - shesa
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+
+  admin:
+    # Merged admin app (Next.js) — hosts Exco / Finance / Editor personas
+    # per ADR-0040. Owns its own login pages; no separate apps/auth.
+    # `APP_BASE_DOMAIN` sets the cookie's `Domain=.${APP_BASE_DOMAIN}`
+    # attribute so cross-app sharing stays possible for future use.
+    image: ghcr.io/${GHCR_OWNER}/shesa-admin:${SHESA_IMAGE_TAG}
+    environment:
+      APP_ENV: ${SHESA_ENV}
+      NEXT_PUBLIC_APP_ENV: ${SHESA_ENV}
+      APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
+      NEXT_PUBLIC_APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
+      NEXT_PUBLIC_WEB_APP_URL: https://${WEB_DOMAIN}
+      NEXT_PUBLIC_ADMIN_APP_URL: https://${ADMIN_DOMAIN}
     secrets:
       - supabase_url
       - supabase_anon_key
@@ -100,67 +118,6 @@ services:
       rollback_config:
         parallelism: 1
         order: stop-first
-
-  web:
-    image: ghcr.io/${GHCR_OWNER}/shesa-web:${SHESA_IMAGE_TAG}
-    environment:
-      APP_ENV: ${SHESA_ENV}
-      NEXT_PUBLIC_APP_ENV: ${SHESA_ENV}
-      APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
-      NEXT_PUBLIC_APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
-      NEXT_PUBLIC_WEB_APP_URL: https://${WEB_DOMAIN}
-      NEXT_PUBLIC_AUTH_APP_URL: https://${AUTH_DOMAIN}
-      NEXT_PUBLIC_EXCO_APP_URL: https://${EXCO_DOMAIN}
-      NEXT_PUBLIC_FINANCE_APP_URL: https://${FINANCE_DOMAIN}
-    secrets:
-      - supabase_url
-      - supabase_anon_key
-      - supabase_service_role_key
-      - supabase_db_url
-      - resend_api_key
-      - next_server_actions_encryption_key
-    networks:
-      - shesa
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
-        failure_action: rollback
-
-  # Vite SPAs are just static-file containers. No secrets — everything
-  # the SPA needs is either already baked into the bundle (NEXT_PUBLIC_*)
-  # or fetched from apps/auth's session bridge (Phase 1+).
-  exco:
-    image: ghcr.io/${GHCR_OWNER}/shesa-exco:${SHESA_IMAGE_TAG}
-    networks:
-      - shesa
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
-        failure_action: rollback
-
-  finance:
-    image: ghcr.io/${GHCR_OWNER}/shesa-finance:${SHESA_IMAGE_TAG}
-    networks:
-      - shesa
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
-        failure_action: rollback
 
 # ─────────────────────────────────────────────────────────────────────
 # NETWORKS

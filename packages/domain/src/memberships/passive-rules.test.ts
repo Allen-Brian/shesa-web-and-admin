@@ -17,8 +17,8 @@ describe('canMarkPassive', () => {
     if (!r.allowed) expect(r.reason).toMatch(/geographic/);
   });
 
-  it('rejects on a batch/house/sector (not a geographic membership at all)', () => {
-    for (const scopeType of ['batch', 'house', 'sector'] as const) {
+  it('rejects on a batch/house/network (not a geographic membership at all)', () => {
+    for (const scopeType of ['batch', 'house', 'network'] as const) {
       const r = canMarkPassive({ scopeType });
       expect(r.allowed).toBe(false);
     }

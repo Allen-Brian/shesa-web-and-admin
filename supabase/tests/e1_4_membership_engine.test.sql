@@ -35,12 +35,12 @@ VALUES
   ('55555555-1111-0000-0000-000000000002', 'E1.4 Branch B', 'e14-branch-b', 'branch',
    '00000000-0000-0000-0000-000000000001');
 
-INSERT INTO core.scopes (id, name, slug, scope_type, parent_scope_id, chapter_kind, is_autonomous)
+INSERT INTO core.scopes (id, name, slug, scope_type, parent_scope_id, chapter_kind)
 VALUES
   ('55555555-2222-0000-0000-000000000001', 'E1.4 Auto Chapter', 'e14-auto-chapter', 'chapter',
-   '55555555-1111-0000-0000-000000000001', 'autonomous', TRUE),
+   '55555555-1111-0000-0000-000000000001', 'autonomous'),
   ('55555555-2222-0000-0000-000000000002', 'E1.4 Group Chapter', 'e14-group-chapter', 'chapter',
-   '55555555-1111-0000-0000-000000000001', 'grouping', FALSE);
+   '55555555-1111-0000-0000-000000000001', 'grouping');
 
 INSERT INTO core.role_assignments (id, user_id, scope_id, role_id, granted_by)
 VALUES
@@ -52,7 +52,7 @@ VALUES
 
 -- Test member.
 INSERT INTO core.members (
-  id, full_name, email, batch_scope_id, house_scope_id, sector_scope_id
+  id, full_name, email, batch_scope_id, house_scope_id, network_scope_id
 ) VALUES (
   '55555555-4444-0000-0000-000000000001',
   'E1.4 Test Member',
@@ -172,7 +172,7 @@ SELECT is(
 
 -- Insert a fresh member + membership for a transfer test.
 INSERT INTO core.members (
-  id, full_name, email, batch_scope_id, house_scope_id, sector_scope_id
+  id, full_name, email, batch_scope_id, house_scope_id, network_scope_id
 ) VALUES (
   '55555555-4444-0000-0000-000000000002',
   'Transfer Test Member',

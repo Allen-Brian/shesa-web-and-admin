@@ -80,7 +80,7 @@ export function DataTable<T>({
   columnDefs,
   rowData,
   loading,
-  variant = 'border',
+  variant = 'basic',
   rowHeight = 65,
   headerHeight = 48,
   onRowClicked,
@@ -89,7 +89,7 @@ export function DataTable<T>({
   toolbar,
   getRowId,
   defaultColDef,
-  selectable = false,
+  selectable = true,
   massActions,
   pagination = true,
   pageSize: pageSizeProp = 8,
@@ -113,6 +113,13 @@ export function DataTable<T>({
     (e: SelectionChangedEvent<T>) => {
       setSelected(e.api.getSelectedRows());
       rest.onSelectionChanged?.(e);
+      // Drop focus off the checkbox so the ring doesn't linger after a
+      // mouse click. Keyboard users are unaffected — their `:focus-visible`
+      // ring returns on the next Tab press.
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active.closest('.ag-checkbox-input-wrapper')) {
+        active.blur();
+      }
     },
     [rest],
   );

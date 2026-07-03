@@ -102,3 +102,15 @@ One write authority. Reached the same way by apps, webhooks, and cron. That's th
 - **tRPC instead of Server Actions + Edge Functions** — considered: works, but Server Actions are now the Next-native way; adding tRPC is a third concept to learn and an extra layer to debug. Server Actions + Edge Functions give us typed RPC without the additional dependency.
 
 - **Skip Server Actions entirely, use Route Handlers** — considered: Route Handlers are slightly lower-level. Server Actions integrate better with shadcn/ui Form + `useActionState`, and for the "form submit → mutate → revalidate" flow they're the cleanest abstraction. Route Handlers still get used for webhooks (the Edge Function can also be a Route Handler if hosted in the Next app, but Edge Functions in Supabase are cleaner because they share the auth + RLS context with the database).
+
+## Phase 2 refinement (non-decision) — hard rule for admin app writes
+
+The Phase 2 pivot (ADR-0040) moved every governance mutation into `apps/admin`'s Next.js Server Actions. Server Actions run server-side with the session cookie in scope, so it becomes _technically_ possible to do the authorization check inside the Server Action and write directly via the supabase-js server client — skipping the Edge Function hop. That temptation is exactly the "two write paths" trap the original ADR warned about, wearing new clothes.
+
+To keep the drift risk from re-entering through the Next.js door, the following is a **hard rule** — not a soft note:
+
+> **Server Actions may write directly via the supabase-js server client only for single-row updates to a member's own profile fields or a scope the actor already provably controls at the RLS layer.** Anything touching `core.role_assignments`, `core.registration_status` financial timestamps, `exco.events` contribution settings, `exco.announcements`, or any future `finance.*` schema goes through an Edge Function, always — no Server-Action-direct exception, ever. The DB triggers (six-holder cap, last-admin protection, RLS) remain the backstop but are not permission to skip the Edge Function.
+
+Rationale: "simple single-domain write" is a phrase that quietly expands over time. A team ships a Server-Action-direct member profile edit ("simple, single-row, RLS covers it"). Six months later someone ships a Server-Action-direct registration payment mark ("also simple, also single-row"). Now money writes have two authorization implementations again. Drawing the line at money + governance-invariants + audit-critical writes prevents the expansion from ever reaching those tables, whatever "simple" means in the future.
+
+Enforcement in the pivot itself is convention + PR review. A stronger enforcement (an ESLint plugin flagging Server Actions writing to specific tables, or a codegen check at CI) is tracked as a post-pivot follow-up.

@@ -10,7 +10,7 @@ interface ThemeContextValue {
   setTheme: (mode: ThemeMode) => void;
 }
 
-const STORAGE_KEY = 'shesa.theme';
+export const THEME_STORAGE_KEY = 'shesa.theme';
 
 const ThemeContext = React.createContext<ThemeContextValue | null>(null);
 
@@ -26,6 +26,18 @@ function applyTheme(resolved: 'light' | 'dark'): void {
   else root.classList.remove('dark');
 }
 
+function readStoredTheme(defaultTheme: ThemeMode): ThemeMode {
+  if (typeof window === 'undefined') return defaultTheme;
+  return (localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null) ?? defaultTheme;
+}
+
+/**
+ * Inline pre-hydration script: MUST run in `<head>` before the first paint
+ * so the browser sees `<html class="dark">` and never renders the light
+ * theme first. Keep in sync with `THEME_STORAGE_KEY` / `resolveSystem` above.
+ */
+export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('${THEME_STORAGE_KEY}')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`;
+
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
@@ -33,13 +45,14 @@ export function ThemeProvider({
   children: React.ReactNode;
   defaultTheme?: ThemeMode;
 }) {
-  const [theme, setThemeState] = React.useState<ThemeMode>(defaultTheme);
-  const [resolved, setResolved] = React.useState<'light' | 'dark'>('light');
-
-  React.useEffect(() => {
-    const stored = (localStorage.getItem(STORAGE_KEY) as ThemeMode | null) ?? defaultTheme;
-    setThemeState(stored);
-  }, [defaultTheme]);
+  // useState initializer reads storage synchronously so first render already
+  // matches what the pre-hydration script wrote to <html>. Prevents the
+  // effect-driven applyTheme('light') → applyTheme('dark') round-trip that
+  // used to cause the flash on refresh/navigation.
+  const [theme, setThemeState] = React.useState<ThemeMode>(() => readStoredTheme(defaultTheme));
+  const [resolved, setResolved] = React.useState<'light' | 'dark'>(() =>
+    theme === 'system' ? resolveSystem() : theme,
+  );
 
   React.useEffect(() => {
     const r = theme === 'system' ? resolveSystem() : theme;
@@ -59,7 +72,7 @@ export function ThemeProvider({
 
   const setTheme = React.useCallback((mode: ThemeMode) => {
     setThemeState(mode);
-    localStorage.setItem(STORAGE_KEY, mode);
+    localStorage.setItem(THEME_STORAGE_KEY, mode);
   }, []);
 
   return (

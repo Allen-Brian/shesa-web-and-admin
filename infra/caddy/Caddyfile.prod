@@ -8,8 +8,11 @@
 # Same file drives staging and production. Each app's hostname is a
 # separate env var so the two envs can use different domain shapes
 # (staging uses siblings under shesaconnect.com; production uses the
-# apex + subdomain shape). The compose stack exports WEB_DOMAIN,
-# AUTH_DOMAIN, EXCO_DOMAIN, FINANCE_DOMAIN on the caddy container.
+# apex + subdomain shape). The compose stack exports WEB_DOMAIN and
+# ADMIN_DOMAIN on the caddy container.
+#
+# Post-pivot (ADR-0040): only web + admin exist. The retired
+# auth/exco/finance vhosts were dropped in the same migration.
 
 {
 	# Real email here when Caddy gets its own — used by Let's Encrypt for
@@ -46,28 +49,11 @@
 }
 
 # ─────────────────────────────────────────────────────────────────────
-# auth — the central auth app (Next.js). Writes the shared session cookie.
+# admin — merged admin app (Next.js). Hosts Exco / Finance / Editor
+# personas per ADR-0040. Owns its own login pages.
 # ─────────────────────────────────────────────────────────────────────
-{$AUTH_DOMAIN} {
+{$ADMIN_DOMAIN} {
 	encode gzip zstd
 	import security_headers
-	reverse_proxy auth:3001
-}
-
-# ─────────────────────────────────────────────────────────────────────
-# exco — Vite SPA served by nginx on port 80 in the exco container
-# ─────────────────────────────────────────────────────────────────────
-{$EXCO_DOMAIN} {
-	encode gzip zstd
-	import security_headers
-	reverse_proxy exco:80
-}
-
-# ─────────────────────────────────────────────────────────────────────
-# finance — Vite SPA served by nginx on port 80 in the finance container
-# ─────────────────────────────────────────────────────────────────────
-{$FINANCE_DOMAIN} {
-	encode gzip zstd
-	import security_headers
-	reverse_proxy finance:80
+	reverse_proxy admin:3002
 }

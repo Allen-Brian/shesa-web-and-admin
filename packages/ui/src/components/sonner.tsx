@@ -2,27 +2,31 @@
 
 import { Toaster as SonnerToaster, toast } from 'sonner';
 
+import { useTheme } from './theme-provider';
+
 type ToasterProps = React.ComponentProps<typeof SonnerToaster>;
 
 /**
- * Academia-themed Sonner Toaster. Defaults to top-right + rich colors and
- * reads CSS tokens for surface/border/foreground so toasts inherit the
- * tenant theme. Consumers may override any prop (theme/position/etc.).
+ * Shesa-themed Sonner Toaster. Reads the app's resolved theme so light-mode
+ * toasts render on the light card surface instead of Sonner's default dark
+ * pane (which was the "toast appears black in light mode" bug). Consumers
+ * may still override `theme`/`position`/etc. via props.
  */
 function Toaster({
   position = 'top-right',
   richColors = true,
   closeButton = true,
-  theme = 'system',
   toastOptions,
   ...props
 }: ToasterProps) {
+  const { resolvedTheme } = useTheme();
+
   return (
     <SonnerToaster
       position={position}
       richColors={richColors}
       closeButton={closeButton}
-      theme={theme}
+      theme={resolvedTheme}
       toastOptions={{
         classNames: {
           toast:

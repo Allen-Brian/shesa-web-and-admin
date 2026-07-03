@@ -4,16 +4,16 @@
  * Phase 1 §3.1 layers three kinds of invariant on `core.scopes`:
  *
  *   - **Parent/type shape** — mainstream has no parent; branch parents to
- *     mainstream; chapter parents to a branch; batch/house/sector all
+ *     mainstream; chapter parents to a branch; batch/house/network all
  *     parent to mainstream. Enforced here so the DB CHECK doesn't have
  *     to (the CHECK only asserts "mainstream OR parent NOT NULL"; the
- *     narrower "sector parents to mainstream" lives at the app layer
+ *     narrower "network parents to mainstream" lives at the app layer
  *     because it depends on a foreign row's scope_type).
  *   - **Kind/type presence** — chapter rows carry chapter_kind; batch
  *     rows carry entry_year. DB CHECK enforces these, but front-loading
  *     the check gives a friendly 422 instead of a raw check_violation.
  *   - **Sector's role** — Phase 1 §2.4 says "Mainstream Admin creates
- *     sectors" — enforced in create-sector by rejecting any other
+ *     networks" — enforced in create-network by rejecting any other
  *     parent scope_type.
  *
  * The validators return either { ok: true } or { ok: false, message }
@@ -24,7 +24,7 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.47.10';
 
 import type { Database } from '../_types/database.ts';
 
-type ScopeType = 'mainstream' | 'branch' | 'chapter' | 'batch' | 'house' | 'sector';
+type ScopeType = 'mainstream' | 'branch' | 'chapter' | 'batch' | 'house' | 'network';
 type ChapterKind = 'autonomous' | 'grouping';
 
 export interface ParentInfo {
@@ -102,7 +102,7 @@ export function validateCreateShape(args: {
         break;
       case 'batch':
       case 'house':
-      case 'sector':
+      case 'network':
         if (parent.scope_type !== 'mainstream') {
           return {
             ok: false,

@@ -51,34 +51,87 @@ VALUES (
 ON CONFLICT (scope_id) DO NOTHING;
 
 -------------------------------------------------------------------------------
--- 1.2 One sample Branch (verifies parent FK + autonomy + capability flow)
+-- 1.2 Sample branches — one home, one diaspora, plus a chapter of each kind
 -------------------------------------------------------------------------------
+-- Three branches so the list page has something to filter by (home vs
+-- diaspora, different regions), plus one autonomous + one grouping
+-- chapter under Shesa Buea so the chapter_kind reactive UI is exercised
+-- in local dev.
+--
+-- is_autonomous was dropped in the 2026-07-02 scope reorg; autonomy for
+-- chapters lives on core.scopes.chapter_kind, which stays NULL for branches.
 
-INSERT INTO core.scopes (id, name, slug, scope_type, parent_scope_id, is_autonomous, currency_code)
-VALUES (
-  '00000000-0000-0000-0000-000000000010',
-  'Shesa Buea',
-  'shesa-buea',
-  'branch',
-  '00000000-0000-0000-0000-000000000001',
-  FALSE,
-  'XAF'
-)
+INSERT INTO core.scopes (id, name, slug, scope_type, parent_scope_id, currency_code)
+VALUES
+  ('00000000-0000-0000-0000-000000000010', 'Shesa Buea',   'shesa-buea',   'branch',
+   '00000000-0000-0000-0000-000000000001', 'XAF'),
+  ('00000000-0000-0000-0000-000000000011', 'Shesa Douala', 'shesa-douala', 'branch',
+   '00000000-0000-0000-0000-000000000001', 'XAF'),
+  ('00000000-0000-0000-0000-000000000012', 'Shesa DC',     'shesa-dc',     'branch',
+   '00000000-0000-0000-0000-000000000001', 'USD')
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO core.branches (
+  scope_id, country_code, region, city, nickname, description,
+  registration_fee_required, registration_fee_amount, registration_fee_currency,
+  contact_email
+) VALUES
+  ('00000000-0000-0000-0000-000000000010', 'CM', 'South-West', 'Buea',    NULL,
+   'The founding branch — Shesa''s home in the South-West region.',
+   TRUE,  5000, 'XAF', 'buea@shesaconnect.com'),
+  ('00000000-0000-0000-0000-000000000011', 'CM', 'Littoral',   'Douala',  NULL,
+   'Economic capital branch, largest urban membership in Cameroon.',
+   FALSE, NULL, NULL,  'douala@shesaconnect.com'),
+  ('00000000-0000-0000-0000-000000000012', 'US', 'Maryland',   'Silver Spring', 'DMV',
+   'Washington DC / Maryland / Virginia diaspora chapter.',
+   TRUE,  25,   'USD', 'dc@shesaconnect.com')
+ON CONFLICT (scope_id) DO NOTHING;
+
 INSERT INTO core.scope_capabilities (
-  scope_id,
-  can_manage_members,
-  can_have_treasury,
-  can_create_binding_dues,
-  can_have_website_page,
-  can_have_forum,
-  can_label_active_passive
-)
-VALUES (
-  '00000000-0000-0000-0000-000000000010',
-  TRUE, TRUE, TRUE, TRUE, TRUE, TRUE
-)
+  scope_id, can_manage_members, can_have_treasury, can_create_binding_dues,
+  can_have_website_page, can_have_forum, can_label_active_passive
+) VALUES
+  ('00000000-0000-0000-0000-000000000010', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+  ('00000000-0000-0000-0000-000000000011', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+  ('00000000-0000-0000-0000-000000000012', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE)
+ON CONFLICT (scope_id) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- 1.3 Sample chapters — one autonomous + one grouping under Shesa Buea
+-------------------------------------------------------------------------------
+
+INSERT INTO core.scopes (
+  id, name, slug, scope_type, parent_scope_id, chapter_kind, currency_code
+) VALUES
+  ('00000000-0000-0000-0000-000000000020', 'Buea University Chapter', 'shesa-buea-uni',
+   'chapter', '00000000-0000-0000-0000-000000000010', 'autonomous', 'XAF'),
+  ('00000000-0000-0000-0000-000000000021', 'Molyko Neighbourhood',    'shesa-molyko',
+   'chapter', '00000000-0000-0000-0000-000000000010', 'grouping',    'XAF')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO core.chapters (
+  scope_id, country_code, region, city, description,
+  registration_fee_required, registration_fee_amount, registration_fee_currency,
+  contact_email
+) VALUES
+  -- Autonomous chapter — carries its own registration + contact
+  ('00000000-0000-0000-0000-000000000020', 'CM', 'South-West', 'Buea',
+   'The university-student chapter of Shesa Buea; runs its own registration.',
+   TRUE, 2000, 'XAF', 'uni@shesaconnect.com'),
+  -- Grouping chapter — bare row (finance/contact slots must stay NULL)
+  ('00000000-0000-0000-0000-000000000021', 'CM', 'South-West', 'Buea',
+   'A neighbourhood tag for Molyko-resident Buea branch members.',
+   FALSE, NULL, NULL, NULL)
+ON CONFLICT (scope_id) DO NOTHING;
+
+INSERT INTO core.scope_capabilities (
+  scope_id, can_manage_members, can_have_treasury, can_create_binding_dues,
+  can_have_website_page, can_have_forum, can_label_active_passive
+) VALUES
+  -- Autonomous — full capability set
+  ('00000000-0000-0000-0000-000000000020', TRUE,  TRUE,  TRUE,  TRUE,  TRUE, TRUE),
+  -- Grouping — page + forum only (per resolveScopeCapabilities in packages/domain)
+  ('00000000-0000-0000-0000-000000000021', FALSE, FALSE, FALSE, TRUE,  TRUE, FALSE)
 ON CONFLICT (scope_id) DO NOTHING;
 
 
@@ -149,7 +202,7 @@ INSERT INTO core.permissions (id, key, description) VALUES
   ('22222222-0000-0000-0000-000000000016', 'scope.change_autonomy','Flip a chapter''s autonomy (autonomous ↔ grouping).'),
   -- Phase 1 E1.2 — member engine grain
   ('22222222-0000-0000-0000-000000000017', 'member.create',       'Create a new member (via UI, import, or admin form).'),
-  ('22222222-0000-0000-0000-000000000018', 'member.update',       'Edit protected member fields (full_name, batch, house, sector, entry_year).'),
+  ('22222222-0000-0000-0000-000000000018', 'member.update',       'Edit protected member fields (full_name, batch, house, network, entry_year).'),
   -- Phase 1 E1.3 — Excel import
   ('22222222-0000-0000-0000-000000000019', 'member.import',       'Upload and confirm Excel member-import batches.'),
   -- Phase 1 E1.4 — membership lifecycle
@@ -303,16 +356,16 @@ ON CONFLICT DO NOTHING;
 
 
 -- =============================================================================
--- Section 3. Phase 1 E1.1 org fixtures — batches, houses, Other sector
+-- Section 3. Phase 1 E1.1 org fixtures — batches, houses, Other network
 -- =============================================================================
 --
--- All three groups (batches, houses, sectors) are mainstream-scoped rows
+-- All three groups (batches, houses, networks) are mainstream-scoped rows
 -- in core.scopes — per E1.1's locked decision, only Branches and Chapters
 -- carry geographic hierarchy; everything else lives directly under the
 -- Mainstream root.
 --
 -- Idempotent via ON CONFLICT DO NOTHING on the natural key (slug for
--- houses/sector, entry_year via the partial unique index for batches).
+-- houses/network, entry_year via the partial unique index for batches).
 
 -------------------------------------------------------------------------------
 -- 3.1 Batches — every intake year 1953 → 2026 (Phase 1 §2.2)
@@ -332,38 +385,220 @@ SELECT
   y,
   'XAF'
 FROM generate_series(1953, 2026) AS y
-ON CONFLICT (slug) DO NOTHING;
+ON CONFLICT (scope_type, slug) DO NOTHING;
 
 -------------------------------------------------------------------------------
--- 3.2 Houses — the four seeded houses with colors (Phase 1 §2.3)
+-- 3.2 Houses — the four seeded houses (Phase 1 §2.3, refined 2026-07-02)
 -------------------------------------------------------------------------------
--- Color lives in the metadata JSONB rather than a first-class column
--- because it's UI-only. If a future feature reads color for filtering,
--- lift it into a typed column then.
+-- Two rows per house: the spine in core.scopes + the detail row in
+-- core.houses (color name + hex + display order). Houses are view-only
+-- in the UI — never created, edited, or deleted.
 
 INSERT INTO core.scopes (
-  id, name, slug, scope_type, parent_scope_id, currency_code, metadata
+  id, name, slug, scope_type, parent_scope_id, currency_code, nickname
 ) VALUES
   ('33333333-0000-0000-0000-000000000001', 'St Thomas',  'st-thomas',  'house',
-   '00000000-0000-0000-0000-000000000001', 'XAF', '{"color":"blue"}'::jsonb),
+   '00000000-0000-0000-0000-000000000001', 'XAF', 'Blue Falcons'),
   ('33333333-0000-0000-0000-000000000002', 'St Peter',   'st-peter',   'house',
-   '00000000-0000-0000-0000-000000000001', 'XAF', '{"color":"yellow"}'::jsonb),
+   '00000000-0000-0000-0000-000000000001', 'XAF', 'Yellow Phoenix'),
   ('33333333-0000-0000-0000-000000000003', 'St Francis', 'st-francis', 'house',
-   '00000000-0000-0000-0000-000000000001', 'XAF', '{"color":"green"}'::jsonb),
+   '00000000-0000-0000-0000-000000000001', 'XAF', 'Green Grizzlies'),
   ('33333333-0000-0000-0000-000000000004', 'St John',    'st-john',    'house',
-   '00000000-0000-0000-0000-000000000001', 'XAF', '{"color":"red"}'::jsonb)
+   '00000000-0000-0000-0000-000000000001', 'XAF', 'Red Lions')
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO core.houses (scope_id, color, color_hex, sort_order) VALUES
+  ('33333333-0000-0000-0000-000000000001', 'blue',   '#1E40AF', 1),  -- royal
+  ('33333333-0000-0000-0000-000000000002', 'yellow', '#EAB308', 2),  -- gold
+  ('33333333-0000-0000-0000-000000000003', 'green',  '#15803D', 3),  -- forest
+  ('33333333-0000-0000-0000-000000000004', 'red',    '#B91C1C', 4)   -- crimson
+ON CONFLICT (scope_id) DO NOTHING;
+
 -------------------------------------------------------------------------------
--- 3.3 Sector — "Other" (Phase 1 §2.4)
+-- 3.3 Networks — real professional networks (Phase 1 §2.4, renamed
+--     from Sector 2026-07-02, seed reshaped 2026-07-02)
 -------------------------------------------------------------------------------
--- Mainstream Admin creates additional sectors via the create-sector Edge
--- Function; "Other" is the fallback every member-creation form can pick
--- so an incomplete import row still validates.
+-- Five seeded networks — Shesa Legal / Santé / Tech / Gov / Education —
+-- replaced the earlier "Other" safety-net. Import + create-member paths
+-- now require a real network; there is no fallback. Mainstream Admin can
+-- add more via the create-network Edge Function.
+--
+-- Two rows per network: the spine in core.scopes (name = "Shesa X") and
+-- the detail in core.networks (short_name = "X", icon = lucide key,
+-- color_hex, sort_order). Colors picked to stay legible on the app's
+-- burgundy palette in both light + dark mode.
 
 INSERT INTO core.scopes (
   id, name, slug, scope_type, parent_scope_id, currency_code
 ) VALUES
-  ('44444444-0000-0000-0000-000000000001', 'Other', 'sector-other', 'sector',
-   '00000000-0000-0000-0000-000000000001', 'XAF')
+  ('44444444-0000-0000-0000-000000000001', 'Shesa Legal',     'shesa-legal',
+   'network', '00000000-0000-0000-0000-000000000001', 'XAF'),
+  ('44444444-0000-0000-0000-000000000002', 'Shesa Santé',     'shesa-sante',
+   'network', '00000000-0000-0000-0000-000000000001', 'XAF'),
+  ('44444444-0000-0000-0000-000000000003', 'Shesa Tech',      'shesa-tech',
+   'network', '00000000-0000-0000-0000-000000000001', 'XAF'),
+  ('44444444-0000-0000-0000-000000000004', 'Shesa Gov',       'shesa-gov',
+   'network', '00000000-0000-0000-0000-000000000001', 'XAF'),
+  ('44444444-0000-0000-0000-000000000005', 'Shesa Education', 'shesa-education',
+   'network', '00000000-0000-0000-0000-000000000001', 'XAF')
 ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO core.networks (
+  scope_id, short_name, description, icon, color_hex, sort_order
+) VALUES
+  ('44444444-0000-0000-0000-000000000001', 'Legal',
+   'Barristers, solicitors, magistrates and legal scholars.',
+   'Scale',         '#7C3AED', 1),
+  ('44444444-0000-0000-0000-000000000002', 'Santé',
+   'Doctors, nurses, pharmacists and health workers.',
+   'Stethoscope',   '#E11D48', 2),
+  ('44444444-0000-0000-0000-000000000003', 'Tech',
+   'Engineers, developers, designers and IT professionals.',
+   'Cpu',           '#0284C7', 3),
+  ('44444444-0000-0000-0000-000000000004', 'Gov',
+   'Public service, ministries, agencies and administration.',
+   'Landmark',      '#0F766E', 4),
+  ('44444444-0000-0000-0000-000000000005', 'Education',
+   'Teachers, lecturers, researchers and academic staff.',
+   'GraduationCap', '#D97706', 5)
+ON CONFLICT (scope_id) DO NOTHING;
+
+
+-- =============================================================================
+-- Section 4. Dev users — Phase 2 pivot (ADR-0040)
+-- =============================================================================
+--
+-- Two seeded users for local development:
+--   admin@shesa.test   / password  — mainstream_admin at the root scope
+--   finance@shesa.test / password  — finance         at the root scope
+--
+-- Both cover the "log in and start clicking around" story for the E2.pivot
+-- shells. Passwords are `password` — deliberately trivial; seed.sql runs
+-- ONLY on `supabase db reset` / first `supabase start`, never against
+-- staging or production.
+--
+-- We write directly into auth.users + auth.identities because seed.sql runs
+-- as the superuser; the Supabase admin API isn't reachable at seed time.
+-- All columns not defaulted by the schema are set explicitly to keep the
+-- seed forward-compatible across supabase-cli versions.
+--
+-- Idempotent via hand-picked UUIDs + ON CONFLICT DO NOTHING on every insert.
+
+-------------------------------------------------------------------------------
+-- 4.1 auth.users rows
+-------------------------------------------------------------------------------
+
+INSERT INTO auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, invited_at, confirmation_token, confirmation_sent_at,
+  recovery_token, recovery_sent_at, email_change_token_new, email_change,
+  email_change_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data,
+  is_super_admin, created_at, updated_at, phone, phone_confirmed_at,
+  phone_change, phone_change_token, phone_change_sent_at,
+  email_change_token_current, email_change_confirm_status, banned_until,
+  reauthentication_token, reauthentication_sent_at, is_sso_user, deleted_at,
+  is_anonymous
+) VALUES
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '55555555-0000-0000-0000-000000000001',
+    'authenticated', 'authenticated',
+    'admin@shesa.test',
+    crypt('password', gen_salt('bf')),
+    NOW(), NULL, '', NULL,
+    '', NULL, '', '',
+    NULL, NULL,
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"display_name":"Global Admin"}'::jsonb,
+    FALSE, NOW(), NOW(), NULL, NULL,
+    '', '', NULL,
+    '', 0, NULL,
+    '', NULL, FALSE, NULL,
+    FALSE
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '55555555-0000-0000-0000-000000000002',
+    'authenticated', 'authenticated',
+    'finance@shesa.test',
+    crypt('password', gen_salt('bf')),
+    NOW(), NULL, '', NULL,
+    '', NULL, '', '',
+    NULL, NULL,
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"display_name":"Global Finance"}'::jsonb,
+    FALSE, NOW(), NOW(), NULL, NULL,
+    '', '', NULL,
+    '', 0, NULL,
+    '', NULL, FALSE, NULL,
+    FALSE
+  )
+ON CONFLICT (id) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- 4.2 auth.identities rows — required by GoTrue's email-provider lookup
+-------------------------------------------------------------------------------
+-- `provider_id` is the identity's stable id from the provider — for the
+-- email provider it's the user id itself (there's no external oauth sub).
+-- Recent supabase-cli versions REQUIRE this column, so we set it explicitly.
+
+INSERT INTO auth.identities (
+  provider_id, user_id, identity_data, provider,
+  last_sign_in_at, created_at, updated_at
+) VALUES
+  (
+    '55555555-0000-0000-0000-000000000001',
+    '55555555-0000-0000-0000-000000000001',
+    jsonb_build_object(
+      'sub',   '55555555-0000-0000-0000-000000000001',
+      'email', 'admin@shesa.test',
+      'email_verified', true,
+      'phone_verified', false
+    ),
+    'email', NOW(), NOW(), NOW()
+  ),
+  (
+    '55555555-0000-0000-0000-000000000002',
+    '55555555-0000-0000-0000-000000000002',
+    jsonb_build_object(
+      'sub',   '55555555-0000-0000-0000-000000000002',
+      'email', 'finance@shesa.test',
+      'email_verified', true,
+      'phone_verified', false
+    ),
+    'email', NOW(), NOW(), NOW()
+  )
+ON CONFLICT (provider, provider_id) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- 4.3 core.profiles mirrors — 1:1 with auth.users per the app's read path
+-------------------------------------------------------------------------------
+
+INSERT INTO core.profiles (id, display_name, email, preferred_persona)
+VALUES
+  ('55555555-0000-0000-0000-000000000001', 'Global Admin',   'admin@shesa.test',   'exco'),
+  ('55555555-0000-0000-0000-000000000002', 'Global Finance', 'finance@shesa.test', 'finance')
+ON CONFLICT (id) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- 4.4 core.role_assignments — grant the two roles at the mainstream root
+-------------------------------------------------------------------------------
+-- `mainstream_admin` at root gives Global Admin full authority over every
+-- scope (clipped only by autonomy). `finance` at root gives Global Finance
+-- read/write across every scope's finance surface.
+
+INSERT INTO core.role_assignments (user_id, scope_id, role_id, starts_at)
+VALUES
+  (
+    '55555555-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '11111111-0000-0000-0000-000000000001',  -- mainstream_admin
+    NOW()
+  ),
+  (
+    '55555555-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000001',
+    '11111111-0000-0000-0000-000000000004',  -- finance
+    NOW()
+  )
+ON CONFLICT DO NOTHING;

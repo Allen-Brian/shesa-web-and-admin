@@ -3,8 +3,10 @@
  *
  * The real homepage + CMS-rendered content lands in Phase 5 (CMS). For
  * now this page proves the shell boots, the shared tokens render, and
- * the cross-app cookie set by apps/auth is visible here when the user
- * is logged in (footer state below).
+ * the apex-scoped session cookie set by apps/admin is visible here
+ * when the user is logged in (footer state below). Post-pivot the web
+ * app has no gated routes of its own — governance auth lives on
+ * apps/admin (ADR-0040).
  */
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@shesa/ui';
@@ -43,8 +45,8 @@ export default async function HomePage() {
             ) : (
               <>
                 Not signed in.{' '}
-                <a className="underline-offset-4 hover:underline" href={appUrls.auth}>
-                  Sign in at auth.shesa
+                <a className="underline-offset-4 hover:underline" href={appUrls.admin}>
+                  Sign in on admin
                 </a>
               </>
             )}
