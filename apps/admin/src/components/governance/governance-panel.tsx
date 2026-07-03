@@ -294,7 +294,7 @@ export function GovernancePanel({
           if (!confirmPos) return;
           const target = confirmPos;
           setConfirmPos(null);
-          doAction('Position removed', () => removePosition(target.assignmentId, scopeId));
+          doAction('Position removed', () => removePosition(target.assignmentId));
         }}
         onCancel={() => setConfirmPos(null)}
       />
@@ -308,7 +308,7 @@ export function GovernancePanel({
           if (!confirmRole) return;
           const target = confirmRole;
           setConfirmRole(null);
-          doAction('Role revoked', () => revokeRole(target.assignmentId, scopeId));
+          doAction('Role revoked', () => revokeRole(target.assignmentId));
         }}
         onCancel={() => setConfirmRole(null)}
       />

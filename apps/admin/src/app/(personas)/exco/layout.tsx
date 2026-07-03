@@ -16,15 +16,37 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
     redirect('/login?next=/exco');
   }
 
-  const { data: profile } = await supabase
-    .schema('core')
-    .from('profiles')
-    .select('display_name, email, avatar_url')
-    .eq('id', user.id)
-    .maybeSingle();
+  const [{ data: profile }, { data: mainstream }] = await Promise.all([
+    supabase
+      .schema('core')
+      .from('profiles')
+      .select('display_name, email, avatar_url')
+      .eq('id', user.id)
+      .maybeSingle(),
+    supabase
+      .schema('core')
+      .from('scopes')
+      .select('id')
+      .eq('scope_type', 'mainstream')
+      .maybeSingle(),
+  ]);
 
   const userEmail = profile?.email ?? user.email ?? '';
   const userName = profile?.display_name ?? userEmail.split('@')[0] ?? 'User';
+
+  // Clusters management is a mainstream-admin surface — the sidebar's
+  // Clusters section only renders when the current user can create
+  // scopes at Mainstream. Global mainstream_admin (NULL scope grant)
+  // passes the check via has_permission's NULL-scope bypass.
+  let canManageClusters = false;
+  if (mainstream) {
+    const { data: allowed } = await supabase.schema('core').rpc('has_permission', {
+      p_user_id: user.id,
+      p_scope_id: mainstream.id,
+      p_permission_key: 'scope.create',
+    });
+    canManageClusters = allowed === true;
+  }
 
   return (
     <AppShell
@@ -32,6 +54,7 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
       userEmail={userEmail}
       userName={userName}
       avatarUrl={profile?.avatar_url ?? undefined}
+      canManageClusters={canManageClusters}
     >
       {children}
     </AppShell>

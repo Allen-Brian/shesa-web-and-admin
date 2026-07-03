@@ -26,6 +26,7 @@ import { PERSONA_META, type Persona } from '@/lib/personas';
 
 interface AppSidebarProps {
   readonly persona: Persona;
+  readonly canManageClusters?: boolean;
 }
 
 interface ClusterNavItem {
@@ -44,7 +45,7 @@ const CLUSTER_ITEMS: readonly ClusterNavItem[] = [
   { slug: 'houses', label: 'Houses', Icon: Badge },
 ];
 
-export function AppSidebar({ persona }: AppSidebarProps) {
+export function AppSidebar({ persona, canManageClusters = false }: AppSidebarProps) {
   const pathname = usePathname();
   const meta = PERSONA_META[persona];
 
@@ -68,41 +69,43 @@ export function AppSidebar({ persona }: AppSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <Collapsible asChild defaultOpen={clustersActive} className="group/collapsible">
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip="Clusters" isActive={clustersActive}>
-                      <Layers />
-                      <span>Clusters</span>
-                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {CLUSTER_ITEMS.map(({ slug, label, Icon }) => {
-                        const href = `/${persona}/clusters/${slug}`;
-                        const active = pathname === href || pathname.startsWith(`${href}/`);
-                        return (
-                          <SidebarMenuSubItem key={slug}>
-                            <SidebarMenuSubButton asChild isActive={active}>
-                              <Link href={href}>
-                                <Icon />
-                                <span>{label}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        );
-                      })}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {canManageClusters && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <Collapsible asChild defaultOpen={clustersActive} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton tooltip="Clusters" isActive={clustersActive}>
+                        <Layers />
+                        <span>Clusters</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {CLUSTER_ITEMS.map(({ slug, label, Icon }) => {
+                          const href = `/${persona}/clusters/${slug}`;
+                          const active = pathname === href || pathname.startsWith(`${href}/`);
+                          return (
+                            <SidebarMenuSubItem key={slug}>
+                              <SidebarMenuSubButton asChild isActive={active}>
+                                <Link href={href}>
+                                  <Icon />
+                                  <span>{label}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          );
+                        })}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );

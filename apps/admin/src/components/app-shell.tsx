@@ -14,6 +14,7 @@ interface AppShellProps {
   readonly userEmail: string;
   readonly userName: string;
   readonly avatarUrl?: string;
+  readonly canManageClusters?: boolean;
   readonly children: React.ReactNode;
 }
 
@@ -25,7 +26,14 @@ interface AppShellProps {
  * Auto-collapses the sidebar below 1200px viewport; the user can still
  * toggle it manually via SidebarTrigger.
  */
-export function AppShell({ persona, userEmail, userName, avatarUrl, children }: AppShellProps) {
+export function AppShell({
+  persona,
+  userEmail,
+  userName,
+  avatarUrl,
+  canManageClusters,
+  children,
+}: AppShellProps) {
   const [open, setOpen] = React.useState(true);
 
   React.useEffect(() => {
@@ -39,7 +47,7 @@ export function AppShell({ persona, userEmail, userName, avatarUrl, children }: 
   return (
     <BreadcrumbProvider>
       <SidebarProvider open={open} onOpenChange={setOpen}>
-        <AppSidebar persona={persona} />
+        <AppSidebar persona={persona} canManageClusters={canManageClusters} />
         <SidebarInset>
           <Topbar userEmail={userEmail} userName={userName} avatarUrl={avatarUrl} />
           <main className="flex min-h-0 flex-1 flex-col px-6 py-6">{children}</main>

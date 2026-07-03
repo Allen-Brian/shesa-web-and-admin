@@ -70,7 +70,7 @@ export async function assignPositionWithRole(input: {
   return { ok: true, warning };
 }
 
-export async function removePosition(assignmentId: string, scopeId: string): Promise<ActionResult> {
+export async function removePosition(assignmentId: string): Promise<ActionResult> {
   const supabase = await getServerClient();
   const { error } = await supabase.functions.invoke('positions/remove-position', {
     body: { assignmentId },
@@ -105,7 +105,7 @@ export async function grantRole(input: {
   return { ok: true };
 }
 
-export async function revokeRole(assignmentId: string, scopeId: string): Promise<ActionResult> {
+export async function revokeRole(assignmentId: string): Promise<ActionResult> {
   const supabase = await getServerClient();
   const { error } = await supabase.functions.invoke('roles/revoke-role', {
     body: { assignmentId },

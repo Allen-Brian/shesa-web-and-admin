@@ -476,9 +476,11 @@ ON CONFLICT (scope_id) DO NOTHING;
 -- Section 4. Dev users — Phase 2 pivot (ADR-0040)
 -- =============================================================================
 --
--- Two seeded users for local development:
---   admin@shesa.test   / password  — mainstream_admin at the root scope
---   finance@shesa.test / password  — finance         at the root scope
+-- Four seeded users for local development:
+--   admin@shesa.test            / password  — mainstream_admin (global)
+--   finance@shesa.test          / password  — finance          (global)
+--   buea-admin@shesa.test       / password  — branch_admin     at Shesa Buea
+--   batch-2012-admin@shesa.test / password  — batch_admin      at 2012 Batch
 --
 -- Both cover the "log in and start clicking around" story for the E2.pivot
 -- shells. Passwords are `password` — deliberately trivial; seed.sql runs
@@ -540,6 +542,40 @@ INSERT INTO auth.users (
     '', 0, NULL,
     '', NULL, FALSE, NULL,
     FALSE
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '55555555-0000-0000-0000-000000000010',
+    'authenticated', 'authenticated',
+    'buea-admin@shesa.test',
+    crypt('password', gen_salt('bf')),
+    NOW(), NULL, '', NULL,
+    '', NULL, '', '',
+    NULL, NULL,
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"display_name":"Shesa Buea Admin"}'::jsonb,
+    FALSE, NOW(), NOW(), NULL, NULL,
+    '', '', NULL,
+    '', 0, NULL,
+    '', NULL, FALSE, NULL,
+    FALSE
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '55555555-0000-0000-0000-000000000020',
+    'authenticated', 'authenticated',
+    'batch-2012-admin@shesa.test',
+    crypt('password', gen_salt('bf')),
+    NOW(), NULL, '', NULL,
+    '', NULL, '', '',
+    NULL, NULL,
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"display_name":"2012 Batch Admin"}'::jsonb,
+    FALSE, NOW(), NOW(), NULL, NULL,
+    '', '', NULL,
+    '', 0, NULL,
+    '', NULL, FALSE, NULL,
+    FALSE
   )
 ON CONFLICT (id) DO NOTHING;
 
@@ -575,6 +611,28 @@ INSERT INTO auth.identities (
       'phone_verified', false
     ),
     'email', NOW(), NOW(), NOW()
+  ),
+  (
+    '55555555-0000-0000-0000-000000000010',
+    '55555555-0000-0000-0000-000000000010',
+    jsonb_build_object(
+      'sub',   '55555555-0000-0000-0000-000000000010',
+      'email', 'buea-admin@shesa.test',
+      'email_verified', true,
+      'phone_verified', false
+    ),
+    'email', NOW(), NOW(), NOW()
+  ),
+  (
+    '55555555-0000-0000-0000-000000000020',
+    '55555555-0000-0000-0000-000000000020',
+    jsonb_build_object(
+      'sub',   '55555555-0000-0000-0000-000000000020',
+      'email', 'batch-2012-admin@shesa.test',
+      'email_verified', true,
+      'phone_verified', false
+    ),
+    'email', NOW(), NOW(), NOW()
   )
 ON CONFLICT (provider, provider_id) DO NOTHING;
 
@@ -584,8 +642,10 @@ ON CONFLICT (provider, provider_id) DO NOTHING;
 
 INSERT INTO core.profiles (id, display_name, email, preferred_persona)
 VALUES
-  ('55555555-0000-0000-0000-000000000001', 'Global Admin',   'admin@shesa.test',   'exco'),
-  ('55555555-0000-0000-0000-000000000002', 'Global Finance', 'finance@shesa.test', 'finance')
+  ('55555555-0000-0000-0000-000000000001', 'Global Admin',     'admin@shesa.test',            'exco'),
+  ('55555555-0000-0000-0000-000000000002', 'Global Finance',   'finance@shesa.test',          'finance'),
+  ('55555555-0000-0000-0000-000000000010', 'Shesa Buea Admin', 'buea-admin@shesa.test',       'exco'),
+  ('55555555-0000-0000-0000-000000000020', '2012 Batch Admin', 'batch-2012-admin@shesa.test', 'exco')
 ON CONFLICT (id) DO NOTHING;
 
 -------------------------------------------------------------------------------
@@ -609,6 +669,22 @@ VALUES
     '55555555-0000-0000-0000-000000000002',
     NULL,
     '11111111-0000-0000-0000-000000000004',  -- finance
+    NOW()
+  ),
+  (
+    -- Shesa Buea Admin — scoped branch_admin at Shesa Buea
+    '55555555-0000-0000-0000-000000000010',
+    '00000000-0000-0000-0000-000000000010',
+    '11111111-0000-0000-0000-000000000002',  -- branch_admin
+    NOW()
+  ),
+  (
+    -- 2012 Batch Admin — scoped batch_admin at the 2012 batch scope,
+    -- resolved by slug so the seed doesn't hardcode the generate_series
+    -- output UUIDs.
+    '55555555-0000-0000-0000-000000000020',
+    (SELECT id FROM core.scopes WHERE slug = 'batch-2012'),
+    '11111111-0000-0000-0000-000000000003',  -- batch_admin
     NOW()
   )
 ON CONFLICT DO NOTHING;
