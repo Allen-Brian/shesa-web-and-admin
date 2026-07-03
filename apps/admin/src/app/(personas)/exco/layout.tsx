@@ -54,6 +54,12 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
   const memberableScopes = await resolveMemberableScopes(supabase, user.id);
   const canManageMemberships = memberableScopes.length > 0;
 
+  // Requests & Transfers + Registration sub-items are only meaningful
+  // at branch-like scopes. Batch-only admins don't see them.
+  const hasBranchLikeMembership = memberableScopes.some(
+    (s) => s.scope_type === 'branch' || s.scope_type === 'chapter',
+  );
+
   return (
     <AppShell
       persona="exco"
@@ -62,6 +68,7 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
       avatarUrl={profile?.avatar_url ?? undefined}
       canManageClusters={canManageClusters}
       canManageMemberships={canManageMemberships}
+      hasBranchLikeMembership={hasBranchLikeMembership}
     >
       {children}
     </AppShell>

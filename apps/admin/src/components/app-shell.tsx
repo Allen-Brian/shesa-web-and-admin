@@ -16,6 +16,7 @@ interface AppShellProps {
   readonly avatarUrl?: string;
   readonly canManageClusters?: boolean;
   readonly canManageMemberships?: boolean;
+  readonly hasBranchLikeMembership?: boolean;
   readonly children: React.ReactNode;
 }
 
@@ -34,6 +35,7 @@ export function AppShell({
   avatarUrl,
   canManageClusters,
   canManageMemberships,
+  hasBranchLikeMembership,
   children,
 }: AppShellProps) {
   const [open, setOpen] = React.useState(true);
@@ -53,6 +55,7 @@ export function AppShell({
           persona={persona}
           canManageClusters={canManageClusters}
           canManageMemberships={canManageMemberships}
+          hasBranchLikeMembership={hasBranchLikeMembership}
         />
         <SidebarInset>
           <Topbar userEmail={userEmail} userName={userName} avatarUrl={avatarUrl} />

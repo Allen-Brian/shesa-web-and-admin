@@ -699,13 +699,16 @@ ON CONFLICT DO NOTHING;
 -- clickable end-to-end.
 --
 -- Volume:
---   ~20 members per batch across seven recent batches
---   (2018-2024) = 140 members total.
+--   ~20 members per batch across eight graduated batches
+--   (2012-2019) = 160 members total. Everyone from 2020+ is still in
+--   school; the platform's members are alumni only for now. 2012 is
+--   included so the batch-2012-admin@shesa.test seed user has real
+--   data in their own batch.
 --   ~60 memberships at Shesa Buea (active mix), plus scatter across
 --   Douala and DC.
 --   ~10 pending join requests targeting Shesa Buea.
 --   ~5 pending transfers from Douala/DC → Buea.
---   ~10 chapter memberships (autonomous chapter Buea University).
+--   ~7 chapter memberships (autonomous chapter Buea University).
 --
 -- All rows are pseudo-random but deterministic — we seed the generator
 -- with a fixed value so `supabase db reset` produces the same set every
@@ -755,10 +758,12 @@ BEGIN
   SELECT ARRAY(SELECT id FROM core.scopes WHERE scope_type = 'network' ORDER BY slug)
     INTO v_network_ids;
 
-  -- Iterate seven recent batches: 2018, 2019, 2020, 2021, 2022, 2023, 2024
+  -- Iterate eight graduated batches: 2012 through 2019.
+  -- Batches 2020+ are still in school — they have batch scopes but no
+  -- alumni members yet.
   FOR v_batch IN
     SELECT id, entry_year FROM core.scopes
-    WHERE scope_type = 'batch' AND entry_year BETWEEN 2018 AND 2024
+    WHERE scope_type = 'batch' AND entry_year BETWEEN 2012 AND 2019
     ORDER BY entry_year
   LOOP
     FOR v_member_num IN 1..20 LOOP
@@ -887,12 +892,12 @@ BEGIN
   END LOOP;
 
   -- ── Pending join requests at Shesa Buea ──
-  -- Pull members 19/20 from batches 2020-2024 (5 batches × 2 = 10 rows)
+  -- Pull members 19/20 from batches 2015-2019 (5 batches × 2 = 10 rows)
   -- and enqueue a pending membership at Buea. Buea admin sees these
   -- in the Requests queue.
   FOR v_batch IN
     SELECT id, entry_year FROM core.scopes
-    WHERE scope_type = 'batch' AND entry_year BETWEEN 2020 AND 2024
+    WHERE scope_type = 'batch' AND entry_year BETWEEN 2015 AND 2019
   LOOP
     FOR v_member_num IN 19..20 LOOP
       v_member_id := ('88888888-' ||
@@ -914,7 +919,7 @@ BEGIN
   -- Buea admin sees these in the Transfers queue.
   FOR v_batch IN
     SELECT id, entry_year FROM core.scopes
-    WHERE scope_type = 'batch' AND entry_year BETWEEN 2020 AND 2024
+    WHERE scope_type = 'batch' AND entry_year BETWEEN 2015 AND 2019
   LOOP
     v_member_id := ('88888888-' ||
                     lpad(v_batch.entry_year::text, 4, '0') || '-' ||

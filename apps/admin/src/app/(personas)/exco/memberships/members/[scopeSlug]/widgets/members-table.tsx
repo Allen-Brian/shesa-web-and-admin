@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreHorizontal, Sparkles, Trash2, UserMinus } from 'lucide-react';
+import { Filter, MoreHorizontal, Sparkles, Trash2, UserMinus } from 'lucide-react';
 
 import {
   Badge,
@@ -25,6 +25,9 @@ import {
 } from '@shesa/ui';
 
 import { MemberName } from '@/components/governance/member-name';
+import { FilterChips } from '@/components/memberships/filter-chips';
+import { FilterDialog, type FilterDimensionConfig } from '@/components/memberships/filter-dialog';
+import { useFilterState } from '@/lib/memberships/filter-state';
 
 import { removeMembership, setEngagement } from '../../../actions';
 import type { MembersPageRow, MembersPageScope } from './members-page';
@@ -49,29 +52,123 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [search, setSearch] = useState('');
   const [confirm, setConfirm] = useState<ConfirmState>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const isBatch = scope.scope_type === 'batch';
   const isBranch = scope.scope_type === 'branch';
+
+  const filterState = useFilterState();
 
   const numbered = useMemo<readonly SerialRow[]>(
     () => rows.map((r, i) => ({ ...r, serial: i + 1 })),
     [rows],
   );
 
+  // Build filter-dimension configs from what's actually present in the
+  // row set, so no dead options ever appear. Scope-aware exclusion:
+  // Batch dimension hidden when viewer is a batch, Branch dimension
+  // hidden when viewer is a branch (matches the column-hide rule).
+  const dimensions = useMemo<FilterDimensionConfig[]>(() => {
+    const configs: FilterDimensionConfig[] = [];
+
+    if (!isBatch) {
+      configs.push({
+        dimension: 'batch',
+        label: 'Batch',
+        options: sortedUnique(rows.map((r) => r.batch_name)).map((v) => ({ value: v, label: v })),
+      });
+    }
+    if (!isBranch) {
+      configs.push({
+        dimension: 'branch',
+        label: 'Branch',
+        options: sortedUnique(rows.map((r) => r.branch_name)).map((v) => ({ value: v, label: v })),
+      });
+    }
+    configs.push({
+      dimension: 'house',
+      label: 'House',
+      options: sortedUnique(rows.map((r) => r.house_name)).map((v) => ({ value: v, label: v })),
+    });
+    configs.push({
+      dimension: 'network',
+      label: 'Network',
+      options: sortedUnique(rows.map((r) => r.network_name)).map((v) => ({ value: v, label: v })),
+    });
+    if (!isBatch) {
+      configs.push({
+        dimension: 'engagement',
+        label: 'Engagement',
+        options: (['dormant', 'normal', 'engaged', 'committed'] as const).map((v) => ({
+          value: v,
+          label: v.charAt(0).toUpperCase() + v.slice(1),
+        })),
+      });
+      configs.push({
+        dimension: 'membership',
+        label: 'Membership status',
+        options: (['active', 'passive', 'pending'] as const).map((v) => ({
+          value: v,
+          label: v.charAt(0).toUpperCase() + v.slice(1),
+        })),
+      });
+      configs.push({
+        dimension: 'registration',
+        label: 'Registration',
+        options: (['not_required', 'pending', 'paid', 'paid_on_behalf', 'waived'] as const).map(
+          (v) => ({
+            value: v,
+            label:
+              v === 'not_required'
+                ? 'Not required'
+                : v === 'paid_on_behalf'
+                  ? 'Paid on behalf'
+                  : v.charAt(0).toUpperCase() + v.slice(1),
+          }),
+        ),
+      });
+    }
+
+    return configs;
+  }, [isBatch, isBranch, rows]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return numbered;
+    const v = filterState.values;
     return numbered.filter((r) => {
-      if (r.full_name.toLowerCase().includes(q)) return true;
-      if (r.batch_name?.toLowerCase().includes(q)) return true;
-      if (r.network_name?.toLowerCase().includes(q)) return true;
-      if (r.house_name?.toLowerCase().includes(q)) return true;
-      if (r.branch_name?.toLowerCase().includes(q)) return true;
-      if (r.location?.toLowerCase().includes(q)) return true;
-      return false;
+      // Search text
+      if (q) {
+        const hit =
+          r.full_name.toLowerCase().includes(q) ||
+          r.batch_name?.toLowerCase().includes(q) ||
+          r.network_name?.toLowerCase().includes(q) ||
+          r.house_name?.toLowerCase().includes(q) ||
+          r.branch_name?.toLowerCase().includes(q) ||
+          r.location?.toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      // Multi-select filters — every set dimension must include the row's value
+      if (v.batch?.length && (!r.batch_name || !v.batch.includes(r.batch_name))) return false;
+      if (v.branch?.length && (!r.branch_name || !v.branch.includes(r.branch_name))) return false;
+      if (v.house?.length && (!r.house_name || !v.house.includes(r.house_name))) return false;
+      if (v.network?.length && (!r.network_name || !v.network.includes(r.network_name)))
+        return false;
+      if (v.engagement?.length && (!r.engagement || !v.engagement.includes(r.engagement)))
+        return false;
+      if (
+        v.membership?.length &&
+        (!r.membership_status || !v.membership.includes(r.membership_status))
+      )
+        return false;
+      if (
+        v.registration?.length &&
+        (!r.registration_state || !v.registration.includes(r.registration_state))
+      )
+        return false;
+      return true;
     });
-  }, [numbered, search]);
+  }, [numbered, search, filterState.values]);
 
   const runRemove = (targets: readonly SerialRow[]) => {
     startTransition(async () => {
@@ -260,6 +357,29 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant={filterState.activeCount > 0 ? 'default' : 'outline'}
+          onClick={() => setFilterOpen(true)}
+        >
+          <Filter className="h-4 w-4" />
+          Filter
+          {filterState.activeCount > 0 && (
+            <span className="ml-1 rounded-md bg-primary-foreground/20 px-1.5 py-0.5 font-mono text-xs">
+              {filterState.activeCount}
+            </span>
+          )}
+        </Button>
+        <FilterChips
+          values={filterState.values}
+          dimensions={dimensions}
+          onRemove={filterState.removeValue}
+          onClearAll={filterState.clearAll}
+        />
+      </div>
+
       <EntityTablePanel
         count={filtered.length}
         countLabel={filtered.length === 1 ? 'member' : 'members'}
@@ -278,6 +398,15 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
         onRowClicked={handleRowClicked}
         showColumnPicker={false}
         massActions={massActions}
+      />
+
+      <FilterDialog
+        open={filterOpen}
+        onOpenChange={setFilterOpen}
+        dimensions={dimensions}
+        values={filterState.values}
+        onApply={filterState.setValues}
+        onClearAll={filterState.clearAll}
       />
 
       <ConfirmDialog
@@ -417,4 +546,18 @@ function RowActions({
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+/**
+ * Case-insensitive dedup + sort of a nullable string list, used to
+ * derive filter-dimension option lists from the actual row set.
+ */
+function sortedUnique(values: readonly (string | null | undefined)[]): string[] {
+  const set = new Set<string>();
+  for (const v of values) {
+    if (v == null) continue;
+    const trimmed = v.trim();
+    if (trimmed.length > 0) set.add(trimmed);
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b));
 }
