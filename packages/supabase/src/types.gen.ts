@@ -499,6 +499,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           created_at: string
+          engagement: Database["core"]["Enums"]["engagement_tier"]
           id: string
           join_method: string
           joined_at: string | null
@@ -515,6 +516,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          engagement?: Database["core"]["Enums"]["engagement_tier"]
           id?: string
           join_method: string
           joined_at?: string | null
@@ -531,6 +533,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          engagement?: Database["core"]["Enums"]["engagement_tier"]
           id?: string
           join_method?: string
           joined_at?: string | null
@@ -556,6 +559,71 @@ export type Database = {
             columns: ["scope_id"]
             isOneToOne: false
             referencedRelation: "scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_status: {
+        Row: {
+          id: string
+          membership_id: string
+          fee_required: boolean
+          amount: number | null
+          currency_code: string | null
+          marked_paid_at: string | null
+          marked_paid_by: string | null
+          waived_at: string | null
+          waived_by: string | null
+          waived_reason: string | null
+          paid_on_behalf_at: string | null
+          paid_on_behalf_by: string | null
+          paid_on_behalf_note: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          membership_id: string
+          fee_required?: boolean
+          amount?: number | null
+          currency_code?: string | null
+          marked_paid_at?: string | null
+          marked_paid_by?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waived_reason?: string | null
+          paid_on_behalf_at?: string | null
+          paid_on_behalf_by?: string | null
+          paid_on_behalf_note?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          membership_id?: string
+          fee_required?: boolean
+          amount?: number | null
+          currency_code?: string | null
+          marked_paid_at?: string | null
+          marked_paid_by?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waived_reason?: string | null
+          paid_on_behalf_at?: string | null
+          paid_on_behalf_by?: string | null
+          paid_on_behalf_note?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_status_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: true
+            referencedRelation: "memberships"
             referencedColumns: ["id"]
           },
         ]
@@ -1105,9 +1173,27 @@ export type Database = {
         }
         Returns: undefined
       }
+      registration_state: {
+        Args: {
+          p_fee_required: boolean
+          p_marked_paid_at: string | null
+          p_waived_at: string | null
+          p_paid_on_behalf_at: string | null
+        }
+        Returns: string
+      }
+      notify_source_of_transfer: {
+        Args: {
+          p_source_scope_id: string
+          p_membership_id: string
+          p_actor_id: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       chapter_kind: "autonomous" | "grouping"
+      engagement_tier: "dormant" | "normal" | "engaged" | "committed"
       scope_status: "active" | "inactive" | "archived"
       scope_type:
         | "mainstream"

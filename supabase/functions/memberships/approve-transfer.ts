@@ -6,8 +6,11 @@
  * `core.perform_transfer` Postgres function (SECURITY DEFINER,
  * see the memberships migration).
  *
- * Requires `membership.transfer` at the SOURCE scope — per §2.14,
- * the source body admin approves.
+ * Requires `membership.transfer` at the DESTINATION scope
+ * (2026-07-03 flip — was source pre-flip; see
+ * memory/project_phase2_membership_locks.md #2). The source-scope
+ * admin is NOTIFIED via `core.notify_source_of_transfer` after the
+ * transfer completes, but has no approval role — informed, not vetoed.
  */
 
 import { z } from 'npm:zod@3.24.1';
@@ -64,14 +67,15 @@ export async function approveTransfer(req: Request): Promise<Response> {
     );
   }
 
+  // Authorization flipped 2026-07-03: destination approves, not source.
   const allowed = await authorize(supabase, ctx, {
     action: 'membership.transfer',
-    scopeId: t.source_scope_id,
+    scopeId: t.destination_scope_id,
   });
   if (!allowed) {
     return withCors(
       req,
-      forbidden('membership.transfer', ctx.traceId, { scopeId: t.source_scope_id }),
+      forbidden('membership.transfer', ctx.traceId, { scopeId: t.destination_scope_id }),
     );
   }
 
@@ -136,6 +140,29 @@ export async function approveTransfer(req: Request): Promise<Response> {
       newMembershipId: newId,
     },
   });
+
+  // Fan-out in-app notification to every source-scope admin. The RPC
+  // returns the count of recipients enqueued; non-fatal if it fails —
+  // the transfer already committed, and Epic 2.10's dispatcher will
+  // pick up the events later. Log and continue.
+  const { error: notifyErr } = await supabase
+    .schema('core' as never)
+    .rpc('notify_source_of_transfer' as never, {
+      p_source_scope_id: t.source_scope_id,
+      p_membership_id: (sourceMembership as { id: string }).id,
+      p_actor_id: ctx.userId,
+    });
+  if (notifyErr) {
+    console.error(
+      JSON.stringify({
+        level: 'warn',
+        traceId: ctx.traceId,
+        message: 'approve-transfer: notify_source_of_transfer failed',
+        code: notifyErr.code,
+        error: notifyErr.message,
+      }),
+    );
+  }
 
   return withCors(req, success({ transferId, newMembershipId: newId, traceId: ctx.traceId }));
 }

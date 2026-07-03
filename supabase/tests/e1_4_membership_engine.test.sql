@@ -11,6 +11,16 @@
 --      in one call.
 --   G. RLS deny — unrelated user sees 0 memberships.
 --   H. RLS happy — branch admin sees membership at their branch.
+--
+-- Added 2026-07-03 (M1 transfer-flip):
+--   I. Source-only admin has NO membership.transfer at destination
+--      (proves the Edge Function's flipped auth check denies them).
+--   J. notify_source_of_transfer enqueues a notification_events row
+--      of type membership.transfer.source_notified.
+--   K. Source membership's registration_status row is PRESERVED after
+--      transfer completes — its terminal state stays intact so we can
+--      still see "member X had unpaid dues at Branch A when they
+--      transferred to Branch B."
 
 BEGIN;
 SET LOCAL search_path = pgtap, public, audit, core, auth;
@@ -18,7 +28,7 @@ SET LOCAL search_path = pgtap, public, audit, core, auth;
 GRANT USAGE ON SCHEMA pgtap TO authenticated;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA pgtap TO authenticated;
 
-SELECT plan(10);
+SELECT plan(14);
 
 -------------------------------------------------------------------------------
 -- Setup — two branches + one autonomous + one grouping chapter, plus a member
@@ -231,6 +241,113 @@ SELECT ok(
   (SELECT COUNT(*)::int FROM core.memberships
    WHERE scope_id = '55555555-1111-0000-0000-000000000001') >= 1,
   'memberships RLS: branch admin sees memberships at their branch'
+);
+
+-------------------------------------------------------------------------------
+-- I) Transfer flip — source-only admin lacks membership.transfer at destination
+-------------------------------------------------------------------------------
+-- User B holds branch_admin at Branch A ONLY. Post-flip, approve-transfer's
+-- Edge Function checks has_permission at DESTINATION. User B's grant at
+-- Branch A does not extend to Branch B, so the check must return FALSE —
+-- proving a source-only admin cannot approve an incoming transfer.
+
+RESET ROLE;
+SET LOCAL search_path = pgtap, public, audit, core, auth;
+SET LOCAL request.jwt.claim.sub  = '55555555-0000-0000-0000-00000000bbbb';
+SET LOCAL request.jwt.claim.role = 'authenticated';
+
+SELECT is(
+  core.has_permission(
+    '55555555-0000-0000-0000-00000000bbbb',
+    '55555555-1111-0000-0000-000000000002',   -- Branch B (destination)
+    'membership.transfer'
+  ),
+  FALSE,
+  'transfer flip: user with branch_admin at source-only has NO membership.transfer at destination'
+);
+
+-------------------------------------------------------------------------------
+-- J) notify_source_of_transfer enqueues a notification_events row
+-------------------------------------------------------------------------------
+-- Reset to superuser (RESET ROLE clears the authenticated JWT). The helper
+-- is SECURITY DEFINER so it can insert into notifications regardless of
+-- the caller's grants; we just want to prove it writes what we expect.
+
+RESET ROLE;
+SET LOCAL search_path = pgtap, public, audit, core, auth, notifications;
+
+DO $$
+BEGIN
+  PERFORM core.notify_source_of_transfer(
+    '55555555-1111-0000-0000-000000000001',   -- source scope (Branch A)
+    '55555555-5555-0000-0000-000000000002',   -- the transferred membership id
+    '55555555-0000-0000-0000-00000000aaaa'    -- actor id (unrelated user)
+  );
+END $$;
+
+SELECT ok(
+  (SELECT COUNT(*)::int FROM notifications.notification_events
+   WHERE event_type = 'membership.transfer.source_notified'
+     AND payload->>'source_scope_id' = '55555555-1111-0000-0000-000000000001'
+     AND (payload->>'membership_id') = '55555555-5555-0000-0000-000000000002')
+  >= 1,
+  'notify_source_of_transfer: writes a source_notified event to source-scope admins'
+);
+
+-------------------------------------------------------------------------------
+-- K) Source registration_status row is preserved after transfer
+-------------------------------------------------------------------------------
+-- Create a NEW transfer scenario so we can prove the preservation
+-- property without depending on case F's setup. Insert a fresh member
+-- with a registration_status row that has marked_paid_at set, then
+-- perform_transfer, then assert the source's registration_status is
+-- still there with its terminal state intact.
+
+INSERT INTO core.members (
+  id, full_name, email, batch_scope_id, house_scope_id, network_scope_id
+) VALUES (
+  '55555555-4444-0000-0000-000000000003',
+  'Transfer Preserve Member',
+  'e14-preserve@shesa.test',
+  (SELECT id FROM core.scopes WHERE slug = 'batch-1953'),
+  '33333333-0000-0000-0000-000000000001',
+  '44444444-0000-0000-0000-000000000001'
+);
+
+INSERT INTO core.memberships (
+  id, member_id, scope_id, membership_status, join_method, joined_at
+) VALUES (
+  '55555555-5555-0000-0000-000000000003',
+  '55555555-4444-0000-0000-000000000003',
+  '55555555-1111-0000-0000-000000000001',    -- Branch A (source)
+  'active', 'admin_added', NOW()
+);
+
+INSERT INTO core.registration_status (
+  membership_id, fee_required, amount, currency_code,
+  marked_paid_at, marked_paid_by
+) VALUES (
+  '55555555-5555-0000-0000-000000000003',
+  TRUE, 5000, 'XAF',
+  NOW() - interval '30 days',
+  '55555555-0000-0000-0000-00000000aaaa'
+);
+
+SELECT lives_ok(
+  $$ SELECT core.perform_transfer(
+       '55555555-5555-0000-0000-000000000003',      -- source membership
+       '55555555-1111-0000-0000-000000000002',      -- destination Branch B
+       '55555555-0000-0000-0000-00000000bbbb',      -- approved_by
+       NULL
+     ) $$,
+  'preserve: perform_transfer completes for member with paid registration'
+);
+
+SELECT is(
+  (SELECT marked_paid_at IS NOT NULL FROM core.registration_status
+   WHERE membership_id = '55555555-5555-0000-0000-000000000003'),
+  TRUE,
+  'preserve: source membership registration_status row retains marked_paid_at after transfer'
 );
 
 SELECT * FROM finish();

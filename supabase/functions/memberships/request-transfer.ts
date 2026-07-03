@@ -3,10 +3,19 @@
  *
  * Creates a `pending` `core.membership_transfers` row for a member.
  * Requires `membership.transfer` at the SOURCE scope. The destination
- * admin sees the request under RLS via the destination-side clause.
+ * admin sees the request under RLS via the destination-side clause,
+ * which surfaces it in their Requests & Transfers tab (M4).
  *
  * Idempotent: if a pending transfer already exists for the same
  * member, returns 200 with the existing id.
+ *
+ * 2026-07-03 (M1 note): the destination admin is IMPLICITLY notified
+ * by the request appearing in their RLS-scoped queue. An explicit
+ * `notify_destination_of_transfer_request` fan-out would be redundant
+ * with that queue and is deferred; the source-side notification on
+ * approve-transfer (via `core.notify_source_of_transfer`) is the
+ * asymmetric case that actually needs push because the source has no
+ * queue to poll.
  */
 
 import { z } from 'npm:zod@3.24.1';
