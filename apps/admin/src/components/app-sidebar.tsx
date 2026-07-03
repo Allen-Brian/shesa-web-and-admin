@@ -2,7 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Badge, Building2, ChevronRight, GraduationCap, Home, Layers, Network } from 'lucide-react';
+import {
+  Badge,
+  Building2,
+  ChevronRight,
+  ClipboardCheck,
+  GraduationCap,
+  Home,
+  Inbox,
+  Layers,
+  Network,
+  Users,
+  UsersRound,
+} from 'lucide-react';
 
 import {
   Collapsible,
@@ -27,9 +39,10 @@ import { PERSONA_META, type Persona } from '@/lib/personas';
 interface AppSidebarProps {
   readonly persona: Persona;
   readonly canManageClusters?: boolean;
+  readonly canManageMemberships?: boolean;
 }
 
-interface ClusterNavItem {
+interface NavItem {
   readonly slug: string;
   readonly label: string;
   readonly Icon: typeof Home;
@@ -38,18 +51,50 @@ interface ClusterNavItem {
 // Clusters that have shipped so far. Order follows the association
 // hierarchy — geography (branches + chapters) first, then the
 // attribute-based groupings (batches / networks / houses).
-const CLUSTER_ITEMS: readonly ClusterNavItem[] = [
+const CLUSTER_ITEMS: readonly NavItem[] = [
   { slug: 'branches', label: 'Branches & Chapters', Icon: Building2 },
   { slug: 'batches', label: 'Batches', Icon: GraduationCap },
   { slug: 'networks', label: 'Professional Networks', Icon: Network },
   { slug: 'houses', label: 'Houses', Icon: Badge },
 ];
 
-export function AppSidebar({ persona, canManageClusters = false }: AppSidebarProps) {
+// Memberships sub-items. Each links to /[persona]/memberships/[slug](/scope).
+// The scope-slug segment is appended dynamically below when the current
+// URL already carries one — so navigating Members → Registration stays
+// on the same scope.
+const MEMBERSHIP_ITEMS: readonly NavItem[] = [
+  { slug: 'members', label: 'Members', Icon: Users },
+  { slug: 'requests-transfers', label: 'Requests & Transfers', Icon: Inbox },
+  { slug: 'registration', label: 'Registration', Icon: ClipboardCheck },
+];
+
+/**
+ * Extract the scope slug from a Memberships URL, if any. Matches
+ *   /[persona]/memberships/[subItem]/[scopeSlug](/...)
+ * Returns the scope slug or null. Used to preserve scope selection
+ * across sub-item navigation.
+ */
+function extractMembershipScopeSlug(pathname: string, persona: Persona): string | null {
+  const prefix = `/${persona}/memberships/`;
+  if (!pathname.startsWith(prefix)) return null;
+  const remainder = pathname.slice(prefix.length);
+  const parts = remainder.split('/').filter(Boolean);
+  // parts = [subItem, scopeSlug?, ...rest]
+  if (parts.length < 2) return null;
+  return parts[1] ?? null;
+}
+
+export function AppSidebar({
+  persona,
+  canManageClusters = false,
+  canManageMemberships = false,
+}: AppSidebarProps) {
   const pathname = usePathname();
   const meta = PERSONA_META[persona];
 
   const clustersActive = pathname.startsWith(`/${persona}/clusters`);
+  const membershipsActive = pathname.startsWith(`/${persona}/memberships`);
+  const membershipScope = extractMembershipScopeSlug(pathname, persona);
 
   return (
     <Sidebar collapsible="icon" variant="floating">
@@ -69,6 +114,45 @@ export function AppSidebar({ persona, canManageClusters = false }: AppSidebarPro
       </SidebarHeader>
 
       <SidebarContent>
+        {canManageMemberships && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <Collapsible asChild defaultOpen={membershipsActive} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton tooltip="Memberships" isActive={membershipsActive}>
+                        <UsersRound />
+                        <span>Memberships</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {MEMBERSHIP_ITEMS.map(({ slug, label, Icon }) => {
+                          const base = `/${persona}/memberships/${slug}`;
+                          const href = membershipScope ? `${base}/${membershipScope}` : base;
+                          const active = pathname === base || pathname.startsWith(`${base}/`);
+                          return (
+                            <SidebarMenuSubItem key={slug}>
+                              <SidebarMenuSubButton asChild isActive={active}>
+                                <Link href={href}>
+                                  <Icon />
+                                  <span>{label}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          );
+                        })}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         {canManageClusters && (
           <SidebarGroup>
             <SidebarGroupContent>

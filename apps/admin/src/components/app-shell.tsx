@@ -15,6 +15,7 @@ interface AppShellProps {
   readonly userName: string;
   readonly avatarUrl?: string;
   readonly canManageClusters?: boolean;
+  readonly canManageMemberships?: boolean;
   readonly children: React.ReactNode;
 }
 
@@ -32,6 +33,7 @@ export function AppShell({
   userName,
   avatarUrl,
   canManageClusters,
+  canManageMemberships,
   children,
 }: AppShellProps) {
   const [open, setOpen] = React.useState(true);
@@ -47,7 +49,11 @@ export function AppShell({
   return (
     <BreadcrumbProvider>
       <SidebarProvider open={open} onOpenChange={setOpen}>
-        <AppSidebar persona={persona} canManageClusters={canManageClusters} />
+        <AppSidebar
+          persona={persona}
+          canManageClusters={canManageClusters}
+          canManageMemberships={canManageMemberships}
+        />
         <SidebarInset>
           <Topbar userEmail={userEmail} userName={userName} avatarUrl={avatarUrl} />
           <main className="flex min-h-0 flex-1 flex-col px-6 py-6">{children}</main>

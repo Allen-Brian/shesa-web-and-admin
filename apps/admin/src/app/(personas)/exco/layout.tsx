@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/app-shell';
+import { resolveMemberableScopes } from '@/lib/memberships/memberable-scopes';
 import { getServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
@@ -48,6 +49,11 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
     canManageClusters = allowed === true;
   }
 
+  // Memberships sidebar visibility: any active membership.* grant at
+  // any branch / autonomous chapter / batch. Global grants also pass.
+  const memberableScopes = await resolveMemberableScopes(supabase, user.id);
+  const canManageMemberships = memberableScopes.length > 0;
+
   return (
     <AppShell
       persona="exco"
@@ -55,6 +61,7 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
       userName={userName}
       avatarUrl={profile?.avatar_url ?? undefined}
       canManageClusters={canManageClusters}
+      canManageMemberships={canManageMemberships}
     >
       {children}
     </AppShell>
