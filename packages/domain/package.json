@@ -57,6 +57,10 @@
     "./registration": {
       "types": "./src/registration/index.ts",
       "import": "./src/registration/index.ts"
+    },
+    "./audience": {
+      "types": "./src/audience/index.ts",
+      "import": "./src/audience/index.ts"
     }
   },
   "scripts": {

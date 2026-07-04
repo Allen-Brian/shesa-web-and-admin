@@ -5,12 +5,14 @@ import { usePathname } from 'next/navigation';
 import {
   Badge,
   Building2,
+  CalendarDays,
   ChevronRight,
   ClipboardCheck,
   GraduationCap,
   Home,
   Inbox,
   Layers,
+  Megaphone,
   Network,
   Users,
   UsersRound,
@@ -204,6 +206,48 @@ export function AppSidebar({
             </SidebarGroupContent>
           </SidebarGroup>
         )}
+
+        {/*
+         * Events + Announcements — flat top-level entries (no sub-nav).
+         * RLS on exco.events + exco.announcements gates visibility per
+         * ADR-0041; the list pages render an empty state for anyone
+         * without admin scopes rather than hiding the link.
+         */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  tooltip="Events"
+                  isActive={
+                    pathname === `/${persona}/events` || pathname.startsWith(`/${persona}/events/`)
+                  }
+                >
+                  <Link href={`/${persona}/events`}>
+                    <CalendarDays />
+                    <span>Events</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  tooltip="Announcements"
+                  isActive={
+                    pathname === `/${persona}/announcements` ||
+                    pathname.startsWith(`/${persona}/announcements/`)
+                  }
+                >
+                  <Link href={`/${persona}/announcements`}>
+                    <Megaphone />
+                    <span>Announcements</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );

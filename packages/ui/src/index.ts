@@ -170,6 +170,7 @@ export {
   BreadcrumbSeparator,
 } from './components/breadcrumb';
 export { DatePicker } from './components/date-picker';
+export { TimePicker, type TimePickerProps } from './components/time-picker';
 export { NativeDateInput, type NativeDateInputProps } from './components/native-date-input';
 export { Info } from './components/info';
 export { Logo } from './components/logo';

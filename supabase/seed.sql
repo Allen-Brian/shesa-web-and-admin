@@ -276,7 +276,18 @@ INNER JOIN core.permissions p ON p.key IN (
   'finance.read',
   'cms.edit',
   'connect.announce', 'connect.poll',
-  'audit.read'
+  'audit.read',
+  -- Phase 2 — announcements, events, bulk actions, palette, admin
+  -- notifications, registration waive. These were added by migration
+  -- 20260702113026_extend_permissions_phase2.sql, but that migration
+  -- ran BEFORE core.roles was populated by this seed (migrations run
+  -- first, seed second), so its INSERTs became no-ops. Listing them
+  -- here is the fix — every db:reset now grants them idempotently.
+  -- Excludes event.contribution.review (Finance role owns that).
+  'registration.waive',
+  'event.create', 'event.update', 'event.publish', 'event.cancel', 'event.archive',
+  'announcement.create', 'announcement.update', 'announcement.publish', 'announcement.archive',
+  'member.bulk_action', 'command.search', 'admin_notification.read'
 )
 WHERE r.key = 'branch_admin'
 ON CONFLICT DO NOTHING;
@@ -302,7 +313,14 @@ INNER JOIN core.permissions p ON p.key IN (
   'role.grant',
   'finance.read',
   'cms.edit',
-  'connect.announce'
+  'connect.announce',
+  -- Phase 2 — same fix as branch_admin above. Batch admins get
+  -- announcements + bulk actions + palette + notifications +
+  -- registration waive. No event creation (batches don't own the
+  -- geographic Exco calendar).
+  'registration.waive',
+  'announcement.create', 'announcement.update', 'announcement.publish', 'announcement.archive',
+  'member.bulk_action', 'command.search', 'admin_notification.read'
 )
 WHERE r.key = 'batch_admin'
 ON CONFLICT DO NOTHING;

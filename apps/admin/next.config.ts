@@ -12,11 +12,13 @@ const nextConfig: NextConfig = {
   experimental: {
     // Most admin mutations flow Server Action -> Edge Function (ADR-0033).
     // A few (profile-owned single-row updates, member imports with
-    // attached CSVs) run directly through the server supabase client
-    // and can carry small payloads. 2mb covers a couple of MB of CSV
-    // + prose — anything larger goes through direct-to-storage upload.
+    // attached CSVs, event advert-image uploads) run directly through
+    // the server supabase client. Bumped to 20mb to accept the
+    // event-advert-images path — the bucket itself caps individual
+    // files at 5mb, so this leaves headroom for a multi-file
+    // selection sent through one action call.
     serverActions: {
-      bodySizeLimit: '2mb',
+      bodySizeLimit: '20mb',
     },
   },
 };
