@@ -7,6 +7,7 @@ import { StatsCard } from '@shesa/ui';
 import type { ExcoBadgeInfo } from '@/components/governance/exco-badge';
 
 import { AddMemberDialog } from './add-member-dialog';
+import { BatchImportDialog } from './batch-import-dialog';
 import { MembersTable } from './members-table';
 
 export interface MembersPageScope {
@@ -72,7 +73,11 @@ export function MembersPage({ scope, rows }: MembersPageProps) {
 
       <MembersTable scope={scope} rows={rows} onAdd={() => setAddOpen(true)} />
 
-      <AddMemberDialog scope={scope} open={addOpen} onOpenChange={setAddOpen} />
+      {isBatch ? (
+        <BatchImportDialog scope={scope} open={addOpen} onOpenChange={setAddOpen} />
+      ) : (
+        <AddMemberDialog scope={scope} open={addOpen} onOpenChange={setAddOpen} />
+      )}
     </div>
   );
 }
