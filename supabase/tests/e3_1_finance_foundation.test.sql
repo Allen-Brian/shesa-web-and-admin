@@ -287,11 +287,11 @@ SELECT throws_ok(
 -------------------------------------------------------------------------------
 -- M) Treasury balances direct UPDATE raises without the GUC
 -------------------------------------------------------------------------------
--- The ledger-writing path (M6) will set finance.writing_ledger=on inside
--- a SECURITY DEFINER RPC. Without that GUC, direct UPDATEs raise 42501.
-
-INSERT INTO finance.treasury_balances (scope_id, balance, currency)
-VALUES ('77777777-1111-0000-0000-000000000001', 0, 'XAF');
+-- The ledger-writing path (M6) sets finance.writing_ledger=on inside its
+-- SECURITY DEFINER writer. Without that GUC, direct UPDATEs raise 42501.
+-- The balance row was auto-created by the M6 write_ledger_from_payment
+-- trigger when the earlier payment INSERT fired — no explicit seed
+-- needed here.
 
 SELECT throws_ok(
   $$ UPDATE finance.treasury_balances
