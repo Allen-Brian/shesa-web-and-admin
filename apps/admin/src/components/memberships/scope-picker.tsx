@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Building2, GraduationCap, Landmark } from 'lucide-react';
+import { Building2, Landmark } from 'lucide-react';
 
 import type { MemberableScope } from '@/lib/memberships/memberable-scopes';
 
@@ -14,18 +14,15 @@ interface ScopePickerProps {
 
 /**
  * Shared scope-picker for the three Memberships landing pages. Groups
- * scopes by type (branches, autonomous chapters, batches) and shows a
- * "not-applicable" hint on batches when the caller sub-item is
- * requests-transfers or registration.
+ * scopes by type (branches vs autonomous chapters). Batches are no
+ * longer memberable — they became a cluster-only filter in the
+ * 2026-07-05 batch-admin drop.
  */
 export function ScopePicker({ persona, subItem, scopes, title, subtitle }: ScopePickerProps) {
   const branches = scopes.filter((s) => s.scope_type === 'branch');
   const chapters = scopes.filter(
     (s) => s.scope_type === 'chapter' && s.chapter_kind === 'autonomous',
   );
-  const batches = scopes.filter((s) => s.scope_type === 'batch');
-
-  const batchesApplicable = subItem === 'members';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
@@ -59,27 +56,6 @@ export function ScopePicker({ persona, subItem, scopes, title, subtitle }: Scope
           ))}
         </Section>
       )}
-
-      {batches.length > 0 && (
-        <Section
-          label="Batches"
-          Icon={GraduationCap}
-          note={
-            batchesApplicable
-              ? undefined
-              : "Batches carry members only — Requests & Transfers and Registration don't apply."
-          }
-        >
-          {batches.map((s) => (
-            <ScopeCard
-              key={s.id}
-              href={batchesApplicable ? `/${persona}/memberships/${subItem}/${s.slug}` : undefined}
-              name={s.name}
-              slug={s.slug}
-            />
-          ))}
-        </Section>
-      )}
     </div>
   );
 }
@@ -87,22 +63,17 @@ export function ScopePicker({ persona, subItem, scopes, title, subtitle }: Scope
 function Section({
   label,
   Icon,
-  note,
   children,
 }: {
   readonly label: string;
   readonly Icon: typeof Building2;
-  readonly note?: string;
   readonly children: React.ReactNode;
 }) {
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          <Icon className="h-4 w-4" />
-          <span>{label}</span>
-        </div>
-        {note && <p className="text-xs text-muted-foreground">{note}</p>}
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <Icon className="h-4 w-4" />
+        <span>{label}</span>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
     </section>
@@ -114,22 +85,16 @@ function ScopeCard({
   name,
   slug,
 }: {
-  readonly href: string | undefined;
+  readonly href: string;
   readonly name: string;
   readonly slug: string;
 }) {
-  const body = (
-    <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/60 hover:bg-primary/5">
-      <div className="text-sm font-medium text-foreground">{name}</div>
-      <div className="font-mono text-xs text-muted-foreground">{slug}</div>
-    </div>
-  );
-  if (!href) {
-    return (
-      <div className="cursor-not-allowed opacity-50" aria-disabled>
-        {body}
+  return (
+    <Link href={href}>
+      <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/60 hover:bg-primary/5">
+        <div className="text-sm font-medium text-foreground">{name}</div>
+        <div className="font-mono text-xs text-muted-foreground">{slug}</div>
       </div>
-    );
-  }
-  return <Link href={href}>{body}</Link>;
+    </Link>
+  );
 }

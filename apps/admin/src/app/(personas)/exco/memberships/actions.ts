@@ -24,7 +24,7 @@ export type ActionResult = { ok: true; message?: string } | { ok: false; message
 
 export async function setEngagement(input: {
   membershipIds: readonly string[];
-  tier: 'dormant' | 'normal' | 'engaged' | 'committed';
+  tier: 'dormant' | 'normal' | 'engaged' | 'committed' | 'pillar';
 }): Promise<ActionResult> {
   if (input.membershipIds.length === 0) {
     return { ok: false, message: 'No memberships selected.' };

@@ -58,7 +58,6 @@ interface MemberOption {
  */
 export function AddMemberDialog({ scope, open, onOpenChange }: AddMemberDialogProps) {
   const router = useRouter();
-  const isBatch = scope.scope_type === 'batch';
 
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -77,10 +76,10 @@ export function AddMemberDialog({ scope, open, onOpenChange }: AddMemberDialogPr
 
   // Debounce query → 200ms.
   useEffect(() => {
-    if (!open || isBatch) return;
+    if (!open) return;
     const h = setTimeout(() => setDebounced(query.trim()), 200);
     return () => clearTimeout(h);
-  }, [query, open, isBatch]);
+  }, [query, open]);
 
   const runSearch = useCallback(async (q: string) => {
     if (q.length < 2) {
@@ -164,60 +163,52 @@ export function AddMemberDialog({ scope, open, onOpenChange }: AddMemberDialogPr
         <DialogHeader>
           <DialogTitle>Add member to {scope.name}</DialogTitle>
           <DialogDescription>
-            {isBatch
-              ? 'Batches use import for onboarding — bulk-add members by uploading a roster. Single-add lands with the Members epic.'
-              : 'Search an existing member by name, email, or phone. If they already belong to another branch, a transfer request will be created.'}
+            Search an existing member by name, email, or phone. If they already belong to another
+            branch, a transfer request will be created.
           </DialogDescription>
         </DialogHeader>
 
-        {isBatch ? (
-          <div className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
-            Batch import flow lands with the members epic. For now, ask a mainstream admin to create
-            the batch member via the members Edge Function or the import pipeline.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <Label>Search</Label>
-            <Command shouldFilter={false}>
-              <CommandInput
-                placeholder="Search by name, email, or phone…"
-                value={query}
-                onValueChange={setQuery}
-              />
-              <CommandList className="max-h-72">
-                <CommandEmpty>
-                  {query.length < 2
-                    ? 'Type at least two characters to search.'
-                    : loading
-                      ? 'Searching…'
-                      : 'No member matches.'}
-                </CommandEmpty>
-                {options.length > 0 && (
-                  <CommandGroup
-                    heading={`${options.length} match${options.length === 1 ? '' : 'es'}`}
-                  >
-                    {options.map((m) => (
-                      <CommandItem
-                        key={m.id}
-                        value={m.id}
-                        onSelect={() => handlePick(m.id, m.full_name)}
-                        className="flex flex-col items-start gap-0.5"
-                      >
-                        <div className="flex w-full items-center gap-2">
-                          <Search className="h-3.5 w-3.5 opacity-60" />
-                          <span className="text-sm font-medium">{m.full_name}</span>
-                        </div>
-                        <div className="pl-5 text-xs text-muted-foreground">
-                          {[m.batch_name, m.email, m.phone].filter(Boolean).join(' · ') || '—'}
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                )}
-              </CommandList>
-            </Command>
-          </div>
-        )}
+        <div className="flex flex-col gap-3">
+          <Label>Search</Label>
+          <Command shouldFilter={false}>
+            <CommandInput
+              placeholder="Search by name, email, or phone…"
+              value={query}
+              onValueChange={setQuery}
+            />
+            <CommandList className="max-h-72">
+              <CommandEmpty>
+                {query.length < 2
+                  ? 'Type at least two characters to search.'
+                  : loading
+                    ? 'Searching…'
+                    : 'No member matches.'}
+              </CommandEmpty>
+              {options.length > 0 && (
+                <CommandGroup
+                  heading={`${options.length} match${options.length === 1 ? '' : 'es'}`}
+                >
+                  {options.map((m) => (
+                    <CommandItem
+                      key={m.id}
+                      value={m.id}
+                      onSelect={() => handlePick(m.id, m.full_name)}
+                      className="flex flex-col items-start gap-0.5"
+                    >
+                      <div className="flex w-full items-center gap-2">
+                        <Search className="h-3.5 w-3.5 opacity-60" />
+                        <span className="text-sm font-medium">{m.full_name}</span>
+                      </div>
+                      <div className="pl-5 text-xs text-muted-foreground">
+                        {[m.batch_name, m.email, m.phone].filter(Boolean).join(' · ') || '—'}
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </CommandList>
+          </Command>
+        </div>
 
         <div className="flex justify-end gap-2">
           <Button

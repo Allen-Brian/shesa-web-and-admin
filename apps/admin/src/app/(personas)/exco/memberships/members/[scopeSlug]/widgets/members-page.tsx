@@ -7,14 +7,13 @@ import { StatsCard } from '@shesa/ui';
 import type { ExcoBadgeInfo } from '@/components/governance/exco-badge';
 
 import { AddMemberDialog } from './add-member-dialog';
-import { BatchImportDialog } from './batch-import-dialog';
 import { MembersTable } from './members-table';
 
 export interface MembersPageScope {
   readonly id: string;
   readonly slug: string;
   readonly name: string;
-  readonly scope_type: 'branch' | 'chapter' | 'batch';
+  readonly scope_type: 'branch' | 'chapter';
   readonly chapter_kind: 'autonomous' | 'grouping' | null;
 }
 
@@ -47,14 +46,11 @@ export function MembersPage({ scope, rows }: MembersPageProps) {
   const pendingCount = rows.filter((r) => r.membership_status === 'pending').length;
   const passiveCount = rows.filter((r) => r.membership_status === 'passive').length;
 
-  const isBatch = scope.scope_type === 'batch';
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
       <div className="flex flex-col gap-1">
         <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Memberships ·{' '}
-          {isBatch ? 'Batch' : scope.scope_type === 'chapter' ? 'Autonomous chapter' : 'Branch'}
+          Memberships · {scope.scope_type === 'chapter' ? 'Autonomous chapter' : 'Branch'}
         </div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">{scope.name}</h1>
         <p className="font-mono text-xs text-muted-foreground">{scope.slug}</p>
@@ -64,20 +60,12 @@ export function MembersPage({ scope, rows }: MembersPageProps) {
         <StatsCard label="Total" value={rows.length} />
         <StatsCard label="Active" value={activeCount} />
         <StatsCard label="Passive" value={passiveCount} />
-        {isBatch ? (
-          <StatsCard label="Batch" value="—" />
-        ) : (
-          <StatsCard label="Pending" value={pendingCount} />
-        )}
+        <StatsCard label="Pending" value={pendingCount} />
       </div>
 
       <MembersTable scope={scope} rows={rows} onAdd={() => setAddOpen(true)} />
 
-      {isBatch ? (
-        <BatchImportDialog scope={scope} open={addOpen} onOpenChange={setAddOpen} />
-      ) : (
-        <AddMemberDialog scope={scope} open={addOpen} onOpenChange={setAddOpen} />
-      )}
+      <AddMemberDialog scope={scope} open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }

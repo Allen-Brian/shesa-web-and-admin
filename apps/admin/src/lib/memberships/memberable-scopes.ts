@@ -1,23 +1,28 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * Resolves the set of scopes a given user can manage memberships at.
+ * Resolves the set of branch-like scopes a given user administers.
  *
- * A scope is "memberable" if:
- *   - Its scope_type is `branch` OR `batch`, OR
- *     it's a `chapter` with `chapter_kind = 'autonomous'`.
- *   - Grouping chapters are explicitly excluded (spec invariant).
+ * A scope is "memberable" (as of 2026-07-05) if:
+ *   - Its scope_type is `branch`, OR
+ *   - It's a `chapter` with `chapter_kind = 'autonomous'`.
  *
- * A user is admitted for that scope if:
- *   - They hold `member.read` at that scope (scoped grant), OR
- *   - They hold `member.read` with `scope_id = NULL` (global grant →
- *     sees every memberable scope).
+ * Batches, grouping chapters, houses, and networks are NOT memberable —
+ * batches became a cluster-only filter dimension in the 2026-07-05
+ * batch-admin drop, and grouping-chapters have never had their own
+ * membership rolls.
  *
- * `member.read` is the right gate — it's the "can view members here"
- * permission every membership admin holds. `membership.*` keys are
- * more specific (approve join / transfer / mark passive) and per-page
- * gates check them again server-side. This helper only decides
- * sidebar visibility + landing-page scope enumeration.
+ * A user is admitted for a scope only if they hold `member.read` at
+ * that scope via a **scoped** grant (`scope_id = <branch>`). Global
+ * grants (`scope_id IS NULL`) do NOT admit into Memberships — the
+ * global mainstream_admin browses members through Clusters instead,
+ * matching the "Memberships is exclusive to branches" lock. This is
+ * a UI navigation rule; RLS still lets the global admin read every
+ * member row, they just don't get the Memberships sidebar section.
+ *
+ * `member.read` is the right gate — every branch admin holds it, and
+ * per-page gates on Requests / Transfers / Registration re-check
+ * their finer-grained permissions server-side.
  *
  * Used by:
  *   - The exco layout's `canManageMemberships` flag (any result → TRUE).
@@ -26,15 +31,14 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  *   - The scope-picker widget.
  *
  * Runs under the caller's JWT — RLS on `role_assignments` restricts
- * results to their own grants. `has_permission`'s self-introspection
- * guard applies via the RLS policies.
+ * results to their own grants.
  */
 
 export interface MemberableScope {
   readonly id: string;
   readonly slug: string;
   readonly name: string;
-  readonly scope_type: 'branch' | 'chapter' | 'batch';
+  readonly scope_type: 'branch' | 'chapter';
   readonly chapter_kind: 'autonomous' | 'grouping' | null;
 }
 
@@ -48,9 +52,6 @@ export async function resolveMemberableScopes(
   supabase: AnySupabaseClient,
   userId: string,
 ): Promise<MemberableScope[]> {
-  // 1. Fetch every active role_assignment for the user that carries
-  //    `member.read`. Two shapes matter: scope_id set (scoped grant)
-  //    and scope_id NULL (global grant).
   const { data: grants } = await supabase
     .schema('core' as never)
     .from('role_assignments' as never)
@@ -69,6 +70,7 @@ export async function resolveMemberableScopes(
     )
     .eq('user_id', userId)
     .is('revoked_at', null)
+    .not('scope_id', 'is', null)
     .lte('starts_at', new Date().toISOString());
 
   interface RawGrant {
@@ -82,34 +84,26 @@ export async function resolveMemberableScopes(
   }
 
   const now = Date.now();
-  const activeGrants = ((grants as RawGrant[] | null) ?? []).filter(
-    (g) => !g.ends_at || new Date(g.ends_at).getTime() > now,
-  );
-
-  const hasMemberRead = (g: RawGrant) =>
-    g.role?.role_permissions.some((rp) => rp.permissions?.key === 'member.read') ?? false;
-
-  const hasGlobalGrant = activeGrants.some((g) => g.scope_id === null && hasMemberRead(g));
   const scopedIds = new Set(
-    activeGrants
-      .filter((g) => g.scope_id !== null && hasMemberRead(g))
+    ((grants as RawGrant[] | null) ?? [])
+      .filter((g) => !g.ends_at || new Date(g.ends_at).getTime() > now)
+      .filter(
+        (g) =>
+          g.scope_id !== null &&
+          (g.role?.role_permissions.some((rp) => rp.permissions?.key === 'member.read') ?? false),
+      )
       .map((g) => g.scope_id as string),
   );
 
-  if (!hasGlobalGrant && scopedIds.size === 0) return [];
+  if (scopedIds.size === 0) return [];
 
-  // 2. Fetch candidate scopes. Global grant → all memberable scopes;
-  //    otherwise → just the scoped-grant IDs.
-  const query = supabase
+  const { data: candidates } = await supabase
     .schema('core' as never)
     .from('scopes' as never)
     .select('id, slug, name, scope_type, chapter_kind, status')
     .eq('status', 'active')
-    .in('scope_type', ['branch', 'chapter', 'batch']);
-
-  const { data: candidates } = hasGlobalGrant
-    ? await query
-    : await query.in('id', Array.from(scopedIds));
+    .in('id', Array.from(scopedIds))
+    .in('scope_type', ['branch', 'chapter']);
 
   interface RawScope {
     id: string;
@@ -121,9 +115,8 @@ export async function resolveMemberableScopes(
 
   return ((candidates as RawScope[] | null) ?? [])
     .filter((s) => {
-      if (s.scope_type === 'branch' || s.scope_type === 'batch') return true;
+      if (s.scope_type === 'branch') return true;
       if (s.scope_type === 'chapter' && s.chapter_kind === 'autonomous') return true;
-      // Explicit grouping-chapter exclusion — spec invariant.
       return false;
     })
     .map((s) => ({

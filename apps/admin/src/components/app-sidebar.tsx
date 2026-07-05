@@ -42,13 +42,6 @@ interface AppSidebarProps {
   readonly persona: Persona;
   readonly canManageClusters?: boolean;
   readonly canManageMemberships?: boolean;
-  /**
-   * True when the current user has membership access at any BRANCH-LIKE
-   * scope (branch or autonomous chapter). Only branch-like scopes carry
-   * join requests, transfers, and registration fees — batch admins
-   * (batch-only grants) never need those sub-items in the sidebar.
-   */
-  readonly hasBranchLikeMembership?: boolean;
 }
 
 interface NavItem {
@@ -71,14 +64,10 @@ const CLUSTER_ITEMS: readonly NavItem[] = [
 // The scope-slug segment is appended dynamically below when the current
 // URL already carries one — so navigating Members → Registration stays
 // on the same scope.
-//
-// `branchLikeOnly` sub-items only render for users who have a
-// branch-or-autonomous-chapter grant — batch-only admins don't see
-// Requests & Transfers or Registration since batches don't hold either.
-const MEMBERSHIP_ITEMS: readonly (NavItem & { readonly branchLikeOnly?: boolean })[] = [
+const MEMBERSHIP_ITEMS: readonly NavItem[] = [
   { slug: 'members', label: 'Members', Icon: Users },
-  { slug: 'requests-transfers', label: 'Requests & Transfers', Icon: Inbox, branchLikeOnly: true },
-  { slug: 'registration', label: 'Registration', Icon: ClipboardCheck, branchLikeOnly: true },
+  { slug: 'requests-transfers', label: 'Requests & Transfers', Icon: Inbox },
+  { slug: 'registration', label: 'Registration', Icon: ClipboardCheck },
 ];
 
 /**
@@ -101,7 +90,6 @@ export function AppSidebar({
   persona,
   canManageClusters = false,
   canManageMemberships = false,
-  hasBranchLikeMembership = false,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const meta = PERSONA_META[persona];
@@ -143,9 +131,7 @@ export function AppSidebar({
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        {MEMBERSHIP_ITEMS.filter(
-                          (item) => !item.branchLikeOnly || hasBranchLikeMembership,
-                        ).map(({ slug, label, Icon }) => {
+                        {MEMBERSHIP_ITEMS.map(({ slug, label, Icon }) => {
                           const base = `/${persona}/memberships/${slug}`;
                           const href = membershipScope ? `${base}/${membershipScope}` : base;
                           const active = pathname === base || pathname.startsWith(`${base}/`);

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Filter, MoreHorizontal, Sparkles, Trash2, UserMinus } from 'lucide-react';
+import { Filter, MoreHorizontal, Sparkles, UserMinus } from 'lucide-react';
 
 import {
   Badge,
@@ -45,7 +45,7 @@ interface MembersTableProps {
   readonly onAdd?: () => void;
 }
 
-const ENGAGEMENT_TIERS = ['dormant', 'normal', 'engaged', 'committed'] as const;
+const ENGAGEMENT_TIERS = ['dormant', 'normal', 'engaged', 'committed', 'pillar'] as const;
 
 export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
   const router = useRouter();
@@ -55,7 +55,6 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
   const [filterOpen, setFilterOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const isBatch = scope.scope_type === 'batch';
   const isBranch = scope.scope_type === 'branch';
 
   const filterState = useFilterState();
@@ -65,20 +64,17 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
     [rows],
   );
 
-  // Build filter-dimension configs from what's actually present in the
-  // row set, so no dead options ever appear. Scope-aware exclusion:
-  // Batch dimension hidden when viewer is a batch, Branch dimension
-  // hidden when viewer is a branch (matches the column-hide rule).
+  // Filter dimensions built from actual row values (no dead options).
+  // Scope-aware exclusion: Branch dimension hidden when viewer is a
+  // branch (matches the column-hide rule).
   const dimensions = useMemo<FilterDimensionConfig[]>(() => {
     const configs: FilterDimensionConfig[] = [];
 
-    if (!isBatch) {
-      configs.push({
-        dimension: 'batch',
-        label: 'Batch',
-        options: sortedUnique(rows.map((r) => r.batch_name)).map((v) => ({ value: v, label: v })),
-      });
-    }
+    configs.push({
+      dimension: 'batch',
+      label: 'Batch',
+      options: sortedUnique(rows.map((r) => r.batch_name)).map((v) => ({ value: v, label: v })),
+    });
     if (!isBranch) {
       configs.push({
         dimension: 'branch',
@@ -96,42 +92,40 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
       label: 'Network',
       options: sortedUnique(rows.map((r) => r.network_name)).map((v) => ({ value: v, label: v })),
     });
-    if (!isBatch) {
-      configs.push({
-        dimension: 'engagement',
-        label: 'Engagement',
-        options: (['dormant', 'normal', 'engaged', 'committed'] as const).map((v) => ({
+    configs.push({
+      dimension: 'engagement',
+      label: 'Engagement',
+      options: ENGAGEMENT_TIERS.map((v) => ({
+        value: v,
+        label: v.charAt(0).toUpperCase() + v.slice(1),
+      })),
+    });
+    configs.push({
+      dimension: 'membership',
+      label: 'Membership status',
+      options: (['active', 'passive', 'pending'] as const).map((v) => ({
+        value: v,
+        label: v.charAt(0).toUpperCase() + v.slice(1),
+      })),
+    });
+    configs.push({
+      dimension: 'registration',
+      label: 'Registration',
+      options: (['not_required', 'pending', 'paid', 'paid_on_behalf', 'waived'] as const).map(
+        (v) => ({
           value: v,
-          label: v.charAt(0).toUpperCase() + v.slice(1),
-        })),
-      });
-      configs.push({
-        dimension: 'membership',
-        label: 'Membership status',
-        options: (['active', 'passive', 'pending'] as const).map((v) => ({
-          value: v,
-          label: v.charAt(0).toUpperCase() + v.slice(1),
-        })),
-      });
-      configs.push({
-        dimension: 'registration',
-        label: 'Registration',
-        options: (['not_required', 'pending', 'paid', 'paid_on_behalf', 'waived'] as const).map(
-          (v) => ({
-            value: v,
-            label:
-              v === 'not_required'
-                ? 'Not required'
-                : v === 'paid_on_behalf'
-                  ? 'Paid on behalf'
-                  : v.charAt(0).toUpperCase() + v.slice(1),
-          }),
-        ),
-      });
-    }
+          label:
+            v === 'not_required'
+              ? 'Not required'
+              : v === 'paid_on_behalf'
+                ? 'Paid on behalf'
+                : v.charAt(0).toUpperCase() + v.slice(1),
+        }),
+      ),
+    });
 
     return configs;
-  }, [isBatch, isBranch, rows]);
+  }, [isBranch, rows]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -191,7 +185,7 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
 
   const runSetEngagement = (
     targets: readonly SerialRow[],
-    tier: 'dormant' | 'normal' | 'engaged' | 'committed',
+    tier: (typeof ENGAGEMENT_TIERS)[number],
   ) => {
     const membershipIds = targets.map((t) => t.membership_id).filter((id): id is string => !!id);
     if (membershipIds.length === 0) {
@@ -237,19 +231,16 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
       },
     ];
 
-    // Batch column: hidden when viewer scope is a batch (redundant).
-    if (!isBatch) {
-      defs.push({
-        headerName: 'Batch',
-        field: 'batch_name',
-        width: 120,
-        valueFormatter: (p) => p.value ?? '—',
-      });
-    }
+    defs.push({
+      headerName: 'Batch',
+      field: 'batch_name',
+      width: 120,
+      valueFormatter: (p) => p.value ?? '—',
+    });
 
     // Branch column: hidden when viewer scope is a branch (redundant).
-    // Shown for batch context so a batch admin can see where each of
-    // their members currently belongs geographically.
+    // Kept for autonomous-chapter context so their members' geographic
+    // affiliation stays visible.
     if (!isBranch) {
       defs.push({
         headerName: 'Branch',
@@ -281,10 +272,8 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
       },
     );
 
-    // Engagement + membership_status are always distinct columns for
-    // branch/chapter contexts. For batches, both are '—' — batches
-    // don't carry membership rows so they have no engagement or per-
-    // scope membership status.
+    // Engagement + membership_status stay as two distinct columns —
+    // they answer different questions and MUST NOT be collapsed.
     defs.push({
       headerName: 'Membership',
       field: 'membership_status',
@@ -302,17 +291,14 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
       ),
     });
 
-    // Registration column: only meaningful for branch/chapter memberships.
-    if (!isBatch) {
-      defs.push({
-        headerName: 'Registration',
-        field: 'registration_state',
-        width: 150,
-        cellRenderer: (p: ICellRendererParams<SerialRow, string | null>) => (
-          <RegistrationBadge state={p.value ?? null} />
-        ),
-      });
-    }
+    defs.push({
+      headerName: 'Registration',
+      field: 'registration_state',
+      width: 150,
+      cellRenderer: (p: ICellRendererParams<SerialRow, string | null>) => (
+        <RegistrationBadge state={p.value ?? null} />
+      ),
+    });
 
     defs.push({
       headerName: 'Actions',
@@ -325,7 +311,6 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
         params.data ? (
           <RowActions
             row={params.data}
-            isBatch={isBatch}
             onRemove={() => setConfirm({ kind: 'remove', targets: [params.data as SerialRow] })}
             onSetEngagement={(tier) => runSetEngagement([params.data as SerialRow], tier)}
           />
@@ -333,7 +318,7 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
     });
 
     return defs;
-  }, [isBatch, isBranch]);
+  }, [isBranch]);
 
   const handleRowClicked = (e: RowClickedEvent<SerialRow>) => {
     if (!e.data) return;
@@ -345,14 +330,12 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
       itemName: 'member',
       pluralItemName: 'members',
       onDelete: (selected) => setConfirm({ kind: 'remove', targets: selected }),
-      custom: isBatch
-        ? undefined
-        : ENGAGEMENT_TIERS.map((tier) => ({
-            label: `Set engagement: ${tier}`,
-            onClick: (selected: SerialRow[]) => runSetEngagement(selected, tier),
-          })),
+      custom: ENGAGEMENT_TIERS.map((tier) => ({
+        label: `Set engagement: ${tier}`,
+        onClick: (selected: SerialRow[]) => runSetEngagement(selected, tier),
+      })),
     }),
-    [isBatch],
+    [],
   );
 
   return (
@@ -412,11 +395,7 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
       <ConfirmDialog
         open={!!confirm}
         title={buildConfirmTitle(confirm)}
-        description={
-          isBatch
-            ? 'Removing a member from the batch keeps their record but detaches them from this batch. Not undoable without recreating the link.'
-            : 'Removing a member ends their membership at this scope. Their record is preserved.'
-        }
+        description="Removing a member ends their membership at this scope. Their record is preserved."
         confirmLabel="Remove"
         onConfirm={() => {
           if (!confirm) return;
@@ -494,12 +473,10 @@ function RegistrationBadge({ state }: { readonly state: string | null }) {
 
 function RowActions({
   row,
-  isBatch,
   onRemove,
   onSetEngagement,
 }: {
   readonly row: SerialRow;
-  readonly isBatch: boolean;
   readonly onRemove: () => void;
   readonly onSetEngagement: (tier: (typeof ENGAGEMENT_TIERS)[number]) => void;
 }) {
@@ -518,7 +495,7 @@ function RowActions({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-        {!isBatch && row.membership_id && (
+        {row.membership_id && (
           <>
             <DropdownMenuLabel>Engagement</DropdownMenuLabel>
             {ENGAGEMENT_TIERS.map((tier) => (
@@ -531,17 +508,8 @@ function RowActions({
           </>
         )}
         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onRemove}>
-          {isBatch ? (
-            <>
-              <Trash2 className="h-4 w-4" />
-              Detach from batch
-            </>
-          ) : (
-            <>
-              <UserMinus className="h-4 w-4" />
-              Remove from scope
-            </>
-          )}
+          <UserMinus className="h-4 w-4" />
+          Remove from scope
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
