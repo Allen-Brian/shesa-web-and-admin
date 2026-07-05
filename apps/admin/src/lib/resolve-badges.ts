@@ -4,16 +4,19 @@
  * calls this once with the visible ids and hands the returned map to
  * the client component tree, which then wraps each name in `MemberName`.
  *
- * Two-tier rule per the 2026-07-03 governance spec:
- *   - Global tier: any active position_assignment whose scope is
- *     mainstream.
- *   - Local tier: any active position_assignment whose scope is
- *     branch, chapter (either kind), or autonomous batch.
+ * Two-tier rule (2026-07-05 restructure — batch tier retired):
+ *   - global tier: any active position_assignment whose scope is
+ *     mainstream. Rendered as the gold crown medallion.
+ *   - branch tier: any active position_assignment whose scope is a
+ *     branch OR autonomous chapter. Rendered as the steel-blue shield.
  *
- * Members may hold multiple positions; the "highest tier wins" rule
- * picks global > local, and within a tier we pick by scope size
- * (mainstream > branch > chapter > batch) then position sort_order.
- * That ranking lives in `pickPrimaryBadge` below.
+ * Batch position_assignments still exist in the catalog but don't
+ * produce an Exco badge (batches aren't a governance scope after the
+ * 2026-07-05 lock). They surface in a member's roles list instead.
+ *
+ * Members may hold multiple positions; "highest tier wins" picks
+ * global > branch, and within a tier we pick by scope size (mainstream >
+ * branch > chapter) then position sort_order.
  */
 
 import type { ExcoBadgeInfo } from '@/components/governance/exco-badge';
@@ -41,9 +44,9 @@ interface CatalogRow {
   sort_order: number;
 }
 
-const TIER_RANK: Record<'global' | 'local', number> = {
+const TIER_RANK: Record<'global' | 'branch', number> = {
   global: 0,
-  local: 1,
+  branch: 1,
 };
 const SCOPE_RANK: Record<ScopeRow['scope_type'], number> = {
   mainstream: 0,
@@ -106,10 +109,19 @@ export async function resolveMemberBadges(
         const scope = scopeById.get(p.scope_id);
         const cat = catalogById.get(p.position_catalog_id);
         if (!scope || !cat) return null;
-        const tier: 'global' | 'local' = scope.scope_type === 'mainstream' ? 'global' : 'local';
+        // Batches don't produce Exco badges (they're not a governance
+        // scope after 2026-07-05). Houses/networks were never eligible.
+        if (
+          scope.scope_type === 'batch' ||
+          scope.scope_type === 'house' ||
+          scope.scope_type === 'network'
+        ) {
+          return null;
+        }
+        const tier: 'global' | 'branch' = scope.scope_type === 'mainstream' ? 'global' : 'branch';
         return { tier, scope, cat };
       })
-      .filter((x): x is { tier: 'global' | 'local'; scope: ScopeRow; cat: CatalogRow } => !!x);
+      .filter((x): x is { tier: 'global' | 'branch'; scope: ScopeRow; cat: CatalogRow } => !!x);
     if (decorated.length === 0) continue;
 
     decorated.sort((a, b) => {
