@@ -17,6 +17,31 @@ export const AUDIT_ACTIONS = [
   'permission.checked_denied',
   'member.invited',
   'member.invite_resent',
+  // ─── Phase 3 finance ────────────────────────────────────────────────
+  // Verb+object per convention. State nouns ('paid', 'forgiven',
+  // 'cancelled') stay in the DB enums; audit actions are the
+  // transitions that produce them.
+  'charge.created',
+  'charge.updated',
+  'charge.archived',
+  'contribution.approved',
+  'contribution.extended',
+  'donation.recorded',
+  'payment.recorded',
+  'payment.recorded_on_behalf',
+  'payment.reversed',
+  'obligation.generated',
+  'obligation.cancelled',
+  'obligation.forgiven',
+  'exception.created',
+  'exception.applied_individual',
+  'expense.recorded',
+  'expense.approved',
+  'expense.reversed',
+  'expense_settings.updated',
+  'exchange_rate.set',
+  'receipt.generated',
+  'receipt.verified',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

@@ -61,6 +61,10 @@
     "./audience": {
       "types": "./src/audience/index.ts",
       "import": "./src/audience/index.ts"
+    },
+    "./finance": {
+      "types": "./src/finance/index.ts",
+      "import": "./src/finance/index.ts"
     }
   },
   "scripts": {
