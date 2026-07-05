@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, FileSpreadsheet, Upload, XCircle } from 'lucide-react';
+import { CheckCircle2, Download, FileSpreadsheet, Upload, XCircle } from 'lucide-react';
 
 import {
   Button,
@@ -119,8 +119,16 @@ export function BatchImportDialog({ scope, open, onOpenChange }: BatchImportDial
         toast.error(result.message);
         return;
       }
+      const inviteHint =
+        result.invitesSent > 0
+          ? ` ${result.invitesSent} invite${result.invitesSent === 1 ? '' : 's'} sent.`
+          : '';
+      const failedHint =
+        result.invitesFailed > 0
+          ? ` ${result.invitesFailed} invite${result.invitesFailed === 1 ? '' : 's'} failed — resend from Invites.`
+          : '';
       toast.success(
-        `${result.createdRows} member${result.createdRows === 1 ? '' : 's'} imported into ${scope.name}.`,
+        `${result.createdRows} member${result.createdRows === 1 ? '' : 's'} imported into ${scope.name}.${inviteHint}${failedHint}`,
       );
       setStep('done');
       router.refresh();
@@ -149,6 +157,19 @@ export function BatchImportDialog({ scope, open, onOpenChange }: BatchImportDial
 
         {step === 'pick' && (
           <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium text-foreground">Start from the template</span>
+                <span className="text-xs text-muted-foreground">
+                  A CSV with the exact column headers, ready for Excel.
+                </span>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={downloadTemplate}>
+                <Download className="h-4 w-4" />
+                Download template
+              </Button>
+            </div>
+
             <div className="flex flex-col gap-2 rounded-xl border border-dashed border-border bg-muted/30 p-4">
               <Label
                 htmlFor="import-file"
@@ -277,6 +298,67 @@ export function BatchImportDialog({ scope, open, onOpenChange }: BatchImportDial
       </DialogContent>
     </Dialog>
   );
+}
+
+const TEMPLATE_HEADERS = [
+  'full_name',
+  'email',
+  'phone',
+  'display_name',
+  'batch_entry_year',
+  'house',
+  'network',
+  'field',
+  'entry_year',
+  'exit_year',
+  'current_country',
+  'current_region_state',
+  'current_city',
+];
+
+const TEMPLATE_EXAMPLE_ROW = [
+  'Sarah Wanki Njumbe',
+  'sarah@example.com',
+  '+237 6XX XXX XXX',
+  'Sarah',
+  '2019',
+  'St Thomas',
+  'Tech',
+  'Software Engineering',
+  '2019',
+  '2026',
+  'CM',
+  'South-West',
+  'Buea',
+];
+
+/**
+ * Builds a CSV template with the exact headers `_shared/import-validation.ts`
+ * accepts + a single example row. The example row is optional to keep;
+ * we keep it because a blank template is less discoverable — a fresh
+ * operator opens it in Excel and immediately sees the shape.
+ */
+function downloadTemplate() {
+  const rows = [TEMPLATE_HEADERS, TEMPLATE_EXAMPLE_ROW];
+  const csv = rows
+    .map((row) =>
+      row
+        .map((cell) => {
+          const s = String(cell ?? '');
+          return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        })
+        .join(','),
+    )
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'shesa-member-import-template.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function SummaryCard({

@@ -250,11 +250,24 @@ export async function uploadMemberImport(input: {
  * Commits every valid row in the import batch as a real
  * `core.members` record. Idempotent per the Edge Function's
  * `WHERE status = 'validated'` guard.
+ *
+ * Per the 2026-07-05 lock, importing members ALSO sends out an invite
+ * to every created member whose row has an email. Invites go out in
+ * parallel via `members/send-invite`; per-row failures are counted but
+ * don't fail the overall confirm — an imported member without a working
+ * email still lands in the roster, and the Invites page will show a
+ * failed row that the admin can resend later.
  */
-export async function confirmMemberImport(input: {
-  batchId: string;
-  batchSlug: string;
-}): Promise<{ ok: true; createdRows: number } | { ok: false; message: string }> {
+export async function confirmMemberImport(input: { batchId: string; batchSlug: string }): Promise<
+  | {
+      ok: true;
+      createdRows: number;
+      invitesSent: number;
+      invitesFailed: number;
+      invitesSkipped: number;
+    }
+  | { ok: false; message: string }
+> {
   const supabase = await getServerClient();
   const { data, error } = await supabase.functions.invoke('imports/confirm-member-import', {
     body: { batchId: input.batchId },
@@ -266,8 +279,58 @@ export async function confirmMemberImport(input: {
     };
   }
   const body = data as { createdRows?: number };
+  const createdRows = body?.createdRows ?? 0;
+
+  // Fan out invites for the freshly-created rows. The import Edge
+  // Function returns just the count, so we re-query the rows created
+  // by this batch to get their member IDs + emails.
+  let invitesSent = 0;
+  let invitesFailed = 0;
+  let invitesSkipped = 0;
+  if (createdRows > 0) {
+    const { data: importRows } = await supabase
+      .schema('core')
+      .from('import_rows')
+      .select('created_member_id')
+      .eq('import_batch_id', input.batchId)
+      .not('created_member_id', 'is', null);
+    const memberIds = (importRows ?? [])
+      .map((r) => r.created_member_id)
+      .filter((id): id is string => !!id);
+
+    if (memberIds.length > 0) {
+      const { data: createdMembers } = await supabase
+        .schema('core')
+        .from('members')
+        .select('id, email')
+        .in('id', memberIds);
+
+      const results = await Promise.all(
+        (createdMembers ?? []).map(async (m) => {
+          if (!m.email) return { skipped: true } as const;
+          const { error: inviteErr } = await supabase.functions.invoke('members/send-invite', {
+            body: { memberId: m.id },
+          });
+          if (inviteErr) {
+            console.error('confirmMemberImport: send-invite failed', {
+              memberId: m.id,
+              error: inviteErr.message,
+            });
+            return { failed: true } as const;
+          }
+          return { sent: true } as const;
+        }),
+      );
+      for (const r of results) {
+        if ('sent' in r) invitesSent += 1;
+        else if ('failed' in r) invitesFailed += 1;
+        else if ('skipped' in r) invitesSkipped += 1;
+      }
+    }
+  }
+
   revalidatePath(`/exco/clusters/batches/${input.batchSlug}`);
-  return { ok: true, createdRows: body?.createdRows ?? 0 };
+  return { ok: true, createdRows, invitesSent, invitesFailed, invitesSkipped };
 }
 
 export interface CreateBatchMemberInput {

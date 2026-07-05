@@ -15,6 +15,8 @@ export const AUDIT_ACTIONS = [
   'role.revoked',
   'role.expired',
   'permission.checked_denied',
+  'member.invited',
+  'member.invite_resent',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

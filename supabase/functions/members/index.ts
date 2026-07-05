@@ -14,6 +14,7 @@ import { updateMember } from './update-member.ts';
 import { markMemberActive } from './mark-member-active.ts';
 import { markMemberPassive } from './mark-member-passive.ts';
 import { markRegistrationPaid } from './mark-registration-paid.ts';
+import { sendInvite } from './send-invite.ts';
 
 Deno.serve(
   entityRouter({
@@ -23,5 +24,6 @@ Deno.serve(
     'mark-member-active': markMemberActive,
     'mark-member-passive': markMemberPassive,
     'mark-registration-paid': markRegistrationPaid,
+    'send-invite': sendInvite,
   }),
 );
