@@ -13,6 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
   EntityTablePanel,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   type ColDef,
   type GridApi,
   type ICellRendererParams,
@@ -170,18 +175,19 @@ export function AuditLogsView({ scope, rows, limit }: AuditLogsViewProps) {
         createLabel=""
         onCreate={() => undefined}
         filters={
-          <select
-            value={prefix}
-            onChange={(e) => setPrefix(e.target.value)}
-            className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
-          >
-            <option value="__all">All actions</option>
-            {prefixes.map((p) => (
-              <option key={p} value={p}>
-                {p}.*
-              </option>
-            ))}
-          </select>
+          <Select value={prefix} onValueChange={setPrefix}>
+            <SelectTrigger className="h-8 w-40 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">All actions</SelectItem>
+              {prefixes.map((p) => (
+                <SelectItem key={p} value={p}>
+                  {p}.*
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         }
       />
 
