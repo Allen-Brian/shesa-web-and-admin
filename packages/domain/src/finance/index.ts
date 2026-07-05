@@ -17,3 +17,5 @@
 export * from './enums';
 export * from './payment-provider';
 export * from './charges';
+export * from './periods';
+export * from './proration';
