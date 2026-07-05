@@ -56,36 +56,44 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
   const memberableScopes = await resolveMemberableScopes(supabase, user.id);
   const canManageMemberships = memberableScopes.length > 0;
 
-  // Audit + Settings visibility. For the global admin (mainstream) the
-  // check runs at Mainstream; for a branch admin it runs at their first
-  // scoped grant. `has_permission` walks up the tree, so both cases
-  // resolve without special-casing.
+  // Audit + Settings + Invites visibility. For the global admin
+  // (mainstream) the check runs at Mainstream; for a branch admin it
+  // runs at their first scoped grant. `has_permission` walks up the
+  // tree, so both cases resolve without special-casing.
   let canReadAudit = false;
   let canEditOwnScope = false;
+  let canViewInvites = false;
   if (mainstream) {
-    const [{ data: allowedAudit }, { data: allowedUpdate }] = await Promise.all([
-      supabase.schema('core').rpc('has_permission', {
-        p_user_id: user.id,
-        p_scope_id: mainstream.id,
-        p_permission_key: 'audit.read',
-      }),
-      supabase.schema('core').rpc('has_permission', {
-        p_user_id: user.id,
-        p_scope_id: mainstream.id,
-        p_permission_key: 'scope.update',
-      }),
-    ]);
+    const [{ data: allowedAudit }, { data: allowedUpdate }, { data: allowedInvites }] =
+      await Promise.all([
+        supabase.schema('core').rpc('has_permission', {
+          p_user_id: user.id,
+          p_scope_id: mainstream.id,
+          p_permission_key: 'audit.read',
+        }),
+        supabase.schema('core').rpc('has_permission', {
+          p_user_id: user.id,
+          p_scope_id: mainstream.id,
+          p_permission_key: 'scope.update',
+        }),
+        supabase.schema('core').rpc('has_permission', {
+          p_user_id: user.id,
+          p_scope_id: mainstream.id,
+          p_permission_key: 'member.import',
+        }),
+      ]);
     canReadAudit = allowedAudit === true;
     canEditOwnScope = allowedUpdate === true;
+    canViewInvites = allowedInvites === true;
   }
   // A branch admin's grant is scoped, so the Mainstream check above
   // returns false. Fall back: they qualify if they have any scoped
-  // grant that carries audit.read or scope.update. `memberableScopes`
-  // already resolved their branch-like scopes; check the highest.
-  if (!canReadAudit || !canEditOwnScope) {
+  // grant that carries the permission. `memberableScopes` already
+  // resolved their branch-like scopes; check the first.
+  if (!canReadAudit || !canEditOwnScope || !canViewInvites) {
     const firstScope = memberableScopes[0];
     if (firstScope) {
-      const [{ data: audit2 }, { data: update2 }] = await Promise.all([
+      const [{ data: audit2 }, { data: update2 }, { data: invites2 }] = await Promise.all([
         canReadAudit
           ? Promise.resolve({ data: true })
           : supabase.schema('core').rpc('has_permission', {
@@ -100,9 +108,17 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
               p_scope_id: firstScope.id,
               p_permission_key: 'scope.update',
             }),
+        canViewInvites
+          ? Promise.resolve({ data: true })
+          : supabase.schema('core').rpc('has_permission', {
+              p_user_id: user.id,
+              p_scope_id: firstScope.id,
+              p_permission_key: 'member.import',
+            }),
       ]);
       canReadAudit = canReadAudit || audit2 === true;
       canEditOwnScope = canEditOwnScope || update2 === true;
+      canViewInvites = canViewInvites || invites2 === true;
     }
   }
 
@@ -116,6 +132,7 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
       canManageMemberships={canManageMemberships}
       canReadAudit={canReadAudit}
       canEditOwnScope={canEditOwnScope}
+      canViewInvites={canViewInvites}
     >
       {children}
     </AppShell>

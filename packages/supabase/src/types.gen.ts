@@ -466,9 +466,11 @@ export type Database = {
           claimed_at: string | null
           created_at: string
           id: string
+          invite_error: string | null
           invited_at: string | null
           last_invitation_sent_at: string | null
           member_id: string
+          resent_count: number
           updated_at: string
         }
         Insert: {
@@ -477,9 +479,11 @@ export type Database = {
           claimed_at?: string | null
           created_at?: string
           id?: string
+          invite_error?: string | null
           invited_at?: string | null
           last_invitation_sent_at?: string | null
           member_id: string
+          resent_count?: number
           updated_at?: string
         }
         Update: {
@@ -488,9 +492,11 @@ export type Database = {
           claimed_at?: string | null
           created_at?: string
           id?: string
+          invite_error?: string | null
           invited_at?: string | null
           last_invitation_sent_at?: string | null
           member_id?: string
+          resent_count?: number
           updated_at?: string
         }
         Relationships: [

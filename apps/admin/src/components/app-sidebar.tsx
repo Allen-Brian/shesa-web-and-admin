@@ -11,6 +11,7 @@ import {
   GraduationCap,
   Home,
   Layers,
+  MailOpen,
   Megaphone,
   Network,
   ScrollText,
@@ -44,6 +45,7 @@ interface AppSidebarProps {
   readonly canManageMemberships?: boolean;
   readonly canReadAudit?: boolean;
   readonly canEditOwnScope?: boolean;
+  readonly canViewInvites?: boolean;
 }
 
 interface NavItem {
@@ -97,6 +99,7 @@ export function AppSidebar({
   canManageMemberships = false,
   canReadAudit = false,
   canEditOwnScope = false,
+  canViewInvites = false,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const meta = PERSONA_META[persona];
@@ -232,7 +235,7 @@ export function AppSidebar({
          * NULL-scope pass at Mainstream. Uses `Cog` to distinguish from
          * the Memberships "Manage Membership" (Settings2) entry above.
          */}
-        {(canEditOwnScope || canReadAudit) && (
+        {(canEditOwnScope || canReadAudit || canViewInvites) && (
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -246,6 +249,20 @@ export function AppSidebar({
                       <Link href={`/${persona}/settings`}>
                         <Cog />
                         <span>Settings</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+                {canViewInvites && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip="Invites"
+                      isActive={pathname.startsWith(`/${persona}/invites`)}
+                    >
+                      <Link href={`/${persona}/invites`}>
+                        <MailOpen />
+                        <span>Invites</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

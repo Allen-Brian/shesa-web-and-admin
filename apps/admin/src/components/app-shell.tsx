@@ -18,6 +18,7 @@ interface AppShellProps {
   readonly canManageMemberships?: boolean;
   readonly canReadAudit?: boolean;
   readonly canEditOwnScope?: boolean;
+  readonly canViewInvites?: boolean;
   readonly children: React.ReactNode;
 }
 
@@ -38,6 +39,7 @@ export function AppShell({
   canManageMemberships,
   canReadAudit,
   canEditOwnScope,
+  canViewInvites,
   children,
 }: AppShellProps) {
   const [open, setOpen] = React.useState(true);
@@ -59,6 +61,7 @@ export function AppShell({
           canManageMemberships={canManageMemberships}
           canReadAudit={canReadAudit}
           canEditOwnScope={canEditOwnScope}
+          canViewInvites={canViewInvites}
         />
         <SidebarInset>
           <Topbar userEmail={userEmail} userName={userName} avatarUrl={avatarUrl} />
