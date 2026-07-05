@@ -521,6 +521,7 @@ export type Database = {
           gender: string | null
           house_scope_id: string
           id: string
+          member_code: string
           member_status: Database["core"]["Enums"]["member_status"]
           network_scope_id: string
           phone: string | null
@@ -544,6 +545,7 @@ export type Database = {
           gender?: string | null
           house_scope_id: string
           id?: string
+          member_code?: string
           member_status?: Database["core"]["Enums"]["member_status"]
           network_scope_id: string
           phone?: string | null
@@ -567,6 +569,7 @@ export type Database = {
           gender?: string | null
           house_scope_id?: string
           id?: string
+          member_code?: string
           member_status?: Database["core"]["Enums"]["member_status"]
           network_scope_id?: string
           phone?: string | null
@@ -1506,7 +1509,7 @@ export type Database = {
     }
     Enums: {
       chapter_kind: "autonomous" | "grouping"
-      engagement_tier: "dormant" | "normal" | "engaged" | "committed"
+      engagement_tier: "dormant" | "normal" | "engaged" | "committed" | "pillar"
       import_batch_status:
         | "uploaded"
         | "validated"
@@ -2078,7 +2081,7 @@ export const Constants = {
   core: {
     Enums: {
       chapter_kind: ["autonomous", "grouping"],
-      engagement_tier: ["dormant", "normal", "engaged", "committed"],
+      engagement_tier: ["dormant", "normal", "engaged", "committed", "pillar"],
       import_batch_status: [
         "uploaded",
         "validated",

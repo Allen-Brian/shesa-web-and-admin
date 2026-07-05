@@ -15,12 +15,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  *
  * `member.read` is the right gate — it's the "can view members here"
  * permission every membership admin holds. `membership.*` keys are
- * more specific (approve join / transfer / mark passive) and don't
- * apply uniformly: batch_admin has `member.read` + `registration.mark_paid`
- * but no `membership.*` keys because batches have no join requests or
- * transfers. Per-page gates (Requests & Transfers, Registration) do
- * their own permission checks; this helper only decides sidebar
- * visibility + landing-page scope enumeration.
+ * more specific (approve join / transfer / mark passive) and per-page
+ * gates check them again server-side. This helper only decides
+ * sidebar visibility + landing-page scope enumeration.
  *
  * Used by:
  *   - The exco layout's `canManageMemberships` flag (any result → TRUE).

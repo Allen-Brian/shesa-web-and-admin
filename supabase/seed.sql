@@ -159,8 +159,10 @@ INSERT INTO core.roles (id, key, name, description) VALUES
    'Top-level admin: full authority across every scope (granted globally with NULL scope; reaches autonomous chapters).'),
   ('11111111-0000-0000-0000-000000000002', 'branch_admin', 'Branch Admin',
    'Authority over a Branch and everything under it.'),
-  ('11111111-0000-0000-0000-000000000003', 'batch_admin', 'Batch Admin',
-   'Authority over a Batch (and its Houses).'),
+  -- batch_admin was retired 2026-07-05. Batches are cluster-only now
+  -- (a filter dimension attached to every member). Onboarding happens
+  -- on the Batch details page in Clusters, executed by branch or
+  -- mainstream admins — no batch-scoped role remains.
   ('11111111-0000-0000-0000-000000000004', 'finance', 'Finance',
    'Read+write on finance. Treasury, charges, payments, reports.'),
   ('11111111-0000-0000-0000-000000000005', 'editor', 'Editor',
@@ -292,38 +294,9 @@ INNER JOIN core.permissions p ON p.key IN (
 WHERE r.key = 'branch_admin'
 ON CONFLICT DO NOTHING;
 
--- Batch Admin: scoped to the Batch they manage. No finance write, no
--- scope.manage (can't create new Batches under their Chapter).
-INSERT INTO core.role_permissions (role_id, permission_id)
-SELECT r.id, p.id
-FROM core.roles r
-INNER JOIN core.permissions p ON p.key IN (
-  'scope.read',
-  'member.read', 'member.manage',
-  -- Phase 1 E1.2 — batch admins onboard batch members
-  'member.create', 'member.update',
-  -- Phase 1 E1.3 — batch admins can Excel-import their batch
-  'member.import',
-  -- Phase 1 E1.4 — batch admins can mark registration paid for their batch
-  'registration.mark_paid',
-  -- Phase 1 E1.5 — batch admins can export their batch roster
-  'member.export',
-  -- Phase 1 E1.6 — batch admins govern batch positions
-  'position.assign', 'position.remove',
-  'role.grant',
-  'finance.read',
-  'cms.edit',
-  'connect.announce',
-  -- Phase 2 — same fix as branch_admin above. Batch admins get
-  -- announcements + bulk actions + palette + notifications +
-  -- registration waive. No event creation (batches don't own the
-  -- geographic Exco calendar).
-  'registration.waive',
-  'announcement.create', 'announcement.update', 'announcement.publish', 'announcement.archive',
-  'member.bulk_action', 'command.search', 'admin_notification.read'
-)
-WHERE r.key = 'batch_admin'
-ON CONFLICT DO NOTHING;
+-- Batch Admin retired 2026-07-05 — batches are cluster-only now.
+-- Onboarding of batch members happens on the Batch details page in
+-- Clusters, executed by branch or mainstream admins.
 
 -- Finance: money movement + visibility, plus audit (every payment/charge
 -- creates audit entries — Finance needs to read them).
@@ -494,11 +467,12 @@ ON CONFLICT (scope_id) DO NOTHING;
 -- Section 4. Dev users — Phase 2 pivot (ADR-0040)
 -- =============================================================================
 --
--- Four seeded users for local development:
+-- Three seeded users for local development:
 --   admin@shesa.test            / password  — mainstream_admin (global)
 --   finance@shesa.test          / password  — finance          (global)
 --   buea-admin@shesa.test       / password  — branch_admin     at Shesa Buea
---   batch-2012-admin@shesa.test / password  — batch_admin      at 2012 Batch
+--
+-- batch-2012-admin was retired 2026-07-05 alongside the batch_admin role.
 --
 -- Both cover the "log in and start clicking around" story for the E2.pivot
 -- shells. Passwords are `password` — deliberately trivial; seed.sql runs
@@ -577,23 +551,6 @@ INSERT INTO auth.users (
     '', 0, NULL,
     '', NULL, FALSE, NULL,
     FALSE
-  ),
-  (
-    '00000000-0000-0000-0000-000000000000',
-    '55555555-0000-0000-0000-000000000020',
-    'authenticated', 'authenticated',
-    'batch-2012-admin@shesa.test',
-    crypt('password', gen_salt('bf')),
-    NOW(), NULL, '', NULL,
-    '', NULL, '', '',
-    NULL, NULL,
-    '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"display_name":"2012 Batch Admin"}'::jsonb,
-    FALSE, NOW(), NOW(), NULL, NULL,
-    '', '', NULL,
-    '', 0, NULL,
-    '', NULL, FALSE, NULL,
-    FALSE
   )
 ON CONFLICT (id) DO NOTHING;
 
@@ -640,17 +597,6 @@ INSERT INTO auth.identities (
       'phone_verified', false
     ),
     'email', NOW(), NOW(), NOW()
-  ),
-  (
-    '55555555-0000-0000-0000-000000000020',
-    '55555555-0000-0000-0000-000000000020',
-    jsonb_build_object(
-      'sub',   '55555555-0000-0000-0000-000000000020',
-      'email', 'batch-2012-admin@shesa.test',
-      'email_verified', true,
-      'phone_verified', false
-    ),
-    'email', NOW(), NOW(), NOW()
   )
 ON CONFLICT (provider, provider_id) DO NOTHING;
 
@@ -662,8 +608,7 @@ INSERT INTO core.profiles (id, display_name, email, preferred_persona)
 VALUES
   ('55555555-0000-0000-0000-000000000001', 'Global Admin',     'admin@shesa.test',            'exco'),
   ('55555555-0000-0000-0000-000000000002', 'Global Finance',   'finance@shesa.test',          'finance'),
-  ('55555555-0000-0000-0000-000000000010', 'Shesa Buea Admin', 'buea-admin@shesa.test',       'exco'),
-  ('55555555-0000-0000-0000-000000000020', '2012 Batch Admin', 'batch-2012-admin@shesa.test', 'exco')
+  ('55555555-0000-0000-0000-000000000010', 'Shesa Buea Admin', 'buea-admin@shesa.test',       'exco')
 ON CONFLICT (id) DO NOTHING;
 
 -------------------------------------------------------------------------------
@@ -695,15 +640,6 @@ VALUES
     '00000000-0000-0000-0000-000000000010',
     '11111111-0000-0000-0000-000000000002',  -- branch_admin
     NOW()
-  ),
-  (
-    -- 2012 Batch Admin — scoped batch_admin at the 2012 batch scope,
-    -- resolved by slug so the seed doesn't hardcode the generate_series
-    -- output UUIDs.
-    '55555555-0000-0000-0000-000000000020',
-    (SELECT id FROM core.scopes WHERE slug = 'batch-2012'),
-    '11111111-0000-0000-0000-000000000003',  -- batch_admin
-    NOW()
   )
 ON CONFLICT DO NOTHING;
 
@@ -719,9 +655,11 @@ ON CONFLICT DO NOTHING;
 -- Volume:
 --   ~20 members per batch across eight graduated batches
 --   (2012-2019) = 160 members total. Everyone from 2020+ is still in
---   school; the platform's members are alumni only for now. 2012 is
---   included so the batch-2012-admin@shesa.test seed user has real
---   data in their own batch.
+--   school; the platform's members are alumni only for now.
+--   Every member's `member_code` is auto-generated by the BEFORE
+--   INSERT trigger from migration 20260705100000 in the shape
+--   {batch_year}-{initials}-{4 digits} — the seed doesn't specify
+--   codes explicitly.
 --   ~60 memberships at Shesa Buea (active mix), plus scatter across
 --   Douala and DC.
 --   ~10 pending join requests targeting Shesa Buea.
@@ -834,11 +772,20 @@ BEGIN
           NOW() - (v_member_num || ' days')::interval,
           NOW() - (v_member_num || ' days')::interval,
           '55555555-0000-0000-0000-000000000001',
-          CASE (v_member_num % 4)
-            WHEN 0 THEN 'committed'::core.engagement_tier
-            WHEN 1 THEN 'engaged'::core.engagement_tier
-            WHEN 2 THEN 'normal'::core.engagement_tier
-            ELSE        'dormant'::core.engagement_tier
+          -- Sprinkle every tier across the ten actives so the star badge
+          -- renders all five variants in dev. Member 1 gets `pillar`
+          -- (5⭐) per batch — a distinctive slot for the top tier.
+          CASE v_member_num
+            WHEN 1 THEN 'pillar'::core.engagement_tier
+            WHEN 2 THEN 'committed'::core.engagement_tier
+            WHEN 3 THEN 'engaged'::core.engagement_tier
+            WHEN 4 THEN 'normal'::core.engagement_tier
+            WHEN 5 THEN 'dormant'::core.engagement_tier
+            WHEN 6 THEN 'committed'::core.engagement_tier
+            WHEN 7 THEN 'engaged'::core.engagement_tier
+            WHEN 8 THEN 'normal'::core.engagement_tier
+            WHEN 9 THEN 'engaged'::core.engagement_tier
+            ELSE        'committed'::core.engagement_tier
           END
         )
         ON CONFLICT DO NOTHING;

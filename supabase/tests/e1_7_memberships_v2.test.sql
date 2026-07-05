@@ -1,7 +1,7 @@
 -- pgTAP: Phase 2 M1 memberships-v2 invariants (engagement + registration v2).
 --
 -- Covers:
---   A. engagement_tier enum has exactly the four values in the fixed order.
+--   A. engagement_tier enum has exactly the five values in the fixed order.
 --   B. Default engagement on a new membership is 'normal'.
 --   C. Setting engagement to a valid value works.
 --   D. Setting engagement to an invalid value fails (enum type guard).
@@ -60,7 +60,7 @@ INSERT INTO core.memberships (
 );
 
 -------------------------------------------------------------------------------
--- A) engagement_tier enum has exactly the four values in the fixed order
+-- A) engagement_tier enum has exactly the five values in the fixed order
 -------------------------------------------------------------------------------
 
 SELECT is(
@@ -68,8 +68,8 @@ SELECT is(
    FROM pg_enum e
    INNER JOIN pg_type t ON t.oid = e.enumtypid
    WHERE t.typname = 'engagement_tier'),
-  ARRAY['dormant', 'normal', 'engaged', 'committed']::text[],
-  'engagement_tier enum has the four values in ladder order'
+  ARRAY['dormant', 'normal', 'engaged', 'committed', 'pillar']::text[],
+  'engagement_tier enum has the five values in ladder order'
 );
 
 -------------------------------------------------------------------------------

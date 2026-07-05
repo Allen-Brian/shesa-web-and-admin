@@ -1,9 +1,13 @@
 /**
  * Engagement tier — manual admin-set devotion ladder on a membership.
  *
- * Locked 2026-07-03 (see memory/project_phase2_membership_locks.md #1):
- *   dormant < normal < engaged < committed
+ * Locked 2026-07-03 (see memory/project_phase2_membership_locks.md #1),
+ * extended 2026-07-05 with `pillar` (5⭐):
+ *   dormant < normal < engaged < committed < pillar
  * Default `'normal'` at join. Admin-set via `membership.engagement.set`.
+ *
+ * UI renders the ladder as stars: 1⭐ dormant, 2⭐ normal, 3⭐ engaged,
+ * 4⭐ committed, 5⭐ pillar.
  *
  * Orthogonal to `membership_status` — engagement is the admin's
  * judgment of devotion; membership_status is governance standing. The
@@ -18,7 +22,7 @@
  * hand-written queries.
  */
 
-export const ENGAGEMENT_TIERS = ['dormant', 'normal', 'engaged', 'committed'] as const;
+export const ENGAGEMENT_TIERS = ['dormant', 'normal', 'engaged', 'committed', 'pillar'] as const;
 export type EngagementTier = (typeof ENGAGEMENT_TIERS)[number];
 
 const TIER_INDEX: Record<EngagementTier, number> = {
@@ -26,6 +30,7 @@ const TIER_INDEX: Record<EngagementTier, number> = {
   normal: 1,
   engaged: 2,
   committed: 3,
+  pillar: 4,
 };
 
 /**
@@ -55,8 +60,25 @@ const TIER_LABELS: Record<EngagementTier, string> = {
   normal: 'Normal',
   engaged: 'Engaged',
   committed: 'Committed',
+  pillar: 'Pillar',
 };
 
 export function formatEngagementTier(tier: EngagementTier): string {
   return TIER_LABELS[tier];
+}
+
+/**
+ * Star rating for a tier — 1..5. Used by the star badge in tables and
+ * the member profile. Storage stays as the enum string.
+ */
+const TIER_STARS: Record<EngagementTier, 1 | 2 | 3 | 4 | 5> = {
+  dormant: 1,
+  normal: 2,
+  engaged: 3,
+  committed: 4,
+  pillar: 5,
+};
+
+export function engagementStarCount(tier: EngagementTier): 1 | 2 | 3 | 4 | 5 {
+  return TIER_STARS[tier];
 }

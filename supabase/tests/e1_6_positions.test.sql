@@ -228,7 +228,7 @@ SELECT is(
      INNER JOIN core.roles r ON r.id = ra.role_id
      INNER JOIN core.member_accounts ma ON ma.auth_user_id = ra.user_id
    WHERE ma.member_id = '33333333-4444-0000-0000-000000000001'
-     AND r.key IN ('mainstream_admin', 'branch_admin', 'batch_admin')
+     AND r.key IN ('mainstream_admin', 'branch_admin')
      AND ra.revoked_at IS NULL),
   0,
   'president trigger: NO admin role auto-granted (human operator decides)'

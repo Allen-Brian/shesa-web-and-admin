@@ -10,12 +10,14 @@
  *   2. Zero-admin: after revoking this assignment, the target scope
  *      would have zero active admin holders → blocked.
  *
- * "Admin" per §6.1 is {mainstream_admin, branch_admin, batch_admin}.
- * Finance holders don't count. Global grants (scope_id=null) are
- * exempt — Recruiter isn't an admin role.
+ * "Admin" per §6.1 is {mainstream_admin, branch_admin}. Finance
+ * holders don't count. Global grants (scope_id=null) are exempt —
+ * Recruiter isn't an admin role.
+ *
+ * `batch_admin` was retired 2026-07-05.
  */
 
-const ADMIN_ROLE_KEYS = new Set(['mainstream_admin', 'branch_admin', 'batch_admin']);
+const ADMIN_ROLE_KEYS = new Set(['mainstream_admin', 'branch_admin']);
 
 export interface AssignmentLike {
   id: string;

@@ -36,7 +36,7 @@ export default async function NewEventPage() {
   let hasGlobalMainstreamAdmin = false;
   for (const row of assignments ?? []) {
     const key = (row as { roles: { key: string } }).roles.key;
-    if (!['mainstream_admin', 'branch_admin', 'batch_admin'].includes(key)) continue;
+    if (!['mainstream_admin', 'branch_admin'].includes(key)) continue;
     const endsAt = (row as { ends_at: string | null }).ends_at;
     if (endsAt && new Date(endsAt).getTime() <= now) continue;
     const scopeId = (row as { scope_id: string | null }).scope_id;

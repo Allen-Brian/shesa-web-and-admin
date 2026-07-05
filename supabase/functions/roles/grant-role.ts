@@ -44,10 +44,10 @@ import { createUserClient } from '../_shared/supabase-client.ts';
 import { parseJson } from '../_shared/validation.ts';
 
 // Role keys mirror @shesa/types ROLE_KEYS — keep in sync.
+// `batch_admin` was retired 2026-07-05.
 const ROLE_KEYS = [
   'mainstream_admin',
   'branch_admin',
-  'batch_admin',
   'finance',
   'editor',
   'recruiter',
@@ -104,7 +104,7 @@ async function checkSixHolderCap(
     .eq('scope_id', scopeId)
     .lte('starts_at', new Date().toISOString())
     .or('ends_at.is.null,ends_at.gt.' + new Date().toISOString())
-    .in('roles.key', ['mainstream_admin', 'branch_admin', 'batch_admin', 'finance']);
+    .in('roles.key', ['mainstream_admin', 'branch_admin', 'finance']);
   if (error) {
     // Fail open here — the trigger is the definitive gate, and a
     // spurious 500 on a benign grant is worse UX than a rare
@@ -166,7 +166,6 @@ export async function grantRole(req: Request): Promise<Response> {
     input.scopeId !== null &&
     (input.roleKey === 'mainstream_admin' ||
       input.roleKey === 'branch_admin' ||
-      input.roleKey === 'batch_admin' ||
       input.roleKey === 'finance')
   ) {
     const capOk = await checkSixHolderCap(supabase, input.scopeId);
