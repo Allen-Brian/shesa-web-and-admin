@@ -5,20 +5,24 @@ import type { MemberableScope } from '@/lib/memberships/memberable-scopes';
 
 interface ScopePickerProps {
   readonly persona: string;
-  /** Sub-item slug: 'members' or 'manage'. */
-  readonly subItem: 'members' | 'manage';
+  /**
+   * Route section under `/persona/{section}/{slug}`. Existing consumers
+   * pass `memberships/members` or `memberships/manage`; the Settings
+   * landing passes `settings`.
+   */
+  readonly section: string;
   readonly scopes: readonly MemberableScope[];
   readonly title: string;
   readonly subtitle: string;
 }
 
 /**
- * Shared scope-picker for the three Memberships landing pages. Groups
+ * Shared scope-picker for the Memberships + Settings landings. Groups
  * scopes by type (branches vs autonomous chapters). Batches are no
  * longer memberable — they became a cluster-only filter in the
  * 2026-07-05 batch-admin drop.
  */
-export function ScopePicker({ persona, subItem, scopes, title, subtitle }: ScopePickerProps) {
+export function ScopePicker({ persona, section, scopes, title, subtitle }: ScopePickerProps) {
   const branches = scopes.filter((s) => s.scope_type === 'branch');
   const chapters = scopes.filter(
     (s) => s.scope_type === 'chapter' && s.chapter_kind === 'autonomous',
@@ -36,7 +40,7 @@ export function ScopePicker({ persona, subItem, scopes, title, subtitle }: Scope
           {branches.map((s) => (
             <ScopeCard
               key={s.id}
-              href={`/${persona}/memberships/${subItem}/${s.slug}`}
+              href={`/${persona}/${section}/${s.slug}`}
               name={s.name}
               slug={s.slug}
             />
@@ -49,7 +53,7 @@ export function ScopePicker({ persona, subItem, scopes, title, subtitle }: Scope
           {chapters.map((s) => (
             <ScopeCard
               key={s.id}
-              href={`/${persona}/memberships/${subItem}/${s.slug}`}
+              href={`/${persona}/${section}/${s.slug}`}
               name={s.name}
               slug={s.slug}
             />

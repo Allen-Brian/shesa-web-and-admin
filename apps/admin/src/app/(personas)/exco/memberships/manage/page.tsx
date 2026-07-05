@@ -21,7 +21,7 @@ export default async function ManageMembershipLandingPage() {
   return (
     <ScopePicker
       persona="exco"
-      subItem="manage"
+      section="memberships/manage"
       scopes={scopes}
       title="Manage Membership"
       subtitle="Pick the branch or autonomous chapter whose requests, transfers, and registration you want to work through."

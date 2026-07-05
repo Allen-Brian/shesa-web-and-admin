@@ -26,7 +26,7 @@ export default async function MembersLandingPage() {
   return (
     <ScopePicker
       persona="exco"
-      subItem="members"
+      section="memberships/members"
       scopes={scopes}
       title="Members"
       subtitle="Pick the scope whose members you want to manage."
