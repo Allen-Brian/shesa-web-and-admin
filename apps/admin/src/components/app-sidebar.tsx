@@ -7,11 +7,13 @@ import {
   Building2,
   CalendarDays,
   ChevronRight,
+  Cog,
   GraduationCap,
   Home,
   Layers,
   Megaphone,
   Network,
+  ScrollText,
   Settings2,
   Users,
 } from 'lucide-react';
@@ -40,6 +42,8 @@ interface AppSidebarProps {
   readonly persona: Persona;
   readonly canManageClusters?: boolean;
   readonly canManageMemberships?: boolean;
+  readonly canReadAudit?: boolean;
+  readonly canEditOwnScope?: boolean;
 }
 
 interface NavItem {
@@ -91,6 +95,8 @@ export function AppSidebar({
   persona,
   canManageClusters = false,
   canManageMemberships = false,
+  canReadAudit = false,
+  canEditOwnScope = false,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const meta = PERSONA_META[persona];
@@ -219,6 +225,49 @@ export function AppSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/*
+         * Settings — scoped edit + governance for a branch or autonomous
+         * chapter. Global mainstream_admin qualifies via has_permission's
+         * NULL-scope pass at Mainstream. Uses `Cog` to distinguish from
+         * the Memberships "Manage Membership" (Settings2) entry above.
+         */}
+        {(canEditOwnScope || canReadAudit) && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {canEditOwnScope && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip="Settings"
+                      isActive={pathname.startsWith(`/${persona}/settings`)}
+                    >
+                      <Link href={`/${persona}/settings`}>
+                        <Cog />
+                        <span>Settings</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+                {canReadAudit && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip="Audit Logs"
+                      isActive={pathname.startsWith(`/${persona}/audit-logs`)}
+                    >
+                      <Link href={`/${persona}/audit-logs`}>
+                        <ScrollText />
+                        <span>Audit Logs</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );

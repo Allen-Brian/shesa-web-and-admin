@@ -16,6 +16,8 @@ interface AppShellProps {
   readonly avatarUrl?: string;
   readonly canManageClusters?: boolean;
   readonly canManageMemberships?: boolean;
+  readonly canReadAudit?: boolean;
+  readonly canEditOwnScope?: boolean;
   readonly children: React.ReactNode;
 }
 
@@ -34,6 +36,8 @@ export function AppShell({
   avatarUrl,
   canManageClusters,
   canManageMemberships,
+  canReadAudit,
+  canEditOwnScope,
   children,
 }: AppShellProps) {
   const [open, setOpen] = React.useState(true);
@@ -53,6 +57,8 @@ export function AppShell({
           persona={persona}
           canManageClusters={canManageClusters}
           canManageMemberships={canManageMemberships}
+          canReadAudit={canReadAudit}
+          canEditOwnScope={canEditOwnScope}
         />
         <SidebarInset>
           <Topbar userEmail={userEmail} userName={userName} avatarUrl={avatarUrl} />
