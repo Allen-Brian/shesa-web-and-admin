@@ -25,6 +25,7 @@ export const AUDIT_ACTIONS = [
   'charge.updated',
   'charge.archived',
   'contribution.approved',
+  'contribution.closed',
   'contribution.extended',
   'donation.recorded',
   'payment.recorded',
