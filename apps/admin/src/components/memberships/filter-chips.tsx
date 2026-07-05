@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 import { Badge, Button } from '@shesa/ui';
 
 import type { FilterDimension, FilterValues } from '@/lib/memberships/filter-state';
-import type { FilterDimensionConfig } from './filter-dialog';
+import type { FilterDimensionConfig } from './filter-dropdown';
 
 interface FilterChipsProps {
   readonly values: FilterValues;

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Filter, MoreHorizontal, Sparkles, UserMinus } from 'lucide-react';
+import { MoreHorizontal, Sparkles, UserMinus } from 'lucide-react';
 
 import {
   Badge,
@@ -27,7 +27,10 @@ import {
 import { MemberName } from '@/components/governance/member-name';
 import { EngagementStars } from '@/components/memberships/engagement-stars';
 import { FilterChips } from '@/components/memberships/filter-chips';
-import { FilterDialog, type FilterDimensionConfig } from '@/components/memberships/filter-dialog';
+import {
+  FilterDropdown,
+  type FilterDimensionConfig,
+} from '@/components/memberships/filter-dropdown';
 import { RegistrationIcon } from '@/components/memberships/registration-icon';
 import type { EngagementTier } from '@shesa/domain/memberships';
 import { useFilterState } from '@/lib/memberships/filter-state';
@@ -55,7 +58,6 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [search, setSearch] = useState('');
   const [confirm, setConfirm] = useState<ConfirmState>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const isBranch = scope.scope_type === 'branch';
@@ -350,29 +352,6 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant={filterState.activeCount > 0 ? 'default' : 'outline'}
-          onClick={() => setFilterOpen(true)}
-        >
-          <Filter className="h-4 w-4" />
-          Filter
-          {filterState.activeCount > 0 && (
-            <span className="ml-1 rounded-md bg-primary-foreground/20 px-1.5 py-0.5 font-mono text-xs">
-              {filterState.activeCount}
-            </span>
-          )}
-        </Button>
-        <FilterChips
-          values={filterState.values}
-          dimensions={dimensions}
-          onRemove={filterState.removeValue}
-          onClearAll={filterState.clearAll}
-        />
-      </div>
-
       <EntityTablePanel
         count={filtered.length}
         countLabel={filtered.length === 1 ? 'member' : 'members'}
@@ -382,7 +361,26 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
         canCreate={!!onAdd}
         onCreate={() => onAdd?.()}
         createLabel="Add member"
+        filters={
+          <FilterDropdown
+            dimensions={dimensions}
+            values={filterState.values}
+            onApply={filterState.setValues}
+            onClearAll={filterState.clearAll}
+            activeCount={filterState.activeCount}
+          />
+        }
       />
+
+      {filterState.activeCount > 0 && (
+        <FilterChips
+          values={filterState.values}
+          dimensions={dimensions}
+          onRemove={filterState.removeValue}
+          onClearAll={filterState.clearAll}
+        />
+      )}
+
       <DataTable<SerialRow>
         rowData={filtered as SerialRow[]}
         columnDefs={columnDefs}
@@ -391,15 +389,6 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
         onRowClicked={handleRowClicked}
         showColumnPicker={false}
         massActions={massActions}
-      />
-
-      <FilterDialog
-        open={filterOpen}
-        onOpenChange={setFilterOpen}
-        dimensions={dimensions}
-        values={filterState.values}
-        onApply={filterState.setValues}
-        onClearAll={filterState.clearAll}
       />
 
       <ConfirmDialog
