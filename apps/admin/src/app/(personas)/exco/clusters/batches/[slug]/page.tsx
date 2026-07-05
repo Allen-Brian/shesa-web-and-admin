@@ -55,7 +55,7 @@ export default async function BatchDetailPage({ params }: BatchDetailPageProps) 
     .schema('core')
     .from('members')
     .select(
-      'id, full_name, house_scope_id, network_scope_id, current_country, current_region_state, current_city',
+      'id, member_code, full_name, email, phone, house_scope_id, network_scope_id, current_country, current_region_state, current_city',
     )
     .eq('batch_scope_id', id);
 
@@ -132,7 +132,10 @@ export default async function BatchDetailPage({ params }: BatchDetailPageProps) 
     return {
       id: m.id,
       member_id: m.id,
+      member_code: m.member_code,
       full_name: m.full_name,
+      email: m.email,
+      phone: m.phone,
       badge: badges.get(m.id) ?? null,
       house_name: refMap.get(m.house_scope_id)?.name ?? '—',
       network_name: refMap.get(m.network_scope_id)?.name ?? '—',
@@ -141,6 +144,28 @@ export default async function BatchDetailPage({ params }: BatchDetailPageProps) 
       location: location || null,
     };
   });
+
+  // Ref options for the Create Member dialog — every active house and
+  // every active network scope. Sorted by name for stable dropdown order.
+  const [{ data: houseScopes }, { data: networkScopes }] = await Promise.all([
+    supabase
+      .schema('core')
+      .from('scopes')
+      .select('id, name, status')
+      .eq('scope_type', 'house')
+      .eq('status', 'active')
+      .order('name'),
+    supabase
+      .schema('core')
+      .from('scopes')
+      .select('id, name, status')
+      .eq('scope_type', 'network')
+      .eq('status', 'active')
+      .order('name'),
+  ]);
+
+  const houseOptions = (houseScopes ?? []).map((h) => ({ id: h.id, name: h.name }));
+  const networkOptions = (networkScopes ?? []).map((n) => ({ id: n.id, name: n.name }));
 
   // ── Governance — batch positions live in position_catalog with
   // scope_type='batch'. Role holders are role_assignments at this batch.
@@ -255,21 +280,29 @@ export default async function BatchDetailPage({ params }: BatchDetailPageProps) 
 
   let canUpdate = false;
   let canManageGovernance = false;
+  let canManageMembers = false;
   if (user) {
-    const [{ data: allowedUpdate }, { data: allowedGovern }] = await Promise.all([
-      supabase.schema('core').rpc('has_permission', {
-        p_user_id: user.id,
-        p_scope_id: id,
-        p_permission_key: 'scope.update',
-      }),
-      supabase.schema('core').rpc('has_permission', {
-        p_user_id: user.id,
-        p_scope_id: id,
-        p_permission_key: 'position.assign',
-      }),
-    ]);
+    const [{ data: allowedUpdate }, { data: allowedGovern }, { data: allowedMembers }] =
+      await Promise.all([
+        supabase.schema('core').rpc('has_permission', {
+          p_user_id: user.id,
+          p_scope_id: id,
+          p_permission_key: 'scope.update',
+        }),
+        supabase.schema('core').rpc('has_permission', {
+          p_user_id: user.id,
+          p_scope_id: id,
+          p_permission_key: 'position.assign',
+        }),
+        supabase.schema('core').rpc('has_permission', {
+          p_user_id: user.id,
+          p_scope_id: id,
+          p_permission_key: 'member.create',
+        }),
+      ]);
     canUpdate = allowedUpdate === true;
     canManageGovernance = allowedGovern === true;
+    canManageMembers = allowedMembers === true;
   }
 
   return (
@@ -286,12 +319,15 @@ export default async function BatchDetailPage({ params }: BatchDetailPageProps) 
       contactPhone={batchRow.contact_phone}
       memberCount={memberRows.length}
       members={memberRows}
+      houseOptions={houseOptions}
+      networkOptions={networkOptions}
       positionCatalog={positionCatalog}
       positionHolders={positionHolders}
       roleHolders={roleHolders}
       memberPicker={memberPicker}
       canUpdate={canUpdate}
       canManageGovernance={canManageGovernance}
+      canManageMembers={canManageMembers}
     />
   );
 }

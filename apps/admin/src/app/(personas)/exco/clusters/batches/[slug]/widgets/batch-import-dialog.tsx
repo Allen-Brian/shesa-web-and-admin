@@ -17,11 +17,16 @@ import {
 
 import { getBrowserClient } from '@/lib/supabase-browser';
 
-import { confirmMemberImport, uploadMemberImport, type ImportSummary } from '../../../actions';
-import type { MembersPageScope } from './members-page';
+import { confirmMemberImport, uploadMemberImport, type ImportSummary } from '../../actions';
+
+export interface BatchImportScope {
+  readonly id: string;
+  readonly slug: string;
+  readonly name: string;
+}
 
 interface BatchImportDialogProps {
-  readonly scope: MembersPageScope;
+  readonly scope: BatchImportScope;
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
 }
@@ -105,7 +110,10 @@ export function BatchImportDialog({ scope, open, onOpenChange }: BatchImportDial
     if (!summary) return;
     setStep('confirming');
     startTransition(async () => {
-      const result = await confirmMemberImport(summary.batchId);
+      const result = await confirmMemberImport({
+        batchId: summary.batchId,
+        batchSlug: scope.slug,
+      });
       if (!result.ok) {
         setStep('review');
         toast.error(result.message);

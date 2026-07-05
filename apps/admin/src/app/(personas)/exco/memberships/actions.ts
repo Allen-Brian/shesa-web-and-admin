@@ -239,75 +239,8 @@ export async function escalateUnregistered(membershipId: string): Promise<Action
  *   4. Otherwise → INSERT the membership directly + seed
  *      registration_status via resolveInitialRegistration.
  */
-// ─── Member import (batches + branches) ─────────────────────────────
-
-export interface ImportSummary {
-  readonly batchId: string;
-  readonly totalRows: number;
-  readonly validRows: number;
-  readonly invalidRows: number;
-}
-
-/**
- * Kicks off a member import: the client has already uploaded the raw
- * xlsx to the `member-imports` bucket; we hand the storage path off to
- * `imports/upload-member-import` which parses + validates every row
- * against the seed catalog and returns a batch summary.
- */
-export async function uploadMemberImport(input: {
-  scopeId: string;
-  fileName: string;
-  storagePath: string;
-}): Promise<{ ok: true; summary: ImportSummary } | { ok: false; message: string }> {
-  const supabase = await getServerClient();
-  const { data, error } = await supabase.functions.invoke('imports/upload-member-import', {
-    body: input,
-  });
-  if (error) {
-    return { ok: false, message: await extractInvokeMessage(error, 'Could not parse the import.') };
-  }
-  const body = data as {
-    batchId?: string;
-    totalRows?: number;
-    validRows?: number;
-    invalidRows?: number;
-  };
-  if (!body?.batchId) {
-    return { ok: false, message: 'Import parse succeeded but returned no batch id.' };
-  }
-  return {
-    ok: true,
-    summary: {
-      batchId: body.batchId,
-      totalRows: body.totalRows ?? 0,
-      validRows: body.validRows ?? 0,
-      invalidRows: body.invalidRows ?? 0,
-    },
-  };
-}
-
-/**
- * Commits every valid row in the import batch as a real
- * `core.members` record. Idempotent per the Edge Function's
- * `WHERE status = 'validated'` guard.
- */
-export async function confirmMemberImport(
-  batchId: string,
-): Promise<{ ok: true; createdRows: number } | { ok: false; message: string }> {
-  const supabase = await getServerClient();
-  const { data, error } = await supabase.functions.invoke('imports/confirm-member-import', {
-    body: { batchId },
-  });
-  if (error) {
-    return {
-      ok: false,
-      message: await extractInvokeMessage(error, 'Could not commit the import.'),
-    };
-  }
-  const body = data as { createdRows?: number };
-  revalidatePath('/exco/memberships', 'layout');
-  return { ok: true, createdRows: body?.createdRows ?? 0 };
-}
+// Member-import server actions moved to /exco/clusters/batches/actions.ts
+// on 2026-07-05: batches are the single entry-point for adding members.
 
 export async function addMemberToScope(input: {
   memberId: string;

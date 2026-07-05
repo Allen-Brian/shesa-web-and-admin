@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Archive, Pencil, Upload } from 'lucide-react';
+import { Archive, Download, Pencil, RefreshCw, Upload } from 'lucide-react';
 
 import {
   Badge,
@@ -19,6 +19,7 @@ import {
   type ColDef,
   type GridApi,
   type ICellRendererParams,
+  type MassActions,
 } from '@shesa/ui';
 
 import type { ScopeStatus } from '@/components/clusters/cluster-list';
@@ -33,19 +34,29 @@ import {
 import type { GovernanceMemberPickerRow } from '@/components/governance/assign-position-dialog';
 import { formatOrdinal } from '@/lib/batches/ordinal';
 
-import { archiveBatch } from '../../actions';
+import { archiveBatch, deleteBatchMember } from '../../actions';
 import { BatchFormDialog } from '../../widgets/form-dialog';
+import { BatchImportDialog } from './batch-import-dialog';
+import { CreateMemberDialog } from './create-member-dialog';
 
 export interface BatchMemberRow {
   readonly id: string;
   readonly member_id: string;
+  readonly member_code: string;
   readonly full_name: string;
+  readonly email: string | null;
+  readonly phone: string | null;
   readonly badge: ExcoBadgeInfo | null;
   readonly house_name: string;
   readonly network_name: string;
   readonly branch_name: string | null;
   readonly membership_status: 'active' | 'passive' | 'pending' | null;
   readonly location: string | null;
+}
+
+interface RefOption {
+  readonly id: string;
+  readonly name: string;
 }
 
 interface BatchDetailViewProps {
@@ -61,12 +72,15 @@ interface BatchDetailViewProps {
   readonly contactPhone: string | null;
   readonly memberCount: number;
   readonly members: readonly BatchMemberRow[];
+  readonly houseOptions: readonly RefOption[];
+  readonly networkOptions: readonly RefOption[];
   readonly positionCatalog: readonly GovernancePositionCatalogRow[];
   readonly positionHolders: readonly GovernancePositionHolderRow[];
   readonly roleHolders: readonly GovernanceRoleHolderRow[];
   readonly memberPicker: readonly GovernanceMemberPickerRow[];
   readonly canUpdate: boolean;
   readonly canManageGovernance: boolean;
+  readonly canManageMembers: boolean;
 }
 
 export function BatchDetailView(props: BatchDetailViewProps) {
@@ -136,7 +150,6 @@ export function BatchDetailView(props: BatchDetailViewProps) {
           <TabsList>
             <TabsTrigger value="members">Members</TabsTrigger>
             <TabsTrigger value="governance">Governance</TabsTrigger>
-            <TabsTrigger value="import">Import</TabsTrigger>
           </TabsList>
           {props.canUpdate && (
             <div className="flex items-center gap-2">
@@ -162,7 +175,16 @@ export function BatchDetailView(props: BatchDetailViewProps) {
         </div>
 
         <TabsContent value="members" className="flex min-h-0 flex-1 flex-col gap-3">
-          <MembersTable members={props.members} />
+          <MembersTable
+            batchScopeId={props.scopeId}
+            batchSlug={props.slug}
+            batchName={props.name}
+            entryYear={props.entryYear}
+            members={props.members}
+            houseOptions={props.houseOptions}
+            networkOptions={props.networkOptions}
+            canManageMembers={props.canManageMembers && !isArchived}
+          />
         </TabsContent>
 
         <TabsContent value="governance" className="flex min-h-0 flex-1 flex-col gap-3">
@@ -177,23 +199,6 @@ export function BatchDetailView(props: BatchDetailViewProps) {
             emptyCatalogHint="No position catalog exists for batches yet."
             emptyRolesHint="No roles granted at this batch yet."
           />
-        </TabsContent>
-
-        <TabsContent value="import" className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-8 text-center">
-            <Upload className="h-10 w-10 text-muted-foreground" />
-            <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium text-foreground">Import members for {props.name}</p>
-              <p className="text-sm text-muted-foreground">
-                Upload the batch roster (Excel or CSV) to pre-populate members. The import flow
-                lands with the member-management epic; this button will stage a preview + confirm.
-              </p>
-            </div>
-            <Button type="button" size="sm" variant="outline" disabled>
-              <Upload className="h-4 w-4" />
-              Upload roster (coming soon)
-            </Button>
-          </div>
         </TabsContent>
       </Tabs>
 
@@ -229,23 +234,55 @@ export function BatchDetailView(props: BatchDetailViewProps) {
   );
 }
 
-function MembersTable({ members }: { readonly members: readonly BatchMemberRow[] }) {
+// ─── Members tab ────────────────────────────────────────────────────
+
+interface MembersTableProps {
+  readonly batchScopeId: string;
+  readonly batchSlug: string;
+  readonly batchName: string;
+  readonly entryYear: number;
+  readonly members: readonly BatchMemberRow[];
+  readonly houseOptions: readonly RefOption[];
+  readonly networkOptions: readonly RefOption[];
+  readonly canManageMembers: boolean;
+}
+
+type ConfirmDelete = null | {
+  readonly kind: 'single' | 'bulk';
+  readonly targets: readonly BatchMemberRow[];
+};
+
+function MembersTable(props: MembersTableProps) {
+  const router = useRouter();
   const [gridApi, setGridApi] = useState<GridApi<BatchMemberRow> | null>(null);
   const [search, setSearch] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<ConfirmDelete>(null);
+  const [pending, startTransition] = useTransition();
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return members;
-    return members.filter((m) => {
+    if (!q) return props.members;
+    return props.members.filter((m) => {
       if (m.full_name.toLowerCase().includes(q)) return true;
+      if (m.member_code.toLowerCase().includes(q)) return true;
       if (m.house_name.toLowerCase().includes(q)) return true;
       if (m.network_name.toLowerCase().includes(q)) return true;
       if (m.branch_name?.toLowerCase().includes(q)) return true;
+      if (m.email?.toLowerCase().includes(q)) return true;
       return false;
     });
-  }, [members, search]);
+  }, [props.members, search]);
 
   const columnDefs = useMemo<ColDef<BatchMemberRow>[]>(
     () => [
+      {
+        headerName: 'Code',
+        field: 'member_code',
+        width: 160,
+        cellClass: 'font-mono text-xs',
+      },
       {
         headerName: 'Full name',
         field: 'full_name',
@@ -282,26 +319,129 @@ function MembersTable({ members }: { readonly members: readonly BatchMemberRow[]
     [],
   );
 
+  const runDelete = (targets: readonly BatchMemberRow[]) => {
+    startTransition(async () => {
+      const results = await Promise.all(
+        targets.map((t) =>
+          deleteBatchMember({ memberId: t.member_id, batchSlug: props.batchSlug }),
+        ),
+      );
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length === 0) {
+        toast.success(`Deleted ${targets.length} member${targets.length === 1 ? '' : 's'}.`);
+      } else if (failed.length === targets.length) {
+        toast.error(failed[0]?.message ?? 'Could not delete.');
+      } else {
+        toast.error(
+          `Deleted ${targets.length - failed.length}; ${failed.length} still attached to a branch.`,
+        );
+      }
+      router.refresh();
+    });
+  };
+
+  const massActions = useMemo<MassActions<BatchMemberRow>>(
+    () => ({
+      itemName: 'member',
+      pluralItemName: 'members',
+      onDelete: (selected) => setConfirmDelete({ kind: 'bulk', targets: selected }),
+    }),
+    [],
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex-1" />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => router.refresh()}
+          disabled={pending}
+        >
+          <RefreshCw className="h-4 w-4" />
+          Refresh
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => gridApi?.exportDataAsCsv({ fileName: `${props.batchSlug}-members.csv` })}
+          disabled={!gridApi}
+        >
+          <Download className="h-4 w-4" />
+          Export
+        </Button>
+      </div>
+
       <EntityTablePanel
         count={filtered.length}
         countLabel={filtered.length === 1 ? 'member' : 'members'}
         search={search}
         onSearchChange={setSearch}
         gridApi={gridApi}
-        canCreate={false}
-        hideCreate
-        createLabel=""
-        onCreate={() => undefined}
+        canCreate={props.canManageMembers}
+        onCreate={() => setCreateOpen(true)}
+        createLabel="Create Member"
+        filters={
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={!props.canManageMembers}
+            onClick={() => setImportOpen(true)}
+          >
+            <Upload className="h-4 w-4" />
+            Import Members
+          </Button>
+        }
       />
+
       <DataTable<BatchMemberRow>
         rowData={filtered as BatchMemberRow[]}
         columnDefs={columnDefs}
         getRowId={(p) => p.data.id}
         onGridReady={(e) => setGridApi(e.api)}
         showColumnPicker={false}
-        selectable={false}
+        selectable={props.canManageMembers}
+        massActions={massActions}
+      />
+
+      <CreateMemberDialog
+        batchScopeId={props.batchScopeId}
+        batchSlug={props.batchSlug}
+        batchName={props.batchName}
+        entryYear={props.entryYear}
+        houses={props.houseOptions}
+        networks={props.networkOptions}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+      />
+      <BatchImportDialog
+        scope={{ id: props.batchScopeId, slug: props.batchSlug, name: props.batchName }}
+        open={importOpen}
+        onOpenChange={setImportOpen}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={
+          confirmDelete
+            ? confirmDelete.kind === 'single'
+              ? `Delete ${confirmDelete.targets[0]?.full_name ?? 'member'}?`
+              : `Delete ${confirmDelete.targets.length} members?`
+            : ''
+        }
+        description="Deletion is refused if the member is still attached to a branch. This action is not undoable — use it only for stray or duplicate records."
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (!confirmDelete) return;
+          const targets = confirmDelete.targets;
+          setConfirmDelete(null);
+          runDelete(targets);
+        }}
+        onCancel={() => setConfirmDelete(null)}
       />
     </div>
   );
