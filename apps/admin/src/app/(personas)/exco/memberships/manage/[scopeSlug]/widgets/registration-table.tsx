@@ -66,6 +66,7 @@ type ConfirmState =
 
 interface RegistrationTableProps {
   readonly rows: readonly RegistrationRow[];
+  readonly scopeSlug: string;
 }
 
 /**
@@ -87,7 +88,7 @@ interface RegistrationTableProps {
  *   - Bulk mark paid
  *   - Bulk escalate
  */
-export function RegistrationTable({ rows }: RegistrationTableProps) {
+export function RegistrationTable({ rows, scopeSlug }: RegistrationTableProps) {
   const router = useRouter();
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [search, setSearch] = useState('');
@@ -237,24 +238,20 @@ export function RegistrationTable({ rows }: RegistrationTableProps) {
         hideCreate
         createLabel=""
         onCreate={() => undefined}
+        showActiveOnly={!showAll}
+        onShowActiveOnlyChange={(next) => setShowAll(!next)}
+        showActiveLabel="Show action-needed only"
       />
-
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant={showAll ? 'default' : 'outline'}
-          onClick={() => setShowAll((v) => !v)}
-        >
-          {showAll ? 'Showing all' : 'Showing action-needed only'}
-        </Button>
-      </div>
 
       <DataTable<SerialRow>
         rowData={visible as SerialRow[]}
         columnDefs={columnDefs}
         getRowId={(p) => p.data.membership_id}
         onGridReady={(e) => setGridApi(e.api)}
+        onRowClicked={(e) => {
+          if (!e.data) return;
+          router.push(`/exco/memberships/members/${scopeSlug}/${e.data.member_id}`);
+        }}
         showColumnPicker={false}
         massActions={massActions}
       />

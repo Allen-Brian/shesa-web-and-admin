@@ -2,21 +2,23 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, X } from 'lucide-react';
+import { Check, MoreHorizontal, X } from 'lucide-react';
 
 import {
   Button,
   ConfirmDialog,
   DataTable,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   EntityTablePanel,
   toast,
   type ColDef,
   type GridApi,
+  type ICellRendererParams,
+  type MassActions,
   type RowClickedEvent,
 } from '@shesa/ui';
 
@@ -25,16 +27,27 @@ import type { RequestRow } from './switcher';
 
 interface RequestsPanelProps {
   readonly requests: readonly RequestRow[];
+  readonly scopeSlug: string;
 }
 
 type SerialRow = RequestRow & { readonly serial: number };
 
-export function RequestsPanel({ requests }: RequestsPanelProps) {
+type ConfirmState =
+  | null
+  | { readonly kind: 'reject'; readonly targets: readonly RequestRow[] }
+  | { readonly kind: 'bulkApprove'; readonly targets: readonly RequestRow[] };
+
+/**
+ * Requests panel — selectable table with mass actions for bulk
+ * approve / reject. Row-click opens the member profile (the details
+ * previously in the per-row dialog live on the profile page). Per-row
+ * actions live in a "more" dropdown to keep the row clean.
+ */
+export function RequestsPanel({ requests, scopeSlug }: RequestsPanelProps) {
   const router = useRouter();
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<RequestRow | null>(null);
-  const [confirmReject, setConfirmReject] = useState<RequestRow | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmState>(null);
   const [pending, startTransition] = useTransition();
 
   const numbered = useMemo<readonly SerialRow[]>(
@@ -54,28 +67,32 @@ export function RequestsPanel({ requests }: RequestsPanelProps) {
     });
   }, [numbered, search]);
 
-  const runApprove = (row: RequestRow) => {
+  const runApprove = (rows: readonly RequestRow[]) => {
     startTransition(async () => {
-      const result = await approveJoinRequest(row.membership_id);
-      if (!result.ok) {
-        toast.error(result.message ?? 'Could not approve.');
-        return;
+      const results = await Promise.all(rows.map((r) => approveJoinRequest(r.membership_id)));
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length === 0) {
+        toast.success(`${rows.length} request${rows.length === 1 ? '' : 's'} approved.`);
+      } else if (failed.length === rows.length) {
+        toast.error(failed[0]?.ok === false ? failed[0].message : 'Could not approve.');
+      } else {
+        toast.error(`Approved ${rows.length - failed.length}; ${failed.length} failed.`);
       }
-      toast.success(`${row.full_name} joined.`);
-      setSelected(null);
       router.refresh();
     });
   };
 
-  const runReject = (row: RequestRow) => {
+  const runReject = (rows: readonly RequestRow[]) => {
     startTransition(async () => {
-      const result = await rejectJoinRequest(row.membership_id);
-      if (!result.ok) {
-        toast.error(result.message ?? 'Could not reject.');
-        return;
+      const results = await Promise.all(rows.map((r) => rejectJoinRequest(r.membership_id)));
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length === 0) {
+        toast.success(`${rows.length} request${rows.length === 1 ? '' : 's'} rejected.`);
+      } else if (failed.length === rows.length) {
+        toast.error(failed[0]?.ok === false ? failed[0].message : 'Could not reject.');
+      } else {
+        toast.error(`Rejected ${rows.length - failed.length}; ${failed.length} failed.`);
       }
-      toast.success(`${row.full_name}'s request rejected.`);
-      setSelected(null);
       router.refresh();
     });
   };
@@ -113,18 +130,55 @@ export function RequestsPanel({ requests }: RequestsPanelProps) {
         cellClass: 'font-mono text-xs',
       },
       {
-        headerName: 'Requested',
+        headerName: 'Requested At',
         field: 'requested_at',
-        width: 140,
+        width: 150,
         valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleDateString() : '—'),
       },
+      {
+        headerName: '',
+        colId: 'row_actions',
+        width: 64,
+        sortable: false,
+        filter: false,
+        suppressMovable: true,
+        cellRenderer: (p: ICellRendererParams<SerialRow>) =>
+          p.data ? (
+            <RowMenu
+              row={p.data}
+              disabled={pending}
+              onApprove={() => runApprove([p.data as SerialRow])}
+              onReject={() => setConfirm({ kind: 'reject', targets: [p.data as SerialRow] })}
+            />
+          ) : null,
+      },
     ],
+    [pending],
+  );
+
+  const massActions = useMemo<MassActions<SerialRow>>(
+    () => ({
+      itemName: 'request',
+      pluralItemName: 'requests',
+      custom: [
+        {
+          label: 'Approve',
+          onClick: (selected: SerialRow[]) =>
+            setConfirm({ kind: 'bulkApprove', targets: selected }),
+        },
+        {
+          label: 'Reject',
+          onClick: (selected: SerialRow[]) => setConfirm({ kind: 'reject', targets: selected }),
+          destructive: true,
+        },
+      ],
+    }),
     [],
   );
 
   const onRowClicked = (e: RowClickedEvent<SerialRow>) => {
     if (!e.data) return;
-    setSelected(e.data);
+    router.push(`/exco/memberships/members/${scopeSlug}/${e.data.member_id}`);
   };
 
   return (
@@ -148,88 +202,83 @@ export function RequestsPanel({ requests }: RequestsPanelProps) {
         onGridReady={(e) => setGridApi(e.api)}
         onRowClicked={onRowClicked}
         showColumnPicker={false}
-        selectable={false}
+        selectable
+        massActions={massActions}
       />
-
-      {/* ── Row-click dialog ── */}
-      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-md">
-          {selected && (
-            <>
-              <DialogHeader>
-                <DialogTitle>{selected.full_name}</DialogTitle>
-                <DialogDescription>Pending join request.</DialogDescription>
-              </DialogHeader>
-              <DetailBlock row={selected} />
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={pending}
-                  onClick={() => setConfirmReject(selected)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <X className="h-4 w-4" />
-                  Reject
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={pending}
-                  onClick={() => runApprove(selected)}
-                >
-                  <Check className="h-4 w-4" />
-                  Approve
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
 
       <ConfirmDialog
-        open={!!confirmReject}
-        title={confirmReject ? `Reject ${confirmReject.full_name}?` : ''}
-        description="The request is rejected and the pending membership row is closed. The member is notified and can re-request later."
+        open={confirm?.kind === 'reject'}
+        title={
+          confirm?.kind === 'reject'
+            ? confirm.targets.length === 1
+              ? `Reject ${confirm.targets[0]?.full_name}?`
+              : `Reject ${confirm.targets.length} requests?`
+            : ''
+        }
+        description="The request is closed and the pending membership row is left behind. The member is notified and can re-request later."
         confirmLabel="Reject"
         onConfirm={() => {
-          if (!confirmReject) return;
-          const target = confirmReject;
-          setConfirmReject(null);
-          runReject(target);
+          if (confirm?.kind !== 'reject') return;
+          const targets = confirm.targets;
+          setConfirm(null);
+          runReject(targets);
         }}
-        onCancel={() => setConfirmReject(null)}
+        onCancel={() => setConfirm(null)}
+      />
+
+      <ConfirmDialog
+        open={confirm?.kind === 'bulkApprove'}
+        title={confirm?.kind === 'bulkApprove' ? `Approve ${confirm.targets.length} requests?` : ''}
+        description="Each pending membership is opened as active. Registration state is seeded from the branch's fee config."
+        confirmLabel="Approve"
+        onConfirm={() => {
+          if (confirm?.kind !== 'bulkApprove') return;
+          const targets = confirm.targets;
+          setConfirm(null);
+          runApprove(targets);
+        }}
+        onCancel={() => setConfirm(null)}
       />
     </div>
   );
 }
 
-function DetailBlock({ row }: { readonly row: RequestRow }) {
-  return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-4 text-sm">
-      <Detail k="Batch" v={row.batch_name ?? '—'} />
-      <Detail k="Email" v={row.email ?? '—'} />
-      <Detail k="Phone" v={row.phone ?? '—'} />
-      <Detail k="Method" v={row.join_method} mono />
-      <Detail k="Requested" v={new Date(row.requested_at).toLocaleString()} />
-    </div>
-  );
-}
-
-function Detail({
-  k,
-  v,
-  mono,
+function RowMenu({
+  disabled,
+  onApprove,
+  onReject,
 }: {
-  readonly k: string;
-  readonly v: string;
-  readonly mono?: boolean;
+  readonly row: RequestRow;
+  readonly disabled: boolean;
+  readonly onApprove: () => void;
+  readonly onReject: () => void;
 }) {
   return (
-    <div className="flex justify-between gap-4">
-      <span className="text-xs text-muted-foreground">{k}</span>
-      <span className={mono ? 'text-sm font-mono' : 'text-sm text-foreground'}>{v}</span>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 rounded-md p-0"
+          aria-label="Row actions"
+          disabled={disabled}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuItem onClick={onApprove}>
+          <Check className="h-4 w-4" />
+          Approve
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onReject}>
+          <X className="h-4 w-4" />
+          Reject
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

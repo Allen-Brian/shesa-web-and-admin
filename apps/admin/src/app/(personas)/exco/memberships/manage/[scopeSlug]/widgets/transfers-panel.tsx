@@ -2,23 +2,23 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftRight, Check, X } from 'lucide-react';
+import { Check, MoreHorizontal, X } from 'lucide-react';
 
 import {
-  Badge,
   Button,
   ConfirmDialog,
   DataTable,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   EntityTablePanel,
   toast,
   type ColDef,
   type GridApi,
   type ICellRendererParams,
+  type MassActions,
   type RowClickedEvent,
 } from '@shesa/ui';
 
@@ -27,24 +27,30 @@ import type { TransferRow } from './switcher';
 
 interface TransfersPanelProps {
   readonly transfers: readonly TransferRow[];
+  readonly scopeSlug: string;
 }
 
 type SerialRow = TransferRow & { readonly serial: number };
 
+type ConfirmState =
+  | null
+  | { readonly kind: 'deny'; readonly targets: readonly TransferRow[] }
+  | { readonly kind: 'bulkApprove'; readonly targets: readonly TransferRow[] };
+
 /**
- * Incoming transfers panel (destination view). Per the M1 flip:
- *   - This scope is the DESTINATION of every row here.
- *   - Approving fires memberships/approve-transfer (destination-scoped).
- *   - The source scope's admin gets a notification event after approval.
+ * Incoming transfers panel (destination view). Selectable table with
+ * bulk approve/deny, row-click opens the member profile, and per-row
+ * actions live in a "more" dropdown. Per the M1 flip: approve fires
+ * memberships/approve-transfer against the destination scope (this
+ * one), and the source-scope admin is notified after.
  *
  * Deny is stubbed pending its Edge Function.
  */
-export function TransfersPanel({ transfers }: TransfersPanelProps) {
+export function TransfersPanel({ transfers, scopeSlug }: TransfersPanelProps) {
   const router = useRouter();
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<TransferRow | null>(null);
-  const [confirmDeny, setConfirmDeny] = useState<TransferRow | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmState>(null);
   const [pending, startTransition] = useTransition();
 
   const numbered = useMemo<readonly SerialRow[]>(
@@ -64,22 +70,23 @@ export function TransfersPanel({ transfers }: TransfersPanelProps) {
     });
   }, [numbered, search]);
 
-  const runApprove = (row: TransferRow) => {
+  const runApprove = (rows: readonly TransferRow[]) => {
     startTransition(async () => {
-      const result = await approveTransfer(row.transfer_id);
-      if (!result.ok) {
-        toast.error(result.message ?? 'Could not approve transfer.');
-        return;
+      const results = await Promise.all(rows.map((r) => approveTransfer(r.transfer_id)));
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length === 0) {
+        toast.success(`${rows.length} transfer${rows.length === 1 ? '' : 's'} approved.`);
+      } else if (failed.length === rows.length) {
+        toast.error(failed[0]?.ok === false ? failed[0].message : 'Could not approve.');
+      } else {
+        toast.error(`Approved ${rows.length - failed.length}; ${failed.length} failed.`);
       }
-      toast.success(`${row.full_name} transferred from ${row.source_scope_name}.`);
-      setSelected(null);
       router.refresh();
     });
   };
 
   const runDeny = () => {
     toast.warning('Transfer denial is not implemented yet.');
-    setSelected(null);
   };
 
   const columnDefs = useMemo<ColDef<SerialRow>[]>(
@@ -106,9 +113,7 @@ export function TransfersPanel({ transfers }: TransfersPanelProps) {
         field: 'source_scope_name',
         flex: 1.5,
         minWidth: 180,
-        cellRenderer: (p: ICellRendererParams<SerialRow, string>) => (
-          <span className="inline-flex items-center gap-1">{p.value ?? '—'}</span>
-        ),
+        valueFormatter: (p) => p.value ?? '—',
       },
       {
         headerName: 'Email',
@@ -118,18 +123,54 @@ export function TransfersPanel({ transfers }: TransfersPanelProps) {
         valueFormatter: (p) => p.value ?? '—',
       },
       {
-        headerName: 'Requested',
+        headerName: 'Requested At',
         field: 'requested_at',
-        width: 140,
+        width: 150,
         valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleDateString() : '—'),
       },
+      {
+        headerName: '',
+        colId: 'row_actions',
+        width: 64,
+        sortable: false,
+        filter: false,
+        suppressMovable: true,
+        cellRenderer: (p: ICellRendererParams<SerialRow>) =>
+          p.data ? (
+            <RowMenu
+              disabled={pending}
+              onApprove={() => runApprove([p.data as SerialRow])}
+              onDeny={() => setConfirm({ kind: 'deny', targets: [p.data as SerialRow] })}
+            />
+          ) : null,
+      },
     ],
+    [pending],
+  );
+
+  const massActions = useMemo<MassActions<SerialRow>>(
+    () => ({
+      itemName: 'transfer',
+      pluralItemName: 'transfers',
+      custom: [
+        {
+          label: 'Approve',
+          onClick: (selected: SerialRow[]) =>
+            setConfirm({ kind: 'bulkApprove', targets: selected }),
+        },
+        {
+          label: 'Deny',
+          onClick: (selected: SerialRow[]) => setConfirm({ kind: 'deny', targets: selected }),
+          destructive: true,
+        },
+      ],
+    }),
     [],
   );
 
   const onRowClicked = (e: RowClickedEvent<SerialRow>) => {
     if (!e.data) return;
-    setSelected(e.data);
+    router.push(`/exco/memberships/members/${scopeSlug}/${e.data.member_id}`);
   };
 
   return (
@@ -153,91 +194,82 @@ export function TransfersPanel({ transfers }: TransfersPanelProps) {
         onGridReady={(e) => setGridApi(e.api)}
         onRowClicked={onRowClicked}
         showColumnPicker={false}
-        selectable={false}
+        selectable
+        massActions={massActions}
       />
-
-      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-md">
-          {selected && (
-            <>
-              <DialogHeader>
-                <DialogTitle>{selected.full_name}</DialogTitle>
-                <DialogDescription>
-                  <span className="inline-flex items-center gap-1">
-                    Incoming transfer from
-                    <Badge variant="outline" className="gap-1 text-xs">
-                      <ArrowLeftRight className="h-3 w-3" />
-                      {selected.source_scope_name}
-                    </Badge>
-                  </span>
-                </DialogDescription>
-              </DialogHeader>
-              <DetailBlock row={selected} />
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={pending}
-                  onClick={() => setConfirmDeny(selected)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <X className="h-4 w-4" />
-                  Deny
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={pending}
-                  onClick={() => runApprove(selected)}
-                >
-                  <Check className="h-4 w-4" />
-                  Approve
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
 
       <ConfirmDialog
-        open={!!confirmDeny}
-        title={confirmDeny ? `Deny transfer for ${confirmDeny.full_name}?` : ''}
-        description="The member keeps their existing membership at their source scope. The requester is notified. (Note: denial flow is stubbed pending its Edge Function.)"
+        open={confirm?.kind === 'deny'}
+        title={
+          confirm?.kind === 'deny'
+            ? confirm.targets.length === 1
+              ? `Deny transfer for ${confirm.targets[0]?.full_name}?`
+              : `Deny ${confirm.targets.length} transfers?`
+            : ''
+        }
+        description="The member keeps their existing membership at the source scope. (Note: denial flow is stubbed pending its Edge Function.)"
         confirmLabel="Deny"
         onConfirm={() => {
-          setConfirmDeny(null);
+          setConfirm(null);
           runDeny();
         }}
-        onCancel={() => setConfirmDeny(null)}
+        onCancel={() => setConfirm(null)}
+      />
+
+      <ConfirmDialog
+        open={confirm?.kind === 'bulkApprove'}
+        title={
+          confirm?.kind === 'bulkApprove' ? `Approve ${confirm.targets.length} transfers?` : ''
+        }
+        description="Each transfer closes the source membership and opens a fresh active one at this scope. The source-scope admin is notified."
+        confirmLabel="Approve"
+        onConfirm={() => {
+          if (confirm?.kind !== 'bulkApprove') return;
+          const targets = confirm.targets;
+          setConfirm(null);
+          runApprove(targets);
+        }}
+        onCancel={() => setConfirm(null)}
       />
     </div>
   );
 }
 
-function DetailBlock({ row }: { readonly row: TransferRow }) {
+function RowMenu({
+  disabled,
+  onApprove,
+  onDeny,
+}: {
+  readonly disabled: boolean;
+  readonly onApprove: () => void;
+  readonly onDeny: () => void;
+}) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-4 text-sm">
-      <Detail k="Batch" v={row.batch_name ?? '—'} />
-      <Detail k="Email" v={row.email ?? '—'} />
-      <Detail k="Phone" v={row.phone ?? '—'} />
-      <Detail k="From" v={row.source_scope_name} />
-      <Detail k="Requested" v={new Date(row.requested_at).toLocaleString()} />
-      {row.reason && (
-        <div className="flex flex-col gap-1 border-t border-border pt-2">
-          <span className="text-xs text-muted-foreground">Reason</span>
-          <span className="text-sm italic text-foreground">&ldquo;{row.reason}&rdquo;</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Detail({ k, v }: { readonly k: string; readonly v: string }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <span className="text-xs text-muted-foreground">{k}</span>
-      <span className="text-sm text-foreground">{v}</span>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 rounded-md p-0"
+          aria-label="Row actions"
+          disabled={disabled}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuItem onClick={onApprove}>
+          <Check className="h-4 w-4" />
+          Approve
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDeny}>
+          <X className="h-4 w-4" />
+          Deny
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

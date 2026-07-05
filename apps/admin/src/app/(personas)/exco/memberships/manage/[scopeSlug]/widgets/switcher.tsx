@@ -96,15 +96,15 @@ export function ManageMembershipSwitcher({
         </TabsList>
 
         <TabsContent value="requests" className="flex min-h-0 flex-1 flex-col">
-          <RequestsPanel requests={requests} />
+          <RequestsPanel requests={requests} scopeSlug={scope.slug} />
         </TabsContent>
 
         <TabsContent value="transfers" className="flex min-h-0 flex-1 flex-col">
-          <TransfersPanel transfers={transfers} />
+          <TransfersPanel transfers={transfers} scopeSlug={scope.slug} />
         </TabsContent>
 
         <TabsContent value="registration" className="flex min-h-0 flex-1 flex-col">
-          <RegistrationTable rows={registration} />
+          <RegistrationTable rows={registration} scopeSlug={scope.slug} />
         </TabsContent>
       </Tabs>
     </div>
