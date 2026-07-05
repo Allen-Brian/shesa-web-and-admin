@@ -19,3 +19,4 @@ export * from './payment-provider';
 export * from './charges';
 export * from './periods';
 export * from './proration';
+export * from './payments';
