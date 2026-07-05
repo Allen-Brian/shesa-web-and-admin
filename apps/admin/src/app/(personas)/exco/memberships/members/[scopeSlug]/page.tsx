@@ -179,6 +179,7 @@ function rowFromMembership(
     membership_status: mem.membership_status as MembersPageRow['membership_status'],
     engagement: mem.engagement as MembersPageRow['engagement'],
     registration_state,
+    joined_at: mem.joined_at,
   };
 }
 

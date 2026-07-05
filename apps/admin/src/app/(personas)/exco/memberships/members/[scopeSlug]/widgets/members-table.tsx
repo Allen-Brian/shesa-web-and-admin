@@ -25,8 +25,11 @@ import {
 } from '@shesa/ui';
 
 import { MemberName } from '@/components/governance/member-name';
+import { EngagementStars } from '@/components/memberships/engagement-stars';
 import { FilterChips } from '@/components/memberships/filter-chips';
 import { FilterDialog, type FilterDimensionConfig } from '@/components/memberships/filter-dialog';
+import { RegistrationIcon } from '@/components/memberships/registration-icon';
+import type { EngagementTier } from '@shesa/domain/memberships';
 import { useFilterState } from '@/lib/memberships/filter-state';
 
 import { removeMembership, setEngagement } from '../../../actions';
@@ -285,19 +288,26 @@ export function MembersTable({ scope, rows, onAdd }: MembersTableProps) {
     defs.push({
       headerName: 'Engagement',
       field: 'engagement',
-      width: 130,
+      width: 140,
       cellRenderer: (p: ICellRendererParams<SerialRow, string | null>) => (
-        <EngagementBadge tier={p.value ?? null} />
+        <EngagementStars tier={(p.value ?? null) as EngagementTier | null} />
       ),
     });
 
     defs.push({
       headerName: 'Registration',
       field: 'registration_state',
-      width: 150,
+      width: 160,
       cellRenderer: (p: ICellRendererParams<SerialRow, string | null>) => (
-        <RegistrationBadge state={p.value ?? null} />
+        <RegistrationIcon state={p.value ?? null} />
       ),
+    });
+
+    defs.push({
+      headerName: 'Joined',
+      field: 'joined_at',
+      width: 130,
+      valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleDateString() : '—'),
     });
 
     defs.push({
@@ -428,45 +438,6 @@ function MembershipStatusBadge({ status }: { readonly status: string | null }) {
   return (
     <Badge variant="outline" className={styles[status] ?? 'border-border text-foreground'}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
-    </Badge>
-  );
-}
-
-function EngagementBadge({ tier }: { readonly tier: string | null }) {
-  if (!tier) return <span className="text-muted-foreground">—</span>;
-  const styles: Record<string, string> = {
-    dormant: 'border-muted-foreground/30 bg-muted/40 text-muted-foreground',
-    normal: 'border-border bg-background text-foreground',
-    engaged: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    committed: 'border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300',
-  };
-  return (
-    <Badge variant="outline" className={styles[tier] ?? 'border-border text-foreground'}>
-      {tier.charAt(0).toUpperCase() + tier.slice(1)}
-    </Badge>
-  );
-}
-
-function RegistrationBadge({ state }: { readonly state: string | null }) {
-  if (!state) return <span className="text-muted-foreground">—</span>;
-  const styles: Record<string, string> = {
-    not_required: 'border-muted-foreground/30 bg-muted/40 text-muted-foreground',
-    pending: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
-    paid: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-    paid_on_behalf:
-      'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-    waived: 'border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300',
-  };
-  const labels: Record<string, string> = {
-    not_required: 'Not required',
-    pending: 'Pending',
-    paid: 'Paid',
-    paid_on_behalf: 'Paid on behalf',
-    waived: 'Waived',
-  };
-  return (
-    <Badge variant="outline" className={styles[state] ?? 'border-border text-foreground'}>
-      {labels[state] ?? state}
     </Badge>
   );
 }

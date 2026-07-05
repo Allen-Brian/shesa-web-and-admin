@@ -29,9 +29,10 @@ export interface MembersPageRow {
   readonly branch_name: string | null;
   readonly location: string | null;
   readonly membership_status: 'active' | 'passive' | 'pending' | null;
-  readonly engagement: 'dormant' | 'normal' | 'engaged' | 'committed' | null;
+  readonly engagement: 'dormant' | 'normal' | 'engaged' | 'committed' | 'pillar' | null;
   readonly registration_state:
     'not_required' | 'pending' | 'paid' | 'paid_on_behalf' | 'waived' | null;
+  readonly joined_at: string | null;
 }
 
 interface MembersPageProps {

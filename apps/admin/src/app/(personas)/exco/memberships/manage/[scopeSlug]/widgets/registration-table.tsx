@@ -26,6 +26,8 @@ import {
   type MassActions,
 } from '@shesa/ui';
 
+import { RegistrationIcon } from '@/components/memberships/registration-icon';
+
 import {
   escalateUnregistered,
   markRegistrationPaid,
@@ -169,9 +171,9 @@ export function RegistrationTable({ rows }: RegistrationTableProps) {
       {
         headerName: 'State',
         field: 'registration_state',
-        width: 150,
+        width: 170,
         cellRenderer: (p: ICellRendererParams<SerialRow, string>) => (
-          <StateBadge state={p.value ?? null} />
+          <RegistrationIcon state={p.value ?? null} />
         ),
       },
       {
@@ -419,30 +421,6 @@ export function RegistrationTable({ rows }: RegistrationTableProps) {
 
       {pending && <span className="sr-only">Working…</span>}
     </div>
-  );
-}
-
-function StateBadge({ state }: { readonly state: string | null }) {
-  if (!state) return <span className="text-muted-foreground">—</span>;
-  const styles: Record<string, string> = {
-    not_required: 'border-muted-foreground/30 bg-muted/40 text-muted-foreground',
-    pending: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
-    paid: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-    paid_on_behalf:
-      'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-    waived: 'border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300',
-  };
-  const labels: Record<string, string> = {
-    not_required: 'Not required',
-    pending: 'Pending',
-    paid: 'Paid',
-    paid_on_behalf: 'Paid on behalf',
-    waived: 'Waived',
-  };
-  return (
-    <Badge variant="outline" className={styles[state] ?? 'border-border text-foreground'}>
-      {labels[state] ?? state}
-    </Badge>
   );
 }
 
