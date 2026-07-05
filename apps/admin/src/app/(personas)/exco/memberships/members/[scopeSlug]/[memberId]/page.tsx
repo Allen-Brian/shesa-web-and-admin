@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { getServerClient } from '@/lib/supabase-server';
 import { resolveMemberBadges } from '@/lib/resolve-badges';
@@ -7,6 +7,7 @@ import {
   MemberProfileView,
   type MemberProfile,
   type MembershipHistoryRow,
+  type TransferDestination,
 } from './widgets/detail-view';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,11 @@ interface Params {
 export default async function MemberProfilePage({ params }: Params) {
   const { scopeSlug, memberId } = await params;
   const supabase = await getServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/login?next=/exco/memberships/members/${scopeSlug}/${memberId}`);
 
   const { data: scopeRow } = await supabase
     .schema('core')
@@ -155,12 +161,106 @@ export default async function MemberProfilePage({ params }: Params) {
     field: member.field,
   };
 
+  // ─ Per-action permission gating (M6 spec) ─────────────────────────────
+  // Each Admin Options button hides on its own key at the viewer's scope.
+  // Rendering ≠ authorization — the Edge Functions re-check server-side
+  // regardless. This is UI clutter reduction, not a security boundary.
+  const [
+    { data: canSetEngagement },
+    { data: canMarkPaid },
+    { data: canWaive },
+    { data: canPayOnBehalf },
+    { data: canTransfer },
+    { data: canRemove },
+  ] = await Promise.all([
+    supabase.schema('core').rpc('has_permission', {
+      p_user_id: user.id,
+      p_scope_id: scopeRow.id,
+      p_permission_key: 'membership.engagement.set',
+    }),
+    supabase.schema('core').rpc('has_permission', {
+      p_user_id: user.id,
+      p_scope_id: scopeRow.id,
+      p_permission_key: 'registration.mark_paid',
+    }),
+    supabase.schema('core').rpc('has_permission', {
+      p_user_id: user.id,
+      p_scope_id: scopeRow.id,
+      p_permission_key: 'registration.waive',
+    }),
+    supabase.schema('core').rpc('has_permission', {
+      p_user_id: user.id,
+      p_scope_id: scopeRow.id,
+      p_permission_key: 'registration.pay_on_behalf',
+    }),
+    supabase.schema('core').rpc('has_permission', {
+      p_user_id: user.id,
+      p_scope_id: scopeRow.id,
+      p_permission_key: 'membership.transfer',
+    }),
+    supabase.schema('core').rpc('has_permission', {
+      p_user_id: user.id,
+      p_scope_id: scopeRow.id,
+      p_permission_key: 'membership.remove',
+    }),
+  ]);
+
+  // The membership row at the viewer's scope — the target for every
+  // per-membership action (engagement, registration, remove, transfer
+  // source). If null, the member has no membership here; buttons that
+  // need one stay hidden.
+  const viewerMembership = history.find((h) => h.scope_id === scopeRow.id) ?? null;
+
+  // Transfer destinations — branches + autonomous chapters other than
+  // the current source. Scopes are public reference data (RLS is open
+  // SELECT on core.scopes), so the picker can list everything.
+  const { data: destinationRows } =
+    canTransfer === true
+      ? await supabase
+          .schema('core')
+          .from('scopes')
+          .select('id, name, slug, scope_type, chapter_kind, status')
+          .neq('id', scopeRow.id)
+          .in('scope_type', ['branch', 'chapter'])
+          .eq('status', 'active')
+          .order('name')
+      : {
+          data: [] as Array<{
+            id: string;
+            name: string;
+            slug: string;
+            scope_type: string;
+            chapter_kind: string | null;
+            status: string;
+          }>,
+        };
+
+  const transferDestinations: TransferDestination[] = (destinationRows ?? [])
+    .filter((s) => s.scope_type === 'branch' || s.chapter_kind === 'autonomous')
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      slug: s.slug,
+      scope_type: s.scope_type as 'branch' | 'chapter',
+    }));
+
   return (
     <MemberProfileView
       viewerScopeSlug={scopeRow.slug}
       viewerScopeName={scopeRow.name}
+      viewerScopeId={scopeRow.id}
+      viewerMembershipId={viewerMembership?.id ?? null}
       profile={profile}
       history={history}
+      transferDestinations={transferDestinations}
+      permissions={{
+        setEngagement: canSetEngagement === true,
+        markPaid: canMarkPaid === true,
+        waive: canWaive === true,
+        payOnBehalf: canPayOnBehalf === true,
+        transfer: canTransfer === true,
+        remove: canRemove === true,
+      }}
     />
   );
 }
