@@ -147,9 +147,6 @@ export function AssignPositionDialog({
                           className="flex items-center justify-between gap-2"
                         >
                           <span className="truncate">{m.fullName}</span>
-                          {!m.hasAccount && (
-                            <span className="text-xs text-muted-foreground">no account</span>
-                          )}
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -198,8 +195,8 @@ export function AssignPositionDialog({
               <div className="flex items-start gap-2 rounded-md bg-amber-50 p-2 text-xs text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>
-                  {picked.fullName} has no linked account yet, so a role can't be granted. Link an
-                  account to the member first, then grant the role separately.
+                  {picked.fullName} hasn&apos;t claimed their invite yet. The position will be
+                  assigned now; grant a role from the Governance panel once they accept the invite.
                 </span>
               </div>
             )}
