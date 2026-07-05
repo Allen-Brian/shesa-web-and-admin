@@ -14,16 +14,17 @@
  *                     captures the actor.
  *   reverse         — Inserts a new payment row with reverses_payment_id
  *                     set + a mandatory reason. The original stays intact.
- *
- * Deferred to M4B:
- *   initiate        — Kicks off a simulated provider payment window.
- *   confirm         — On provider success, writes source='auto' row.
- *   (Real MTN / Orange / card providers slot in behind the same
- *    PaymentProvider seam later.)
+ *   initiate        — Creates a finance.payment_intents row + returns
+ *                     the intent handle. Simulator drives success off
+ *                     available_from; real providers via webhooks.
+ *   confirm         — Polls an intent. On success, INSERTs the payment
+ *                     row (source='auto') and updates the intent. Idempotent.
  */
 
 import { entityRouter } from '../_shared/entity-router.ts';
 
+import { confirmPayment } from './confirm.ts';
+import { initiatePayment } from './initiate.ts';
 import { payOnBehalf } from './pay-on-behalf.ts';
 import { recordManualPayment } from './record-manual.ts';
 import { reversePayment } from './reverse.ts';
@@ -33,5 +34,7 @@ Deno.serve(
     'record-manual': recordManualPayment,
     'pay-on-behalf': payOnBehalf,
     reverse: reversePayment,
+    initiate: initiatePayment,
+    confirm: confirmPayment,
   }),
 );
