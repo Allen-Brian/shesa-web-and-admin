@@ -40,8 +40,8 @@ function EmptyState() {
       <div className="max-w-md rounded-xl border border-dashed border-border p-8 text-center">
         <h1 className="text-lg font-semibold text-foreground">No memberships to manage</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          You don&apos;t have a membership admin role at any branch, autonomous chapter, or batch.
-          Ask a mainstream admin to grant you a role.
+          You don&apos;t have a membership admin role at any branch or autonomous chapter. Ask a
+          mainstream admin to grant you a role.
         </p>
       </div>
     </div>

@@ -7,15 +7,13 @@ import {
   Building2,
   CalendarDays,
   ChevronRight,
-  ClipboardCheck,
   GraduationCap,
   Home,
-  Inbox,
   Layers,
   Megaphone,
   Network,
+  Settings2,
   Users,
-  UsersRound,
 } from 'lucide-react';
 
 import {
@@ -60,14 +58,17 @@ const CLUSTER_ITEMS: readonly NavItem[] = [
   { slug: 'houses', label: 'Houses', Icon: Badge },
 ];
 
-// Memberships sub-items. Each links to /[persona]/memberships/[slug](/scope).
+// Memberships top-level entries. The 2026-07-05 restructure flattened
+// the previous collapsible into two direct links:
+//   - Members — the roster.
+//   - Manage Membership — a single page with three internal tabs
+//     (Requests, Transfers, Registration).
 // The scope-slug segment is appended dynamically below when the current
-// URL already carries one — so navigating Members → Registration stays
-// on the same scope.
+// URL already carries one — so switching between Members and Manage
+// Membership stays on the same scope.
 const MEMBERSHIP_ITEMS: readonly NavItem[] = [
   { slug: 'members', label: 'Members', Icon: Users },
-  { slug: 'requests-transfers', label: 'Requests & Transfers', Icon: Inbox },
-  { slug: 'registration', label: 'Registration', Icon: ClipboardCheck },
+  { slug: 'manage', label: 'Manage Membership', Icon: Settings2 },
 ];
 
 /**
@@ -95,7 +96,6 @@ export function AppSidebar({
   const meta = PERSONA_META[persona];
 
   const clustersActive = pathname.startsWith(`/${persona}/clusters`);
-  const membershipsActive = pathname.startsWith(`/${persona}/memberships`);
   const membershipScope = extractMembershipScopeSlug(pathname, persona);
 
   return (
@@ -120,36 +120,21 @@ export function AppSidebar({
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                <Collapsible asChild defaultOpen={membershipsActive} className="group/collapsible">
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip="Memberships" isActive={membershipsActive}>
-                        <UsersRound />
-                        <span>Memberships</span>
-                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                {MEMBERSHIP_ITEMS.map(({ slug, label, Icon }) => {
+                  const base = `/${persona}/memberships/${slug}`;
+                  const href = membershipScope ? `${base}/${membershipScope}` : base;
+                  const active = pathname === base || pathname.startsWith(`${base}/`);
+                  return (
+                    <SidebarMenuItem key={slug}>
+                      <SidebarMenuButton asChild tooltip={label} isActive={active}>
+                        <Link href={href}>
+                          <Icon />
+                          <span>{label}</span>
+                        </Link>
                       </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {MEMBERSHIP_ITEMS.map(({ slug, label, Icon }) => {
-                          const base = `/${persona}/memberships/${slug}`;
-                          const href = membershipScope ? `${base}/${membershipScope}` : base;
-                          const active = pathname === base || pathname.startsWith(`${base}/`);
-                          return (
-                            <SidebarMenuSubItem key={slug}>
-                              <SidebarMenuSubButton asChild isActive={active}>
-                                <Link href={href}>
-                                  <Icon />
-                                  <span>{label}</span>
-                                </Link>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          );
-                        })}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

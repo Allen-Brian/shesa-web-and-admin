@@ -6,37 +6,25 @@ import { getServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
-export default async function RequestsTransfersLandingPage() {
+export default async function ManageMembershipLandingPage() {
   const supabase = await getServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect('/login?next=/exco/memberships/requests-transfers');
+  if (!user) redirect('/login?next=/exco/memberships/manage');
 
   const scopes = await resolveMemberableScopes(supabase, user.id);
 
-  // Batches don't hold requests/transfers. Filter to the applicable subset
-  // for the single-scope auto-redirect decision; the picker itself still
-  // renders every scope and greys out the batches for context.
-  const applicableScopes = scopes.filter(
-    (s) => s.scope_type === 'branch' || s.scope_type === 'chapter',
-  );
-
-  if (applicableScopes.length === 0 && scopes.length === 0) {
-    return <EmptyState />;
-  }
-
-  if (applicableScopes.length === 1) {
-    redirect(`/exco/memberships/requests-transfers/${applicableScopes[0]!.slug}`);
-  }
+  if (scopes.length === 0) return <EmptyState />;
+  if (scopes.length === 1) redirect(`/exco/memberships/manage/${scopes[0]!.slug}`);
 
   return (
     <ScopePicker
       persona="exco"
-      subItem="requests-transfers"
+      subItem="manage"
       scopes={scopes}
-      title="Requests & Transfers"
-      subtitle="Pick the branch or autonomous chapter whose queue you want to work through."
+      title="Manage Membership"
+      subtitle="Pick the branch or autonomous chapter whose requests, transfers, and registration you want to work through."
     />
   );
 }

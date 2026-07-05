@@ -3,6 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shesa/ui';
 
 import { RequestsPanel } from './requests-panel';
+import { RegistrationTable, type RegistrationRow } from './registration-table';
 import { TransfersPanel } from './transfers-panel';
 
 export interface SwitcherScope {
@@ -40,16 +41,31 @@ interface SwitcherProps {
   readonly scope: SwitcherScope;
   readonly requests: readonly RequestRow[];
   readonly transfers: readonly TransferRow[];
+  readonly registration: readonly RegistrationRow[];
 }
 
 /**
- * Requests & Transfers switcher — uses the same Tabs primitive the
- * branch-detail page uses so the look-and-feel matches the rest of
- * the admin. Default tab picks up whichever queue has rows (Requests
- * wins on tie).
+ * Manage Membership switcher — three-tab layout using the Tabs
+ * primitive that matches the branch-detail page. Default tab picks
+ * up the first non-empty queue; Requests wins on tie.
+ *
+ * Consolidates what used to be two separate routes (Requests &
+ * Transfers and Registration) into one page under the new "Manage
+ * Membership" sidebar entry.
  */
-export function RequestsTransfersSwitcher({ scope, requests, transfers }: SwitcherProps) {
-  const defaultTab = requests.length === 0 && transfers.length > 0 ? 'transfers' : 'requests';
+export function ManageMembershipSwitcher({
+  scope,
+  requests,
+  transfers,
+  registration,
+}: SwitcherProps) {
+  // Tab badge for Registration reflects the "action needed" set — rows
+  // where the fee is required but not yet resolved (paid / waived / paid
+  // on behalf). The panel's default view filters to this same set.
+  const actionNeeded = registration.filter((r) => r.registration_state === 'pending').length;
+
+  const defaultTab =
+    requests.length > 0 ? 'requests' : transfers.length > 0 ? 'transfers' : 'registration';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
@@ -58,7 +74,7 @@ export function RequestsTransfersSwitcher({ scope, requests, transfers }: Switch
           Memberships · {scope.scope_type === 'chapter' ? 'Autonomous chapter' : 'Branch'}
         </div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          {scope.name} · Requests & Transfers
+          {scope.name} · Manage Membership
         </h1>
         <p className="font-mono text-xs text-muted-foreground">{scope.slug}</p>
       </div>
@@ -73,6 +89,10 @@ export function RequestsTransfersSwitcher({ scope, requests, transfers }: Switch
             Transfers
             <span className="ml-1.5 text-xs text-muted-foreground">({transfers.length})</span>
           </TabsTrigger>
+          <TabsTrigger value="registration">
+            Registration
+            <span className="ml-1.5 text-xs text-muted-foreground">({actionNeeded})</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="requests" className="flex min-h-0 flex-1 flex-col">
@@ -81,6 +101,10 @@ export function RequestsTransfersSwitcher({ scope, requests, transfers }: Switch
 
         <TabsContent value="transfers" className="flex min-h-0 flex-1 flex-col">
           <TransfersPanel transfers={transfers} />
+        </TabsContent>
+
+        <TabsContent value="registration" className="flex min-h-0 flex-1 flex-col">
+          <RegistrationTable rows={registration} />
         </TabsContent>
       </Tabs>
     </div>

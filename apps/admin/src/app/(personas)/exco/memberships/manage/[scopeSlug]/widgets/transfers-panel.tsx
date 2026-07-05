@@ -97,7 +97,8 @@ export function TransfersPanel({ transfers }: TransfersPanelProps) {
       {
         headerName: 'Batch',
         field: 'batch_name',
-        width: 140,
+        flex: 1.5,
+        minWidth: 180,
         valueFormatter: (p) => p.value ?? '—',
       },
       {
@@ -106,10 +107,7 @@ export function TransfersPanel({ transfers }: TransfersPanelProps) {
         flex: 1.5,
         minWidth: 180,
         cellRenderer: (p: ICellRendererParams<SerialRow, string>) => (
-          <span className="inline-flex items-center gap-1">
-            <ArrowLeftRight className="h-3 w-3 text-muted-foreground" />
-            {p.value ?? '—'}
-          </span>
+          <span className="inline-flex items-center gap-1">{p.value ?? '—'}</span>
         ),
       },
       {

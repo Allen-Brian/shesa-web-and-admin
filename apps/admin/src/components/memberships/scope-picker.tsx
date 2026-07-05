@@ -5,8 +5,8 @@ import type { MemberableScope } from '@/lib/memberships/memberable-scopes';
 
 interface ScopePickerProps {
   readonly persona: string;
-  /** Sub-item slug: 'members' | 'requests-transfers' | 'registration'. */
-  readonly subItem: 'members' | 'requests-transfers' | 'registration';
+  /** Sub-item slug: 'members' or 'manage'. */
+  readonly subItem: 'members' | 'manage';
   readonly scopes: readonly MemberableScope[];
   readonly title: string;
   readonly subtitle: string;
