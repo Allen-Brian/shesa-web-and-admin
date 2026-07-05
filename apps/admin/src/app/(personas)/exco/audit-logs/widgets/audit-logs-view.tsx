@@ -1,9 +1,23 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, ScrollText } from 'lucide-react';
+import { ScrollText } from 'lucide-react';
 
-import { Badge, Button, cn } from '@shesa/ui';
+import {
+  Badge,
+  Button,
+  DataTable,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  EntityTablePanel,
+  type ColDef,
+  type GridApi,
+  type ICellRendererParams,
+  type RowClickedEvent,
+} from '@shesa/ui';
 
 export interface AuditEntryRow {
   readonly id: string;
@@ -30,19 +44,18 @@ interface AuditLogsViewProps {
   readonly limit: number;
 }
 
+type SerialRow = AuditEntryRow & { readonly serial: number };
+
 /**
- * Audit Logs view — sorted-newest-first list with click-to-expand rows.
- * Each row shows a human summary line; expanded, it renders the full
- * metadata JSON + IP + user agent.
- *
- * Filters:
- *   - free-text search across action + actor + entity table
- *   - action prefix picker (e.g. everything under `role.*`)
+ * Audit Logs table — same DataTable pattern as the rest of the admin.
+ * Row click opens a details dialog with the full metadata + IP + UA.
+ * Panel-based filter: free-text search + action prefix dropdown.
  */
 export function AuditLogsView({ scope, rows, limit }: AuditLogsViewProps) {
   const [search, setSearch] = useState('');
   const [prefix, setPrefix] = useState<string>('__all');
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
+  const [selected, setSelected] = useState<AuditEntryRow | null>(null);
 
   const prefixes = useMemo(() => {
     const set = new Set<string>();
@@ -53,20 +66,79 @@ export function AuditLogsView({ scope, rows, limit }: AuditLogsViewProps) {
     return Array.from(set).sort();
   }, [rows]);
 
-  const filtered = useMemo(() => {
+  const filtered = useMemo<readonly SerialRow[]>(() => {
     const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (prefix !== '__all' && !r.action.startsWith(prefix + '.') && r.action !== prefix)
+    return rows
+      .filter((r) => {
+        if (prefix !== '__all' && !r.action.startsWith(prefix + '.') && r.action !== prefix)
+          return false;
+        if (!q) return true;
+        if (r.action.toLowerCase().includes(q)) return true;
+        if (r.actor_label.toLowerCase().includes(q)) return true;
+        if (r.actor_email?.toLowerCase().includes(q)) return true;
+        if (r.entity_table.toLowerCase().includes(q)) return true;
+        if (r.entity_schema.toLowerCase().includes(q)) return true;
         return false;
-      if (!q) return true;
-      if (r.action.toLowerCase().includes(q)) return true;
-      if (r.actor_label.toLowerCase().includes(q)) return true;
-      if (r.actor_email?.toLowerCase().includes(q)) return true;
-      if (r.entity_table.toLowerCase().includes(q)) return true;
-      if (r.entity_schema.toLowerCase().includes(q)) return true;
-      return false;
-    });
+      })
+      .map((r, i) => ({ ...r, serial: i + 1 }));
   }, [rows, search, prefix]);
+
+  const columnDefs = useMemo<ColDef<SerialRow>[]>(
+    () => [
+      {
+        headerName: 'S/N',
+        field: 'serial',
+        width: 72,
+        maxWidth: 72,
+        sortable: false,
+        filter: false,
+        suppressMovable: true,
+      },
+      {
+        headerName: 'When',
+        field: 'created_at',
+        width: 170,
+        valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleString() : '—'),
+      },
+      {
+        headerName: 'Actor',
+        field: 'actor_label',
+        flex: 1.5,
+        minWidth: 180,
+      },
+      {
+        headerName: 'Action',
+        field: 'action',
+        flex: 1.5,
+        minWidth: 200,
+        cellClass: 'font-mono text-xs',
+        cellRenderer: (p: ICellRendererParams<SerialRow, string>) => (
+          <ActionCell action={p.value ?? ''} />
+        ),
+      },
+      {
+        headerName: 'Entity',
+        colId: 'entity',
+        flex: 1.5,
+        minWidth: 180,
+        valueGetter: (p) => (p.data ? `${p.data.entity_schema}.${p.data.entity_table}` : ''),
+        cellClass: 'font-mono text-xs',
+      },
+      {
+        headerName: 'IP',
+        field: 'ip_address',
+        width: 140,
+        cellClass: 'font-mono text-xs',
+        valueFormatter: (p) => p.value ?? '—',
+      },
+    ],
+    [],
+  );
+
+  const onRowClicked = (e: RowClickedEvent<SerialRow>) => {
+    if (!e.data) return;
+    setSelected(e.data);
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
@@ -83,156 +155,129 @@ export function AuditLogsView({ scope, rows, limit }: AuditLogsViewProps) {
           Audit Logs
         </h1>
         <p className="text-sm text-muted-foreground">
-          Last {limit} events at {scope.name}. Newest first.
+          Last {limit} events at {scope.name}. Newest first. Click a row for the full payload.
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search action, actor, entity…"
-          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-        />
-        <select
-          value={prefix}
-          onChange={(e) => setPrefix(e.target.value)}
-          className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
-        >
-          <option value="__all">All actions</option>
-          {prefixes.map((p) => (
-            <option key={p} value={p}>
-              {p}.*
-            </option>
-          ))}
-        </select>
-        <span className="text-xs text-muted-foreground">
-          {filtered.length} / {rows.length}
-        </span>
-      </div>
+      <EntityTablePanel
+        count={filtered.length}
+        countLabel={filtered.length === 1 ? 'event' : 'events'}
+        search={search}
+        onSearchChange={setSearch}
+        gridApi={gridApi}
+        canCreate={false}
+        hideCreate
+        createLabel=""
+        onCreate={() => undefined}
+        filters={
+          <select
+            value={prefix}
+            onChange={(e) => setPrefix(e.target.value)}
+            className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
+          >
+            <option value="__all">All actions</option>
+            {prefixes.map((p) => (
+              <option key={p} value={p}>
+                {p}.*
+              </option>
+            ))}
+          </select>
+        }
+      />
 
-      <div className="flex min-h-0 flex-1 flex-col divide-y divide-border overflow-y-auto rounded-xl border border-border bg-card">
-        {filtered.length === 0 && (
-          <div className="p-8 text-center text-sm text-muted-foreground">
-            No entries match the current filter.
-          </div>
-        )}
-        {filtered.map((r) => (
-          <Row
-            key={r.id}
-            row={r}
-            open={openId === r.id}
-            onToggle={() => setOpenId(openId === r.id ? null : r.id)}
-          />
-        ))}
-      </div>
+      <DataTable<SerialRow>
+        rowData={filtered as SerialRow[]}
+        columnDefs={columnDefs}
+        getRowId={(p) => p.data.id}
+        onGridReady={(e) => setGridApi(e.api)}
+        onRowClicked={onRowClicked}
+        showColumnPicker={false}
+        selectable={false}
+      />
+
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent className="max-w-2xl">
+          {selected && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 font-mono text-sm">
+                  <ActionCell action={selected.action} />
+                </DialogTitle>
+                <DialogDescription>
+                  {new Date(selected.created_at).toLocaleString()} · {selected.actor_label}
+                  {selected.actor_email && selected.actor_email !== selected.actor_label && (
+                    <>
+                      {' · '}
+                      <span className="font-mono">{selected.actor_email}</span>
+                    </>
+                  )}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Detail k="Entity" v={`${selected.entity_schema}.${selected.entity_table}`} mono />
+                <Detail k="Entity ID" v={selected.entity_id ?? '—'} mono />
+                <Detail k="IP" v={selected.ip_address ?? '—'} mono />
+                <Detail k="User Agent" v={selected.user_agent ?? '—'} mono />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Metadata
+                </div>
+                <pre className="max-h-72 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs">
+                  {JSON.stringify(selected.metadata, null, 2)}
+                </pre>
+              </div>
+
+              <div className="flex justify-end">
+                <Button type="button" size="sm" variant="outline" onClick={() => setSelected(null)}>
+                  Close
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function Row({
-  row,
-  open,
-  onToggle,
-}: {
-  readonly row: AuditEntryRow;
-  readonly open: boolean;
-  readonly onToggle: () => void;
-}) {
-  const dt = new Date(row.created_at);
-  const dateLabel = dt.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-  });
-  const timeLabel = dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-
-  const [tone, hint] = actionTone(row.action);
-
+function ActionCell({ action }: { readonly action: string }) {
+  const [tone, hint] = actionTone(action);
   return (
-    <div className="flex flex-col">
-      <button
-        type="button"
-        onClick={onToggle}
-        className={cn(
-          'flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30',
-          open && 'bg-muted/40',
-        )}
-      >
-        <span className="mt-0.5 shrink-0 text-muted-foreground">
-          {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        </span>
-        <span className="w-28 shrink-0 font-mono text-xs text-muted-foreground">
-          <div>{dateLabel}</div>
-          <div>{timeLabel}</div>
-        </span>
-        <span className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-sm text-foreground">{row.action}</span>
-            <Badge variant="outline" className={tone}>
-              {hint}
-            </Badge>
-            {row.entity_id && (
-              <span className="rounded-md bg-muted/50 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                {row.entity_schema}.{row.entity_table}
-              </span>
-            )}
-          </div>
-          <div className="mt-0.5 text-xs text-muted-foreground">
-            <span className="text-foreground/80">{row.actor_label}</span>
-            {row.actor_email && row.actor_email !== row.actor_label && (
-              <>
-                {' · '}
-                <span className="font-mono">{row.actor_email}</span>
-              </>
-            )}
-          </div>
-        </span>
-      </button>
-
-      {open && (
-        <div className="grid gap-3 border-t border-border bg-muted/10 px-4 py-3 sm:grid-cols-2">
-          <Detail k="Entity ID" v={row.entity_id ?? '—'} mono />
-          <Detail k="IP" v={row.ip_address ?? '—'} mono />
-          <Detail k="User Agent" v={row.user_agent ?? '—'} mono />
-          <Detail k="Created" v={dt.toLocaleString()} />
-          <div className="sm:col-span-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Metadata
-            </div>
-            <pre className="mt-1 max-h-64 overflow-auto rounded-md border border-border bg-background p-3 text-xs">
-              {JSON.stringify(row.metadata, null, 2)}
-            </pre>
-          </div>
-          <div className="sm:col-span-2 flex justify-end">
-            <Button type="button" variant="ghost" size="sm" onClick={onToggle}>
-              Collapse
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+    <span className="inline-flex items-center gap-2">
+      <span className="font-mono text-sm text-foreground">{action}</span>
+      <Badge variant="outline" className={tone}>
+        {hint}
+      </Badge>
+    </span>
   );
 }
 
-function Detail({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
+function Detail({
+  k,
+  v,
+  mono,
+}: {
+  readonly k: string;
+  readonly v: string;
+  readonly mono?: boolean;
+}) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {k}
       </span>
-      <span className={mono ? 'font-mono text-xs text-foreground' : 'text-sm text-foreground'}>
+      <span
+        className={mono ? 'break-all font-mono text-xs text-foreground' : 'text-sm text-foreground'}
+      >
         {v}
       </span>
     </div>
   );
 }
 
-/**
- * Rough action → tone mapping so the log reads at a glance. Never fatal
- * to be wrong — falls back to a neutral badge.
- */
 function actionTone(action: string): readonly [string, string] {
   if (action.startsWith('role.granted') || action.startsWith('membership.approved'))
     return [

@@ -40,6 +40,13 @@ interface SettingsViewProps {
   readonly memberPicker: readonly GovernanceMemberPickerRow[];
   readonly canUpdate: boolean;
   readonly canManageGovernance: boolean;
+  /**
+   * True for global mainstream_admin viewers — the Edit tab is hidden
+   * because editing branch/chapter metadata belongs to the branch admin
+   * (or to the Clusters surface for the global admin). Settings narrows
+   * to Governance in that case.
+   */
+  readonly hideEditTab?: boolean;
 }
 
 /**
@@ -58,6 +65,8 @@ export function SettingsView(props: SettingsViewProps) {
   const router = useRouter();
 
   const isChapter = props.scope.scope_type === 'chapter';
+  const showEdit = !props.hideEditTab;
+  const defaultTab = showEdit ? 'edit' : 'governance';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
@@ -73,47 +82,51 @@ export function SettingsView(props: SettingsViewProps) {
         <p className="font-mono text-xs text-muted-foreground">{props.scope.slug}</p>
       </div>
 
-      <Tabs defaultValue="edit" className="flex min-h-0 flex-1 flex-col gap-4">
+      <Tabs defaultValue={defaultTab} className="flex min-h-0 flex-1 flex-col gap-4">
         <TabsList className="w-fit">
-          <TabsTrigger value="edit">
-            <Settings2 className="h-4 w-4" />
-            Edit
-          </TabsTrigger>
+          {showEdit && (
+            <TabsTrigger value="edit">
+              <Settings2 className="h-4 w-4" />
+              Edit
+            </TabsTrigger>
+          )}
           <TabsTrigger value="governance">Governance</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="edit" className="flex min-h-0 flex-1 flex-col">
-          {!props.canUpdate ? (
-            <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-              You don&apos;t have <span className="font-mono">scope.update</span> at this scope.
-              Governance-only access — pick the Governance tab.
-            </div>
-          ) : isChapter ? (
-            props.chapterInitial ? (
-              <ChapterForm
+        {showEdit && (
+          <TabsContent value="edit" className="flex min-h-0 flex-1 flex-col">
+            {!props.canUpdate ? (
+              <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
+                You don&apos;t have <span className="font-mono">scope.update</span> at this scope.
+                Governance-only access — pick the Governance tab.
+              </div>
+            ) : isChapter ? (
+              props.chapterInitial ? (
+                <ChapterForm
+                  mode="edit"
+                  initial={props.chapterInitial}
+                  onSuccess={() => router.refresh()}
+                />
+              ) : (
+                <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
+                  Chapter record not found. This shouldn&apos;t normally happen — reach out to the
+                  mainstream admin.
+                </div>
+              )
+            ) : props.branchInitial ? (
+              <BranchForm
                 mode="edit"
-                initial={props.chapterInitial}
+                initial={props.branchInitial}
                 onSuccess={() => router.refresh()}
               />
             ) : (
               <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-                Chapter record not found. This shouldn&apos;t normally happen — reach out to the
+                Branch record not found. This shouldn&apos;t normally happen — reach out to the
                 mainstream admin.
               </div>
-            )
-          ) : props.branchInitial ? (
-            <BranchForm
-              mode="edit"
-              initial={props.branchInitial}
-              onSuccess={() => router.refresh()}
-            />
-          ) : (
-            <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-              Branch record not found. This shouldn&apos;t normally happen — reach out to the
-              mainstream admin.
-            </div>
-          )}
-        </TabsContent>
+            )}
+          </TabsContent>
+        )}
 
         <TabsContent value="governance" className="flex min-h-0 flex-1 flex-col">
           <GovernancePanel

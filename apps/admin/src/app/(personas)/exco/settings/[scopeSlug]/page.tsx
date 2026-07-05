@@ -58,6 +58,35 @@ export default async function SettingsScopePage({ params }: Params) {
   ]);
   if (canUpdate !== true && canManageGovernance !== true) notFound();
 
+  // Global admin lens: if the viewer holds a NULL-scope mainstream_admin
+  // grant, Settings shows Governance only. Editing branch/chapter
+  // metadata belongs to the branch admin under Settings (or the global
+  // admin via Clusters); the Settings surface at this scope narrows to
+  // governance so global admins don't accidentally use the branch admin's
+  // edit flow.
+  const { data: globalGrantRows } = await supabase
+    .schema('core')
+    .from('role_assignments')
+    .select('id, role_id, revoked_at, starts_at, ends_at, roles!inner(key)')
+    .eq('user_id', user.id)
+    .is('scope_id', null)
+    .is('revoked_at', null);
+  const now = Date.now();
+  const isGlobalAdmin = (
+    (globalGrantRows ?? []) as Array<{
+      revoked_at: string | null;
+      starts_at: string;
+      ends_at: string | null;
+      roles: { key: string };
+    }>
+  ).some((r) => {
+    if (r.roles.key !== 'mainstream_admin') return false;
+    if (r.revoked_at) return false;
+    if (new Date(r.starts_at).getTime() > now) return false;
+    if (r.ends_at && new Date(r.ends_at).getTime() <= now) return false;
+    return true;
+  });
+
   // Chapters need their parent branch's id + name for the ChapterForm
   // shape. Fetched inline; branches don't need it.
   let parentBranch: { id: string; name: string } | null = null;
@@ -277,6 +306,7 @@ export default async function SettingsScopePage({ params }: Params) {
       memberPicker={memberPicker}
       canUpdate={canUpdate === true}
       canManageGovernance={canManageGovernance === true}
+      hideEditTab={isGlobalAdmin}
     />
   );
 }
