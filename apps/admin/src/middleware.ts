@@ -24,6 +24,7 @@ const PUBLIC_PATHS = new Set([
   '/reset-password',
   '/callback',
   '/logout',
+  '/verify',
 ]);
 
 const PERSONA_PREFIXES = ['/exco', '/finance', '/editor'];
