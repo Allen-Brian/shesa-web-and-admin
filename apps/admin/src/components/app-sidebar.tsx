@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Badge,
+  BadgeDollarSign,
   Building2,
   CalendarDays,
   ChevronRight,
+  ClipboardList,
   Cog,
   GraduationCap,
   Home,
@@ -16,7 +18,9 @@ import {
   Network,
   ScrollText,
   Settings2,
+  Target,
   Users,
+  Wallet,
 } from 'lucide-react';
 
 import {
@@ -46,6 +50,15 @@ interface AppSidebarProps {
   readonly canReadAudit?: boolean;
   readonly canEditOwnScope?: boolean;
   readonly canViewInvites?: boolean;
+  /**
+   * When the caller holds treasury.read / finance.read anywhere, the
+   * admin sidebar surfaces a read-only "Finance" collapsible with the
+   * three visibility items the admin should have access to (Charges,
+   * Contributions, Obligations) per the 2026-07-06 walkthrough. The
+   * money-mover surface (Payments, Expenses, Treasury, Reports) still
+   * lives under the /finance persona.
+   */
+  readonly canReadFinance?: boolean;
 }
 
 interface NavItem {
@@ -100,12 +113,14 @@ export function AppSidebar({
   canReadAudit = false,
   canEditOwnScope = false,
   canViewInvites = false,
+  canReadFinance = false,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const meta = PERSONA_META[persona];
 
   const clustersActive = pathname.startsWith(`/${persona}/clusters`);
   const membershipScope = extractMembershipScopeSlug(pathname, persona);
+  const financeActive = pathname.startsWith(`/${persona}/finance-view`);
 
   return (
     <Sidebar collapsible="icon" variant="floating">
@@ -228,6 +243,74 @@ export function AppSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/*
+         * Finance visibility — READ-ONLY. Admins (Global + Branch) can
+         * see Charges, Contributions, and Obligations at scopes they
+         * have finance-read at. The money-mover surface (Payments,
+         * Expenses, Treasury, Reports) still lives under the /finance
+         * persona; those are Finance-role territory.
+         *
+         * This collapsible is deliberately narrower than the finance
+         * persona's own sidebar — the admin should be able to SEE what
+         * money's coming in and out but not touch it.
+         */}
+        {canReadFinance && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <Collapsible asChild defaultOpen={financeActive} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton tooltip="Finance" isActive={financeActive}>
+                        <Wallet />
+                        <span>Finance</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={pathname.startsWith(`/${persona}/finance-view/charges`)}
+                          >
+                            <Link href={`/${persona}/finance-view/charges`}>
+                              <BadgeDollarSign />
+                              <span>Charges</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={pathname.startsWith(`/${persona}/finance-view/contributions`)}
+                          >
+                            <Link href={`/${persona}/finance-view/contributions`}>
+                              <Target />
+                              <span>Contributions</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={pathname.startsWith(`/${persona}/finance-view/obligations`)}
+                          >
+                            <Link href={`/${persona}/finance-view/obligations`}>
+                              <ClipboardList />
+                              <span>Obligations</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/*
          * Settings — scoped edit + governance for a branch or autonomous

@@ -467,12 +467,15 @@ ON CONFLICT (scope_id) DO NOTHING;
 -- Section 4. Dev users — Phase 2 pivot (ADR-0040)
 -- =============================================================================
 --
--- Three seeded users for local development:
+-- Four seeded users for local development:
 --   admin@shesa.test            / password  — mainstream_admin (global)
 --   finance@shesa.test          / password  — finance          (global)
 --   buea-admin@shesa.test       / password  — branch_admin     at Shesa Buea
+--   buea-finance@shesa.test     / password  — finance          at Shesa Buea
 --
 -- batch-2012-admin was retired 2026-07-05 alongside the batch_admin role.
+-- The two finance users mirror the two admin users: one global (reaches
+-- every scope via NULL-scope grant) and one branch-scoped (Buea only).
 --
 -- Both cover the "log in and start clicking around" story for the E2.pivot
 -- shells. Passwords are `password` — deliberately trivial; seed.sql runs
@@ -551,6 +554,23 @@ INSERT INTO auth.users (
     '', 0, NULL,
     '', NULL, FALSE, NULL,
     FALSE
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '55555555-0000-0000-0000-000000000011',
+    'authenticated', 'authenticated',
+    'buea-finance@shesa.test',
+    crypt('password', gen_salt('bf')),
+    NOW(), NULL, '', NULL,
+    '', NULL, '', '',
+    NULL, NULL,
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"display_name":"Shesa Buea Finance"}'::jsonb,
+    FALSE, NOW(), NOW(), NULL, NULL,
+    '', '', NULL,
+    '', 0, NULL,
+    '', NULL, FALSE, NULL,
+    FALSE
   )
 ON CONFLICT (id) DO NOTHING;
 
@@ -597,6 +617,17 @@ INSERT INTO auth.identities (
       'phone_verified', false
     ),
     'email', NOW(), NOW(), NOW()
+  ),
+  (
+    '55555555-0000-0000-0000-000000000011',
+    '55555555-0000-0000-0000-000000000011',
+    jsonb_build_object(
+      'sub',   '55555555-0000-0000-0000-000000000011',
+      'email', 'buea-finance@shesa.test',
+      'email_verified', true,
+      'phone_verified', false
+    ),
+    'email', NOW(), NOW(), NOW()
   )
 ON CONFLICT (provider, provider_id) DO NOTHING;
 
@@ -606,9 +637,10 @@ ON CONFLICT (provider, provider_id) DO NOTHING;
 
 INSERT INTO core.profiles (id, display_name, email, preferred_persona)
 VALUES
-  ('55555555-0000-0000-0000-000000000001', 'Global Admin',     'admin@shesa.test',            'exco'),
-  ('55555555-0000-0000-0000-000000000002', 'Global Finance',   'finance@shesa.test',          'finance'),
-  ('55555555-0000-0000-0000-000000000010', 'Shesa Buea Admin', 'buea-admin@shesa.test',       'exco')
+  ('55555555-0000-0000-0000-000000000001', 'Global Admin',       'admin@shesa.test',            'exco'),
+  ('55555555-0000-0000-0000-000000000002', 'Global Finance',     'finance@shesa.test',          'finance'),
+  ('55555555-0000-0000-0000-000000000010', 'Shesa Buea Admin',   'buea-admin@shesa.test',       'exco'),
+  ('55555555-0000-0000-0000-000000000011', 'Shesa Buea Finance', 'buea-finance@shesa.test',     'finance')
 ON CONFLICT (id) DO NOTHING;
 
 -------------------------------------------------------------------------------
@@ -639,6 +671,17 @@ VALUES
     '55555555-0000-0000-0000-000000000010',
     '00000000-0000-0000-0000-000000000010',
     '11111111-0000-0000-0000-000000000002',  -- branch_admin
+    NOW()
+  ),
+  (
+    -- Shesa Buea Finance — scoped finance at Shesa Buea.
+    -- Branch-scoped finance means all M4/M6/M7 permissions (charge.create,
+    -- payment.record, expense.record, etc.) resolve only at Buea's tree.
+    -- The global Finance user (finance@shesa.test) has the same role at
+    -- NULL scope and reaches every finance-bearing body.
+    '55555555-0000-0000-0000-000000000011',
+    '00000000-0000-0000-0000-000000000010',
+    '11111111-0000-0000-0000-000000000004',  -- finance
     NOW()
   )
 ON CONFLICT DO NOTHING;

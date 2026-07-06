@@ -122,6 +122,32 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
     }
   }
 
+  // Finance-read visibility on the admin sidebar. Any active grant of
+  // treasury.read or finance.read anywhere on the tree qualifies —
+  // mainstream_admin passes via NULL scope; branch_admin passes at
+  // their own scope; the Finance role also passes but they route to
+  // the /finance persona instead of /exco.
+  let canReadFinance = false;
+  if (mainstream) {
+    const { data: allowedTreasury } = await supabase.schema('core').rpc('has_permission', {
+      p_user_id: user.id,
+      p_scope_id: mainstream.id,
+      p_permission_key: 'treasury.read',
+    });
+    canReadFinance = allowedTreasury === true;
+  }
+  if (!canReadFinance) {
+    const firstScope = memberableScopes[0];
+    if (firstScope) {
+      const { data: allowedTreasury } = await supabase.schema('core').rpc('has_permission', {
+        p_user_id: user.id,
+        p_scope_id: firstScope.id,
+        p_permission_key: 'treasury.read',
+      });
+      canReadFinance = allowedTreasury === true;
+    }
+  }
+
   return (
     <AppShell
       persona="exco"
@@ -133,6 +159,7 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
       canReadAudit={canReadAudit}
       canEditOwnScope={canEditOwnScope}
       canViewInvites={canViewInvites}
+      canReadFinance={canReadFinance}
     >
       {children}
     </AppShell>

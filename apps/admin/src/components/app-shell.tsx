@@ -6,6 +6,7 @@ import { SidebarInset, SidebarProvider } from '@shesa/ui';
 
 import { AppSidebar } from '@/components/app-sidebar';
 import { BreadcrumbProvider } from '@/components/breadcrumb-context';
+import { FinanceSidebar } from '@/components/finance-sidebar';
 import { Topbar } from '@/components/topbar';
 import type { Persona } from '@/lib/personas';
 
@@ -19,6 +20,9 @@ interface AppShellProps {
   readonly canReadAudit?: boolean;
   readonly canEditOwnScope?: boolean;
   readonly canViewInvites?: boolean;
+  readonly canReadFinance?: boolean;
+  /** For finance persona — signals a NULL-scope grant (Global Finance). */
+  readonly isGlobalFinance?: boolean;
   readonly children: React.ReactNode;
 }
 
@@ -40,6 +44,8 @@ export function AppShell({
   canReadAudit,
   canEditOwnScope,
   canViewInvites,
+  canReadFinance,
+  isGlobalFinance,
   children,
 }: AppShellProps) {
   const [open, setOpen] = React.useState(true);
@@ -55,14 +61,19 @@ export function AppShell({
   return (
     <BreadcrumbProvider>
       <SidebarProvider open={open} onOpenChange={setOpen}>
-        <AppSidebar
-          persona={persona}
-          canManageClusters={canManageClusters}
-          canManageMemberships={canManageMemberships}
-          canReadAudit={canReadAudit}
-          canEditOwnScope={canEditOwnScope}
-          canViewInvites={canViewInvites}
-        />
+        {persona === 'finance' ? (
+          <FinanceSidebar isGlobal={isGlobalFinance} />
+        ) : (
+          <AppSidebar
+            persona={persona}
+            canManageClusters={canManageClusters}
+            canManageMemberships={canManageMemberships}
+            canReadAudit={canReadAudit}
+            canEditOwnScope={canEditOwnScope}
+            canViewInvites={canViewInvites}
+            canReadFinance={canReadFinance}
+          />
+        )}
         <SidebarInset>
           <Topbar userEmail={userEmail} userName={userName} avatarUrl={avatarUrl} />
           <main className="flex min-h-0 flex-1 flex-col px-6 py-6">{children}</main>
