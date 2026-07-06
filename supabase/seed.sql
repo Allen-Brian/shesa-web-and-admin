@@ -953,3 +953,270 @@ BEGIN
   END LOOP;
 
 END $$;
+
+
+-- =============================================================================
+-- Section 6. Phase 3 Finance demo data — 2026-07-06 walkthrough
+-- =============================================================================
+--
+-- Seeds enough finance rows at Shesa Buea (and one at Mainstream) so the
+-- /finance persona is clickable end-to-end without hand-creating charges:
+--
+--   * Monthly dues charge (25000 XAF) — active.
+--   * AGM project fund goal contribution (200000 XAF goal) — open.
+--   * General fund donation charge — open. Two anonymous public donations.
+--   * Global levy on Buea from Mainstream (50000 XAF, quarterly).
+--   * Obligations generated for the active dues on Jan 15 2027.
+--   * A handful of payments — Alice pays her full 25000; Bob pays half.
+--   * A recorded venue expense (12000 XAF) — below threshold, hits ledger.
+--   * A pending-approval honorarium expense (30000 XAF) — above threshold.
+--   * Expense threshold set at 20000 XAF for Buea.
+--
+-- Idempotent via hand-picked UUIDs + ON CONFLICT.
+
+-------------------------------------------------------------------------------
+-- 6.1 Charges at Shesa Buea
+-------------------------------------------------------------------------------
+
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, base_amount, currency, recurrence,
+   recurrence_interval, activation_date, issue_date, status, target_filter,
+   created_by, created_at, updated_at)
+VALUES
+  ('77777777-1111-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000010',
+   'charge', 'Monthly Dues',
+   'Regular monthly dues for active members at Shesa Buea.',
+   25000, 'XAF', 'monthly', 1,
+   '2027-01-01T00:00:00Z', '2027-01-01T00:00:00Z',
+   'active', '{}'::jsonb,
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, currency, goal_amount, lifecycle,
+   open_date, close_date, status, target_filter,
+   created_by, created_at, updated_at)
+VALUES
+  ('77777777-1111-0000-0000-000000000002',
+   '00000000-0000-0000-0000-000000000010',
+   'goal', 'AGM Project Fund 2027',
+   'Rally toward the annual project fund. Any contribution welcome.',
+   'XAF', 200000, 'open',
+   NOW() - INTERVAL '10 days', NOW() + INTERVAL '60 days',
+   'active', '{}'::jsonb,
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, currency, lifecycle,
+   open_date, close_date, status, target_filter,
+   created_by, created_at, updated_at)
+VALUES
+  ('77777777-1111-0000-0000-000000000003',
+   '00000000-0000-0000-0000-000000000010',
+   'donation', 'Shesa Buea General Fund',
+   'Freewill gifts to Shesa Buea. Public + walk-in.',
+   'XAF', 'open',
+   NOW() - INTERVAL '30 days', NOW() + INTERVAL '365 days',
+   'active', '{}'::jsonb,
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- Global levy — Mainstream charges Buea as-a-body (50000 XAF quarterly).
+-- target_party_type='branch' — obligation generation for branch-targeted
+-- charges is deferred to a follow-up (M3 in the roadmap); the row exists
+-- so admins see the charge in reports and the future generator has data.
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, base_amount, currency, recurrence,
+   recurrence_interval, activation_date, status, target_filter, target_party_type,
+   created_by, created_at, updated_at)
+VALUES
+  ('77777777-1111-0000-0000-000000000004',
+   '00000000-0000-0000-0000-000000000001',
+   'charge', 'Global Q1 Levy on Buea',
+   'Quarterly national levy owed by Shesa Buea as a body.',
+   50000, 'XAF', 'quarterly', 1,
+   '2027-01-01T00:00:00Z',
+   'active', jsonb_build_object('target_scope_ids',
+     jsonb_build_array('00000000-0000-0000-0000-000000000010')),
+   'branch',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- 6.2 Generate obligations for the active dues charge
+-------------------------------------------------------------------------------
+-- Runs against Jan 2027 so we have a full month of data. The M2B function
+-- walks core.memberships at Buea and inserts one open obligation per
+-- active/passive member. Idempotent via the UNIQUE constraint.
+
+DO $$
+DECLARE
+  v_inserted INTEGER;
+BEGIN
+  SELECT finance.generate_obligations_for_charge(
+    '77777777-1111-0000-0000-000000000001'::uuid,
+    '2027-01-15T12:00:00Z'::timestamptz
+  ) INTO v_inserted;
+  RAISE NOTICE 'Finance seed: generated % obligations for monthly dues at Buea', v_inserted;
+END $$;
+
+-------------------------------------------------------------------------------
+-- 6.3 Sample payments — enough to make the dashboard + reports interesting
+-------------------------------------------------------------------------------
+-- Picks the first three Buea members with a January obligation and gives
+-- each a different payment story:
+--   member #1 → full 25000 via mtn_momo (paid)
+--   member #2 → 10000 via cash (partial)
+--   member #3 → nothing (still open — surfaces in arrears)
+--
+-- The M4A recompute trigger transitions each obligation's status
+-- automatically. The M6 ledger writer + treasury updates fire from the
+-- payment INSERT trigger.
+
+DO $$
+DECLARE
+  v_member_ids UUID[];
+  v_obligation_id UUID;
+BEGIN
+  SELECT ARRAY(
+    SELECT o.party_id
+    FROM finance.obligations o
+    WHERE o.charge_id = '77777777-1111-0000-0000-000000000001'
+      AND o.party_type = 'member'
+    ORDER BY o.created_at
+    LIMIT 3
+  ) INTO v_member_ids;
+
+  IF array_length(v_member_ids, 1) IS NULL OR array_length(v_member_ids, 1) < 3 THEN
+    RAISE NOTICE 'Finance seed: not enough member obligations to seed payments, skipping';
+    RETURN;
+  END IF;
+
+  -- Member 1 pays in full via mtn_momo.
+  SELECT id INTO v_obligation_id FROM finance.obligations
+   WHERE charge_id = '77777777-1111-0000-0000-000000000001'
+     AND party_id = v_member_ids[1];
+  INSERT INTO finance.payments
+    (id, obligation_id, charge_id, scope_id, payer_member_id,
+     amount, currency, method, source, recorded_by)
+  VALUES (
+    '77777777-3333-0000-0000-000000000001',
+    v_obligation_id,
+    '77777777-1111-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000010',
+    v_member_ids[1],
+    25000, 'XAF', 'mtn_momo', 'auto',
+    '55555555-0000-0000-0000-000000000011'
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Member 2 pays half via cash.
+  SELECT id INTO v_obligation_id FROM finance.obligations
+   WHERE charge_id = '77777777-1111-0000-0000-000000000001'
+     AND party_id = v_member_ids[2];
+  INSERT INTO finance.payments
+    (id, obligation_id, charge_id, scope_id, payer_member_id,
+     amount, currency, method, source, recorded_by)
+  VALUES (
+    '77777777-3333-0000-0000-000000000002',
+    v_obligation_id,
+    '77777777-1111-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000010',
+    v_member_ids[2],
+    10000, 'XAF', 'cash', 'manual',
+    '55555555-0000-0000-0000-000000000011'
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Member 1 also contributes 15000 to the AGM goal (via orange_money).
+  INSERT INTO finance.payments
+    (id, charge_id, scope_id, payer_member_id,
+     amount, currency, method, source, recorded_by)
+  VALUES (
+    '77777777-3333-0000-0000-000000000003',
+    '77777777-1111-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000010',
+    v_member_ids[1],
+    15000, 'XAF', 'orange_money', 'auto',
+    '55555555-0000-0000-0000-000000000011'
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  RAISE NOTICE 'Finance seed: recorded payments for members %', v_member_ids[1:2];
+END $$;
+
+-------------------------------------------------------------------------------
+-- 6.4 Public donations to the General Fund
+-------------------------------------------------------------------------------
+
+INSERT INTO finance.payments
+  (id, charge_id, scope_id, payer_member_id,
+   amount, currency, method, source, recorded_by, metadata)
+VALUES
+  ('77777777-3333-0000-0000-000000000010',
+   '77777777-1111-0000-0000-000000000003',
+   '00000000-0000-0000-0000-000000000010',
+   NULL,
+   5000, 'XAF', 'mtn_momo', 'auto', NULL,
+   jsonb_build_object(
+     'public_donation', TRUE,
+     'donor_name', 'Jane Adjani',
+     'donor_email', 'jane.adjani@example.com',
+     'note', 'From the website'
+   )),
+  ('77777777-3333-0000-0000-000000000011',
+   '77777777-1111-0000-0000-000000000003',
+   '00000000-0000-0000-0000-000000000010',
+   NULL,
+   2500, 'XAF', 'orange_money', 'auto', NULL,
+   jsonb_build_object(
+     'public_donation', TRUE,
+     'donor_name', NULL,
+     'donor_email', NULL,
+     'note', 'Anonymous gift'
+   ))
+ON CONFLICT (id) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- 6.5 Expense settings + a couple of expenses at Buea
+-------------------------------------------------------------------------------
+-- Threshold set at 20000 XAF so both under- and over-threshold flows are
+-- visible: venue rental (12k) hits the ledger directly; honorarium (30k)
+-- waits in pending_approval for the admin's sign-off.
+
+INSERT INTO finance.expense_settings
+  (scope_id, approval_threshold_amount, approval_threshold_currency, updated_by)
+VALUES (
+  '00000000-0000-0000-0000-000000000010',
+  20000, 'XAF',
+  '55555555-0000-0000-0000-000000000010'
+)
+ON CONFLICT (scope_id) DO NOTHING;
+
+INSERT INTO finance.expenses
+  (id, scope_id, category_id, payee, amount, currency, description, status,
+   recorded_by, incurred_at, created_at)
+VALUES
+  ('77777777-4444-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000010',
+   (SELECT id FROM finance.expense_categories WHERE key = 'venue'),
+   'Buea Community Hall',
+   12000, 'XAF', 'January meeting venue.',
+   'recorded',
+   '55555555-0000-0000-0000-000000000011',
+   NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days'),
+  ('77777777-4444-0000-0000-000000000002',
+   '00000000-0000-0000-0000-000000000010',
+   (SELECT id FROM finance.expense_categories WHERE key = 'honorarium'),
+   'Guest speaker',
+   30000, 'XAF', 'AGM keynote honorarium — awaits admin approval.',
+   'pending_approval',
+   '55555555-0000-0000-0000-000000000011',
+   NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days')
+ON CONFLICT (id) DO NOTHING;

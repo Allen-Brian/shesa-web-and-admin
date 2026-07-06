@@ -2,18 +2,20 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Archive, BadgeDollarSign, Play, Plus, RefreshCw } from 'lucide-react';
+import { Archive, BadgeDollarSign, Pencil, Play, RefreshCw } from 'lucide-react';
 
 import {
   Badge,
   Button,
   ConfirmDialog,
+  DataTable,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  EntityTablePanel,
   Input,
   Label,
   NativeDateInput,
@@ -24,6 +26,9 @@ import {
   SelectValue,
   Textarea,
   toast,
+  type ColDef,
+  type GridApi,
+  type ICellRendererParams,
 } from '@shesa/ui';
 
 import { archiveCharge, createCharge, generateObligations, updateCharge } from '../actions';
@@ -52,6 +57,8 @@ export interface ScopeOption {
   readonly currency: string;
   readonly scopeType: string;
 }
+
+type SerialRow = ChargeRow & { readonly serial: number };
 
 interface ChargesViewProps {
   readonly charges: readonly ChargeRow[];
@@ -98,6 +105,8 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [statusFilter, setStatusFilter] = useState<'all' | ChargeRow['status']>('all');
+  const [search, setSearch] = useState('');
+  const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateForm>(() => initialCreate(scopeOptions));
   const [editing, setEditing] = useState<EditForm | null>(null);
@@ -105,10 +114,19 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
 
   const canCreate = scopeOptions.length > 0;
 
-  const filtered = useMemo(() => {
-    if (statusFilter === 'all') return charges;
-    return charges.filter((c) => c.status === statusFilter);
-  }, [charges, statusFilter]);
+  const filtered = useMemo<readonly SerialRow[]>(() => {
+    const q = search.trim().toLowerCase();
+    return charges
+      .filter((c) => {
+        if (statusFilter !== 'all' && c.status !== statusFilter) return false;
+        if (!q) return true;
+        if (c.name.toLowerCase().includes(q)) return true;
+        if (c.scopeName.toLowerCase().includes(q)) return true;
+        if (c.description?.toLowerCase().includes(q)) return true;
+        return false;
+      })
+      .map((c, i) => ({ ...c, serial: i + 1 }));
+  }, [charges, search, statusFilter]);
 
   const resetCreate = () => setCreateForm(initialCreate(scopeOptions));
 
@@ -131,7 +149,6 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
       toast.error('Invalid scope.');
       return;
     }
-
     startTransition(async () => {
       const result = await createCharge({
         scopeId: createForm.scopeId,
@@ -189,6 +206,18 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
     });
   };
 
+  const runActivate = (chargeId: string) => {
+    startTransition(async () => {
+      const result = await updateCharge({ id: chargeId, status: 'active' });
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success('Charge activated.');
+      router.refresh();
+    });
+  };
+
   const runGenerate = (chargeId: string) => {
     startTransition(async () => {
       const result = await generateObligations(chargeId);
@@ -206,9 +235,168 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
     });
   };
 
+  const beginEdit = (row: ChargeRow) => {
+    setEditing({
+      id: row.id,
+      name: row.name,
+      description: row.description ?? '',
+      activationDate: row.activationDate
+        ? row.activationDate.slice(0, 10)
+        : new Date().toISOString().slice(0, 10),
+      status:
+        row.status === 'draft' || row.status === 'active' || row.status === 'paused'
+          ? row.status
+          : 'draft',
+    });
+  };
+
+  const columnDefs = useMemo<ColDef<SerialRow>[]>(
+    () => [
+      {
+        headerName: 'S/N',
+        field: 'serial',
+        width: 72,
+        maxWidth: 72,
+        sortable: false,
+        filter: false,
+        suppressMovable: true,
+      },
+      {
+        headerName: 'Name',
+        field: 'name',
+        flex: 2,
+        minWidth: 200,
+        cellRenderer: (p: ICellRendererParams<SerialRow, string>) =>
+          p.data ? (
+            <div className="flex flex-col leading-tight">
+              <span className="font-medium text-foreground">{p.data.name}</span>
+              {p.data.description && (
+                <span className="truncate text-xs italic text-muted-foreground">
+                  {p.data.description}
+                </span>
+              )}
+            </div>
+          ) : null,
+      },
+      { headerName: 'Scope', field: 'scopeName', flex: 1, minWidth: 140 },
+      {
+        headerName: 'Amount',
+        field: 'baseAmount',
+        width: 150,
+        cellRenderer: (p: ICellRendererParams<SerialRow, number>) =>
+          p.data && p.data.baseAmount != null ? (
+            <span className="font-mono text-sm text-foreground">
+              {new Intl.NumberFormat().format(p.data.baseAmount)} {p.data.currency}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
+      },
+      {
+        headerName: 'Recurrence',
+        field: 'recurrence',
+        width: 140,
+        valueFormatter: (p) =>
+          p.data ? formatRecurrence(p.data.recurrence, p.data.recurrenceInterval) : '',
+      },
+      {
+        headerName: 'Status',
+        field: 'status',
+        width: 120,
+        cellRenderer: (p: ICellRendererParams<SerialRow, string>) => (
+          <StatusBadge status={p.value ?? ''} />
+        ),
+      },
+      {
+        headerName: 'Activates',
+        field: 'activationDate',
+        width: 130,
+        valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleDateString() : '—'),
+      },
+      {
+        headerName: 'Actions',
+        colId: 'row_actions',
+        width: 200,
+        sortable: false,
+        filter: false,
+        suppressMovable: true,
+        cellRenderer: (p: ICellRendererParams<SerialRow>) => {
+          if (!p.data) return null;
+          const row = p.data;
+          return (
+            <div className="flex items-center gap-1">
+              {row.status !== 'archived' && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    beginEdit(row);
+                  }}
+                  disabled={pending}
+                  title="Edit"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              )}
+              {row.status === 'draft' && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    runActivate(row.id);
+                  }}
+                  disabled={pending}
+                  title="Activate"
+                >
+                  <Play className="h-3.5 w-3.5" />
+                </Button>
+              )}
+              {row.status === 'active' && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    runGenerate(row.id);
+                  }}
+                  disabled={pending}
+                  title="Generate obligations now"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </Button>
+              )}
+              {row.status !== 'archived' && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive hover:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setArchivingId(row.id);
+                  }}
+                  disabled={pending}
+                  title="Archive"
+                >
+                  <Archive className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          );
+        },
+      },
+    ],
+    [pending],
+  );
+
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-5">
-      <header className="flex flex-col gap-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-5">
+      <div className="flex flex-col gap-1">
         <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Finance
         </div>
@@ -220,161 +408,47 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
           Dues + levies at scopes you can see. Each active charge generates its next period&apos;s
           obligations automatically on the hourly sweep.
         </p>
-      </header>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={statusFilter}
-          onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
-        >
-          <SelectTrigger className="h-8 w-40 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="paused">Paused</SelectItem>
-            <SelectItem value="archived">Archived</SelectItem>
-          </SelectContent>
-        </Select>
-        <span className="text-xs text-muted-foreground">
-          {filtered.length} of {charges.length}
-        </span>
-        <div className="ml-auto">
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              resetCreate();
-              setCreateOpen(true);
-            }}
-            disabled={!canCreate || pending}
-          >
-            <Plus className="h-4 w-4" />
-            New charge
-          </Button>
-        </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          {charges.length === 0
-            ? canCreate
-              ? 'No charges yet. Create your first one.'
-              : 'No charges yet, and no finance-bearing scopes are visible to you.'
-            : 'No charges match the current filter.'}
-        </div>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {filtered.map((c) => (
-            <li
-              key={c.id}
-              className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base font-medium text-foreground">{c.name}</span>
-                    <StatusBadge status={c.status} />
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {c.scopeName} · {c.shape} ·{' '}
-                    {formatRecurrence(c.recurrence, c.recurrenceInterval)}
-                    {c.activationDate &&
-                      ` · activates ${new Date(c.activationDate).toLocaleDateString()}`}
-                  </span>
-                  {c.description && (
-                    <span className="text-xs text-muted-foreground italic">{c.description}</span>
-                  )}
-                </div>
-                <div className="text-right">
-                  <div className="font-mono text-lg text-foreground">
-                    {c.baseAmount != null
-                      ? `${new Intl.NumberFormat().format(c.baseAmount)} ${c.currency}`
-                      : '—'}
-                  </div>
-                </div>
-              </div>
+      <EntityTablePanel
+        count={filtered.length}
+        countLabel={filtered.length === 1 ? 'charge' : 'charges'}
+        search={search}
+        onSearchChange={setSearch}
+        gridApi={gridApi}
+        canCreate={canCreate}
+        createLabel="New charge"
+        onCreate={() => {
+          resetCreate();
+          setCreateOpen(true);
+        }}
+        filters={
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
+          >
+            <SelectTrigger className="h-8 w-40 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="paused">Paused</SelectItem>
+              <SelectItem value="archived">Archived</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      />
 
-              <div className="flex flex-wrap justify-end gap-2">
-                {c.status !== 'archived' && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      setEditing({
-                        id: c.id,
-                        name: c.name,
-                        description: c.description ?? '',
-                        activationDate: c.activationDate
-                          ? c.activationDate.slice(0, 10)
-                          : new Date().toISOString().slice(0, 10),
-                        status:
-                          c.status === 'draft' || c.status === 'active' || c.status === 'paused'
-                            ? c.status
-                            : 'draft',
-                      })
-                    }
-                    disabled={pending}
-                  >
-                    Edit
-                  </Button>
-                )}
-                {c.status === 'active' && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => runGenerate(c.id)}
-                    disabled={pending}
-                    title="Fire obligation generation now (also runs hourly via pg_cron)"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                    Generate now
-                  </Button>
-                )}
-                {c.status === 'draft' && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      startTransition(async () => {
-                        const result = await updateCharge({ id: c.id, status: 'active' });
-                        if (!result.ok) {
-                          toast.error(result.message);
-                          return;
-                        }
-                        toast.success('Charge activated.');
-                        router.refresh();
-                      })
-                    }
-                    disabled={pending}
-                  >
-                    <Play className="h-3.5 w-3.5" />
-                    Activate
-                  </Button>
-                )}
-                {c.status !== 'archived' && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => setArchivingId(c.id)}
-                    disabled={pending}
-                  >
-                    <Archive className="h-3.5 w-3.5" />
-                    Archive
-                  </Button>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      <DataTable<SerialRow>
+        rowData={filtered as SerialRow[]}
+        columnDefs={columnDefs}
+        getRowId={(p) => p.data.id}
+        onGridReady={(e) => setGridApi(e.api)}
+        showColumnPicker={false}
+        selectable={false}
+      />
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -574,12 +648,12 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
       <ConfirmDialog
         open={!!archivingId}
         title="Archive this charge?"
-        description="Related obligations stay put — archive just stops new obligation generation. Reversible via the DB if needed."
+        description="Related obligations stay put — archive just stops new obligation generation."
         confirmLabel="Archive"
         onConfirm={runArchive}
         onCancel={() => setArchivingId(null)}
       />
-    </section>
+    </div>
   );
 }
 
