@@ -1,0 +1,211 @@
+'use server';
+
+import { getServerClient } from '@/lib/supabase-server';
+
+/**
+ * Server Actions for the Reports page.
+ *
+ * Each report is a SECURITY DEFINER SQL function that already checks
+ * finance.report / treasury.read at the scope. The action just calls
+ * the RPC and returns typed rows for the client renderer.
+ */
+
+export type ActionResult<T> = { ok: true; data: T } | { ok: false; message: string };
+
+export type ReportKey =
+  | 'collections'
+  | 'arrears'
+  | 'treasury_statement'
+  | 'payment_method_breakdown'
+  | 'expense_report_by_category'
+  | 'donation_report';
+
+export interface CollectionsRow {
+  charge_id: string;
+  charge_name: string;
+  shape: string;
+  payment_count: number;
+  total_collected: number;
+}
+
+export interface ArrearsRow {
+  member_id: string;
+  member_name: string;
+  charge_id: string;
+  charge_name: string;
+  period_start: string | null;
+  amount_owed: number;
+  amount_paid: number;
+  arrears: number;
+}
+
+export interface TreasuryStatementRow {
+  scope_id: string;
+  currency: string;
+  opening_balance: number;
+  income_sum: number;
+  expense_sum: number;
+  closing_balance: number;
+}
+
+export interface PaymentMethodRow {
+  method: string;
+  payment_count: number;
+  total_amount: number;
+}
+
+export interface ExpenseByCategoryRow {
+  category_id: string | null;
+  category_key: string | null;
+  category_name: string | null;
+  expense_count: number;
+  total_amount: number;
+}
+
+export interface DonationReportRow {
+  charge_id: string;
+  charge_name: string;
+  donation_count: number;
+  named_donor_count: number;
+  anonymous_count: number;
+  total_donated: number;
+}
+
+interface ReportParams {
+  readonly reportKey: ReportKey;
+  readonly scopeId: string;
+  readonly from?: string | null;
+  readonly to?: string | null;
+}
+
+export async function runReport(
+  params: ReportParams,
+): Promise<
+  ActionResult<
+    | { report: 'collections'; rows: CollectionsRow[] }
+    | { report: 'arrears'; rows: ArrearsRow[] }
+    | { report: 'treasury_statement'; rows: TreasuryStatementRow[] }
+    | { report: 'payment_method_breakdown'; rows: PaymentMethodRow[] }
+    | { report: 'expense_report_by_category'; rows: ExpenseByCategoryRow[] }
+    | { report: 'donation_report'; rows: DonationReportRow[] }
+  >
+> {
+  const supabase = await getServerClient();
+
+  const fromArg = params.from ? new Date(params.from).toISOString() : null;
+  const toArg = params.to ? new Date(params.to).toISOString() : new Date().toISOString();
+
+  const { reportKey, scopeId } = params;
+
+  try {
+    switch (reportKey) {
+      case 'collections': {
+        const { data, error } = await supabase.schema('finance' as never).rpc(
+          'get_collections' as never,
+          {
+            p_scope_id: scopeId,
+            p_from: fromArg,
+            p_to: toArg,
+          } as never,
+        );
+        if (error) return { ok: false, message: error.message };
+        return {
+          ok: true,
+          data: { report: 'collections', rows: coerceRows(data) as unknown as CollectionsRow[] },
+        };
+      }
+      case 'arrears': {
+        const { data, error } = await supabase
+          .schema('finance' as never)
+          .rpc('get_arrears' as never, { p_scope_id: scopeId } as never);
+        if (error) return { ok: false, message: error.message };
+        return {
+          ok: true,
+          data: { report: 'arrears', rows: coerceRows(data) as unknown as ArrearsRow[] },
+        };
+      }
+      case 'treasury_statement': {
+        const { data, error } = await supabase.schema('finance' as never).rpc(
+          'get_treasury_statement' as never,
+          {
+            p_scope_id: scopeId,
+            p_from: fromArg,
+            p_to: toArg,
+          } as never,
+        );
+        if (error) return { ok: false, message: error.message };
+        return {
+          ok: true,
+          data: {
+            report: 'treasury_statement',
+            rows: coerceRows(data) as unknown as TreasuryStatementRow[],
+          },
+        };
+      }
+      case 'payment_method_breakdown': {
+        const { data, error } = await supabase.schema('finance' as never).rpc(
+          'get_payment_method_breakdown' as never,
+          {
+            p_scope_id: scopeId,
+            p_from: fromArg,
+            p_to: toArg,
+          } as never,
+        );
+        if (error) return { ok: false, message: error.message };
+        return {
+          ok: true,
+          data: {
+            report: 'payment_method_breakdown',
+            rows: coerceRows(data) as unknown as PaymentMethodRow[],
+          },
+        };
+      }
+      case 'expense_report_by_category': {
+        const { data, error } = await supabase.schema('finance' as never).rpc(
+          'get_expense_report_by_category' as never,
+          {
+            p_scope_id: scopeId,
+            p_from: fromArg,
+            p_to: toArg,
+          } as never,
+        );
+        if (error) return { ok: false, message: error.message };
+        return {
+          ok: true,
+          data: {
+            report: 'expense_report_by_category',
+            rows: coerceRows(data) as unknown as ExpenseByCategoryRow[],
+          },
+        };
+      }
+      case 'donation_report': {
+        const { data, error } = await supabase.schema('finance' as never).rpc(
+          'get_donation_report' as never,
+          {
+            p_scope_id: scopeId,
+            p_from: fromArg,
+            p_to: toArg,
+          } as never,
+        );
+        if (error) return { ok: false, message: error.message };
+        return {
+          ok: true,
+          data: {
+            report: 'donation_report',
+            rows: coerceRows(data) as unknown as DonationReportRow[],
+          },
+        };
+      }
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : 'Could not run report.',
+    };
+  }
+}
+
+function coerceRows(data: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(data)) return [];
+  return data as Record<string, unknown>[];
+}
