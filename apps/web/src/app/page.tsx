@@ -1,58 +1,36 @@
 /**
- * Public landing page — Phase 0 placeholder.
+ * Public home page.
  *
- * The real homepage + CMS-rendered content lands in Phase 5 (CMS). For
- * now this page proves the shell boots, the shared tokens render, and
- * the apex-scoped session cookie set by apps/admin is visible here
- * when the user is logged in (footer state below). Post-pivot the web
- * app has no gated routes of its own — governance auth lives on
- * apps/admin (ADR-0040).
+ * Sections are composed here — each section lives in its own file under
+ * `src/components/home/*` so this file stays a thin index.
  */
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@shesa/ui';
-import { appUrls } from '@shesa/config/urls';
+import { AgmCta } from '@/components/home/agm-cta';
+import { Events } from '@/components/home/events';
+import { Gallery } from '@/components/home/gallery';
+import { Hero } from '@/components/home/hero';
+import { Leadership } from '@/components/home/leadership';
+import { Mission } from '@/components/home/mission';
+import { MoreData } from '@/components/home/more-data';
+import { PresidentsWord } from '@/components/home/presidents-word';
+import { Projects } from '@/components/home/projects';
+import { SoundsCta } from '@/components/home/sounds-cta';
+import { Stats } from '@/components/home/stats';
 
-import { getServerClient } from '@/lib/supabase-server';
-
-export const dynamic = 'force-dynamic';
-
-export default async function HomePage() {
-  const supabase = await getServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
-      <Card className="w-full max-w-xl">
-        <CardHeader className="text-center">
-          <CardTitle>Shesa</CardTitle>
-          <CardDescription>Public website — Phase 0 placeholder</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            This is the public-facing shell. The homepage + member directory + CMS-rendered
-            announcements land in Phase 5; for now we just confirm the app boots, the shared design
-            tokens render, and the apex-domain session cookie is readable here.
-          </p>
-        </CardContent>
-        <CardFooter>
-          <div className="w-full rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
-            {user ? (
-              <>
-                Signed in as <span className="font-medium text-foreground">{user.email}</span>
-              </>
-            ) : (
-              <>
-                Not signed in.{' '}
-                <a className="underline-offset-4 hover:underline" href={appUrls.admin}>
-                  Sign in on admin
-                </a>
-              </>
-            )}
-          </div>
-        </CardFooter>
-      </Card>
-    </main>
+    <>
+      <Hero />
+      <Mission />
+      <Stats />
+      <PresidentsWord />
+      <AgmCta />
+      <Events />
+      <Projects />
+      <Gallery />
+      <Leadership />
+      <MoreData />
+      <SoundsCta />
+    </>
   );
 }

@@ -19,6 +19,8 @@
     "@shesa/ui": "workspace:*",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
+    "framer-motion": "^12.42.2",
+    "lenis": "^1.3.25",
     "next": "^15.1.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -27,10 +29,10 @@
   "devDependencies": {
     "@shesa/eslint-config": "workspace:*",
     "@shesa/tsconfig": "workspace:*",
+    "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
-    "@tailwindcss/postcss": "^4.0.0",
     "postcss": "^8.5.1",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.2"
