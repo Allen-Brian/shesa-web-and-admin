@@ -1,6 +1,10 @@
+import path from 'node:path';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // Vercel monorepo builds: trace files from the workspace root so
+  // @shesa/* package sources are included in the deploy bundle.
+  outputFileTracingRoot: path.join(__dirname, '../..'),
   transpilePackages: [
     '@shesa/config',
     '@shesa/domain',
