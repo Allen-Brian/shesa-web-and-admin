@@ -241,7 +241,7 @@ export async function uploadAndParseMemberImport(input: {
   const supabase = await getServerClient();
 
   const timestamp = Date.now();
-  const safeName = input.file.name.replace(/[^\w.\-]+/g, '_');
+  const safeName = input.file.name.replace(/[^\w.-]+/g, '_');
   const storagePath = `${input.scopeId}/${timestamp}-${safeName}`;
 
   const { error: upErr } = await supabase.storage
