@@ -54,7 +54,7 @@ export function MembersPage({ scope, rows }: MembersPageProps) {
           Memberships · {scope.scope_type === 'chapter' ? 'Autonomous chapter' : 'Branch'}
         </div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">{scope.name}</h1>
-        <p className="font-mono text-xs text-muted-foreground">{scope.slug}</p>
+        <p className="text-xs text-muted-foreground">{scope.slug}</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

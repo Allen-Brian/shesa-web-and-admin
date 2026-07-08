@@ -352,7 +352,7 @@ function MilestonesSection({
           <ol className="relative">
             <span
               aria-hidden
-              className="absolute left-[7px] top-2 bottom-2 hidden w-px bg-black/12 md:block"
+              className="absolute left-1.75 top-2 bottom-2 hidden w-px bg-black/12 md:block"
             />
             <div className="flex flex-col gap-4 md:gap-2">
               {milestones.map((m, i) => (

@@ -240,7 +240,7 @@ export function ChapterForm({ mode, initial, onSuccess, onCancel }: ChapterFormP
                   }}
                   placeholder="XAF"
                   maxLength={3}
-                  className="font-mono"
+                  className=""
                   required
                 />
               </Field>
@@ -284,7 +284,7 @@ export function ChapterForm({ mode, initial, onSuccess, onCancel }: ChapterFormP
                       onChange={(e) => setRegistrationFeeCurrency(e.target.value.toUpperCase())}
                       placeholder={currencyCode}
                       maxLength={3}
-                      className="font-mono"
+                      className=""
                     />
                   </Field>
                 </>

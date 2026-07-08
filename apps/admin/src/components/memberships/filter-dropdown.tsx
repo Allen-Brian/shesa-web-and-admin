@@ -94,7 +94,7 @@ export function FilterDropdown({
           <Filter className="h-4 w-4" />
           Filters
           {activeCount > 0 && (
-            <span className="ml-1 rounded-md bg-primary-foreground/20 px-1.5 py-0.5 font-mono text-xs">
+            <span className="ml-1 rounded-md bg-primary-foreground/20 px-1.5 py-0.5 text-xs">
               {activeCount}
             </span>
           )}

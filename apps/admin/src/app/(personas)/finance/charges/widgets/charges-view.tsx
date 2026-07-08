@@ -2,7 +2,17 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Archive, BadgeDollarSign, Pencil, Play, RefreshCw } from 'lucide-react';
+import {
+  Archive,
+  BadgeDollarSign,
+  ChevronRight,
+  CircleDollarSign,
+  MoreHorizontal,
+  Pencil,
+  Play,
+  RefreshCw,
+  Users,
+} from 'lucide-react';
 
 import {
   Badge,
@@ -15,6 +25,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   EntityTablePanel,
   Input,
   Label,
@@ -24,6 +39,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  StatsCard,
   Textarea,
   toast,
   type ColDef,
@@ -48,6 +64,10 @@ export interface ChargeRow {
   readonly status: string;
   readonly activationDate: string | null;
   readonly createdAt: string;
+  /** Sum of open obligation amounts on this charge. */
+  readonly expected: number;
+  /** Sum of settled payments (minus reversals). */
+  readonly collected: number;
 }
 
 export interface ScopeOption {
@@ -105,6 +125,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [statusFilter, setStatusFilter] = useState<'all' | ChargeRow['status']>('all');
+  const [shapeFilter, setShapeFilter] = useState<'all' | 'charge' | 'fixed'>('all');
   const [search, setSearch] = useState('');
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -119,6 +140,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
     return charges
       .filter((c) => {
         if (statusFilter !== 'all' && c.status !== statusFilter) return false;
+        if (shapeFilter !== 'all' && c.shape !== shapeFilter) return false;
         if (!q) return true;
         if (c.name.toLowerCase().includes(q)) return true;
         if (c.scopeName.toLowerCase().includes(q)) return true;
@@ -126,7 +148,43 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
         return false;
       })
       .map((c, i) => ({ ...c, serial: i + 1 }));
-  }, [charges, search, statusFilter]);
+  }, [charges, search, statusFilter, shapeFilter]);
+
+  // Portfolio-level KPIs — computed from the full row set (not the
+  // filtered slice) so the strip stays stable while operators sift.
+  const kpis = useMemo(() => {
+    let active = 0;
+    let draft = 0;
+    let paused = 0;
+    let expected = 0;
+    let collected = 0;
+    for (const c of charges) {
+      if (c.status === 'active') active += 1;
+      else if (c.status === 'draft') draft += 1;
+      else if (c.status === 'paused') paused += 1;
+      expected += c.expected;
+      collected += c.collected;
+    }
+    const coverage = expected > 0 ? Math.min(100, Math.round((collected / expected) * 100)) : null;
+    // Currency displayed is the primary one across the visible portfolio
+    // — pick the most-common one. Multi-currency portfolios get "—" so
+    // we don't misrepresent totals.
+    const currencyCounts = new Map<string, number>();
+    for (const c of charges)
+      currencyCounts.set(c.currency, (currencyCounts.get(c.currency) ?? 0) + 1);
+    const [primaryCurrency] = Array.from(currencyCounts.entries()).sort((a, b) => b[1] - a[1]);
+    const singleCurrency = currencyCounts.size === 1 ? primaryCurrency?.[0] : null;
+    return {
+      total: charges.length,
+      active,
+      draft,
+      paused,
+      expected,
+      collected,
+      coverage,
+      singleCurrency,
+    };
+  }, [charges]);
 
   const resetCreate = () => setCreateForm(initialCreate(scopeOptions));
 
@@ -253,39 +311,47 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
   const columnDefs = useMemo<ColDef<SerialRow>[]>(
     () => [
       {
-        headerName: 'S/N',
+        headerName: '#',
         field: 'serial',
-        width: 72,
-        maxWidth: 72,
+        width: 56,
+        maxWidth: 56,
         sortable: false,
         filter: false,
         suppressMovable: true,
+        cellClass: 'text-xs text-muted-foreground',
       },
       {
         headerName: 'Name',
         field: 'name',
         flex: 2,
-        minWidth: 200,
-        cellRenderer: (p: ICellRendererParams<SerialRow, string>) =>
-          p.data ? (
-            <div className="flex flex-col leading-tight">
-              <span className="font-medium text-foreground">{p.data.name}</span>
-              {p.data.description && (
-                <span className="truncate text-xs italic text-muted-foreground">
-                  {p.data.description}
+        minWidth: 260,
+        cellRenderer: (p: ICellRendererParams<SerialRow>) => {
+          if (!p.data) return null;
+          const ShapeIcon = p.data.shape === 'fixed' ? CircleDollarSign : BadgeDollarSign;
+          const shapeLabel = p.data.shape === 'fixed' ? 'Fixed' : 'Charge';
+          const rec = formatRecurrence(p.data.recurrence, p.data.recurrenceInterval);
+          return (
+            <div className="flex h-full items-center gap-2.5 py-1">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <ShapeIcon className="h-4 w-4" />
+              </div>
+              <div className="flex min-w-0 flex-col leading-tight">
+                <span className="truncate text-sm font-medium text-foreground">{p.data.name}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {p.data.scopeName} · {shapeLabel} · {rec}
                 </span>
-              )}
+              </div>
             </div>
-          ) : null,
+          );
+        },
       },
-      { headerName: 'Scope', field: 'scopeName', flex: 1, minWidth: 140 },
       {
         headerName: 'Amount',
         field: 'baseAmount',
         width: 150,
         cellRenderer: (p: ICellRendererParams<SerialRow, number>) =>
           p.data && p.data.baseAmount != null ? (
-            <span className="font-mono text-sm text-foreground">
+            <span className="text-sm tabular-nums text-foreground">
               {new Intl.NumberFormat().format(p.data.baseAmount)} {p.data.currency}
             </span>
           ) : (
@@ -293,16 +359,24 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
           ),
       },
       {
-        headerName: 'Recurrence',
-        field: 'recurrence',
-        width: 140,
-        valueFormatter: (p) =>
-          p.data ? formatRecurrence(p.data.recurrence, p.data.recurrenceInterval) : '',
+        headerName: 'Progress',
+        colId: 'progress',
+        flex: 1.4,
+        minWidth: 200,
+        valueGetter: (p) => {
+          const r = p.data as SerialRow | undefined;
+          if (!r) return 0;
+          return r.expected > 0 ? r.collected / r.expected : 0;
+        },
+        cellRenderer: (p: ICellRendererParams<SerialRow>) => {
+          if (!p.data) return null;
+          return <ProgressCell row={p.data} />;
+        },
       },
       {
         headerName: 'Status',
         field: 'status',
-        width: 120,
+        width: 110,
         cellRenderer: (p: ICellRendererParams<SerialRow, string>) => (
           <StatusBadge status={p.value ?? ''} />
         ),
@@ -310,83 +384,75 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
       {
         headerName: 'Activates',
         field: 'activationDate',
-        width: 130,
+        width: 120,
         valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleDateString() : '—'),
       },
       {
-        headerName: 'Actions',
+        headerName: '',
+        colId: 'row_chevron',
+        width: 48,
+        maxWidth: 48,
+        sortable: false,
+        filter: false,
+        suppressMovable: true,
+        cellRenderer: () => <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />,
+      },
+      {
+        headerName: '',
         colId: 'row_actions',
-        width: 200,
+        width: 56,
+        maxWidth: 56,
         sortable: false,
         filter: false,
         suppressMovable: true,
         cellRenderer: (p: ICellRendererParams<SerialRow>) => {
           if (!p.data) return null;
           const row = p.data;
+          if (row.status === 'archived') return null;
+          const canActivate = row.status === 'draft';
+          const canGenerate = row.status === 'active';
           return (
-            <div className="flex items-center gap-1">
-              {row.status !== 'archived' && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    beginEdit(row);
-                  }}
+                  variant="ghost"
+                  className="h-8 w-8 p-0"
+                  onClick={(e) => e.stopPropagation()}
                   disabled={pending}
-                  title="Edit"
+                  title="Row actions"
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
-              )}
-              {row.status === 'draft' && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    runActivate(row.id);
-                  }}
-                  disabled={pending}
-                  title="Activate"
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem onSelect={() => beginEdit(row)}>
+                  <Pencil className="h-4 w-4" />
+                  Edit details
+                </DropdownMenuItem>
+                {canActivate && (
+                  <DropdownMenuItem onSelect={() => runActivate(row.id)}>
+                    <Play className="h-4 w-4" />
+                    Activate
+                  </DropdownMenuItem>
+                )}
+                {canGenerate && (
+                  <DropdownMenuItem onSelect={() => runGenerate(row.id)}>
+                    <RefreshCw className="h-4 w-4" />
+                    Generate obligations
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={() => setArchivingId(row.id)}
+                  className="text-destructive focus:text-destructive"
                 >
-                  <Play className="h-3.5 w-3.5" />
-                </Button>
-              )}
-              {row.status === 'active' && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    runGenerate(row.id);
-                  }}
-                  disabled={pending}
-                  title="Generate obligations now"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                </Button>
-              )}
-              {row.status !== 'archived' && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="text-destructive hover:text-destructive"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setArchivingId(row.id);
-                  }}
-                  disabled={pending}
-                  title="Archive"
-                >
-                  <Archive className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
+                  <Archive className="h-4 w-4" />
+                  Archive
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           );
         },
       },
@@ -410,6 +476,25 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
         </p>
       </div>
 
+      {/* KPI strip */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <StatsCard label="Charges" value={kpis.total} />
+        <StatsCard label="Active" value={kpis.active} />
+        <StatsCard label="Draft" value={kpis.draft} />
+        <StatsCard
+          label="Expected"
+          value={
+            kpis.singleCurrency
+              ? `${new Intl.NumberFormat().format(Math.round(kpis.expected))} ${kpis.singleCurrency}`
+              : '—'
+          }
+        />
+        <StatsCard
+          label="Portfolio coverage"
+          value={kpis.coverage !== null ? `${kpis.coverage}%` : '—'}
+        />
+      </div>
+
       <EntityTablePanel
         count={filtered.length}
         countLabel={filtered.length === 1 ? 'charge' : 'charges'}
@@ -423,21 +508,36 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
           setCreateOpen(true);
         }}
         filters={
-          <Select
-            value={statusFilter}
-            onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
-          >
-            <SelectTrigger className="h-8 w-40 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="paused">Paused</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select
+              value={shapeFilter}
+              onValueChange={(v) => setShapeFilter(v as typeof shapeFilter)}
+            >
+              <SelectTrigger className="h-8 w-32 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All shapes</SelectItem>
+                <SelectItem value="charge">Charge</SelectItem>
+                <SelectItem value="fixed">Fixed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
+            >
+              <SelectTrigger className="h-8 w-36 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         }
       />
 
@@ -446,6 +546,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
         columnDefs={columnDefs}
         getRowId={(p) => p.data.id}
         onGridReady={(e) => setGridApi(e.api)}
+        onRowClicked={(e) => e.data && router.push(`/finance/charges/${e.data.id}`)}
         showColumnPicker={false}
         selectable={false}
       />
@@ -653,6 +754,56 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
         onConfirm={runArchive}
         onCancel={() => setArchivingId(null)}
       />
+    </div>
+  );
+}
+
+function ProgressCell({ row }: { readonly row: SerialRow }) {
+  const hasObligations = row.expected > 0;
+  const percent = hasObligations
+    ? Math.min(100, Math.round((row.collected / row.expected) * 100))
+    : null;
+  const barColor =
+    percent === null
+      ? 'bg-muted-foreground/40'
+      : percent >= 100
+        ? 'bg-emerald-500'
+        : percent >= 70
+          ? 'bg-sky-500'
+          : percent >= 40
+            ? 'bg-amber-500'
+            : 'bg-destructive';
+  return (
+    <div className="flex w-full flex-col gap-1 py-1">
+      <div className="flex items-center justify-between text-xs">
+        {hasObligations ? (
+          <>
+            <span className="text-foreground tabular-nums">
+              {new Intl.NumberFormat().format(Math.round(row.collected))} {row.currency}
+            </span>
+            <span className="text-muted-foreground tabular-nums">
+              of {new Intl.NumberFormat().format(Math.round(row.expected))}
+              {percent !== null && (
+                <span
+                  className={`ml-1 font-medium ${
+                    percent >= 100 ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'
+                  }`}
+                >
+                  · {percent}%
+                </span>
+              )}
+            </span>
+          </>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs italic text-muted-foreground">
+            <Users className="h-3 w-3" />
+            no obligations yet
+          </span>
+        )}
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div className={`h-full rounded-full ${barColor}`} style={{ width: `${percent ?? 0}%` }} />
+      </div>
     </div>
   );
 }

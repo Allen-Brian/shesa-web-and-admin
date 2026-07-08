@@ -33,6 +33,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   Textarea,
   toast,
   type ColDef,
@@ -411,7 +415,7 @@ export function DonationsView({ campaigns, donations, scopeOptions }: DonationsV
         minWidth: 160,
         cellRenderer: (p: ICellRendererParams<SerialCampaignRow, number>) =>
           p.data ? (
-            <span className="font-mono text-sm text-foreground">
+            <span className="text-sm text-foreground">
               {new Intl.NumberFormat().format(Math.round(p.data.raised))} {p.data.currency}
             </span>
           ) : null,
@@ -568,7 +572,7 @@ export function DonationsView({ campaigns, donations, scopeOptions }: DonationsV
         cellRenderer: (p: ICellRendererParams<SerialDonationRow, number>) =>
           p.data ? (
             <span
-              className={`font-mono text-sm ${
+              className={`text-sm ${
                 p.data.reversesPaymentId ? 'text-amber-700 dark:text-amber-400' : 'text-foreground'
               }`}
             >
@@ -668,98 +672,105 @@ export function DonationsView({ campaigns, donations, scopeOptions }: DonationsV
         </p>
       </div>
 
-      {/* Campaigns section */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+      <Tabs defaultValue="donations" className="flex min-h-0 flex-1 flex-col gap-4">
+        <TabsList className="w-fit">
+          <TabsTrigger value="donations">
+            Donations
+            <span className="ml-1.5 text-xs text-muted-foreground">
+              ({filteredDonations.length})
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="campaigns">
             Campaigns
-          </h2>
-        </div>
-        <EntityTablePanel
-          count={filteredCampaigns.length}
-          countLabel={filteredCampaigns.length === 1 ? 'campaign' : 'campaigns'}
-          search={campaignSearch}
-          onSearchChange={setCampaignSearch}
-          gridApi={campaignGridApi}
-          canCreate={canCreateCampaign}
-          createLabel="New campaign"
-          onCreate={() => {
-            resetNewCampaign();
-            setNewCampaignOpen(true);
-          }}
-          filters={
-            <Select
-              value={campaignLifecycleFilter}
-              onValueChange={(v) => setCampaignLifecycleFilter(v as typeof campaignLifecycleFilter)}
-            >
-              <SelectTrigger className="h-8 w-40 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All lifecycles</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
-              </SelectContent>
-            </Select>
-          }
-        />
-        <DataTable<SerialCampaignRow>
-          rowData={filteredCampaigns as SerialCampaignRow[]}
-          columnDefs={campaignColumns}
-          getRowId={(p) => p.data.id}
-          onGridReady={(e) => setCampaignGridApi(e.api)}
-          showColumnPicker={false}
-          selectable={false}
-        />
-      </section>
+            <span className="ml-1.5 text-xs text-muted-foreground">
+              ({filteredCampaigns.length})
+            </span>
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Donations feed */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Recent donations
-          </h2>
-        </div>
-        <EntityTablePanel
-          count={filteredDonations.length}
-          countLabel={filteredDonations.length === 1 ? 'donation' : 'donations'}
-          search={donationSearch}
-          onSearchChange={setDonationSearch}
-          gridApi={donationGridApi}
-          canCreate={canWalkIn}
-          createLabel="Record walk-in"
-          onCreate={() => {
-            resetWalkIn();
-            setWalkInOpen(true);
-          }}
-          filters={
-            <Select
-              value={donorFilter}
-              onValueChange={(v) => setDonorFilter(v as typeof donorFilter)}
-            >
-              <SelectTrigger className="h-8 w-40 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All donors</SelectItem>
-                <SelectItem value="member">Member</SelectItem>
-                <SelectItem value="public">Public site</SelectItem>
-                <SelectItem value="walkin">Walk-ins</SelectItem>
-              </SelectContent>
-            </Select>
-          }
-        />
-        <DataTable<SerialDonationRow>
-          rowData={filteredDonations as SerialDonationRow[]}
-          columnDefs={donationColumns}
-          getRowId={(p) => p.data.id}
-          onGridReady={(e) => setDonationGridApi(e.api)}
-          showColumnPicker={false}
-          selectable={false}
-        />
-      </section>
+        <TabsContent value="donations" className="flex min-h-0 flex-1 flex-col gap-3">
+          <EntityTablePanel
+            count={filteredDonations.length}
+            countLabel={filteredDonations.length === 1 ? 'donation' : 'donations'}
+            search={donationSearch}
+            onSearchChange={setDonationSearch}
+            gridApi={donationGridApi}
+            canCreate={canWalkIn}
+            createLabel="Record walk-in"
+            onCreate={() => {
+              resetWalkIn();
+              setWalkInOpen(true);
+            }}
+            filters={
+              <Select
+                value={donorFilter}
+                onValueChange={(v) => setDonorFilter(v as typeof donorFilter)}
+              >
+                <SelectTrigger className="h-8 w-40 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All donors</SelectItem>
+                  <SelectItem value="member">Member</SelectItem>
+                  <SelectItem value="public">Public site</SelectItem>
+                  <SelectItem value="walkin">Walk-ins</SelectItem>
+                </SelectContent>
+              </Select>
+            }
+          />
+          <DataTable<SerialDonationRow>
+            rowData={filteredDonations as SerialDonationRow[]}
+            columnDefs={donationColumns}
+            getRowId={(p) => p.data.id}
+            onGridReady={(e) => setDonationGridApi(e.api)}
+            showColumnPicker={false}
+            selectable={false}
+          />
+        </TabsContent>
+
+        <TabsContent value="campaigns" className="flex min-h-0 flex-1 flex-col gap-3">
+          <EntityTablePanel
+            count={filteredCampaigns.length}
+            countLabel={filteredCampaigns.length === 1 ? 'campaign' : 'campaigns'}
+            search={campaignSearch}
+            onSearchChange={setCampaignSearch}
+            gridApi={campaignGridApi}
+            canCreate={canCreateCampaign}
+            createLabel="New campaign"
+            onCreate={() => {
+              resetNewCampaign();
+              setNewCampaignOpen(true);
+            }}
+            filters={
+              <Select
+                value={campaignLifecycleFilter}
+                onValueChange={(v) =>
+                  setCampaignLifecycleFilter(v as typeof campaignLifecycleFilter)
+                }
+              >
+                <SelectTrigger className="h-8 w-40 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All lifecycles</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+            }
+          />
+          <DataTable<SerialCampaignRow>
+            rowData={filteredCampaigns as SerialCampaignRow[]}
+            columnDefs={campaignColumns}
+            getRowId={(p) => p.data.id}
+            onGridReady={(e) => setCampaignGridApi(e.api)}
+            showColumnPicker={false}
+            selectable={false}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* New campaign dialog */}
       <Dialog open={newCampaignOpen} onOpenChange={setNewCampaignOpen}>
@@ -1027,7 +1038,7 @@ export function DonationsView({ campaigns, donations, scopeOptions }: DonationsV
           {reversing && (
             <div className="flex flex-col gap-3">
               <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
-                <div className="font-mono text-sm text-foreground">
+                <div className="text-sm text-foreground">
                   {new Intl.NumberFormat().format(reversing.amount)} {reversing.currency}
                 </div>
                 <div className="text-muted-foreground">

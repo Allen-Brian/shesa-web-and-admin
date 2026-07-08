@@ -243,7 +243,7 @@ export function GovernancePanel({
                     <div>
                       <div className="text-sm font-medium text-foreground">{r.userLabel}</div>
                       <div className="text-xs text-muted-foreground">
-                        <span className="font-mono">{r.roleKey}</span> · {r.roleName}
+                        <span className="">{r.roleKey}</span> · {r.roleName}
                       </div>
                     </div>
                   </div>

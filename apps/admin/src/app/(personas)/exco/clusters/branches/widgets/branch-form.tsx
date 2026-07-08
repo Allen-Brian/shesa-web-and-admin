@@ -178,7 +178,7 @@ export function BranchForm({ mode, initial, onSuccess, onCancel }: BranchFormPro
               }}
               placeholder="XAF"
               maxLength={3}
-              className="font-mono"
+              className=""
               required
             />
           </Field>
@@ -228,7 +228,7 @@ export function BranchForm({ mode, initial, onSuccess, onCancel }: BranchFormPro
                 onChange={(e) => setRegistrationFeeCurrency(e.target.value.toUpperCase())}
                 placeholder={currencyCode}
                 maxLength={3}
-                className="font-mono"
+                className=""
               />
             </Field>
           )}

@@ -112,14 +112,17 @@ export async function uploadMemberImport(req: Request): Promise<Response> {
       }),
     );
     // Create a failed batch row so the operator can see the error, then bail.
-    await service.from('import_batches' as never).insert({
-      scope_id: input.scopeId,
-      uploaded_by: ctx.userId,
-      file_name: input.fileName,
-      storage_path: input.storagePath,
-      status: 'failed',
-      parse_error: err instanceof Error ? err.message : 'unknown parse error',
-    } as never);
+    await service
+      .schema('core' as never)
+      .from('import_batches' as never)
+      .insert({
+        scope_id: input.scopeId,
+        uploaded_by: ctx.userId,
+        file_name: input.fileName,
+        storage_path: input.storagePath,
+        status: 'failed',
+        parse_error: err instanceof Error ? err.message : 'unknown parse error',
+      } as never);
     return withCors(
       req,
       validationError('Could not parse the uploaded .xlsx', ctx.traceId, {
@@ -130,13 +133,18 @@ export async function uploadMemberImport(req: Request): Promise<Response> {
 
   // ── Validate every row against the seed catalog ───────────────────
   const seed = await loadSeedContext(service as never);
-  const results: ValidateRowResult[] = rows.map((r) => validateImportRow(r, seed));
+  // The scope the operator is uploading into IS the batch — pin every
+  // row to it so operators don't have to fill batch_entry_year.
+  const results: ValidateRowResult[] = rows.map((r) =>
+    validateImportRow(r, seed, { targetBatchScopeId: input.scopeId }),
+  );
 
   const validCount = results.filter((r) => r.status === 'valid').length;
   const invalidCount = results.length - validCount;
 
   // ── Persist batch + rows ──────────────────────────────────────────
   const { data: batchRow, error: batchErr } = await service
+    .schema('core' as never)
     .from('import_batches' as never)
     .insert({
       scope_id: input.scopeId,
@@ -177,6 +185,7 @@ export async function uploadMemberImport(req: Request): Promise<Response> {
 
   if (rowInserts.length > 0) {
     const { error: rowsErr } = await service
+      .schema('core' as never)
       .from('import_rows' as never)
       .insert(rowInserts as never);
     if (rowsErr) {

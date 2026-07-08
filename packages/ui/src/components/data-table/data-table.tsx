@@ -150,6 +150,11 @@ export function DataTable<T>({
       resizable: false,
       headerComponent: HeadDrop,
       suppressHeaderMenuButton: true,
+      // Vertically-center every cell's content. AG Grid's Quartz cells default
+      // to inline layout, so multi-line cellRenderers (e.g. name + subtitle)
+      // stick to the top of the 65px row — this normalises the baseline
+      // across every admin table without each caller having to opt in.
+      cellStyle: { display: 'flex', alignItems: 'center' },
       ...defaultColDef,
     }),
     [defaultColDef],

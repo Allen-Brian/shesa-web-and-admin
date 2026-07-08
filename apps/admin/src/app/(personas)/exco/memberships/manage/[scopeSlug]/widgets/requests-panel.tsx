@@ -127,7 +127,7 @@ export function RequestsPanel({ requests, scopeSlug }: RequestsPanelProps) {
         headerName: 'Method',
         field: 'join_method',
         width: 130,
-        cellClass: 'font-mono text-xs',
+        cellClass: 'text-xs',
       },
       {
         headerName: 'Requested At',

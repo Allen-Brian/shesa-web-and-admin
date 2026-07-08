@@ -148,6 +148,22 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
     }
   }
 
+  // Global Admin heuristic: `scope.manage_capabilities` at Mainstream
+  // is a mainstream_admin-only permission (branch_admin doesn't have
+  // it). Assessments — the "levies imposed on us" view — is meaningless
+  // for the person who does the levying, so we hide it for Global
+  // Admins and only surface it to scoped admins (branch / autonomous
+  // chapter).
+  let isGlobalAdmin = false;
+  if (mainstream) {
+    const { data: canManageCaps } = await supabase.schema('core').rpc('has_permission', {
+      p_user_id: user.id,
+      p_scope_id: mainstream.id,
+      p_permission_key: 'scope.manage_capabilities',
+    });
+    isGlobalAdmin = canManageCaps === true;
+  }
+
   return (
     <AppShell
       persona="exco"
@@ -160,6 +176,7 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
       canEditOwnScope={canEditOwnScope}
       canViewInvites={canViewInvites}
       canReadFinance={canReadFinance}
+      isGlobalAdmin={isGlobalAdmin}
     >
       {children}
     </AppShell>

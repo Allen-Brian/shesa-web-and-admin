@@ -259,3 +259,31 @@
   background: var(--color-background);
   padding: 4px 6px;
 }
+
+/* ─────────────────────────────────────────────────────────────────
+ * Charge-detail matrix — period column headers.
+ *
+ * `.ag-header-current` marks today's period cell in the collection
+ * matrix. Adds a subtle primary tint + bold text so operators can
+ * find the active month at a glance while scrolling horizontally.
+ * `.ag-header-upcoming` softens the future-period columns so they
+ * read as pipeline rather than committed data.
+ * ────────────────────────────────────────────────────────────────*/
+
+.ag-header-current {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent) !important;
+  color: var(--color-primary) !important;
+  font-weight: 600;
+}
+.ag-header-current .ag-header-cell-text {
+  color: var(--color-primary);
+}
+
+.ag-header-upcoming {
+  background: color-mix(in srgb, var(--color-muted) 40%, transparent) !important;
+  font-style: italic;
+}
+.ag-header-upcoming .ag-header-cell-text {
+  color: var(--color-muted-foreground);
+  font-weight: 400;
+}

@@ -158,6 +158,7 @@ export { shesaTableTheme } from './components/data-table/theme';
 // ─── Composites (Shesa-specific) ─────────────────────────────────────
 export { EntityTablePanel } from './components/entity-table-panel';
 export { StatsCard } from './components/stats-card';
+export { GradientPanel } from './components/gradient-panel';
 export { ConfirmDialog } from './components/confirm-dialog';
 export { BackLink } from './components/back-link';
 export {

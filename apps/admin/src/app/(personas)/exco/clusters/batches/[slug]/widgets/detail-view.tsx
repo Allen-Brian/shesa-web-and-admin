@@ -2,7 +2,15 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Archive, Download, Pencil, RefreshCw, Upload } from 'lucide-react';
+import {
+  Archive,
+  Download,
+  MoreHorizontal,
+  Pencil,
+  RefreshCw,
+  RotateCcw,
+  Upload,
+} from 'lucide-react';
 
 import {
   Badge,
@@ -10,6 +18,10 @@ import {
   Button,
   ConfirmDialog,
   DataTable,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   EntityTablePanel,
   Tabs,
   TabsContent,
@@ -34,7 +46,7 @@ import {
 import type { GovernanceMemberPickerRow } from '@/components/governance/assign-position-dialog';
 import { formatOrdinal } from '@/lib/batches/ordinal';
 
-import { archiveBatch, deleteBatchMember } from '../../actions';
+import { archiveBatch, deleteBatchMember, restoreBatch } from '../../actions';
 import { BatchFormDialog } from '../../widgets/form-dialog';
 import { BatchImportDialog } from './batch-import-dialog';
 import { CreateMemberDialog } from './create-member-dialog';
@@ -86,8 +98,9 @@ interface BatchDetailViewProps {
 export function BatchDetailView(props: BatchDetailViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [confirmArchive, setConfirmArchive] = useState(false);
+  const [confirmMode, setConfirmMode] = useState<'archive' | 'restore' | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const isArchived = props.status === 'archived';
   const ordinalLabel = formatOrdinal(props.ordinal);
@@ -102,6 +115,74 @@ export function BatchDetailView(props: BatchDetailViewProps) {
       toast.success(`${props.name} archived.`);
       router.refresh();
     });
+  };
+
+  const doRestore = () => {
+    startTransition(async () => {
+      const result = await restoreBatch(props.scopeId);
+      if (!result.ok) {
+        toast.error(result.message ?? 'Could not restore.');
+        return;
+      }
+      toast.success(`${props.name} restored.`);
+      router.refresh();
+    });
+  };
+
+  const handleRefresh = () => {
+    router.refresh();
+    toast.success('Refreshed');
+  };
+
+  const handleExport = () => {
+    const rows = props.members;
+    if (rows.length === 0) {
+      toast.error('No members to export.');
+      return;
+    }
+    const headers = [
+      'member_code',
+      'full_name',
+      'email',
+      'phone',
+      'house',
+      'network',
+      'branch',
+      'membership_status',
+      'location',
+    ];
+    const csv = [
+      headers.join(','),
+      ...rows.map((m) =>
+        [
+          m.member_code,
+          m.full_name,
+          m.email ?? '',
+          m.phone ?? '',
+          m.house_name,
+          m.network_name,
+          m.branch_name ?? '',
+          m.membership_status ?? '',
+          m.location ?? '',
+        ]
+          .map((cell) => {
+            const s = String(cell ?? '');
+            return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+          })
+          .join(','),
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${props.slug}-members.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length} member${rows.length === 1 ? '' : 's'}.`);
   };
 
   return (
@@ -151,27 +232,58 @@ export function BatchDetailView(props: BatchDetailViewProps) {
             <TabsTrigger value="members">Members</TabsTrigger>
             <TabsTrigger value="governance">Governance</TabsTrigger>
           </TabsList>
-          {props.canUpdate && (
-            <div className="flex items-center gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => setEditOpen(true)}>
-                <Pencil className="h-4 w-4" />
-                Edit
+          <div className="flex items-center gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={handleRefresh}>
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+            {props.canManageMembers && !isArchived && (
+              <Button type="button" size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4" />
+                Import
               </Button>
-              {!isArchived && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={pending}
-                  onClick={() => setConfirmArchive(true)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Archive className="h-4 w-4" />
-                  {pending ? 'Archiving…' : 'Archive'}
-                </Button>
-              )}
-            </div>
-          )}
+            )}
+            <Button type="button" size="sm" variant="outline" onClick={handleExport}>
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            {props.canUpdate && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-9 w-9 p-0"
+                    aria-label="More actions"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                    <Pencil className="h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  {isArchived ? (
+                    <DropdownMenuItem onClick={() => setConfirmMode('restore')}>
+                      <RotateCcw className="h-4 w-4" />
+                      Restore
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => setConfirmMode('archive')}
+                      disabled={pending}
+                    >
+                      <Archive className="h-4 w-4" />
+                      Archive
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
 
         <TabsContent value="members" className="flex min-h-0 flex-1 flex-col gap-3">
@@ -220,15 +332,27 @@ export function BatchDetailView(props: BatchDetailViewProps) {
       />
 
       <ConfirmDialog
-        open={confirmArchive}
-        title={`Archive ${props.name}?`}
-        description="Archived batches disappear from every dropdown. Members currently attached keep their reference until an admin reassigns them."
-        confirmLabel="Archive"
+        open={confirmMode !== null}
+        title={confirmMode === 'restore' ? `Restore ${props.name}?` : `Archive ${props.name}?`}
+        description={
+          confirmMode === 'restore'
+            ? 'The batch will return to the active list and become available in dropdowns again.'
+            : 'Archived batches disappear from every dropdown. Members currently attached keep their reference until an admin reassigns them. Restore later from this same menu.'
+        }
+        confirmLabel={confirmMode === 'restore' ? 'Restore' : 'Archive'}
         onConfirm={() => {
-          setConfirmArchive(false);
-          doArchive();
+          const mode = confirmMode;
+          setConfirmMode(null);
+          if (mode === 'restore') doRestore();
+          else if (mode === 'archive') doArchive();
         }}
-        onCancel={() => setConfirmArchive(false)}
+        onCancel={() => setConfirmMode(null)}
+      />
+
+      <BatchImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        scope={{ id: props.scopeId, slug: props.slug, name: props.name }}
       />
     </div>
   );
@@ -257,9 +381,8 @@ function MembersTable(props: MembersTableProps) {
   const [gridApi, setGridApi] = useState<GridApi<BatchMemberRow> | null>(null);
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDelete>(null);
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -281,7 +404,7 @@ function MembersTable(props: MembersTableProps) {
         headerName: 'Code',
         field: 'member_code',
         width: 160,
-        cellClass: 'font-mono text-xs',
+        cellClass: 'text-xs',
       },
       {
         headerName: 'Full name',
@@ -351,30 +474,6 @@ function MembersTable(props: MembersTableProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex-1" />
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => router.refresh()}
-          disabled={pending}
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => gridApi?.exportDataAsCsv({ fileName: `${props.batchSlug}-members.csv` })}
-          disabled={!gridApi}
-        >
-          <Download className="h-4 w-4" />
-          Export
-        </Button>
-      </div>
-
       <EntityTablePanel
         count={filtered.length}
         countLabel={filtered.length === 1 ? 'member' : 'members'}
@@ -384,18 +483,6 @@ function MembersTable(props: MembersTableProps) {
         canCreate={props.canManageMembers}
         onCreate={() => setCreateOpen(true)}
         createLabel="Create Member"
-        filters={
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={!props.canManageMembers}
-            onClick={() => setImportOpen(true)}
-          >
-            <Upload className="h-4 w-4" />
-            Import Members
-          </Button>
-        }
       />
 
       <DataTable<BatchMemberRow>
@@ -417,11 +504,6 @@ function MembersTable(props: MembersTableProps) {
         networks={props.networkOptions}
         open={createOpen}
         onOpenChange={setCreateOpen}
-      />
-      <BatchImportDialog
-        scope={{ id: props.batchScopeId, slug: props.batchSlug, name: props.batchName }}
-        open={importOpen}
-        onOpenChange={setImportOpen}
       />
 
       <ConfirmDialog

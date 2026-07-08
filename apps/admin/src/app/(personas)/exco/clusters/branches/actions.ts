@@ -229,3 +229,15 @@ export async function archiveBranch(scopeId: string): Promise<ArchiveResult> {
   revalidatePath('/exco/clusters/branches', 'layout');
   return { ok: true, scopeId };
 }
+
+export async function restoreBranch(scopeId: string): Promise<ArchiveResult> {
+  const supabase = await getServerClient();
+  const { error } = await supabase.functions.invoke('branches/update-branch', {
+    body: { scopeId, status: 'active' },
+  });
+  if (error) {
+    return { ok: false, scopeId, message: await extractInvokeMessage(error, 'Could not restore.') };
+  }
+  revalidatePath('/exco/clusters/branches', 'layout');
+  return { ok: true, scopeId };
+}

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Archive, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Archive, MoreHorizontal, Pencil, RotateCcw } from 'lucide-react';
 
 import {
   Badge,
@@ -12,9 +12,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
   EntityTablePanel,
+  Switch,
   toast,
   type ColDef,
   type GridApi,
@@ -26,7 +26,7 @@ import {
 import { NetworkIcon } from '@/components/networks/icon-picker';
 import type { ScopeStatus } from '@/components/clusters/cluster-list';
 
-import { archiveNetwork } from '../actions';
+import { archiveNetwork, restoreNetwork } from '../actions';
 import { NetworkFormDialog } from './form-dialog';
 import type { NetworkInitialValues } from './form';
 
@@ -47,7 +47,7 @@ export interface NetworkRow {
 type SerialRow = NetworkRow & { readonly serial: number };
 
 type ConfirmState = null | {
-  readonly kind: 'archive' | 'delete';
+  readonly kind: 'archive' | 'restore';
   readonly targets: readonly SerialRow[];
 };
 
@@ -60,6 +60,7 @@ export function NetworksListView({ data, canCreate }: NetworksListViewProps) {
   const router = useRouter();
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [search, setSearch] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   const [dialogState, setDialogState] = useState<
     | { readonly mode: 'create' }
     | { readonly mode: 'edit'; readonly initial: NetworkInitialValues }
@@ -68,11 +69,17 @@ export function NetworksListView({ data, canCreate }: NetworksListViewProps) {
   const [confirm, setConfirm] = useState<ConfirmState>(null);
   const [pending, startTransition] = useTransition();
 
+  const visible = useMemo(
+    () => (showArchived ? data : data.filter((r) => r.status !== 'archived')),
+    [data, showArchived],
+  );
+  const archivedCount = data.length - data.filter((r) => r.status !== 'archived').length;
+
   // Stable S/N assigned before search filters — a row keeps its number
   // even when it drops out of the current search result.
   const numbered = useMemo<readonly SerialRow[]>(
-    () => data.map((r, i) => ({ ...r, serial: i + 1 })),
-    [data],
+    () => visible.map((r, i) => ({ ...r, serial: i + 1 })),
+    [visible],
   );
 
   const filtered = useMemo(() => {
@@ -102,24 +109,18 @@ export function NetworksListView({ data, canCreate }: NetworksListViewProps) {
       },
     });
 
-  const runArchive = (targets: readonly SerialRow[], kind: 'archive' | 'delete') => {
+  const runMutation = (targets: readonly SerialRow[], kind: 'archive' | 'restore') => {
     startTransition(async () => {
-      const results = await Promise.all(targets.map((t) => archiveNetwork(t.id)));
+      const fn = kind === 'archive' ? archiveNetwork : restoreNetwork;
+      const results = await Promise.all(targets.map((t) => fn(t.id)));
       const failed = results.filter((r) => !r.ok);
+      const doneVerb = kind === 'archive' ? 'Archived' : 'Restored';
       if (failed.length === 0) {
-        toast.success(
-          `${kind === 'archive' ? 'Archived' : 'Deleted'} ${targets.length} network${
-            targets.length === 1 ? '' : 's'
-          }.`,
-        );
+        toast.success(`${doneVerb} ${targets.length} network${targets.length === 1 ? '' : 's'}.`);
       } else if (failed.length === targets.length) {
         toast.error(failed[0]?.message ?? `Could not ${kind}.`);
       } else {
-        toast.error(
-          `${kind === 'archive' ? 'Archived' : 'Deleted'} ${
-            targets.length - failed.length
-          }; ${failed.length} failed.`,
-        );
+        toast.error(`${doneVerb} ${targets.length - failed.length}; ${failed.length} failed.`);
       }
       router.refresh();
     });
@@ -151,40 +152,44 @@ export function NetworksListView({ data, canCreate }: NetworksListViewProps) {
       {
         headerName: 'Network',
         field: 'name',
-        flex: 2,
-        minWidth: 200,
+        flex: 3,
+        minWidth: 180,
       },
       {
         headerName: 'Short name',
         field: 'short_name',
-        flex: 1.5,
-        minWidth: 140,
+        flex: 1.2,
+        minWidth: 120,
       },
       {
         headerName: 'Description',
         field: 'description',
         flex: 3,
-        minWidth: 240,
+        minWidth: 200,
         valueFormatter: (p) => p.value ?? '—',
       },
       {
         headerName: 'Members',
         field: 'member_count',
-        width: 120,
-        cellClass: 'text-center',
+        flex: 0.7,
+        minWidth: 100,
+        cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
+        headerClass: 'ag-center-aligned-header',
       },
       {
         headerName: 'Status',
         field: 'status',
-        width: 130,
+        flex: 0.9,
+        minWidth: 110,
         cellRenderer: (params: ICellRendererParams<SerialRow, ScopeStatus>) => (
           <NetworkStatusBadge status={params.value ?? 'active'} />
         ),
       },
       {
-        headerName: 'Actions',
+        headerName: '',
         colId: 'actions',
-        width: 100,
+        width: 64,
+        maxWidth: 64,
         sortable: false,
         filter: false,
         suppressMovable: true,
@@ -194,7 +199,7 @@ export function NetworksListView({ data, canCreate }: NetworksListViewProps) {
               row={params.data}
               onEdit={openEdit}
               onArchive={(r) => setConfirm({ kind: 'archive', targets: [r] })}
-              onDelete={(r) => setConfirm({ kind: 'delete', targets: [r] })}
+              onRestore={(r) => setConfirm({ kind: 'restore', targets: [r] })}
             />
           ) : null,
       },
@@ -212,7 +217,6 @@ export function NetworksListView({ data, canCreate }: NetworksListViewProps) {
       itemName: 'network',
       pluralItemName: 'networks',
       onArchive: (selected) => setConfirm({ kind: 'archive', targets: selected }),
-      onDelete: (selected) => setConfirm({ kind: 'delete', targets: selected }),
     }),
     [],
   );
@@ -228,6 +232,23 @@ export function NetworksListView({ data, canCreate }: NetworksListViewProps) {
         canCreate={canCreate}
         onCreate={openCreate}
         createLabel="Create New Network"
+        filters={
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+            <Switch
+              checked={showArchived}
+              onCheckedChange={setShowArchived}
+              aria-label="Show archived"
+            />
+            <span>
+              Show archived
+              {archivedCount > 0 && (
+                <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground">
+                  {archivedCount}
+                </span>
+              )}
+            </span>
+          </label>
+        }
       />
 
       <DataTable<SerialRow>
@@ -255,17 +276,17 @@ export function NetworksListView({ data, canCreate }: NetworksListViewProps) {
         open={!!confirm}
         title={buildConfirmTitle(confirm)}
         description={
-          confirm?.kind === 'delete'
-            ? 'Deleted networks disappear from every dropdown. Members currently attached keep their reference until an admin reassigns them.'
-            : 'Archived networks disappear from every dropdown. Members currently attached keep their reference until an admin reassigns them.'
+          confirm?.kind === 'restore'
+            ? 'The network will return to the active list and become available in dropdowns again.'
+            : 'Archived networks disappear from every dropdown. Members currently attached keep their reference until an admin reassigns them. Toggle "Show archived" to restore later.'
         }
-        confirmLabel={confirm?.kind === 'delete' ? 'Delete' : 'Archive'}
+        confirmLabel={confirm?.kind === 'restore' ? 'Restore' : 'Archive'}
         onConfirm={() => {
           if (!confirm) return;
           const targets = confirm.targets;
           const kind = confirm.kind;
           setConfirm(null);
-          runArchive(targets, kind);
+          runMutation(targets, kind);
         }}
         onCancel={() => setConfirm(null)}
       />
@@ -277,7 +298,7 @@ export function NetworksListView({ data, canCreate }: NetworksListViewProps) {
 
 function buildConfirmTitle(confirm: ConfirmState): string {
   if (!confirm) return '';
-  const verb = confirm.kind === 'delete' ? 'Delete' : 'Archive';
+  const verb = confirm.kind === 'restore' ? 'Restore' : 'Archive';
   const n = confirm.targets.length;
   if (n === 1) {
     const name = confirm.targets[0]?.name ?? 'this network';
@@ -339,13 +360,14 @@ function RowActions({
   row,
   onEdit,
   onArchive,
-  onDelete,
+  onRestore,
 }: {
   readonly row: SerialRow;
   readonly onEdit: (row: SerialRow) => void;
   readonly onArchive: (row: SerialRow) => void;
-  readonly onDelete: (row: SerialRow) => void;
+  readonly onRestore: (row: SerialRow) => void;
 }) {
+  const isArchived = row.status === 'archived';
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -365,18 +387,20 @@ function RowActions({
           <Pencil className="h-4 w-4" />
           Edit
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onArchive(row)}>
-          <Archive className="h-4 w-4" />
-          Archive
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="text-destructive focus:text-destructive"
-          onClick={() => onDelete(row)}
-        >
-          <Trash2 className="h-4 w-4" />
-          Delete
-        </DropdownMenuItem>
+        {isArchived ? (
+          <DropdownMenuItem onClick={() => onRestore(row)}>
+            <RotateCcw className="h-4 w-4" />
+            Restore
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onClick={() => onArchive(row)}
+          >
+            <Archive className="h-4 w-4" />
+            Archive
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

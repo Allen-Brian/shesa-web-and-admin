@@ -978,6 +978,10 @@ END $$;
 -- 6.1 Charges at Shesa Buea
 -------------------------------------------------------------------------------
 
+-- Activation floats 12 months into the past so the seed always
+-- produces a full year of historical obligations relative to "today"
+-- — the Charge Detail's sliding-window centres on the current period
+-- with real scroll-left history to explore.
 INSERT INTO finance.charges
   (id, scope_id, shape, name, description, base_amount, currency, recurrence,
    recurrence_interval, activation_date, issue_date, status, target_filter,
@@ -988,7 +992,8 @@ VALUES
    'charge', 'Monthly Dues',
    'Regular monthly dues for active members at Shesa Buea.',
    25000, 'XAF', 'monthly', 1,
-   '2027-01-01T00:00:00Z', '2027-01-01T00:00:00Z',
+   date_trunc('month', NOW() - INTERVAL '12 months'),
+   date_trunc('month', NOW() - INTERVAL '12 months'),
    'active', '{}'::jsonb,
    '55555555-0000-0000-0000-000000000002',
    NOW(), NOW())
@@ -1049,21 +1054,145 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -------------------------------------------------------------------------------
--- 6.2 Generate obligations for the active dues charge
+-- 6.2 Generate a full year of obligations for the Monthly Dues charge
 -------------------------------------------------------------------------------
--- Runs against Jan 2027 so we have a full month of data. The M2B function
--- walks core.memberships at Buea and inserts one open obligation per
--- active/passive member. Idempotent via the UNIQUE constraint.
+-- The M2B generator skips members that joined after the target period,
+-- and the base seed antedates memberships by only 1–10 days. Slide the
+-- Buea membership join dates back 13 months so the historical periods
+-- get proper obligation fan-out. Uses `LEAST()` so we don't clobber a
+-- membership that already sits earlier than that.
+
+UPDATE core.memberships
+   SET joined_at   = LEAST(joined_at,   NOW() - INTERVAL '13 months' - INTERVAL '5 days'),
+       approved_at = LEAST(approved_at, NOW() - INTERVAL '13 months' - INTERVAL '5 days')
+ WHERE scope_id = '00000000-0000-0000-0000-000000000010'
+   AND membership_status IN ('active', 'passive');
+
+-- The M2B generator computes ONE period from a reference timestamp. To
+-- build a scrollable year of history, we call it once per month from
+-- 12 months back through the current month — so the Charge Detail's
+-- sliding-window can center on today's period and reveal a full past
+-- year on scroll-left. Idempotent via the UNIQUE constraint on
+-- (charge_id, party_type, party_id, period_start).
 
 DO $$
 DECLARE
-  v_inserted INTEGER;
+  v_reference    TIMESTAMPTZ;
+  v_month_offset INTEGER;
+  v_total        INTEGER := 0;
+  v_step         INTEGER;
 BEGIN
-  SELECT finance.generate_obligations_for_charge(
-    '77777777-1111-0000-0000-000000000001'::uuid,
-    '2027-01-15T12:00:00Z'::timestamptz
-  ) INTO v_inserted;
-  RAISE NOTICE 'Finance seed: generated % obligations for monthly dues at Buea', v_inserted;
+  -- Walk month-by-month from 12 months ago through the current month.
+  -- Each call produces the obligation set for that reference's period;
+  -- the UNIQUE constraint on (charge_id, party_type, party_id,
+  -- period_start) makes the loop idempotent across `db:reset` runs.
+  FOR v_month_offset IN 0..13 LOOP
+    v_reference := date_trunc('month', NOW() - INTERVAL '12 months')
+                   + (v_month_offset || ' months')::interval
+                   + INTERVAL '15 days';
+    IF v_reference > NOW() + INTERVAL '1 month' THEN
+      EXIT;
+    END IF;
+    SELECT finance.generate_obligations_for_charge(
+      '77777777-1111-0000-0000-000000000001'::uuid,
+      v_reference
+    ) INTO v_step;
+    v_total := v_total + v_step;
+  END LOOP;
+  RAISE NOTICE 'Finance seed: generated % monthly-dues obligations across the rolling year at Buea',
+    v_total;
+END $$;
+
+-- Sprinkle a realistic mix of payments across the historical periods.
+-- The rule: the further back the period, the closer everyone is to
+-- fully paid — mimics the reality that older bills get settled while
+-- recent ones are still mid-cycle.
+--
+-- Idempotency: each payment row carries metadata->>'seed_marker' =
+-- 'monthly-dues-history'. On re-run we skip an obligation if a seed
+-- payment is already attached, so `db:reset` is safe to repeat.
+-- Payment ids are `gen_random_uuid()` so we can't collide.
+
+DO $$
+DECLARE
+  v_ob           finance.obligations%ROWTYPE;
+  v_period       DATE;
+  v_methods      finance.payment_method[] := ARRAY[
+    'mtn_momo'::finance.payment_method,
+    'orange_money'::finance.payment_method,
+    'cash'::finance.payment_method,
+    'bank_transfer'::finance.payment_method
+  ];
+  v_method       finance.payment_method;
+  v_amount       NUMERIC;
+  v_paid_ratio   NUMERIC;
+  v_bucket       INTEGER;
+  v_total        INTEGER := 0;
+BEGIN
+  FOR v_ob IN
+    SELECT * FROM finance.obligations
+     WHERE charge_id = '77777777-1111-0000-0000-000000000001'
+     ORDER BY period_start, party_id
+  LOOP
+    v_period := v_ob.period_start;
+    IF v_period IS NULL OR v_period > CURRENT_DATE THEN
+      CONTINUE;
+    END IF;
+
+    -- Idempotency guard.
+    IF EXISTS (
+      SELECT 1 FROM finance.payments
+        WHERE obligation_id = v_ob.id
+          AND metadata->>'seed_marker' = 'monthly-dues-history'
+    ) THEN
+      CONTINUE;
+    END IF;
+
+    -- Payment probability by age of the period.
+    v_paid_ratio := CASE
+      WHEN v_period <= CURRENT_DATE - INTERVAL '6 months' THEN 0.90
+      WHEN v_period <= CURRENT_DATE - INTERVAL '3 months' THEN 0.75
+      WHEN v_period <= CURRENT_DATE - INTERVAL '1 month'  THEN 0.55
+      ELSE 0.35
+    END;
+
+    -- Deterministic per (party, period) — hashtext gives us proper
+    -- entropy across member IDs (which otherwise share the '88888888'
+    -- prefix) and month offsets, so the pick stays stable across
+    -- `db:reset` runs but varies enough to look real.
+    v_bucket := abs(hashtext(v_ob.party_id::text || v_period::text)) % 100;
+    IF v_bucket >= (v_paid_ratio * 100) THEN
+      CONTINUE;
+    END IF;
+
+    -- Payment method rotates through the four.
+    v_method := v_methods[1 + (v_bucket % 4)];
+
+    -- ~30% of payments are partial (half amount).
+    IF v_bucket % 10 < 3 THEN
+      v_amount := v_ob.amount / 2;
+    ELSE
+      v_amount := v_ob.amount;
+    END IF;
+
+    INSERT INTO finance.payments
+      (id, obligation_id, charge_id, scope_id, payer_member_id,
+       amount, currency, method, source, recorded_by, created_at, metadata)
+    VALUES (
+      gen_random_uuid(),
+      v_ob.id,
+      v_ob.charge_id,
+      v_ob.scope_id,
+      v_ob.party_id,
+      v_amount, v_ob.currency, v_method, 'auto',
+      '55555555-0000-0000-0000-000000000011',
+      (v_period + INTERVAL '15 days')::timestamptz,
+      jsonb_build_object('seed_marker', 'monthly-dues-history')
+    );
+    v_total := v_total + 1;
+  END LOOP;
+  RAISE NOTICE 'Finance seed: sprinkled % historical payments across monthly-dues periods',
+    v_total;
 END $$;
 
 -------------------------------------------------------------------------------
@@ -1184,6 +1313,382 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -------------------------------------------------------------------------------
+-- 6.4B Additional charge scenarios — report-differentiation walkthrough
+-------------------------------------------------------------------------------
+-- The obligation generator (M2B) only handles target_party_type='member'
+-- without target_filter narrowing. Scope-as-a-body charges and audience
+-- filters aren't automated yet (M3 + M8 in the roadmap). To give the
+-- charge-detail drill-down real data across every scenario admins
+-- actually run, this section seeds the missing use cases by inserting
+-- obligations directly. Each block is idempotent via hand-picked UUIDs.
+--
+-- Scenarios covered here (with example rows in exco/finance-view/charges):
+--   A) Branch admin → subset of members via target_filter
+--        Charge : 77777777-1111-…-0000-000000000010
+--        Buea admin's 2018-Batch-only levy. Manual obligations for four
+--        2018-batch members (mix of paid / partial / open). Exercises
+--        the member-matrix view + reports on a narrow audience.
+--
+--   B) Global admin → chapter as a body
+--        Charge : 77777777-1111-…-0000-000000000020
+--        Mainstream levy on Buea University Chapter (autonomous). One
+--        obligation per period against party_type='branch',
+--        party_id=chapter_id. Renders as a single-row scope-body row.
+--
+--   C) Global admin → batch as a body
+--        Charge : 77777777-1111-…-0000-000000000030
+--        Mainstream contribution owed by the 2015 Batch collectively.
+--        One obligation against the batch scope. Also scope-body shape.
+--
+--   D) Global admin → every member (cross-branch fan-out)
+--        Charge : 77777777-1111-…-0000-000000000040
+--        Mainstream-wide member levy. Because the generator walks
+--        memberships at the charge's scope (and members belong to
+--        branches, not Mainstream), we seed obligations manually for
+--        six members spread across Buea, Douala, and DC. Enough to
+--        surface the cross-branch reporting angle.
+
+-------------------------------------------------------------------------------
+-- 6.4B — Scenario A: Buea admin's 2021 Batch subset levy
+-------------------------------------------------------------------------------
+
+-- The 2021 batch's UUID isn't known statically (seeded by generate_series),
+-- so we look it up inline and stash it via a temp binding on the charge's
+-- target_filter. That gives us a documented pointer without a schema change.
+DO $$
+DECLARE
+  v_batch_2018_id UUID;
+BEGIN
+  SELECT id INTO v_batch_2018_id
+    FROM core.scopes
+    WHERE scope_type = 'batch' AND slug = 'batch-2018';
+
+  IF v_batch_2018_id IS NULL THEN
+    RAISE NOTICE 'Finance seed A: 2018 batch missing, skipping subset charge';
+    RETURN;
+  END IF;
+
+  INSERT INTO finance.charges
+    (id, scope_id, shape, name, description, base_amount, currency, recurrence,
+     recurrence_interval, activation_date, issue_date, status, target_filter,
+     target_party_type, created_by, created_at, updated_at)
+  VALUES
+    ('77777777-1111-0000-0000-000000000010',
+     '00000000-0000-0000-0000-000000000010',
+     'charge', 'Class of 2018 Reunion Fund',
+     '2018-batch-only quarterly contribution toward the class reunion at Shesa Buea.',
+     15000, 'XAF', 'quarterly', 1,
+     '2027-01-01T00:00:00Z', '2027-01-01T00:00:00Z',
+     'active',
+     jsonb_build_object('batch_scope_ids', jsonb_build_array(v_batch_2018_id)),
+     'member',
+     '55555555-0000-0000-0000-000000000002',
+     NOW(), NOW())
+  ON CONFLICT (id) DO NOTHING;
+END $$;
+
+-- Manual obligations for four 2021-batch Buea members (member_nums 1–4).
+-- Idempotent via UNIQUE(charge_id, party_type, party_id, period_start).
+DO $$
+DECLARE
+  v_member_ids UUID[] := ARRAY[
+    '88888888-2018-0001-0000-000000000000'::uuid,
+    '88888888-2018-0002-0000-000000000000'::uuid,
+    '88888888-2018-0003-0000-000000000000'::uuid,
+    '88888888-2018-0004-0000-000000000000'::uuid
+  ];
+  v_id UUID;
+BEGIN
+  FOREACH v_id IN ARRAY v_member_ids LOOP
+    -- Skip if the member wasn't seeded (defensive — memberships live
+    -- at Buea for member_num 1–10 so 2021's 1–4 exist under the loop).
+    IF NOT EXISTS (SELECT 1 FROM core.members WHERE id = v_id) THEN
+      CONTINUE;
+    END IF;
+    INSERT INTO finance.obligations
+      (id, charge_id, scope_id, party_type, party_id,
+       amount, currency, status, period_start, period_end)
+    VALUES
+      (gen_random_uuid(),
+       '77777777-1111-0000-0000-000000000010',
+       '00000000-0000-0000-0000-000000000010',
+       'member', v_id,
+       15000, 'XAF', 'open',
+       '2027-01-01', '2027-04-01')
+    ON CONFLICT (charge_id, party_type, party_id, period_start) DO NOTHING;
+  END LOOP;
+END $$;
+
+-- Payments across the four members: paid / partial / partial / open.
+-- Payment amount recompute trigger flips the obligation status.
+DO $$
+DECLARE
+  v_ob_1 UUID;
+  v_ob_2 UUID;
+  v_ob_3 UUID;
+BEGIN
+  SELECT id INTO v_ob_1 FROM finance.obligations
+    WHERE charge_id = '77777777-1111-0000-0000-000000000010'
+      AND party_id = '88888888-2018-0001-0000-000000000000'
+      AND period_start = '2027-01-01';
+  SELECT id INTO v_ob_2 FROM finance.obligations
+    WHERE charge_id = '77777777-1111-0000-0000-000000000010'
+      AND party_id = '88888888-2018-0002-0000-000000000000'
+      AND period_start = '2027-01-01';
+  SELECT id INTO v_ob_3 FROM finance.obligations
+    WHERE charge_id = '77777777-1111-0000-0000-000000000010'
+      AND party_id = '88888888-2018-0003-0000-000000000000'
+      AND period_start = '2027-01-01';
+
+  IF v_ob_1 IS NOT NULL THEN
+    INSERT INTO finance.payments
+      (id, obligation_id, charge_id, scope_id, payer_member_id,
+       amount, currency, method, source, recorded_by)
+    VALUES
+      ('77777777-3333-0000-0000-000000000020',
+       v_ob_1,
+       '77777777-1111-0000-0000-000000000010',
+       '00000000-0000-0000-0000-000000000010',
+       '88888888-2018-0001-0000-000000000000',
+       15000, 'XAF', 'mtn_momo', 'auto',
+       '55555555-0000-0000-0000-000000000011')
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+
+  IF v_ob_2 IS NOT NULL THEN
+    INSERT INTO finance.payments
+      (id, obligation_id, charge_id, scope_id, payer_member_id,
+       amount, currency, method, source, recorded_by)
+    VALUES
+      ('77777777-3333-0000-0000-000000000021',
+       v_ob_2,
+       '77777777-1111-0000-0000-000000000010',
+       '00000000-0000-0000-0000-000000000010',
+       '88888888-2018-0002-0000-000000000000',
+       8000, 'XAF', 'cash', 'manual',
+       '55555555-0000-0000-0000-000000000011')
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+
+  IF v_ob_3 IS NOT NULL THEN
+    INSERT INTO finance.payments
+      (id, obligation_id, charge_id, scope_id, payer_member_id,
+       amount, currency, method, source, recorded_by)
+    VALUES
+      ('77777777-3333-0000-0000-000000000022',
+       v_ob_3,
+       '77777777-1111-0000-0000-000000000010',
+       '00000000-0000-0000-0000-000000000010',
+       '88888888-2018-0003-0000-000000000000',
+       5000, 'XAF', 'orange_money', 'auto',
+       '55555555-0000-0000-0000-000000000011')
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+END $$;
+
+-------------------------------------------------------------------------------
+-- 6.4B — Scenario B: Global levy on Buea University Chapter (scope-body)
+-------------------------------------------------------------------------------
+
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, base_amount, currency, recurrence,
+   recurrence_interval, activation_date, status, target_filter, target_party_type,
+   created_by, created_at, updated_at)
+VALUES
+  ('77777777-1111-0000-0000-000000000020',
+   '00000000-0000-0000-0000-000000000001',
+   'charge', 'Global Yearly Levy on Buea Uni Chapter',
+   'Annual national levy owed by the Buea University Chapter as an autonomous body.',
+   150000, 'XAF', 'yearly', 1,
+   '2027-01-01T00:00:00Z',
+   'active',
+   jsonb_build_object('target_scope_ids',
+     jsonb_build_array('00000000-0000-0000-0000-000000000020')),
+   'branch',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO finance.obligations
+  (id, charge_id, scope_id, party_type, party_id,
+   amount, currency, status, period_start, period_end)
+VALUES
+  ('77777777-2222-0000-0000-000000000020',
+   '77777777-1111-0000-0000-000000000020',
+   '00000000-0000-0000-0000-000000000020',
+   'branch', '00000000-0000-0000-0000-000000000020',
+   150000, 'XAF', 'open',
+   '2027-01-01', '2028-01-01')
+ON CONFLICT (charge_id, party_type, party_id, period_start) DO NOTHING;
+
+-- Chapter pays a chunk (60%) via bank transfer — partial state.
+INSERT INTO finance.payments
+  (id, obligation_id, charge_id, scope_id, payer_member_id,
+   amount, currency, method, source, recorded_by)
+VALUES
+  ('77777777-3333-0000-0000-000000000030',
+   '77777777-2222-0000-0000-000000000020',
+   '77777777-1111-0000-0000-000000000020',
+   '00000000-0000-0000-0000-000000000020',
+   NULL,
+   90000, 'XAF', 'bank_transfer', 'manual',
+   '55555555-0000-0000-0000-000000000002')
+ON CONFLICT (id) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- 6.4B — Scenario C: Global contribution from the 2015 Batch (scope-body)
+-------------------------------------------------------------------------------
+
+DO $$
+DECLARE
+  v_batch_2015_id UUID;
+BEGIN
+  SELECT id INTO v_batch_2015_id
+    FROM core.scopes
+    WHERE scope_type = 'batch' AND slug = 'batch-2015';
+
+  IF v_batch_2015_id IS NULL THEN
+    RAISE NOTICE 'Finance seed C: 2015 batch missing, skipping';
+    RETURN;
+  END IF;
+
+  INSERT INTO finance.charges
+    (id, scope_id, shape, name, description, base_amount, currency, recurrence,
+     recurrence_interval, activation_date, status, target_filter, target_party_type,
+     created_by, created_at, updated_at)
+  VALUES
+    ('77777777-1111-0000-0000-000000000030',
+     '00000000-0000-0000-0000-000000000001',
+     'charge', 'Class-of-2015 Endowment Pledge',
+     'One-time endowment pledge owed by the 2015 Batch as a body.',
+     500000, 'XAF', 'one_time', 1,
+     '2027-01-01T00:00:00Z',
+     'active',
+     jsonb_build_object('target_scope_ids', jsonb_build_array(v_batch_2015_id)),
+     'branch',
+     '55555555-0000-0000-0000-000000000002',
+     NOW(), NOW())
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO finance.obligations
+    (id, charge_id, scope_id, party_type, party_id,
+     amount, currency, status, period_start, period_end)
+  VALUES
+    ('77777777-2222-0000-0000-000000000030',
+     '77777777-1111-0000-0000-000000000030',
+     v_batch_2015_id,
+     'branch', v_batch_2015_id,
+     500000, 'XAF', 'open',
+     NULL, NULL)
+  ON CONFLICT (charge_id, party_type, party_id, period_start) DO NOTHING;
+
+  -- Batch has not paid yet — leaves the obligation open, useful for
+  -- surfacing the "0 collected" empty state in reports.
+END $$;
+
+-------------------------------------------------------------------------------
+-- 6.4B — Scenario D: Global levy on every member (cross-branch fan-out)
+-------------------------------------------------------------------------------
+
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, base_amount, currency, recurrence,
+   recurrence_interval, activation_date, issue_date, status, target_filter,
+   target_party_type, created_by, created_at, updated_at)
+VALUES
+  ('77777777-1111-0000-0000-000000000040',
+   '00000000-0000-0000-0000-000000000001',
+   'charge', 'Global Alumni Assessment 2027',
+   'Yearly member-level assessment across every branch. Reports here show ' ||
+     'the cross-branch angle: a fan-out across Buea, Douala, and DC.',
+   10000, 'XAF', 'yearly', 1,
+   '2027-01-01T00:00:00Z', '2027-01-01T00:00:00Z',
+   'active', '{}'::jsonb, 'member',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- Manually fan out to six members across three branches (Buea 1–2,
+-- Douala 11–12, DC 14–15). Uses the 2019 batch — the newest year the
+-- membership loop actually seeds members for.
+DO $$
+DECLARE
+  v_targets TEXT[] := ARRAY[
+    -- (member_id, branch_scope_id, membership_status_source_num)
+    '88888888-2019-0001-0000-000000000000|00000000-0000-0000-0000-000000000010',
+    '88888888-2019-0002-0000-000000000000|00000000-0000-0000-0000-000000000010',
+    '88888888-2019-0011-0000-000000000000|00000000-0000-0000-0000-000000000011',
+    '88888888-2019-0012-0000-000000000000|00000000-0000-0000-0000-000000000011',
+    '88888888-2019-0014-0000-000000000000|00000000-0000-0000-0000-000000000012',
+    '88888888-2019-0015-0000-000000000000|00000000-0000-0000-0000-000000000012'
+  ];
+  v_pair TEXT;
+  v_member UUID;
+  v_scope UUID;
+BEGIN
+  FOREACH v_pair IN ARRAY v_targets LOOP
+    v_member := split_part(v_pair, '|', 1)::uuid;
+    v_scope  := split_part(v_pair, '|', 2)::uuid;
+    IF NOT EXISTS (SELECT 1 FROM core.members WHERE id = v_member) THEN
+      CONTINUE;
+    END IF;
+    INSERT INTO finance.obligations
+      (id, charge_id, scope_id, party_type, party_id,
+       amount, currency, status, period_start, period_end)
+    VALUES
+      (gen_random_uuid(),
+       '77777777-1111-0000-0000-000000000040',
+       v_scope,
+       'member', v_member,
+       10000, 'XAF', 'open',
+       '2027-01-01', '2028-01-01')
+    ON CONFLICT (charge_id, party_type, party_id, period_start) DO NOTHING;
+  END LOOP;
+END $$;
+
+-- Two of the six members pay in full so the "cross-branch top payers"
+-- panel has real content.
+DO $$
+DECLARE
+  v_ob UUID;
+BEGIN
+  SELECT id INTO v_ob FROM finance.obligations
+   WHERE charge_id = '77777777-1111-0000-0000-000000000040'
+     AND party_id = '88888888-2019-0001-0000-000000000000';
+  IF v_ob IS NOT NULL THEN
+    INSERT INTO finance.payments
+      (id, obligation_id, charge_id, scope_id, payer_member_id,
+       amount, currency, method, source, recorded_by)
+    VALUES
+      ('77777777-3333-0000-0000-000000000040',
+       v_ob,
+       '77777777-1111-0000-0000-000000000040',
+       '00000000-0000-0000-0000-000000000010',
+       '88888888-2019-0001-0000-000000000000',
+       10000, 'XAF', 'mtn_momo', 'auto',
+       '55555555-0000-0000-0000-000000000011')
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+
+  SELECT id INTO v_ob FROM finance.obligations
+   WHERE charge_id = '77777777-1111-0000-0000-000000000040'
+     AND party_id = '88888888-2019-0014-0000-000000000000';
+  IF v_ob IS NOT NULL THEN
+    INSERT INTO finance.payments
+      (id, obligation_id, charge_id, scope_id, payer_member_id,
+       amount, currency, method, source, recorded_by)
+    VALUES
+      ('77777777-3333-0000-0000-000000000041',
+       v_ob,
+       '77777777-1111-0000-0000-000000000040',
+       '00000000-0000-0000-0000-000000000012',
+       '88888888-2019-0014-0000-000000000000',
+       10000, 'XAF', 'bank_transfer', 'manual',
+       '55555555-0000-0000-0000-000000000002')
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+END $$;
+
+-------------------------------------------------------------------------------
 -- 6.5 Expense settings + a couple of expenses at Buea
 -------------------------------------------------------------------------------
 -- Threshold set at 20000 XAF so both under- and over-threshold flows are
@@ -1219,4 +1724,171 @@ VALUES
    'pending_approval',
    '55555555-0000-0000-0000-000000000011',
    NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- =====================================================================
+-- 7. Exco announcements + events
+-- =====================================================================
+-- A handful of published + draft rows so the admin dashboard has real
+-- data to render. Owner scopes: Mainstream (00…0001) and Shesa Buea
+-- (00…0010). Audience definitions use the shape the resolve-audience
+-- Edge Function expects: `{ "scopes": [scope_id, ...] }`. All-in-app
+-- (the default channel) so we don't need email/forum delivery rows.
+
+INSERT INTO exco.announcements
+  (id, owner_scope_id, title, body, audience_definition, channels,
+   status, published_at, scheduled_publish_at, created_by, created_at)
+VALUES
+  -- 7.1 Mainstream · published · federation-wide
+  ('77777777-5000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000001',
+   '2027 Federation AGM date locked',
+   E'The 2027 Annual General Meeting will run from March 12–14, 2027 in Yaoundé.\n\nDelegates from every branch and autonomous chapter are expected. Registration opens January 15. Watch this space for the accommodation and travel-support notice.',
+   jsonb_build_object('scopes', jsonb_build_array('00000000-0000-0000-0000-000000000001')),
+   ARRAY['in_app']::exco.announcement_channel[],
+   'published',
+   NOW() - INTERVAL '2 days',
+   NULL,
+   '55555555-0000-0000-0000-000000000001',
+   NOW() - INTERVAL '2 days'),
+
+  -- 7.2 Mainstream · published · treasury note
+  ('77777777-5000-0000-0000-000000000002',
+   '00000000-0000-0000-0000-000000000001',
+   'Q1 branch assessments now live',
+   'The Q1 branch assessment schedule is now visible under Finance → Assessments. Payments are due by end of March; contact Mainstream Finance for hardship arrangements.',
+   jsonb_build_object('scopes', jsonb_build_array('00000000-0000-0000-0000-000000000001')),
+   ARRAY['in_app']::exco.announcement_channel[],
+   'published',
+   NOW() - INTERVAL '5 days',
+   NULL,
+   '55555555-0000-0000-0000-000000000001',
+   NOW() - INTERVAL '5 days'),
+
+  -- 7.3 Mainstream · draft · newsletter teaser
+  ('77777777-5000-0000-0000-000000000003',
+   '00000000-0000-0000-0000-000000000001',
+   'Monthly newsletter — February edition',
+   'DRAFT — awaiting the layout from Communications. Highlights: alumni spotlights, chapter news, and a Q&A with the incoming Governance Committee chair.',
+   jsonb_build_object('scopes', jsonb_build_array('00000000-0000-0000-0000-000000000001')),
+   ARRAY['in_app']::exco.announcement_channel[],
+   'draft',
+   NULL,
+   NULL,
+   '55555555-0000-0000-0000-000000000001',
+   NOW() - INTERVAL '1 day'),
+
+  -- 7.4 Buea · published · welcome to new members
+  ('77777777-5000-0000-0000-000000000004',
+   '00000000-0000-0000-0000-000000000010',
+   'Welcome to the January intake',
+   E'A warm welcome to the twelve new members who joined Shesa Buea this month.\n\nWe run a monthly meet-and-greet on the first Saturday. Look out for the calendar entry.',
+   jsonb_build_object('scopes', jsonb_build_array('00000000-0000-0000-0000-000000000010')),
+   ARRAY['in_app']::exco.announcement_channel[],
+   'published',
+   NOW() - INTERVAL '3 days',
+   NULL,
+   '55555555-0000-0000-0000-000000000010',
+   NOW() - INTERVAL '3 days'),
+
+  -- 7.5 Buea · scheduled · reminder about dues
+  ('77777777-5000-0000-0000-000000000005',
+   '00000000-0000-0000-0000-000000000010',
+   'Monthly dues reminder — pay by month-end',
+   'Reminder: Buea monthly dues are payable by the last day of the month via cash, MoMo, or bank transfer. Check your balance under Finance → Charges.',
+   jsonb_build_object('scopes', jsonb_build_array('00000000-0000-0000-0000-000000000010')),
+   ARRAY['in_app']::exco.announcement_channel[],
+   'scheduled',
+   NULL,
+   NOW() + INTERVAL '3 days',
+   '55555555-0000-0000-0000-000000000010',
+   NOW() - INTERVAL '6 hours')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO exco.events
+  (id, owner_scope_id, name, description, types,
+   start_at, end_at, timezone,
+   venue_name, venue_address, online_url,
+   audience_definition, rsvp_enabled,
+   status, published_at, created_by, created_at)
+VALUES
+  -- 7.6 Mainstream · published · AGM
+  ('77777777-6000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000001',
+   'Shesa Federation AGM 2027',
+   E'The 2027 Annual General Meeting brings delegates from every branch and autonomous chapter together for governance, elections, and the year-in-review.\n\nAgenda: opening plenary, committee reports, elections, closed-door governance session, closing gala.',
+   ARRAY['assembly', 'meeting', 'ceremony']::exco.event_type[],
+   (DATE_TRUNC('day', NOW()) + INTERVAL '60 days' + INTERVAL '9 hours'),
+   (DATE_TRUNC('day', NOW()) + INTERVAL '62 days' + INTERVAL '17 hours'),
+   'Africa/Douala',
+   'Hilton Yaoundé', 'Boulevard du 20 Mai, Yaoundé, Cameroon', NULL,
+   jsonb_build_object('scopes', jsonb_build_array('00000000-0000-0000-0000-000000000001')),
+   TRUE,
+   'published', NOW() - INTERVAL '2 days',
+   '55555555-0000-0000-0000-000000000001',
+   NOW() - INTERVAL '10 days'),
+
+  -- 7.7 Mainstream · published · fundraiser dinner
+  ('77777777-6000-0000-0000-000000000002',
+   '00000000-0000-0000-0000-000000000001',
+   'Shesa Alumni Gala Fundraiser',
+   'Annual gala dinner in support of the Scholarship Fund. Tickets and table sponsorships available through Finance.',
+   ARRAY['fundraiser', 'celebration', 'networking']::exco.event_type[],
+   (DATE_TRUNC('day', NOW()) + INTERVAL '90 days' + INTERVAL '19 hours'),
+   (DATE_TRUNC('day', NOW()) + INTERVAL '90 days' + INTERVAL '23 hours'),
+   'Africa/Douala',
+   'Yaoundé Congress Palace', 'Palais des Congrès, Ngoa-Ekelle, Yaoundé', NULL,
+   jsonb_build_object('scopes', jsonb_build_array('00000000-0000-0000-0000-000000000001')),
+   TRUE,
+   'published', NOW() - INTERVAL '1 day',
+   '55555555-0000-0000-0000-000000000001',
+   NOW() - INTERVAL '5 days'),
+
+  -- 7.8 Mainstream · draft · mentorship kickoff
+  ('77777777-6000-0000-0000-000000000003',
+   '00000000-0000-0000-0000-000000000001',
+   'Mentorship Programme Kickoff (draft)',
+   'DRAFT — pending confirmation of the mentor cohort. Kickoff will be a hybrid session with senior alumni matching junior chapters.',
+   ARRAY['mentorship', 'training']::exco.event_type[],
+   (DATE_TRUNC('day', NOW()) + INTERVAL '120 days' + INTERVAL '15 hours'),
+   (DATE_TRUNC('day', NOW()) + INTERVAL '120 days' + INTERVAL '18 hours'),
+   'Africa/Douala',
+   NULL, NULL, 'https://zoom.example.com/j/shesa-mentorship-kickoff',
+   jsonb_build_object('scopes', jsonb_build_array('00000000-0000-0000-0000-000000000001')),
+   FALSE,
+   'draft', NULL,
+   '55555555-0000-0000-0000-000000000001',
+   NOW() - INTERVAL '2 days'),
+
+  -- 7.9 Buea · published · monthly meeting
+  ('77777777-6000-0000-0000-000000000004',
+   '00000000-0000-0000-0000-000000000010',
+   'Shesa Buea Monthly Meeting — February',
+   E'Monthly branch meeting. Agenda: welcoming new members, treasury report, upcoming assessments, community service updates, AOB.\n\nRefreshments provided.',
+   ARRAY['meeting', 'networking']::exco.event_type[],
+   (DATE_TRUNC('day', NOW()) + INTERVAL '14 days' + INTERVAL '17 hours'),
+   (DATE_TRUNC('day', NOW()) + INTERVAL '14 days' + INTERVAL '19 hours'),
+   'Africa/Douala',
+   'Buea Community Hall', 'Molyko, Buea, South-West Region, Cameroon', NULL,
+   jsonb_build_object('scopes', jsonb_build_array('00000000-0000-0000-0000-000000000010')),
+   TRUE,
+   'published', NOW() - INTERVAL '2 days',
+   '55555555-0000-0000-0000-000000000010',
+   NOW() - INTERVAL '4 days'),
+
+  -- 7.10 Buea · published · community service Saturday
+  ('77777777-6000-0000-0000-000000000005',
+   '00000000-0000-0000-0000-000000000010',
+   'Buea Clean-Up Saturday',
+   'Join us for a community clean-up around Molyko. Gloves and bin bags provided. Meet at the Community Hall — dress for outdoor work.',
+   ARRAY['community_service']::exco.event_type[],
+   (DATE_TRUNC('day', NOW()) + INTERVAL '7 days' + INTERVAL '8 hours'),
+   (DATE_TRUNC('day', NOW()) + INTERVAL '7 days' + INTERVAL '12 hours'),
+   'Africa/Douala',
+   'Molyko Community Hall', 'Molyko, Buea', NULL,
+   jsonb_build_object('scopes', jsonb_build_array('00000000-0000-0000-0000-000000000010')),
+   TRUE,
+   'published', NOW() - INTERVAL '3 days',
+   '55555555-0000-0000-0000-000000000010',
+   NOW() - INTERVAL '6 days')
 ON CONFLICT (id) DO NOTHING;

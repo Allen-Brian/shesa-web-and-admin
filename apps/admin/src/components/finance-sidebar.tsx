@@ -8,7 +8,6 @@ import {
   CircleDollarSign,
   Home,
   LandPlot,
-  Receipt,
   Target,
   Wallet,
 } from 'lucide-react';
@@ -45,10 +44,12 @@ interface NavItem {
 
 /**
  * Flat sidebar per 2026-07-06 direction — no grouping. Order follows the
- * secretary's read-order per spec Part XIV: dashboard first, then money
- * shapes (charges/contributions/donations), operations (payments,
- * receipts), balance (treasury), outflow (expenses), then insight
- * (reports).
+ * secretary's read-order per spec Part XIV.
+ *
+ * Receipts intentionally aren't a top-level entry: every payment carries
+ * its receipt inline (Payments row → More → Download receipt). Keeping
+ * a separate Receipts page duplicated the payments list without adding
+ * anything callers actually asked for.
  */
 const NAV_ITEMS: readonly NavItem[] = [
   { href: '/finance', label: 'Dashboard', Icon: Home },
@@ -56,7 +57,6 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: '/finance/contributions', label: 'Contributions', Icon: Target },
   { href: '/finance/donations', label: 'Donations', Icon: CircleDollarSign },
   { href: '/finance/payments', label: 'Payments', Icon: LandPlot },
-  { href: '/finance/receipts', label: 'Receipts', Icon: Receipt },
   { href: '/finance/treasury', label: 'Treasury', Icon: Wallet },
   { href: '/finance/expenses', label: 'Expenses', Icon: Wallet },
   { href: '/finance/reports', label: 'Reports', Icon: BarChart3 },

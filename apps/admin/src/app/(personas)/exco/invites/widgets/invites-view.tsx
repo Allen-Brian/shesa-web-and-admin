@@ -9,6 +9,12 @@ import {
   Button,
   DataTable,
   EntityTablePanel,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  StatsCard,
   toast,
   type ColDef,
   type GridApi,
@@ -128,7 +134,7 @@ export function InvitesView({ rows, limit }: InvitesViewProps) {
         headerName: 'Code',
         field: 'memberCode',
         width: 150,
-        cellClass: 'font-mono text-xs',
+        cellClass: 'text-xs',
         valueFormatter: (p) => p.value ?? '—',
       },
       { headerName: 'Name', field: 'fullName', flex: 2, minWidth: 200 },
@@ -213,10 +219,10 @@ export function InvitesView({ rows, limit }: InvitesViewProps) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Awaiting claim" value={stats.invited} tone="sky" />
-        <StatCard label="Claimed" value={stats.claimed} tone="emerald" />
-        <StatCard label="Not invited" value={stats.notInvited} tone="muted" />
-        <StatCard label="Failed" value={stats.failed} tone="amber" />
+        <StatsCard label="Awaiting claim" value={stats.invited} />
+        <StatsCard label="Claimed" value={stats.claimed} />
+        <StatsCard label="Not invited" value={stats.notInvited} />
+        <StatsCard label="Failed" value={stats.failed} />
       </div>
 
       <EntityTablePanel
@@ -231,30 +237,32 @@ export function InvitesView({ rows, limit }: InvitesViewProps) {
         onCreate={() => undefined}
         filters={
           <div className="flex items-center gap-2">
-            <select
-              value={batchSlug}
-              onChange={(e) => setBatchSlug(e.target.value)}
-              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
-            >
-              <option value="__all">All batches</option>
-              {batchOptions.map((b) => (
-                <option key={b.slug} value={b.slug}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as typeof status)}
-              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
-            >
-              <option value="__all">All statuses</option>
-              <option value="invited">Awaiting claim</option>
-              <option value="claimed">Claimed</option>
-              <option value="not_invited">Not invited</option>
-              <option value="disabled">Disabled</option>
-              <option value="failed">Failed</option>
-            </select>
+            <Select value={batchSlug} onValueChange={setBatchSlug}>
+              <SelectTrigger className="h-8 w-40 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all">All batches</SelectItem>
+                {batchOptions.map((b) => (
+                  <SelectItem key={b.slug} value={b.slug}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+              <SelectTrigger className="h-8 w-40 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all">All statuses</SelectItem>
+                <SelectItem value="invited">Awaiting claim</SelectItem>
+                <SelectItem value="claimed">Claimed</SelectItem>
+                <SelectItem value="not_invited">Not invited</SelectItem>
+                <SelectItem value="disabled">Disabled</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         }
       />
@@ -267,29 +275,6 @@ export function InvitesView({ rows, limit }: InvitesViewProps) {
         showColumnPicker={false}
         selectable={false}
       />
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  tone,
-}: {
-  readonly label: string;
-  readonly value: number;
-  readonly tone: 'sky' | 'emerald' | 'amber' | 'muted';
-}) {
-  const toneCls: Record<string, string> = {
-    sky: 'text-sky-700 dark:text-sky-300',
-    emerald: 'text-emerald-700 dark:text-emerald-400',
-    amber: 'text-amber-700 dark:text-amber-400',
-    muted: 'text-foreground',
-  };
-  return (
-    <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-4">
-      <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
-      <span className={`text-2xl font-semibold ${toneCls[tone]}`}>{value}</span>
     </div>
   );
 }

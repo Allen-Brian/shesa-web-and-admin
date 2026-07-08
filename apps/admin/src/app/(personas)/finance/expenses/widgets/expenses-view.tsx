@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { CircleCheck, Plus, Undo2, Wallet } from 'lucide-react';
+import { CircleCheck, Plus, Receipt, Undo2, Wallet } from 'lucide-react';
 
 import {
   Badge,
@@ -23,6 +23,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  StatsCard,
   Textarea,
   toast,
   type ColDef,
@@ -95,6 +96,7 @@ export function ExpensesView({ expenses, scopeOptions, categoryOptions }: Expens
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'recorded' | 'pending_approval' | 'approved'
   >('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | string>('all');
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordForm, setRecordForm] = useState<RecordForm>(() => initialRecord(scopeOptions));
@@ -115,6 +117,7 @@ export function ExpensesView({ expenses, scopeOptions, categoryOptions }: Expens
     return expenses
       .filter((e) => {
         if (statusFilter !== 'all' && e.status !== statusFilter) return false;
+        if (categoryFilter !== 'all' && e.categoryKey !== categoryFilter) return false;
         if (!q) return true;
         if (e.payee.toLowerCase().includes(q)) return true;
         if (e.scopeName.toLowerCase().includes(q)) return true;
@@ -123,7 +126,43 @@ export function ExpensesView({ expenses, scopeOptions, categoryOptions }: Expens
         return false;
       })
       .map((e, i) => ({ ...e, serial: i + 1 }));
-  }, [expenses, search, statusFilter]);
+  }, [expenses, search, statusFilter, categoryFilter]);
+
+  // KPI totals — computed from the full expense set so filtering
+  // doesn't jitter the strip. Reversals subtract from spent totals; a
+  // separate reversal count surfaces so an anomaly is visible.
+  const kpis = useMemo(() => {
+    const currencies = new Map<string, number>();
+    let pending = 0;
+    let reversalCount = 0;
+    for (const e of expenses) {
+      if (e.reversesExpenseId) {
+        reversalCount += 1;
+        // A reversal row adds money back — subtract from spent.
+        currencies.set(e.currency, (currencies.get(e.currency) ?? 0) - e.amount);
+      } else {
+        currencies.set(e.currency, (currencies.get(e.currency) ?? 0) + e.amount);
+        if (e.status === 'pending_approval') pending += 1;
+      }
+    }
+    const primaryCurrency = currencies.size === 1 ? currencies.keys().next().value : undefined;
+    const netSpent =
+      primaryCurrency !== undefined ? Math.max(0, currencies.get(primaryCurrency)!) : null;
+    const settledExpenses = expenses.filter((e) => !e.reversesExpenseId && !e.isReversed);
+    const avg =
+      settledExpenses.length > 0
+        ? settledExpenses.reduce((a, b) => a + b.amount, 0) / settledExpenses.length
+        : 0;
+    return {
+      total: expenses.length,
+      pending,
+      reversalCount,
+      primaryCurrency,
+      netSpent,
+      avg,
+      settledCount: settledExpenses.length,
+    };
+  }, [expenses]);
 
   const resetRecord = () => setRecordForm(initialRecord(scopeOptions));
 
@@ -227,25 +266,37 @@ export function ExpensesView({ expenses, scopeOptions, categoryOptions }: Expens
         headerName: 'Payee',
         field: 'payee',
         flex: 2,
-        minWidth: 200,
-        cellRenderer: (p: ICellRendererParams<SerialRow, string>) =>
-          p.data ? (
-            <div className="flex flex-col leading-tight">
-              <span className="font-medium text-foreground">{p.data.payee}</span>
-              {p.data.description && (
-                <span className="truncate text-xs italic text-muted-foreground">
-                  {p.data.description}
+        minWidth: 240,
+        cellRenderer: (p: ICellRendererParams<SerialRow, string>) => {
+          if (!p.data) return null;
+          return (
+            <div className="flex h-full items-center gap-2.5 py-1">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                <Receipt className="h-4 w-4" />
+              </div>
+              <div className="flex min-w-0 flex-col leading-tight">
+                <span className="truncate text-sm font-medium text-foreground">{p.data.payee}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {p.data.scopeName}
+                  {p.data.description && ` · ${p.data.description}`}
                 </span>
-              )}
+              </div>
             </div>
-          ) : null,
+          );
+        },
       },
-      { headerName: 'Scope', field: 'scopeName', flex: 1, minWidth: 140 },
       {
         headerName: 'Category',
         field: 'categoryName',
-        width: 130,
-        valueFormatter: (p) => p.value ?? '—',
+        width: 150,
+        cellRenderer: (p: ICellRendererParams<SerialRow, string | null>) =>
+          p.value ? (
+            <Badge variant="outline" className="border-border/60 text-foreground">
+              {p.value}
+            </Badge>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
       },
       {
         headerName: 'Amount',
@@ -256,7 +307,7 @@ export function ExpensesView({ expenses, scopeOptions, categoryOptions }: Expens
           const isReversalRow = !!p.data.reversesExpenseId;
           return (
             <span
-              className={`font-mono text-sm ${
+              className={`text-sm ${
                 isReversalRow ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'
               }`}
             >
@@ -370,6 +421,29 @@ export function ExpensesView({ expenses, scopeOptions, categoryOptions }: Expens
         </p>
       </div>
 
+      {/* KPI strip */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <StatsCard label="Expenses" value={kpis.total} />
+        <StatsCard
+          label="Net spent"
+          value={
+            kpis.primaryCurrency && kpis.netSpent !== null
+              ? `${new Intl.NumberFormat().format(Math.round(kpis.netSpent))} ${kpis.primaryCurrency}`
+              : '—'
+          }
+        />
+        <StatsCard
+          label="Avg. amount"
+          value={
+            kpis.primaryCurrency && kpis.settledCount > 0
+              ? `${new Intl.NumberFormat().format(Math.round(kpis.avg))} ${kpis.primaryCurrency}`
+              : '—'
+          }
+        />
+        <StatsCard label="Pending approval" value={kpis.pending} />
+        <StatsCard label="Reversals" value={kpis.reversalCount} />
+      </div>
+
       <EntityTablePanel
         count={filtered.length}
         countLabel={filtered.length === 1 ? 'expense' : 'expenses'}
@@ -383,20 +457,35 @@ export function ExpensesView({ expenses, scopeOptions, categoryOptions }: Expens
           setRecordOpen(true);
         }}
         filters={
-          <Select
-            value={statusFilter}
-            onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
-          >
-            <SelectTrigger className="h-8 w-40 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="recorded">Recorded</SelectItem>
-              <SelectItem value="pending_approval">Pending approval</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v)}>
+              <SelectTrigger className="h-8 w-36 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categoryOptions.map((c) => (
+                  <SelectItem key={c.id} value={c.key}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
+            >
+              <SelectTrigger className="h-8 w-40 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="recorded">Recorded</SelectItem>
+                <SelectItem value="pending_approval">Pending approval</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         }
       />
 
@@ -538,7 +627,7 @@ export function ExpensesView({ expenses, scopeOptions, categoryOptions }: Expens
           {reversing && (
             <div className="flex flex-col gap-3">
               <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
-                <div className="font-mono text-sm text-foreground">
+                <div className="text-sm text-foreground">
                   {new Intl.NumberFormat().format(reversing.amount)} {reversing.currency}
                 </div>
                 <div className="text-muted-foreground">

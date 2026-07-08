@@ -71,7 +71,25 @@ const normalizeYear = (v: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-export function validateImportRow(raw: ImportRowInput, seed: SeedContext): ValidateRowResult {
+/**
+ * Validate a single import row.
+ *
+ * `options.targetBatchScopeId` — when the caller already knows which
+ * batch the rows belong to (e.g. batch-import: the operator is inside
+ * a batch, so the target is implicit), pass its scope_id here and the
+ * validator skips the `batch_entry_year` check entirely and pins
+ * `batch_scope_id` to the target. A `batch_entry_year` cell, if
+ * present, is only used to compute a default `entry_year` — it can
+ * no longer override the batch assignment.
+ *
+ * When `targetBatchScopeId` is omitted (branch/get-or-create flow),
+ * the row-level `batch_entry_year` resolves the batch as before.
+ */
+export function validateImportRow(
+  raw: ImportRowInput,
+  seed: SeedContext,
+  options: { targetBatchScopeId?: string | null } = {},
+): ValidateRowResult {
   const errors: string[] = [];
   const normalized: Partial<NormalizedMemberRow> = {};
 
@@ -88,7 +106,12 @@ export function validateImportRow(raw: ImportRowInput, seed: SeedContext): Valid
   normalized.display_name = normalizeString(raw.display_name);
 
   const batchYear = normalizeYear(raw.batch_entry_year);
-  if (batchYear == null) {
+  if (options.targetBatchScopeId) {
+    // Batch is implicit — importing INTO a batch scope. Skip the year
+    // lookup and pin to the target. The year, if given, still seeds
+    // `entry_year` below.
+    normalized.batch_scope_id = options.targetBatchScopeId;
+  } else if (batchYear == null) {
     errors.push('batch_entry_year is required');
   } else {
     const batchId = seed.batchesByYear.get(batchYear);
@@ -159,7 +182,8 @@ export async function loadSeedContext(supabase: {
   // client-side. This is fast (< 100 rows total) and dodges three
   // sequential round-trips.
   const { data, error } = await supabase
-    .from('scopes')
+    .schema('core' as never)
+    .from('scopes' as never)
     .select('id, name, scope_type, entry_year')
     .in('scope_type', ['batch', 'house', 'network']);
   if (error) throw error;

@@ -79,7 +79,7 @@ export function SettingsView(props: SettingsViewProps) {
           <Cog className="h-6 w-6" />
           {props.scope.name}
         </h1>
-        <p className="font-mono text-xs text-muted-foreground">{props.scope.slug}</p>
+        <p className="text-xs text-muted-foreground">{props.scope.slug}</p>
       </div>
 
       <Tabs defaultValue={defaultTab} className="flex min-h-0 flex-1 flex-col gap-4">
@@ -97,7 +97,7 @@ export function SettingsView(props: SettingsViewProps) {
           <TabsContent value="edit" className="flex min-h-0 flex-1 flex-col">
             {!props.canUpdate ? (
               <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-                You don&apos;t have <span className="font-mono">scope.update</span> at this scope.
+                You don&apos;t have <span className="">scope.update</span> at this scope.
                 Governance-only access — pick the Governance tab.
               </div>
             ) : isChapter ? (

@@ -32,6 +32,18 @@ interface RawScopeRow {
   readonly currency_code: string;
 }
 
+interface RawObligationRow {
+  readonly charge_id: string;
+  readonly amount: string;
+  readonly currency: string;
+}
+
+interface RawPaymentRow {
+  readonly obligation_id: string | null;
+  readonly amount: string;
+  readonly reverses_payment_id: string | null;
+}
+
 /**
  * Charges page — dues + levies (shape IN 'charge' | 'fixed').
  *
@@ -48,6 +60,12 @@ interface RawScopeRow {
  * already at that scope; the branch-onboarding flow (creating the
  * first charge at a fresh branch) may need the mainstream to add
  * initial visibility.
+ *
+ * Also loads per-charge expected + collected aggregates so the list
+ * can render a coverage % / progress cell without a per-row RPC. The
+ * limit clamps to 5000 payments — enough for demo + early prod, and
+ * we'll swap to a materialised view or dashboard RPC when charge
+ * counts pass that ceiling.
  */
 export default async function ChargesPage() {
   const supabase = await getServerClient();
@@ -72,6 +90,67 @@ export default async function ChargesPage() {
   ]);
 
   const chargesData = (chargesRaw ?? []) as RawChargeRow[];
+  const chargeIds = chargesData.map((c) => c.id);
+
+  const [{ data: obligationsRaw }, { data: paymentsRaw }] = chargeIds.length
+    ? await Promise.all([
+        supabase
+          .schema('finance' as never)
+          .from('obligations' as never)
+          .select('charge_id, amount, currency')
+          .in('charge_id', chargeIds),
+        supabase
+          .schema('finance' as never)
+          .from('payments' as never)
+          .select('obligation_id, amount, reverses_payment_id')
+          .in('charge_id', chargeIds)
+          .limit(5000),
+      ])
+    : [{ data: [] as RawObligationRow[] }, { data: [] as RawPaymentRow[] }];
+
+  const obligations = (obligationsRaw ?? []) as RawObligationRow[];
+  const payments = (paymentsRaw ?? []) as RawPaymentRow[];
+
+  // Expected per charge — sum of obligation amounts.
+  const expectedByCharge = new Map<string, number>();
+  for (const o of obligations) {
+    expectedByCharge.set(
+      o.charge_id,
+      (expectedByCharge.get(o.charge_id) ?? 0) + parseFloat(o.amount),
+    );
+  }
+
+  // Collected per charge — sum of settled payment amounts minus reversals.
+  // Payments link to obligation which links to charge, so we build an
+  // obligation-id → charge-id map first.
+  const obligationChargeById = new Map<string, string>();
+  {
+    // Re-select needs obligation ids we already have via join in list —
+    // obligations query returned charge_id but not id (dropped for size).
+    // Grab the ids in a lightweight follow-up so the aggregation stays
+    // correct without inflating the initial payload.
+    const { data: obIds } = chargeIds.length
+      ? await supabase
+          .schema('finance' as never)
+          .from('obligations' as never)
+          .select('id, charge_id')
+          .in('charge_id', chargeIds)
+      : { data: [] as Array<{ id: string; charge_id: string }> };
+    for (const row of (obIds ?? []) as Array<{ id: string; charge_id: string }>) {
+      obligationChargeById.set(row.id, row.charge_id);
+    }
+  }
+
+  const collectedByCharge = new Map<string, number>();
+  for (const p of payments) {
+    if (!p.obligation_id) continue;
+    const chargeId = obligationChargeById.get(p.obligation_id);
+    if (!chargeId) continue;
+    const amt = parseFloat(p.amount);
+    const signed = p.reverses_payment_id ? -amt : amt;
+    collectedByCharge.set(chargeId, (collectedByCharge.get(chargeId) ?? 0) + signed);
+  }
+
   const visibleScopeIds = Array.from(
     new Set(((treasuriesRaw ?? []) as Array<{ scope_id: string }>).map((t) => t.scope_id)),
   );
@@ -104,6 +183,8 @@ export default async function ChargesPage() {
       status: c.status,
       activationDate: c.activation_date,
       createdAt: c.created_at,
+      expected: expectedByCharge.get(c.id) ?? 0,
+      collected: Math.max(0, collectedByCharge.get(c.id) ?? 0),
     };
   });
 

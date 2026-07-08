@@ -317,7 +317,7 @@ export function ContributionsView({ contributions, scopeOptions }: Contributions
           return (
             <div className="flex w-full flex-col gap-1 py-1">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-mono text-foreground">
+                <span className="text-foreground">
                   {new Intl.NumberFormat().format(Math.round(raised))} {row.currency}
                 </span>
                 {goal ? (
@@ -500,6 +500,7 @@ export function ContributionsView({ contributions, scopeOptions }: Contributions
         columnDefs={columnDefs}
         getRowId={(p) => p.data.id}
         onGridReady={(e) => setGridApi(e.api)}
+        onRowClicked={(e) => e.data && router.push(`/finance/charges/${e.data.id}`)}
         showColumnPicker={false}
         selectable={false}
       />

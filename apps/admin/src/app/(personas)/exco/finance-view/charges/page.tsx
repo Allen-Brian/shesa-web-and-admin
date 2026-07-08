@@ -2,18 +2,24 @@ import { BadgeDollarSign } from 'lucide-react';
 
 import { getServerClient } from '@/lib/supabase-server';
 
+import { ExcoChargesView, type ChargeRow } from './widgets/charges-view';
+
 export const dynamic = 'force-dynamic';
 
 export const metadata = { title: 'Shesa Admin — Charges (read-only)' };
 
-interface ChargeRow {
+interface RawChargeRow {
   readonly id: string;
   readonly scope_id: string;
   readonly name: string;
+  readonly description: string | null;
   readonly shape: string;
   readonly base_amount: string | null;
   readonly currency: string;
+  readonly recurrence: string;
+  readonly recurrence_interval: number;
   readonly status: string;
+  readonly activation_date: string | null;
   readonly created_at: string;
 }
 
@@ -24,11 +30,9 @@ interface ScopeRow {
 }
 
 /**
- * Admin's read-only view of Charges.
- *
- * Money-mover surface (create/update/archive) lives under the /finance
- * persona for the Finance role. This page just LISTS what the admin can
- * see via RLS so they know what money's being asked for at their scope.
+ * Admin's read-only view of Charges — same shape as the Finance
+ * dashboard (stats cards → panel → table). Rows link out to the
+ * shared charge-detail drill-down.
  */
 export default async function ExcoChargesViewPage() {
   const supabase = await getServerClient();
@@ -36,19 +40,35 @@ export default async function ExcoChargesViewPage() {
   const { data: chargesRaw } = await supabase
     .schema('finance' as never)
     .from('charges' as never)
-    .select('id, scope_id, name, shape, base_amount, currency, status, created_at')
+    .select(
+      'id, scope_id, name, description, shape, base_amount, currency, recurrence, recurrence_interval, status, activation_date, created_at',
+    )
     .in('shape', ['charge', 'fixed'])
     .order('created_at', { ascending: false });
 
-  const charges = (chargesRaw ?? []) as ChargeRow[];
+  const charges = (chargesRaw ?? []) as RawChargeRow[];
   const scopeIds = Array.from(new Set(charges.map((c) => c.scope_id)));
   const { data: scopeRows } = scopeIds.length
     ? await supabase.schema('core').from('scopes').select('id, name, slug').in('id', scopeIds)
     : { data: [] as ScopeRow[] };
   const scopeById = new Map(((scopeRows ?? []) as ScopeRow[]).map((s) => [s.id, s]));
 
+  const rows: ChargeRow[] = charges.map((c) => ({
+    id: c.id,
+    name: c.name,
+    description: c.description,
+    scopeName: scopeById.get(c.scope_id)?.name ?? '—',
+    shape: c.shape,
+    baseAmount: c.base_amount != null ? parseFloat(c.base_amount) : null,
+    currency: c.currency,
+    recurrence: c.recurrence,
+    recurrenceInterval: c.recurrence_interval,
+    status: c.status,
+    activationDate: c.activation_date,
+  }));
+
   return (
-    <section className="flex flex-1 flex-col gap-4">
+    <section className="flex flex-1 flex-col gap-5">
       <header className="flex flex-col gap-1">
         <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Finance · read-only
@@ -63,35 +83,7 @@ export default async function ExcoChargesViewPage() {
         </p>
       </header>
 
-      {charges.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-          No charges are visible at your scopes yet.
-        </div>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {charges.map((c) => {
-            const scope = scopeById.get(c.scope_id);
-            return (
-              <li
-                key={c.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card p-3"
-              >
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-foreground">{c.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {scope?.name ?? '—'} · {c.shape} · {c.status}
-                  </span>
-                </div>
-                <span className="text-sm font-mono text-foreground">
-                  {c.base_amount
-                    ? `${new Intl.NumberFormat().format(parseFloat(c.base_amount))} ${c.currency}`
-                    : '—'}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <ExcoChargesView rows={rows} />
     </section>
   );
 }

@@ -80,7 +80,9 @@ export async function assignPosition(req: Request): Promise<Response> {
 
   if (insertErr) {
     if (insertErr.code === '23505') {
-      const existing = await supabase
+      // First check: does the same (member, scope, position) already exist?
+      // If so this is a re-click; return idempotent success.
+      const existingSame = await supabase
         .schema('core' as never)
         .from('position_assignments' as never)
         .select('id')
@@ -89,14 +91,38 @@ export async function assignPosition(req: Request): Promise<Response> {
         .eq('position_catalog_id', input.positionCatalogId)
         .is('removed_at', null)
         .maybeSingle();
-      if (existing.data) {
+      if (existingSame.data) {
         const body: SuccessBody = {
-          assignmentId: (existing.data as { id: string }).id,
+          assignmentId: (existingSame.data as { id: string }).id,
           alreadyExisted: true,
           traceId: ctx.traceId,
         };
         return withCors(req, success(body));
       }
+
+      // 2026-07-02 tightened the uniqueness to (member_id, scope_id) —
+      // a member can only hold ONE active position per scope. If the
+      // member already holds a DIFFERENT position here, that's not a
+      // race — it's an operator error we can name specifically.
+      const existingOther = await supabase
+        .schema('core' as never)
+        .from('position_assignments' as never)
+        .select('id, position_catalog_id')
+        .eq('member_id', input.memberId)
+        .eq('scope_id', input.scopeId)
+        .is('removed_at', null)
+        .maybeSingle();
+      if (existingOther.data) {
+        return withCors(
+          req,
+          conflict(
+            'POSITION_ALREADY_HELD',
+            'This member already holds a position at this scope. Remove the current one first.',
+            ctx.traceId,
+          ),
+        );
+      }
+
       return withCors(
         req,
         conflict('POSITION_ASSIGN_CONFLICT', 'concurrent assignment; retry', ctx.traceId),
@@ -116,6 +142,31 @@ export async function assignPosition(req: Request): Promise<Response> {
         validationError('Referenced member/scope/catalog not found', ctx.traceId, {
           _: insertErr.message,
         }),
+      );
+    }
+    // 42501 = insufficient_privilege. Historically surfaced when the
+    // AFTER-INSERT president-prompt trigger tried to write into
+    // notifications.notification_events without SECURITY DEFINER (see
+    // migration 20260706200000). Handle it explicitly so the operator
+    // gets a real message instead of "unexpected error occurred".
+    if (insertErr.code === '42501') {
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          traceId: ctx.traceId,
+          message:
+            'assign-position: 42501 during INSERT — likely a trigger writing to a table the caller cannot INSERT into. Apply migration 20260706200000_restore_position_prompt_security_definer.sql.',
+          code: insertErr.code,
+          error: insertErr.message,
+        }),
+      );
+      return withCors(
+        req,
+        conflict(
+          'POSITION_ASSIGN_TRIGGER_DENIED',
+          'Position could not be recorded because a downstream trigger was denied by the database. Ask an admin to apply the latest migrations.',
+          ctx.traceId,
+        ),
       );
     }
     console.error(

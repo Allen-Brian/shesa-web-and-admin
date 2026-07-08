@@ -23,6 +23,12 @@ interface AppShellProps {
   readonly canReadFinance?: boolean;
   /** For finance persona — signals a NULL-scope grant (Global Finance). */
   readonly isGlobalFinance?: boolean;
+  /**
+   * True when the caller is a Mainstream (Global) Admin. Used by the
+   * exco sidebar to hide items that are meaningless for the person
+   * doing the imposing — e.g. Assessments is the receiver's view.
+   */
+  readonly isGlobalAdmin?: boolean;
   readonly children: React.ReactNode;
 }
 
@@ -46,6 +52,7 @@ export function AppShell({
   canViewInvites,
   canReadFinance,
   isGlobalFinance,
+  isGlobalAdmin,
   children,
 }: AppShellProps) {
   const [open, setOpen] = React.useState(true);
@@ -72,6 +79,7 @@ export function AppShell({
             canEditOwnScope={canEditOwnScope}
             canViewInvites={canViewInvites}
             canReadFinance={canReadFinance}
+            isGlobalAdmin={isGlobalAdmin}
           />
         )}
         <SidebarInset>

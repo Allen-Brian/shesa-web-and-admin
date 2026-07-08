@@ -49,6 +49,7 @@ export async function validateMemberImport(req: Request): Promise<Response> {
   const service = createServiceRoleClient();
 
   const { data: batch } = await userClient
+    .schema('core' as never)
     .from('import_batches' as never)
     .select('id, scope_id, status')
     .eq('id', input.batchId)
@@ -76,6 +77,7 @@ export async function validateMemberImport(req: Request): Promise<Response> {
 
   // ── Re-validate rows currently in pending / invalid state ────────
   const { data: rows } = await service
+    .schema('core' as never)
     .from('import_rows' as never)
     .select('id, raw_data, normalized_data, validation_status')
     .eq('import_batch_id', input.batchId)
@@ -91,8 +93,11 @@ export async function validateMemberImport(req: Request): Promise<Response> {
     validation_status: string;
   }>) ?? []) {
     const source = Object.keys(r.normalized_data ?? {}).length > 0 ? r.normalized_data : r.raw_data;
-    const result = validateImportRow(source as never, seed);
+    const result = validateImportRow(source as never, seed, {
+      targetBatchScopeId: b.scope_id,
+    });
     await service
+      .schema('core' as never)
       .from('import_rows' as never)
       .update({
         validation_status: result.status,
@@ -105,6 +110,7 @@ export async function validateMemberImport(req: Request): Promise<Response> {
 
   // Recompute counters. Cheap — a single group-by over row counts.
   const { data: countRows } = await service
+    .schema('core' as never)
     .from('import_rows' as never)
     .select('validation_status')
     .eq('import_batch_id', input.batchId);
@@ -116,6 +122,7 @@ export async function validateMemberImport(req: Request): Promise<Response> {
   const invalid = total - valid;
 
   await service
+    .schema('core' as never)
     .from('import_batches' as never)
     .update({
       total_rows: total,

@@ -1,8 +1,21 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDownRight, ArrowUpRight, CircleDollarSign, LandPlot, Undo2 } from 'lucide-react';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  BadgeDollarSign,
+  CircleDollarSign,
+  Copy,
+  ExternalLink,
+  LandPlot,
+  MoreHorizontal,
+  Printer,
+  Receipt as ReceiptIcon,
+  Target,
+  Undo2,
+} from 'lucide-react';
 
 import {
   Badge,
@@ -14,6 +27,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   EntityTablePanel,
   Input,
   Label,
@@ -22,6 +40,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  StatsCard,
   Textarea,
   toast,
   type ColDef,
@@ -46,6 +65,8 @@ export interface PaymentRow {
   readonly reversesPaymentId: string | null;
   readonly externalRef: string | null;
   readonly createdAt: string;
+  readonly receiptToken: string | null;
+  readonly receiptNumber: string | null;
 }
 
 export interface ChargeOption {
@@ -86,18 +107,32 @@ const initialRecord = (chargeOptions: readonly ChargeOption[]): RecordForm => ({
 interface PaymentsViewProps {
   readonly payments: readonly PaymentRow[];
   readonly chargeOptions: readonly ChargeOption[];
+  readonly baseUrl: string;
 }
 
-export function PaymentsView({ payments, chargeOptions }: PaymentsViewProps) {
+export function PaymentsView({ payments, chargeOptions, baseUrl }: PaymentsViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'manual' | 'auto'>('all');
+  const [methodFilter, setMethodFilter] = useState<'all' | PaymentMethod>('all');
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordForm, setRecordForm] = useState<RecordForm>(() => initialRecord(chargeOptions));
   const [reversing, setReversing] = useState<PaymentRow | null>(null);
   const [reverseReason, setReverseReason] = useState('');
+  const [previewing, setPreviewing] = useState<PaymentRow | null>(null);
+
+  const buildVerifyUrl = (token: string) => `${baseUrl}/verify?token=${encodeURIComponent(token)}`;
+
+  const copyUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Verify URL copied.');
+    } catch {
+      toast.error('Could not copy — copy manually from the receipt.');
+    }
+  };
 
   // Which payments have downstream reversals — used to show a chip on
   // the original row rather than in the reversal row.
@@ -112,6 +147,7 @@ export function PaymentsView({ payments, chargeOptions }: PaymentsViewProps) {
     return payments
       .filter((p) => {
         if (sourceFilter !== 'all' && p.source !== sourceFilter) return false;
+        if (methodFilter !== 'all' && p.method !== methodFilter) return false;
         if (!q) return true;
         if (p.payerLabel.toLowerCase().includes(q)) return true;
         if (p.chargeName.toLowerCase().includes(q)) return true;
@@ -120,7 +156,39 @@ export function PaymentsView({ payments, chargeOptions }: PaymentsViewProps) {
         return false;
       })
       .map((p, i) => ({ ...p, serial: i + 1 }));
-  }, [payments, search, sourceFilter]);
+  }, [payments, search, sourceFilter, methodFilter]);
+
+  // KPI totals — computed from the full payments set (not the filtered
+  // slice) so the strip stays stable while operators sift. Reversals
+  // subtract from the collected total; the reversal count and rate
+  // surface separately so operators can spot a spike in corrections.
+  const kpis = useMemo(() => {
+    const currencies = new Map<string, number>();
+    let cleared = 0;
+    let reversals = 0;
+    for (const p of payments) {
+      const signed = p.reversesPaymentId ? -p.amount : p.amount;
+      currencies.set(p.currency, (currencies.get(p.currency) ?? 0) + signed);
+      if (p.reversesPaymentId) reversals += 1;
+      else cleared += 1;
+    }
+    const primaryCurrency = currencies.size === 1 ? currencies.keys().next().value : undefined;
+    const totalCollected = primaryCurrency !== undefined ? currencies.get(primaryCurrency)! : null;
+    const settledPayments = payments.filter((p) => !p.reversesPaymentId);
+    const avg =
+      settledPayments.length > 0
+        ? settledPayments.reduce((a, b) => a + b.amount, 0) / settledPayments.length
+        : 0;
+    return {
+      total: payments.length,
+      cleared,
+      reversals,
+      reversalRate: payments.length > 0 ? Math.round((reversals / payments.length) * 100) : 0,
+      totalCollected,
+      primaryCurrency,
+      avg,
+    };
+  }, [payments]);
 
   const canRecord = chargeOptions.length > 0;
 
@@ -204,24 +272,50 @@ export function PaymentsView({ payments, chargeOptions }: PaymentsViewProps) {
         headerName: 'Payer',
         field: 'payerLabel',
         flex: 1.5,
-        minWidth: 180,
+        minWidth: 200,
+        cellRenderer: (p: ICellRendererParams<SerialRow, string>) =>
+          p.data ? (
+            <div className="flex h-full items-center gap-2.5 py-1">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                {getInitials(p.data.payerLabel)}
+              </div>
+              <span className="truncate text-sm font-medium text-foreground">
+                {p.data.payerLabel}
+              </span>
+            </div>
+          ) : null,
       },
       {
         headerName: 'For',
         field: 'chargeName',
-        flex: 1.5,
-        minWidth: 180,
-        cellRenderer: (p: ICellRendererParams<SerialRow, string>) =>
-          p.data ? (
-            <div className="flex flex-col leading-tight">
-              <span className="text-foreground">{p.data.chargeName}</span>
-              {p.data.chargeShape && (
-                <span className="text-xs text-muted-foreground">
-                  {p.data.scopeName} · {p.data.chargeShape}
+        flex: 1.6,
+        minWidth: 220,
+        cellRenderer: (p: ICellRendererParams<SerialRow, string>) => {
+          if (!p.data) return null;
+          const ShapeIcon =
+            p.data.chargeShape === 'goal'
+              ? Target
+              : p.data.chargeShape === 'fixed'
+                ? CircleDollarSign
+                : BadgeDollarSign;
+          return (
+            <div className="flex h-full items-center gap-2.5 py-1">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <ShapeIcon className="h-4 w-4" />
+              </div>
+              <div className="flex min-w-0 flex-col leading-tight">
+                <span className="truncate text-sm font-medium text-foreground">
+                  {p.data.chargeName}
                 </span>
-              )}
+                {p.data.chargeShape && (
+                  <span className="truncate text-xs text-muted-foreground">
+                    {p.data.scopeName} · {p.data.chargeShape}
+                  </span>
+                )}
+              </div>
             </div>
-          ) : null,
+          );
+        },
       },
       {
         headerName: 'Amount',
@@ -232,7 +326,7 @@ export function PaymentsView({ payments, chargeOptions }: PaymentsViewProps) {
           const isReversal = !!p.data.reversesPaymentId;
           return (
             <span
-              className={`inline-flex items-center gap-1 font-mono text-sm ${
+              className={`inline-flex items-center gap-1 text-sm ${
                 isReversal ? 'text-amber-700 dark:text-amber-400' : 'text-foreground'
               }`}
             >
@@ -306,9 +400,10 @@ export function PaymentsView({ payments, chargeOptions }: PaymentsViewProps) {
         },
       },
       {
-        headerName: 'Actions',
+        headerName: '',
         colId: 'row_actions',
-        width: 130,
+        width: 64,
+        maxWidth: 64,
         sortable: false,
         filter: false,
         suppressMovable: true,
@@ -317,23 +412,51 @@ export function PaymentsView({ payments, chargeOptions }: PaymentsViewProps) {
           const row = p.data;
           const isReversal = !!row.reversesPaymentId;
           const alreadyReversed = reversedIds.has(row.id);
-          if (isReversal || alreadyReversed) return null;
+          const canReverse = !isReversal && !alreadyReversed;
+          const hasReceipt = !!row.receiptToken;
+          if (!canReverse && !hasReceipt) return null;
           return (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="text-destructive hover:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                setReversing(row);
-              }}
-              disabled={pending}
-              title="Reverse payment"
-            >
-              <Undo2 className="h-3.5 w-3.5" />
-              Reverse
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 p-0"
+                  onClick={(e) => e.stopPropagation()}
+                  disabled={pending}
+                  title="Row actions"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                {hasReceipt && (
+                  <>
+                    <DropdownMenuItem onSelect={() => setPreviewing(row)}>
+                      <ReceiptIcon className="h-4 w-4" />
+                      View / print receipt
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => row.receiptToken && copyUrl(buildVerifyUrl(row.receiptToken))}
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copy verify URL
+                    </DropdownMenuItem>
+                    {canReverse && <DropdownMenuSeparator />}
+                  </>
+                )}
+                {canReverse && (
+                  <DropdownMenuItem
+                    onSelect={() => setReversing(row)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Undo2 className="h-4 w-4" />
+                    Reverse payment
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           );
         },
       },
@@ -358,6 +481,29 @@ export function PaymentsView({ payments, chargeOptions }: PaymentsViewProps) {
         </p>
       </div>
 
+      {/* KPI strip */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <StatsCard label="Payments" value={kpis.total} />
+        <StatsCard
+          label="Net collected"
+          value={
+            kpis.primaryCurrency
+              ? `${new Intl.NumberFormat().format(Math.round(kpis.totalCollected ?? 0))} ${kpis.primaryCurrency}`
+              : '—'
+          }
+        />
+        <StatsCard
+          label="Avg. amount"
+          value={
+            kpis.primaryCurrency && kpis.cleared > 0
+              ? `${new Intl.NumberFormat().format(Math.round(kpis.avg))} ${kpis.primaryCurrency}`
+              : '—'
+          }
+        />
+        <StatsCard label="Cleared" value={kpis.cleared} />
+        <StatsCard label="Reversal rate" value={kpis.total > 0 ? `${kpis.reversalRate}%` : '—'} />
+      </div>
+
       <EntityTablePanel
         count={filtered.length}
         countLabel={filtered.length === 1 ? 'payment' : 'payments'}
@@ -371,19 +517,37 @@ export function PaymentsView({ payments, chargeOptions }: PaymentsViewProps) {
           setRecordOpen(true);
         }}
         filters={
-          <Select
-            value={sourceFilter}
-            onValueChange={(v) => setSourceFilter(v as typeof sourceFilter)}
-          >
-            <SelectTrigger className="h-8 w-40 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All sources</SelectItem>
-              <SelectItem value="manual">Manual entries</SelectItem>
-              <SelectItem value="auto">Auto / gateway</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select
+              value={methodFilter}
+              onValueChange={(v) => setMethodFilter(v as typeof methodFilter)}
+            >
+              <SelectTrigger className="h-8 w-36 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All methods</SelectItem>
+                {PAYMENT_METHODS.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={sourceFilter}
+              onValueChange={(v) => setSourceFilter(v as typeof sourceFilter)}
+            >
+              <SelectTrigger className="h-8 w-36 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All sources</SelectItem>
+                <SelectItem value="manual">Manual entries</SelectItem>
+                <SelectItem value="auto">Auto / gateway</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         }
       />
 
@@ -516,7 +680,7 @@ export function PaymentsView({ payments, chargeOptions }: PaymentsViewProps) {
           {reversing && (
             <div className="flex flex-col gap-3">
               <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
-                <div className="font-mono text-sm text-foreground">
+                <div className="text-sm text-foreground">
                   {new Intl.NumberFormat().format(reversing.amount)} {reversing.currency}
                 </div>
                 <div className="text-muted-foreground">
@@ -562,8 +726,131 @@ export function PaymentsView({ payments, chargeOptions }: PaymentsViewProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Receipt preview + print dialog */}
+      <Dialog open={!!previewing} onOpenChange={(o) => !o && setPreviewing(null)}>
+        <DialogContent className="max-w-md print:shadow-none">
+          <DialogHeader className="print:hidden">
+            <DialogTitle>Receipt</DialogTitle>
+            <DialogDescription>
+              Shareable receipt with a QR that verifies against the ledger. Use the browser print
+              dialog for paper.
+            </DialogDescription>
+          </DialogHeader>
+          {previewing && previewing.receiptToken && (
+            <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Shesa
+                  </div>
+                  <div className="text-lg font-semibold text-foreground">Payment receipt</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Receipt #
+                  </div>
+                  <div className="text-sm text-foreground">{previewing.receiptNumber ?? '—'}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 border-y border-border py-3 text-sm">
+                <ReceiptField label="Amount">
+                  <span className="font-semibold text-foreground">
+                    {new Intl.NumberFormat().format(previewing.amount)} {previewing.currency}
+                  </span>
+                </ReceiptField>
+                <ReceiptField label="Method">
+                  <span className="text-foreground">{formatMethod(previewing.method)}</span>
+                </ReceiptField>
+                <ReceiptField label="For">
+                  <span className="text-foreground">{previewing.chargeName}</span>
+                </ReceiptField>
+                <ReceiptField label="Payer">
+                  <span className="text-foreground">{previewing.payerLabel}</span>
+                </ReceiptField>
+                <ReceiptField label="Paid on">
+                  <span className="text-foreground">
+                    {new Date(previewing.createdAt).toLocaleString()}
+                  </span>
+                </ReceiptField>
+                <ReceiptField label="Scope">
+                  <span className="text-foreground">{previewing.scopeName}</span>
+                </ReceiptField>
+              </div>
+              <div className="flex items-center gap-4">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=0&data=${encodeURIComponent(
+                    buildVerifyUrl(previewing.receiptToken),
+                  )}`}
+                  alt="Verify receipt"
+                  width={120}
+                  height={120}
+                  className="rounded-md border border-border bg-white p-1"
+                />
+                <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  <span>Scan or visit to verify:</span>
+                  <span className="break-all text-[11px] text-foreground">
+                    {buildVerifyUrl(previewing.receiptToken)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="print:hidden">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                previewing?.receiptToken && copyUrl(buildVerifyUrl(previewing.receiptToken))
+              }
+            >
+              <Copy className="h-4 w-4" />
+              Copy URL
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                previewing?.receiptToken &&
+                window.open(buildVerifyUrl(previewing.receiptToken), '_blank', 'noopener')
+              }
+            >
+              <ExternalLink className="h-4 w-4" />
+              Open verify
+            </Button>
+            <Button type="button" size="sm" onClick={() => window.print()}>
+              <Printer className="h-4 w-4" />
+              Print
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+function ReceiptField({
+  label,
+  children,
+}: {
+  readonly label: string;
+  readonly children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="text-sm">{children}</span>
+    </div>
+  );
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0 || !parts[0]) return '—';
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
 }
 
 function formatMethod(method: string): string {

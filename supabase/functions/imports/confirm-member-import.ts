@@ -52,6 +52,7 @@ export async function confirmMemberImport(req: Request): Promise<Response> {
   const userClient = createUserClient(ctx.jwt);
 
   const { data: batch } = await userClient
+    .schema('core' as never)
     .from('import_batches' as never)
     .select('id, scope_id, status, created_rows')
     .eq('id', input.batchId)
@@ -93,6 +94,7 @@ export async function confirmMemberImport(req: Request): Promise<Response> {
   // The WHERE status='validated' guard makes a concurrent confirm a no-op
   // rather than a double-create.
   const { data: reserved, error: reserveErr } = await service
+    .schema('core' as never)
     .from('import_batches' as never)
     .update({ status: 'uploaded' /* temporary hold */ } as never)
     .eq('id', input.batchId)
@@ -116,6 +118,7 @@ export async function confirmMemberImport(req: Request): Promise<Response> {
     // already did). Re-read the batch and return whatever the state
     // is now.
     const { data: after } = await service
+      .schema('core' as never)
       .from('import_batches' as never)
       .select('status, created_rows')
       .eq('id', input.batchId)
@@ -139,6 +142,7 @@ export async function confirmMemberImport(req: Request): Promise<Response> {
 
   // ── Fetch valid rows ─────────────────────────────────────────────
   const { data: rowsToCreate } = await service
+    .schema('core' as never)
     .from('import_rows' as never)
     .select('id, row_number, normalized_data')
     .eq('import_batch_id', input.batchId)
@@ -185,6 +189,7 @@ export async function confirmMemberImport(req: Request): Promise<Response> {
       // can fix + re-validate + retry.
       skipped.push(row.row_number);
       await service
+        .schema('core' as never)
         .from('import_rows' as never)
         .update({
           validation_status: 'invalid',
@@ -196,6 +201,7 @@ export async function confirmMemberImport(req: Request): Promise<Response> {
 
     const memberId = (mrow as { id: string }).id;
     await service
+      .schema('core' as never)
       .from('import_rows' as never)
       .update({ validation_status: 'created', created_member_id: memberId } as never)
       .eq('id', row.id);
@@ -204,6 +210,7 @@ export async function confirmMemberImport(req: Request): Promise<Response> {
 
   // ── Finalize batch status ────────────────────────────────────────
   await service
+    .schema('core' as never)
     .from('import_batches' as never)
     .update({
       status: 'confirmed',

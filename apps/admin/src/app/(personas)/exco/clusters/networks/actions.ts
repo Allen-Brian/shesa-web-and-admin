@@ -199,6 +199,22 @@ export async function archiveNetwork(scopeId: string): Promise<ArchiveResult> {
   return { ok: true, scopeId };
 }
 
+export async function restoreNetwork(scopeId: string): Promise<ArchiveResult> {
+  const supabase = await getServerClient();
+  const { error } = await supabase.functions.invoke('networks/update-network', {
+    body: { scopeId, status: 'active' },
+  });
+  if (error) {
+    return {
+      ok: false,
+      scopeId,
+      message: await extractInvokeMessage(error, 'Could not restore.'),
+    };
+  }
+  revalidatePath('/exco/clusters/networks', 'layout');
+  return { ok: true, scopeId };
+}
+
 /**
  * `supabase.functions.invoke` throws a `FunctionsHttpError` on any non-2xx
  * response, and its `.message` is a generic "Edge Function returned a

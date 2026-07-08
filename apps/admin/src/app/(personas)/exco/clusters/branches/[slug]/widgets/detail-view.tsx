@@ -4,7 +4,16 @@ import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Country } from 'country-state-city';
-import { Archive, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
+import {
+  Archive,
+  Download,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Upload,
+} from 'lucide-react';
 
 import {
   Badge,
@@ -15,10 +24,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
   EntityTablePanel,
   StatsCard,
+  Switch,
   Tabs,
   TabsContent,
   TabsList,
@@ -42,8 +51,9 @@ import type {
 } from '@/components/governance/governance-panel';
 import type { GovernanceMemberPickerRow as SharedGovernanceMemberPickerRow } from '@/components/governance/assign-position-dialog';
 
-import { archiveBranch } from '../../actions';
-import { archiveChapter } from '../../chapter-actions';
+import { archiveBranch, restoreBranch } from '../../actions';
+import { archiveChapter, restoreChapter } from '../../chapter-actions';
+import { BranchMemberImportDialog } from './branch-member-import-dialog';
 import type { ChapterInitialValues } from '../../widgets/chapter-form';
 import { BranchFormDialog } from '../../widgets/branch-form-dialog';
 import { ChapterFormDialog } from '../../widgets/chapter-form-dialog';
@@ -109,8 +119,9 @@ interface BranchDetailViewProps {
 export function BranchDetailView(props: BranchDetailViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmMode, setConfirmMode] = useState<'archive' | 'restore' | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [newChapterOpen, setNewChapterOpen] = useState(false);
 
   const country = props.countryCode ? (Country.getCountryByCode(props.countryCode) ?? null) : null;
@@ -126,6 +137,68 @@ export function BranchDetailView(props: BranchDetailViewProps) {
       toast.success(`${props.name} archived.`);
       router.refresh();
     });
+  };
+
+  const doRestore = () => {
+    startTransition(async () => {
+      const result = await restoreBranch(props.scopeId);
+      if (!result.ok) {
+        toast.error(result.message ?? 'Could not restore.');
+        return;
+      }
+      toast.success(`${props.name} restored.`);
+      router.refresh();
+    });
+  };
+
+  const handleRefresh = () => {
+    router.refresh();
+    toast.success('Refreshed');
+  };
+
+  const handleExport = () => {
+    const rows = props.members;
+    if (rows.length === 0) {
+      toast.error('No members to export.');
+      return;
+    }
+    const headers = [
+      'full_name',
+      'batch_year',
+      'network',
+      'house',
+      'membership_status',
+      'location',
+    ];
+    const csv = [
+      headers.join(','),
+      ...rows.map((m) =>
+        [
+          m.full_name,
+          m.batch_year ?? '',
+          m.network_name,
+          m.house_name,
+          m.membership_status,
+          m.location ?? '',
+        ]
+          .map((cell) => {
+            const s = String(cell ?? '');
+            return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+          })
+          .join(','),
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${props.slug}-members.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length} member${rows.length === 1 ? '' : 's'}.`);
   };
 
   return (
@@ -163,29 +236,59 @@ export function BranchDetailView(props: BranchDetailViewProps) {
               <span className="ml-1.5 text-xs text-muted-foreground">({props.chapterCount})</span>
             </TabsTrigger>
             <TabsTrigger value="governance">Governance</TabsTrigger>
-            <TabsTrigger value="page">Page</TabsTrigger>
           </TabsList>
-          {props.canUpdate && (
-            <div className="flex items-center gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => setEditOpen(true)}>
-                <Pencil className="h-4 w-4" />
-                Edit
+          <div className="flex items-center gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={handleRefresh}>
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+            {props.canUpdate && (
+              <Button type="button" size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4" />
+                Import
               </Button>
-              {!isArchived && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={pending}
-                  onClick={() => setConfirmOpen(true)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Archive className="h-4 w-4" />
-                  {pending ? 'Archiving…' : 'Archive'}
-                </Button>
-              )}
-            </div>
-          )}
+            )}
+            <Button type="button" size="sm" variant="outline" onClick={handleExport}>
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+            {props.canUpdate && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-9 w-9 p-0"
+                    aria-label="More actions"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                    <Pencil className="h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  {isArchived ? (
+                    <DropdownMenuItem onClick={() => setConfirmMode('restore')}>
+                      <RotateCcw className="h-4 w-4" />
+                      Restore
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => setConfirmMode('archive')}
+                      disabled={pending}
+                    >
+                      <Archive className="h-4 w-4" />
+                      Archive
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
 
         <TabsContent value="members" className="flex min-h-0 flex-1 flex-col gap-3">
@@ -221,12 +324,6 @@ export function BranchDetailView(props: BranchDetailViewProps) {
             emptyCatalogHint="No position catalog exists for branches yet."
             emptyRolesHint="No roles granted at this branch yet."
           />
-        </TabsContent>
-
-        <TabsContent value="page">
-          <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-            Public branch page + branding land in the Phase 5 CMS work.
-          </div>
         </TabsContent>
       </Tabs>
 
@@ -269,15 +366,27 @@ export function BranchDetailView(props: BranchDetailViewProps) {
       />
 
       <ConfirmDialog
-        open={confirmOpen}
-        title={`Archive ${props.name}?`}
-        description="Archived branches disappear from every dropdown. Members currently attached keep their reference until an admin reassigns them."
-        confirmLabel="Archive"
+        open={confirmMode !== null}
+        title={confirmMode === 'restore' ? `Restore ${props.name}?` : `Archive ${props.name}?`}
+        description={
+          confirmMode === 'restore'
+            ? 'The branch will return to the active list and become available in dropdowns again.'
+            : 'Archived branches disappear from every dropdown. Members currently attached keep their reference until an admin reassigns them. Restore later from this same menu.'
+        }
+        confirmLabel={confirmMode === 'restore' ? 'Restore' : 'Archive'}
         onConfirm={() => {
-          setConfirmOpen(false);
-          doArchive();
+          const mode = confirmMode;
+          setConfirmMode(null);
+          if (mode === 'restore') doRestore();
+          else if (mode === 'archive') doArchive();
         }}
-        onCancel={() => setConfirmOpen(false)}
+        onCancel={() => setConfirmMode(null)}
+      />
+
+      <BranchMemberImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        scope={{ id: props.scopeId, slug: props.slug, name: props.name }}
       />
     </div>
   );
@@ -363,7 +472,7 @@ function MembersTable({ members }: { readonly members: readonly BranchMemberRow[
 type ChapterSerialRow = BranchChapterRow & { readonly serial: number };
 
 type ChapterConfirm = null | {
-  readonly kind: 'archive' | 'delete';
+  readonly kind: 'archive' | 'restore';
   readonly targets: readonly ChapterSerialRow[];
 };
 
@@ -393,12 +502,19 @@ function ChaptersTab({
   const [, startTransition] = useTransition();
   const [gridApi, setGridApi] = useState<GridApi<ChapterSerialRow> | null>(null);
   const [search, setSearch] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   const [editChapter, setEditChapter] = useState<ChapterInitialValues | null>(null);
   const [confirm, setConfirm] = useState<ChapterConfirm>(null);
 
+  const visibleChapters = useMemo(
+    () => (showArchived ? chapters : chapters.filter((c) => c.status !== 'archived')),
+    [chapters, showArchived],
+  );
+  const archivedCount = chapters.length - chapters.filter((c) => c.status !== 'archived').length;
+
   const numbered = useMemo<readonly ChapterSerialRow[]>(
-    () => chapters.map((c, i) => ({ ...c, serial: i + 1 })),
-    [chapters],
+    () => visibleChapters.map((c, i) => ({ ...c, serial: i + 1 })),
+    [visibleChapters],
   );
 
   const filtered = useMemo(() => {
@@ -433,22 +549,18 @@ function ChaptersTab({
       contactPhone: null,
     });
 
-  const runArchive = (targets: readonly ChapterSerialRow[], kind: 'archive' | 'delete') => {
+  const runMutation = (targets: readonly ChapterSerialRow[], kind: 'archive' | 'restore') => {
     startTransition(async () => {
-      const results = await Promise.all(targets.map((t) => archiveChapter(t.id)));
+      const fn = kind === 'archive' ? archiveChapter : restoreChapter;
+      const results = await Promise.all(targets.map((t) => fn(t.id)));
       const failed = results.filter((r) => !r.ok);
+      const doneVerb = kind === 'archive' ? 'Archived' : 'Restored';
       if (failed.length === 0) {
-        toast.success(
-          `${kind === 'archive' ? 'Archived' : 'Deleted'} ${targets.length} chapter${
-            targets.length === 1 ? '' : 's'
-          }.`,
-        );
+        toast.success(`${doneVerb} ${targets.length} chapter${targets.length === 1 ? '' : 's'}.`);
       } else if (failed.length === targets.length) {
         toast.error(failed[0]?.message ?? `Could not ${kind}.`);
       } else {
-        toast.error(
-          `${kind === 'archive' ? 'Archived' : 'Deleted'} ${targets.length - failed.length}; ${failed.length} failed.`,
-        );
+        toast.error(`${doneVerb} ${targets.length - failed.length}; ${failed.length} failed.`);
       }
       router.refresh();
     });
@@ -465,28 +577,40 @@ function ChaptersTab({
         filter: false,
         suppressMovable: true,
       },
-      { headerName: 'Chapter', field: 'name', flex: 2, minWidth: 200 },
+      { headerName: 'Chapter', field: 'name', flex: 3, minWidth: 200 },
       {
         headerName: 'Kind',
         field: 'chapter_kind',
-        width: 140,
+        flex: 1,
+        minWidth: 130,
         cellRenderer: (p: ICellRendererParams<ChapterSerialRow, string>) => (
           <KindText kind={p.value === 'autonomous' ? 'autonomous' : 'grouping'} />
         ),
       },
-      { headerName: 'Region', field: 'region', flex: 1, minWidth: 140 },
-      { headerName: 'City', field: 'city', flex: 1, minWidth: 130 },
+      { headerName: 'Region', field: 'region', flex: 2, minWidth: 130 },
+      { headerName: 'City', field: 'city', flex: 2, minWidth: 130 },
       {
         headerName: 'Members',
         field: 'member_count',
-        width: 150,
+        flex: 0.7,
+        minWidth: 110,
         cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
         headerClass: 'ag-center-aligned-header',
       },
       {
-        headerName: 'Actions',
+        headerName: 'Status',
+        field: 'status',
+        flex: 0.9,
+        minWidth: 110,
+        cellRenderer: (p: ICellRendererParams<ChapterSerialRow, ScopeStatus>) => (
+          <ChapterStatusPill status={p.value ?? 'active'} />
+        ),
+      },
+      {
+        headerName: '',
         colId: 'actions',
-        width: 100,
+        width: 64,
+        maxWidth: 64,
         sortable: false,
         filter: false,
         suppressMovable: true,
@@ -496,7 +620,7 @@ function ChaptersTab({
               row={p.data}
               onEdit={openEdit}
               onArchive={(r) => setConfirm({ kind: 'archive', targets: [r] })}
-              onDelete={(r) => setConfirm({ kind: 'delete', targets: [r] })}
+              onRestore={(r) => setConfirm({ kind: 'restore', targets: [r] })}
             />
           ) : null,
       },
@@ -514,7 +638,6 @@ function ChaptersTab({
       itemName: 'chapter',
       pluralItemName: 'chapters',
       onArchive: (selected) => setConfirm({ kind: 'archive', targets: selected }),
-      onDelete: (selected) => setConfirm({ kind: 'delete', targets: selected }),
     }),
     [],
   );
@@ -530,11 +653,32 @@ function ChaptersTab({
         canCreate={canCreate}
         createLabel="New Chapter"
         onCreate={onOpenNew}
+        filters={
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+            <Switch
+              checked={showArchived}
+              onCheckedChange={setShowArchived}
+              aria-label="Show archived"
+            />
+            <span>
+              Show archived
+              {archivedCount > 0 && (
+                <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground">
+                  {archivedCount}
+                </span>
+              )}
+            </span>
+          </label>
+        }
       />
-      {chapters.length === 0 ? (
+      {visibleChapters.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          <p>No chapters yet under {branchName}.</p>
-          {canCreate && (
+          <p>
+            {chapters.length === 0
+              ? `No chapters yet under ${branchName}.`
+              : 'No live chapters. Toggle "Show archived" to see retired ones.'}
+          </p>
+          {canCreate && chapters.length === 0 && (
             <Button asChild size="sm" variant="outline">
               <button type="button" onClick={onOpenNew}>
                 <Plus className="h-4 w-4" />
@@ -569,13 +713,17 @@ function ChaptersTab({
       <ConfirmDialog
         open={!!confirm}
         title={confirmChapterTitle(confirm)}
-        description="Archived chapters disappear from every dropdown. Existing memberships keep resolving."
-        confirmLabel={confirm?.kind === 'delete' ? 'Delete' : 'Archive'}
+        description={
+          confirm?.kind === 'restore'
+            ? 'The chapter will return to the active list and become available in dropdowns again.'
+            : 'Archived chapters disappear from every dropdown. Existing memberships keep resolving. Toggle "Show archived" to restore later.'
+        }
+        confirmLabel={confirm?.kind === 'restore' ? 'Restore' : 'Archive'}
         onConfirm={() => {
           if (!confirm) return;
           const { kind, targets } = confirm;
           setConfirm(null);
-          runArchive(targets, kind);
+          runMutation(targets, kind);
         }}
         onCancel={() => setConfirm(null)}
       />
@@ -585,9 +733,27 @@ function ChaptersTab({
 
 function confirmChapterTitle(c: ChapterConfirm): string {
   if (!c) return '';
-  const verb = c.kind === 'delete' ? 'Delete' : 'Archive';
+  const verb = c.kind === 'restore' ? 'Restore' : 'Archive';
   if (c.targets.length === 1) return `${verb} ${c.targets[0]?.name ?? 'this chapter'}?`;
   return `${verb} ${c.targets.length} chapters?`;
+}
+
+function ChapterStatusPill({ status }: { readonly status: ScopeStatus }) {
+  const styles: Record<ScopeStatus, string> = {
+    active: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    inactive: 'border-muted-foreground/30 bg-muted/40 text-muted-foreground',
+    archived: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+  };
+  const label: Record<ScopeStatus, string> = {
+    active: 'Active',
+    inactive: 'Inactive',
+    archived: 'Archived',
+  };
+  return (
+    <Badge variant="outline" className={styles[status]}>
+      {label[status]}
+    </Badge>
+  );
 }
 
 function KindText({ kind }: { readonly kind: 'autonomous' | 'grouping' }) {
@@ -603,13 +769,14 @@ function ChapterRowActions({
   row,
   onEdit,
   onArchive,
-  onDelete,
+  onRestore,
 }: {
   readonly row: ChapterSerialRow;
   readonly onEdit: (row: ChapterSerialRow) => void;
   readonly onArchive: (row: ChapterSerialRow) => void;
-  readonly onDelete: (row: ChapterSerialRow) => void;
+  readonly onRestore: (row: ChapterSerialRow) => void;
 }) {
+  const isArchived = row.status === 'archived';
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -629,18 +796,20 @@ function ChapterRowActions({
           <Pencil className="h-4 w-4" />
           Edit
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onArchive(row)}>
-          <Archive className="h-4 w-4" />
-          Archive
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="text-destructive focus:text-destructive"
-          onClick={() => onDelete(row)}
-        >
-          <Trash2 className="h-4 w-4" />
-          Delete
-        </DropdownMenuItem>
+        {isArchived ? (
+          <DropdownMenuItem onClick={() => onRestore(row)}>
+            <RotateCcw className="h-4 w-4" />
+            Restore
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onClick={() => onArchive(row)}
+          >
+            <Archive className="h-4 w-4" />
+            Archive
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

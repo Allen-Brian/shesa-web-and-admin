@@ -76,7 +76,7 @@ export function ManageMembershipSwitcher({
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           {scope.name} · Manage Membership
         </h1>
-        <p className="font-mono text-xs text-muted-foreground">{scope.slug}</p>
+        <p className="text-xs text-muted-foreground">{scope.slug}</p>
       </div>
 
       <Tabs defaultValue={defaultTab} className="flex min-h-0 flex-1 flex-col gap-4">

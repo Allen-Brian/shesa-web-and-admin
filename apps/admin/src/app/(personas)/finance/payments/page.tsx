@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { getServerClient } from '@/lib/supabase-server';
@@ -60,7 +61,7 @@ export default async function PaymentsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/finance/payments');
 
-  const [{ data: paymentsRaw }, { data: chargesRaw }] = await Promise.all([
+  const [{ data: paymentsRaw }, { data: chargesRaw }, { data: receiptsRaw }] = await Promise.all([
     supabase
       .schema('finance' as never)
       .from('payments' as never)
@@ -75,10 +76,25 @@ export default async function PaymentsPage() {
       .select('id, scope_id, name, shape, currency, status, lifecycle')
       .eq('status', 'active')
       .order('name'),
+    supabase
+      .schema('finance' as never)
+      .from('receipt_verifications' as never)
+      .select('token, payment_id, receipt_number'),
   ]);
 
   const paymentsData = (paymentsRaw ?? []) as RawPaymentRow[];
   const chargesData = (chargesRaw ?? []) as RawChargeRow[];
+  const receiptsData = (receiptsRaw ?? []) as Array<{
+    token: string;
+    payment_id: string;
+    receipt_number: string;
+  }>;
+  const receiptByPayment = new Map(receiptsData.map((r) => [r.payment_id, r]));
+
+  const hdrs = await headers();
+  const host = hdrs.get('host') ?? 'localhost:3000';
+  const proto = host.startsWith('localhost') || host.startsWith('127.') ? 'http' : 'https';
+  const baseUrl = `${proto}://${host}`;
 
   const scopeIds = Array.from(
     new Set([...paymentsData.map((p) => p.scope_id), ...chargesData.map((c) => c.scope_id)]),
@@ -123,6 +139,7 @@ export default async function PaymentsPage() {
     const charge = p.charge_id ? chargeById.get(p.charge_id) : null;
     const meta = (p.metadata ?? {}) as { donor_name?: string; public_donation?: boolean };
     const donorLabel = meta.donor_name ?? (meta.public_donation ? 'Anonymous donor' : null);
+    const receipt = receiptByPayment.get(p.id);
     return {
       id: p.id,
       obligationId: p.obligation_id,
@@ -138,6 +155,8 @@ export default async function PaymentsPage() {
       reversesPaymentId: p.reverses_payment_id,
       externalRef: p.external_ref,
       createdAt: p.created_at,
+      receiptToken: receipt?.token ?? null,
+      receiptNumber: receipt?.receipt_number ?? null,
     };
   });
 
@@ -155,5 +174,5 @@ export default async function PaymentsPage() {
       };
     });
 
-  return <PaymentsView payments={payments} chargeOptions={chargeOptions} />;
+  return <PaymentsView payments={payments} chargeOptions={chargeOptions} baseUrl={baseUrl} />;
 }

@@ -97,7 +97,7 @@ function ScopeCard({
     <Link href={href}>
       <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/60 hover:bg-primary/5">
         <div className="text-sm font-medium text-foreground">{name}</div>
-        <div className="font-mono text-xs text-muted-foreground">{slug}</div>
+        <div className="text-xs text-muted-foreground">{slug}</div>
       </div>
     </Link>
   );

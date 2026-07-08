@@ -82,7 +82,7 @@ const ColorField = React.forwardRef<HTMLInputElement, ColorFieldProps>(
           placeholder={placeholder}
           maxLength={maxLength}
           disabled={disabled}
-          className="h-full min-w-0 flex-1 bg-transparent px-3 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
+          className="h-full min-w-0 flex-1 bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
         />
       </div>
     );

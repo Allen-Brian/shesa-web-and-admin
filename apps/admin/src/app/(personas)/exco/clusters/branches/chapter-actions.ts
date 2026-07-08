@@ -253,6 +253,18 @@ export async function archiveChapter(scopeId: string): Promise<ChapterActionResu
   return { ok: true, scopeId };
 }
 
+export async function restoreChapter(scopeId: string): Promise<ChapterActionResult> {
+  const supabase = await getServerClient();
+  const { error } = await supabase.functions.invoke('chapters/update-chapter', {
+    body: { scopeId, status: 'active' },
+  });
+  if (error) {
+    return { ok: false, scopeId, message: await extractInvokeMessage(error, 'Could not restore.') };
+  }
+  revalidatePath('/exco/clusters/branches', 'layout');
+  return { ok: true, scopeId };
+}
+
 export async function changeChapterAutonomy(
   scopeId: string,
   chapterKind: 'autonomous' | 'grouping',

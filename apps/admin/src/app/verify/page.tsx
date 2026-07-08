@@ -89,10 +89,10 @@ export default async function VerifyPage({ searchParams }: PageProps) {
       />
       <div className="mt-4 flex flex-col gap-2 rounded-xl border border-border bg-card p-6">
         <ReceiptField label="Receipt #">
-          <span className="font-mono text-sm text-foreground">{result.receipt_number}</span>
+          <span className="text-sm text-foreground">{result.receipt_number}</span>
         </ReceiptField>
         <ReceiptField label="Amount">
-          <span className="font-mono text-lg font-semibold text-foreground">
+          <span className="text-lg font-semibold text-foreground">
             {result.amount ? new Intl.NumberFormat().format(parseFloat(result.amount)) : '—'}{' '}
             {result.currency ?? ''}
           </span>

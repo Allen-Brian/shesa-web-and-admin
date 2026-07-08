@@ -1,6 +1,6 @@
 # 0026 — Docker Swarm for staging and production orchestration
 
-- **Status:** accepted
+- **Status:** superseded by [ADR-0042](0042-vercel-plus-supabase-hosting.md) (2026-07-08)
 - **Date:** 2026-06-29
 - **Deciders:** Lead
 

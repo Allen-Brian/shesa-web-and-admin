@@ -11,7 +11,7 @@ import {
   Home,
   MoreHorizontal,
   Pencil,
-  Trash2,
+  RotateCcw,
 } from 'lucide-react';
 
 import {
@@ -22,9 +22,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
   EntityTablePanel,
+  Switch,
   toast,
   type ColDef,
   type GridApi,
@@ -36,7 +36,7 @@ import {
 import type { ScopeStatus } from '@/components/clusters/cluster-list';
 import { HOME_COUNTRY_CODE, isDiaspora } from '@/lib/country-currency';
 
-import { archiveBranch } from '../actions';
+import { archiveBranch, restoreBranch } from '../actions';
 import type { BranchInitialValues } from './branch-form';
 import { BranchFormDialog } from './branch-form-dialog';
 
@@ -92,7 +92,7 @@ type SerialRow = {
 };
 
 type ConfirmState = null | {
-  readonly kind: 'archive' | 'delete';
+  readonly kind: 'archive' | 'restore';
   readonly targets: readonly SerialRow[];
 };
 
@@ -106,6 +106,7 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
   const router = useRouter();
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [search, setSearch] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
   const [dialogState, setDialogState] = useState<
     | { readonly mode: 'create' }
@@ -115,15 +116,27 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
   const [confirm, setConfirm] = useState<ConfirmState>(null);
   const [, startTransition] = useTransition();
 
+  // "archived" is the soft-delete state. Hide those rows by default so the
+  // day-to-day view doesn't mix live and retired scopes. Users opt into
+  // the archived set with the "Show archived" toggle to restore them.
+  const visibleBranches = useMemo(
+    () => (showArchived ? data : data.filter((b) => b.status !== 'archived')),
+    [data, showArchived],
+  );
+  const visibleChapters = useMemo(
+    () => (showArchived ? chapters : chapters.filter((c) => c.status !== 'archived')),
+    [chapters, showArchived],
+  );
+
   const chaptersByBranch = useMemo(() => {
     const map = new Map<string, ChapterRow[]>();
-    for (const c of chapters) {
+    for (const c of visibleChapters) {
       const bucket = map.get(c.parent_id) ?? [];
       bucket.push(c);
       map.set(c.parent_id, bucket);
     }
     return map;
-  }, [chapters]);
+  }, [visibleChapters]);
 
   const toggleExpanded = useCallback((branchId: string) => {
     setExpanded((prev) => {
@@ -139,7 +152,7 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
   // to branches so they stay stable when a branch is opened.
   const displayed = useMemo<readonly SerialRow[]>(() => {
     const out: SerialRow[] = [];
-    data.forEach((b, index) => {
+    visibleBranches.forEach((b, index) => {
       const children = chaptersByBranch.get(b.id) ?? [];
       out.push({
         serial: index + 1,
@@ -184,7 +197,7 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
       }
     });
     return out;
-  }, [data, chaptersByBranch, expanded]);
+  }, [visibleBranches, chaptersByBranch, expanded]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -215,24 +228,18 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
       },
     });
 
-  const runArchive = (targets: readonly SerialRow[], kind: 'archive' | 'delete') => {
+  const runMutation = (targets: readonly SerialRow[], kind: 'archive' | 'restore') => {
     startTransition(async () => {
-      const results = await Promise.all(targets.map((t) => archiveBranch(t.id)));
+      const fn = kind === 'archive' ? archiveBranch : restoreBranch;
+      const results = await Promise.all(targets.map((t) => fn(t.id)));
       const failed = results.filter((r) => !r.ok);
+      const doneVerb = kind === 'archive' ? 'Archived' : 'Restored';
       if (failed.length === 0) {
-        toast.success(
-          `${kind === 'archive' ? 'Archived' : 'Deleted'} ${targets.length} branch${
-            targets.length === 1 ? '' : 'es'
-          }.`,
-        );
+        toast.success(`${doneVerb} ${targets.length} branch${targets.length === 1 ? '' : 'es'}.`);
       } else if (failed.length === targets.length) {
         toast.error(failed[0]?.message ?? `Could not ${kind}.`);
       } else {
-        toast.error(
-          `${kind === 'archive' ? 'Archived' : 'Deleted'} ${
-            targets.length - failed.length
-          }; ${failed.length} failed.`,
-        );
+        toast.error(`${doneVerb} ${targets.length - failed.length}; ${failed.length} failed.`);
       }
       router.refresh();
     });
@@ -260,8 +267,8 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
       {
         headerName: 'Name',
         field: 'name',
-        flex: 2,
-        minWidth: 220,
+        flex: 3,
+        minWidth: 200,
         cellRenderer: (params: ICellRendererParams<SerialRow, string>) =>
           params.data ? <NameCell row={params.data} /> : null,
       },
@@ -269,16 +276,17 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
         headerName: 'Country',
         field: 'country_code',
         flex: 2,
-        minWidth: 220,
+        minWidth: 180,
         cellRenderer: (params: ICellRendererParams<SerialRow, string>) => (
           <CountryCell iso2={params.value ?? ''} />
         ),
       },
-      { headerName: 'Region', field: 'region', flex: 1, minWidth: 140 },
+      { headerName: 'Region', field: 'region', flex: 2, minWidth: 140 },
       {
         headerName: 'Chapters',
         field: 'chapter_count',
-        width: 110,
+        flex: 0.7,
+        minWidth: 100,
         cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
         headerClass: 'ag-center-aligned-header',
         valueFormatter: (p) => (p.value == null ? '—' : String(p.value)),
@@ -286,7 +294,8 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
       {
         headerName: 'Members',
         field: 'member_count',
-        width: 110,
+        flex: 0.7,
+        minWidth: 100,
         cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
         headerClass: 'ag-center-aligned-header',
       },
@@ -294,7 +303,8 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
         headerName: 'Territory',
         field: 'country_code',
         colId: 'territory',
-        width: 150,
+        flex: 1,
+        minWidth: 130,
         cellRenderer: (params: ICellRendererParams<SerialRow, string>) => (
           <TerritoryText iso2={params.value ?? ''} />
         ),
@@ -302,16 +312,17 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
       {
         headerName: 'Status',
         field: 'status',
-        width: 120,
+        flex: 0.8,
+        minWidth: 110,
         cellRenderer: (params: ICellRendererParams<SerialRow, ScopeStatus>) => (
           <StatusPill status={params.value ?? 'active'} />
         ),
       },
       {
-        headerName: 'Actions',
+        headerName: '',
         colId: 'actions',
-        width: 96,
-        maxWidth: 96,
+        width: 64,
+        maxWidth: 64,
         sortable: false,
         filter: false,
         suppressMovable: true,
@@ -324,7 +335,7 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
               row={params.data}
               onEdit={openEdit}
               onArchive={(r) => setConfirm({ kind: 'archive', targets: [r] })}
-              onDelete={(r) => setConfirm({ kind: 'delete', targets: [r] })}
+              onRestore={(r) => setConfirm({ kind: 'restore', targets: [r] })}
             />
           );
         },
@@ -347,10 +358,13 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
       itemName: 'branch',
       pluralItemName: 'branches',
       onArchive: (selected) => setConfirm({ kind: 'archive', targets: selected }),
-      onDelete: (selected) => setConfirm({ kind: 'delete', targets: selected }),
     }),
     [],
   );
+
+  const archivedCount =
+    data.filter((b) => b.status === 'archived').length +
+    chapters.filter((c) => c.status === 'archived').length;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -363,6 +377,23 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
         canCreate={canCreate}
         onCreate={openCreate}
         createLabel="Create New Branch"
+        filters={
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+            <Switch
+              checked={showArchived}
+              onCheckedChange={setShowArchived}
+              aria-label="Show archived"
+            />
+            <span>
+              Show archived
+              {archivedCount > 0 && (
+                <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground">
+                  {archivedCount}
+                </span>
+              )}
+            </span>
+          </label>
+        }
       />
 
       <DataTable<SerialRow>
@@ -389,13 +420,17 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
       <ConfirmDialog
         open={!!confirm}
         title={confirmTitle(confirm)}
-        description="Archived branches disappear from every dropdown. Members currently attached keep their reference until an admin reassigns them."
-        confirmLabel={confirm?.kind === 'delete' ? 'Delete' : 'Archive'}
+        description={
+          confirm?.kind === 'restore'
+            ? 'The branch will return to the active list and become available in dropdowns again.'
+            : 'Archived branches disappear from every dropdown. Members currently attached keep their reference until an admin reassigns them. Toggle "Show archived" to restore later.'
+        }
+        confirmLabel={confirm?.kind === 'restore' ? 'Restore' : 'Archive'}
         onConfirm={() => {
           if (!confirm) return;
           const { kind, targets } = confirm;
           setConfirm(null);
-          runArchive(targets, kind);
+          runMutation(targets, kind);
         }}
         onCancel={() => setConfirm(null)}
       />
@@ -405,7 +440,7 @@ export function BranchesListView({ data, chapters, canCreate }: BranchesListView
 
 function confirmTitle(confirm: ConfirmState): string {
   if (!confirm) return '';
-  const verb = confirm.kind === 'delete' ? 'Delete' : 'Archive';
+  const verb = confirm.kind === 'restore' ? 'Restore' : 'Archive';
   const n = confirm.targets.length;
   if (n === 1) return `${verb} ${confirm.targets[0]?.name ?? 'this branch'}?`;
   return `${verb} ${n} branches?`;
@@ -512,13 +547,14 @@ function RowActions({
   row,
   onEdit,
   onArchive,
-  onDelete,
+  onRestore,
 }: {
   readonly row: SerialRow;
   readonly onEdit: (row: SerialRow) => void;
   readonly onArchive: (row: SerialRow) => void;
-  readonly onDelete: (row: SerialRow) => void;
+  readonly onRestore: (row: SerialRow) => void;
 }) {
+  const isArchived = row.status === 'archived';
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -538,18 +574,20 @@ function RowActions({
           <Pencil className="h-4 w-4" />
           Edit
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onArchive(row)}>
-          <Archive className="h-4 w-4" />
-          Archive
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="text-destructive focus:text-destructive"
-          onClick={() => onDelete(row)}
-        >
-          <Trash2 className="h-4 w-4" />
-          Delete
-        </DropdownMenuItem>
+        {isArchived ? (
+          <DropdownMenuItem onClick={() => onRestore(row)}>
+            <RotateCcw className="h-4 w-4" />
+            Restore
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onClick={() => onArchive(row)}
+          >
+            <Archive className="h-4 w-4" />
+            Archive
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

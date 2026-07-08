@@ -59,6 +59,12 @@ interface AppSidebarProps {
    * lives under the /finance persona.
    */
   readonly canReadFinance?: boolean;
+  /**
+   * True when the caller is a Mainstream (Global) Admin. Hides the
+   * Assessments item since a Global Admin IS the imposer, not the
+   * receiver, of branch-level levies.
+   */
+  readonly isGlobalAdmin?: boolean;
 }
 
 interface NavItem {
@@ -114,6 +120,7 @@ export function AppSidebar({
   canEditOwnScope = false,
   canViewInvites = false,
   canReadFinance = false,
+  isGlobalAdmin = false,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const meta = PERSONA_META[persona];
@@ -140,6 +147,25 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  tooltip="Dashboard"
+                  isActive={pathname === `/${persona}`}
+                >
+                  <Link href={`/${persona}`}>
+                    <Home />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         {canManageMemberships && (
           <SidebarGroup>
             <SidebarGroupContent>
@@ -292,17 +318,19 @@ export function AppSidebar({
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={pathname.startsWith(`/${persona}/finance-view/obligations`)}
-                          >
-                            <Link href={`/${persona}/finance-view/obligations`}>
-                              <ClipboardList />
-                              <span>Obligations</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
+                        {!isGlobalAdmin && (
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={pathname.startsWith(`/${persona}/finance-view/assessments`)}
+                            >
+                              <Link href={`/${persona}/finance-view/assessments`}>
+                                <ClipboardList />
+                                <span>Assessments</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )}
                       </SidebarMenuSub>
                     </CollapsibleContent>
                   </SidebarMenuItem>
