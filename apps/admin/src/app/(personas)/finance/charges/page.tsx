@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import { ChargesView, type ChargeRow, type ScopeOption } from './widgets/charges-view';
+import { ChargesView } from './widgets/charges-view';
+import type { ChargeRow, ScopeOption } from './widgets/charges-types';
 
 export const dynamic = 'force-dynamic';
 
