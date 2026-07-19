@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import { PaymentsView, type ChargeOption, type PaymentRow } from './widgets/payments-view';
+import { PaymentsView } from './widgets/payments-view';
+import type { ChargeOption, PaymentRow } from './widgets/payments-types';
 
 export const dynamic = 'force-dynamic';
 
