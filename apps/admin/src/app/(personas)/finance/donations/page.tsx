@@ -2,12 +2,8 @@ import { redirect } from 'next/navigation';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import {
-  DonationsView,
-  type CampaignRow,
-  type DonationRow,
-  type ScopeOption,
-} from './widgets/donations-view';
+import { DonationsView } from './widgets/donations-view';
+import type { CampaignRow, DonationRow, ScopeOption } from './widgets/donations-types';
 
 export const dynamic = 'force-dynamic';
 
