@@ -2,12 +2,8 @@ import { notFound } from 'next/navigation';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import {
-  StatementView,
-  type Entry,
-  type Period,
-  type StatementSummary,
-} from './widgets/statement-view';
+import { StatementView } from './widgets/statement-view';
+import type { Entry, Period, StatementSummary } from './widgets/statement-types';
 
 export const dynamic = 'force-dynamic';
 
