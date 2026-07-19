@@ -2,11 +2,8 @@ import { redirect } from 'next/navigation';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import {
-  ContributionsView,
-  type ContributionRow,
-  type ScopeOption,
-} from './widgets/contributions-view';
+import { ContributionsView } from './widgets/contributions-view';
+import type { ContributionRow, ScopeOption } from './widgets/contributions-types';
 
 export const dynamic = 'force-dynamic';
 
