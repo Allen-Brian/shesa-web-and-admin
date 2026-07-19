@@ -2,12 +2,8 @@ import { redirect } from 'next/navigation';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import {
-  ExpensesView,
-  type CategoryOption,
-  type ExpenseRow,
-  type ScopeOption,
-} from './widgets/expenses-view';
+import { ExpensesView } from './widgets/expenses-view';
+import type { CategoryOption, ExpenseRow, ScopeOption } from './widgets/expenses-types';
 
 export const dynamic = 'force-dynamic';
 
