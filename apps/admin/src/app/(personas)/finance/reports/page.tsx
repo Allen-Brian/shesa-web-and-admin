@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import { ReportsView, type ScopeOption } from './widgets/reports-view';
+import { ReportsView } from './widgets/reports-view';
+import type { ScopeOption } from './widgets/reports-types';
 
 export const dynamic = 'force-dynamic';
 
