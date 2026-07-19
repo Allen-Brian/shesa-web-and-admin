@@ -2,7 +2,7 @@ import { StatsCard } from '@shesa/ui';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import { EventsListView, type EventRow } from './widgets/list-view';
+import { EventsListView, type EventRow } from './widgets/events-list-view';
 
 export const dynamic = 'force-dynamic';
 

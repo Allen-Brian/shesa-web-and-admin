@@ -562,7 +562,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="scope">Scope</Label>
               <Select
                 value={createForm.scopeId}
@@ -580,7 +580,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
@@ -590,7 +590,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
                 maxLength={200}
               />
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="description">Description (optional)</Label>
               <Textarea
                 id="description"
@@ -602,7 +602,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="amount">Base amount</Label>
                 <Input
                   id="amount"
@@ -614,7 +614,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
                   placeholder="25000"
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="recurrence">Recurrence</Label>
                 <Select
                   value={createForm.recurrence}
@@ -635,7 +635,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
                 </Select>
               </div>
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="activation">Activation date</Label>
               <NativeDateInput
                 id="activation"
@@ -676,7 +676,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
           </DialogHeader>
           {editing && (
             <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="edit-name">Name</Label>
                 <Input
                   id="edit-name"
@@ -685,7 +685,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
                   maxLength={200}
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="edit-description">Description</Label>
                 <Textarea
                   id="edit-description"
@@ -697,7 +697,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
                   maxLength={2000}
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="edit-activation">Activation date</Label>
                 <NativeDateInput
                   id="edit-activation"
@@ -707,7 +707,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
                   }
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="edit-status">Status</Label>
                 <Select
                   value={editing.status}

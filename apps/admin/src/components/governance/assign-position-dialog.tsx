@@ -139,7 +139,8 @@ export function AssignPositionDialog({
                       {members.map((m) => (
                         <CommandItem
                           key={m.memberId}
-                          value={m.fullName}
+                          value={m.memberId}
+                          keywords={[m.fullName]}
                           onSelect={() => {
                             setMemberId(m.memberId);
                             setMemberOpen(false);
@@ -147,6 +148,11 @@ export function AssignPositionDialog({
                           className="flex items-center justify-between gap-2"
                         >
                           <span className="truncate">{m.fullName}</span>
+                          {m.hasAccount && (
+                            <span className="shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">
+                              Claimed
+                            </span>
+                          )}
                         </CommandItem>
                       ))}
                     </CommandGroup>

@@ -2,26 +2,8 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Crown,
-  MoreHorizontal,
-  Plus,
-  ShieldCheck,
-  Trash2,
-  UserMinus,
-  UserPlus,
-} from 'lucide-react';
 
-import {
-  Badge,
-  Button,
-  ConfirmDialog,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  toast,
-} from '@shesa/ui';
+import { ConfirmDialog, toast } from '@shesa/ui';
 
 import {
   removePosition,
@@ -30,54 +12,59 @@ import {
 } from '@/app/(personas)/exco/clusters/branches/governance-actions';
 
 import { AssignPositionDialog, type GovernanceMemberPickerRow } from './assign-position-dialog';
+import { CreatePositionDialog, type PositionScopeType } from './create-position-dialog';
 import { GrantRoleDialog } from './grant-role-dialog';
+import { PositionsTable } from './positions-table';
+import { RolesPanel } from './roles-panel';
+import type {
+  GovernancePositionCatalogRow,
+  GovernancePositionHolderRow,
+  GovernanceRoleHolderRow,
+} from './types';
 
-export interface GovernancePositionCatalogRow {
-  readonly id: string;
-  readonly name: string;
-  readonly sort_order: number;
-  readonly description: string | null;
-}
-
-export interface GovernancePositionHolderRow {
-  readonly assignmentId: string;
-  readonly positionCatalogId: string;
-  readonly positionName: string;
-  readonly memberId: string;
-  readonly memberName: string;
-  readonly customTitle: string | null;
-  readonly startsAt: string;
-}
-
-export interface GovernanceRoleHolderRow {
-  readonly assignmentId: string;
-  readonly userId: string;
-  readonly userLabel: string;
-  readonly roleKey: string;
-  readonly roleName: string;
-  readonly startsAt: string;
-}
+export type {
+  GovernancePositionCatalogRow,
+  GovernancePositionHolderRow,
+  GovernanceRoleHolderRow,
+} from './types';
 
 interface GovernancePanelProps {
   readonly scopeId: string;
   readonly scopeLabel: string;
+  /**
+   * `scope_type` for the catalog behind this table. The catalog is
+   * federation-wide by scope_type, so a Mainstream admin creating a new
+   * "Sports Coordinator" for scope_type='branch' surfaces it on every
+   * branch's governance table at once.
+   */
+  readonly scopeType: PositionScopeType;
   readonly positionCatalog: readonly GovernancePositionCatalogRow[];
   readonly positionHolders: readonly GovernancePositionHolderRow[];
   readonly roleHolders: readonly GovernanceRoleHolderRow[];
   readonly memberPicker: readonly GovernanceMemberPickerRow[];
   readonly canManage: boolean;
+  /** True only when the caller can extend the catalog (Mainstream admin). */
+  readonly canCreatePositions: boolean;
   readonly emptyCatalogHint?: string;
   readonly emptyRolesHint?: string;
 }
 
+/**
+ * Orchestrator for the governance surface — hosts the positions table,
+ * the standalone-roles list, and the shared assign/grant/confirm
+ * dialogs. All data-shape work is done upstream; this file only wires
+ * event handlers.
+ */
 export function GovernancePanel({
   scopeId,
   scopeLabel,
+  scopeType,
   positionCatalog,
   positionHolders,
   roleHolders,
   memberPicker,
   canManage,
+  canCreatePositions,
   emptyCatalogHint,
   emptyRolesHint,
 }: GovernancePanelProps) {
@@ -85,18 +72,22 @@ export function GovernancePanel({
   const [pending, startTransition] = useTransition();
   const [assignFor, setAssignFor] = useState<GovernancePositionCatalogRow | null>(null);
   const [grantOpen, setGrantOpen] = useState(false);
+  const [grantForMemberId, setGrantForMemberId] = useState<string | null>(null);
+  const [createPositionOpen, setCreatePositionOpen] = useState(false);
   const [confirmPos, setConfirmPos] = useState<GovernancePositionHolderRow | null>(null);
   const [confirmRole, setConfirmRole] = useState<GovernanceRoleHolderRow | null>(null);
 
-  const positionsByCatalog = useMemo(() => {
-    const map = new Map<string, GovernancePositionHolderRow[]>();
-    for (const h of positionHolders) {
-      const list = map.get(h.positionCatalogId) ?? [];
-      list.push(h);
-      map.set(h.positionCatalogId, list);
-    }
-    return map;
+  const positionLinkedUserIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const h of positionHolders) if (h.authUserId) set.add(h.authUserId);
+    return set;
   }, [positionHolders]);
+
+  const nextSortOrder = useMemo(() => {
+    if (positionCatalog.length === 0) return 10;
+    const max = positionCatalog.reduce((acc, c) => Math.max(acc, c.sort_order), 0);
+    return Math.floor(max / 10) * 10 + 10;
+  }, [positionCatalog]);
 
   const doAction = (label: string, fn: () => Promise<ActionResult>) => {
     startTransition(async () => {
@@ -113,158 +104,36 @@ export function GovernancePanel({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between gap-2">
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Positions
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              The executive slate for {scopeLabel}. Each position can hold one primary member.
-            </p>
-          </div>
-        </div>
+      <PositionsTable
+        scopeLabel={scopeLabel}
+        positionCatalog={positionCatalog}
+        positionHolders={positionHolders}
+        roleHolders={roleHolders}
+        canManage={canManage}
+        canCreate={canCreatePositions}
+        onCreate={() => setCreatePositionOpen(true)}
+        emptyHint={emptyCatalogHint ?? 'No position catalog exists for this scope yet.'}
+        onAssignMember={setAssignFor}
+        onRemoveHolder={setConfirmPos}
+        onGrantRole={(holder) => {
+          setGrantForMemberId(holder.memberId);
+          setGrantOpen(true);
+        }}
+        onRevokeRole={setConfirmRole}
+      />
 
-        <div className="divide-y divide-border rounded-xl border border-border bg-card">
-          {positionCatalog.length === 0 && (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              {emptyCatalogHint ?? 'No position catalog exists for this scope yet.'}
-            </div>
-          )}
-          {positionCatalog.map((cat) => {
-            const holders = positionsByCatalog.get(cat.id) ?? [];
-            return (
-              <div
-                key={cat.id}
-                className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <ShieldCheck className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-foreground">{cat.name}</div>
-                    {cat.description && (
-                      <div className="text-xs text-muted-foreground">{cat.description}</div>
-                    )}
-                    {holders.length === 0 ? (
-                      <div className="mt-1 text-xs italic text-muted-foreground">Vacant</div>
-                    ) : (
-                      <ul className="mt-1 space-y-1">
-                        {holders.map((h) => (
-                          <li
-                            key={h.assignmentId}
-                            className="flex items-center gap-2 text-sm text-foreground"
-                          >
-                            <span>{h.memberName}</span>
-                            {h.customTitle && (
-                              <Badge variant="outline" className="text-xs">
-                                {h.customTitle}
-                              </Badge>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-
-                {canManage && (
-                  <div className="flex flex-wrap gap-2 sm:justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setAssignFor(cat)}
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      Assign
-                    </Button>
-                    {holders.length > 0 && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {holders.map((h) => (
-                            <DropdownMenuItem
-                              key={h.assignmentId}
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => setConfirmPos(h)}
-                            >
-                              <UserMinus className="h-4 w-4" />
-                              Remove {h.memberName}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between gap-2">
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Portal access (roles)
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Members with these roles can sign into the admin portal for {scopeLabel}.
-            </p>
-          </div>
-          {canManage && (
-            <Button type="button" size="sm" variant="outline" onClick={() => setGrantOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Grant role
-            </Button>
-          )}
-        </div>
-
-        <div className="rounded-xl border border-border bg-card">
-          {roleHolders.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              {emptyRolesHint ?? 'No roles granted at this scope yet.'}
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {roleHolders.map((r) => (
-                <li key={r.assignmentId} className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-400/15 text-amber-600 dark:text-amber-300">
-                      <Crown className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-foreground">{r.userLabel}</div>
-                      <div className="text-xs text-muted-foreground">
-                        <span className="">{r.roleKey}</span> · {r.roleName}
-                      </div>
-                    </div>
-                  </div>
-                  {canManage && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => setConfirmRole(r)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Revoke
-                    </Button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
+      <RolesPanel
+        scopeLabel={scopeLabel}
+        roleHolders={roleHolders}
+        excludeUserIds={positionLinkedUserIds}
+        canManage={canManage}
+        emptyHint={emptyRolesHint ?? 'No standalone roles at this scope.'}
+        onGrantRole={() => {
+          setGrantForMemberId(null);
+          setGrantOpen(true);
+        }}
+        onRevokeRole={setConfirmRole}
+      />
 
       {assignFor && (
         <AssignPositionDialog
@@ -279,11 +148,24 @@ export function GovernancePanel({
 
       <GrantRoleDialog
         open={grantOpen}
-        onOpenChange={setGrantOpen}
+        onOpenChange={(o) => {
+          setGrantOpen(o);
+          if (!o) setGrantForMemberId(null);
+        }}
         scopeId={scopeId}
         scopeLabel={scopeLabel}
         members={memberPicker}
+        initialMemberId={grantForMemberId}
       />
+
+      {canCreatePositions && (
+        <CreatePositionDialog
+          open={createPositionOpen}
+          onOpenChange={setCreatePositionOpen}
+          scopeType={scopeType}
+          nextSortOrder={nextSortOrder}
+        />
+      )}
 
       <ConfirmDialog
         open={!!confirmPos}

@@ -29,6 +29,12 @@ interface AppShellProps {
    * doing the imposing — e.g. Assessments is the receiver's view.
    */
   readonly isGlobalAdmin?: boolean;
+  /**
+   * True when the caller holds `cms.edit` — reveals the Content group
+   * (Leadership et al.) in the sidebar. Set by the editor layout for
+   * the Site Editor persona and by the exco layout for mainstream_admin.
+   */
+  readonly canEditCms?: boolean;
   readonly children: React.ReactNode;
 }
 
@@ -53,6 +59,7 @@ export function AppShell({
   canReadFinance,
   isGlobalFinance,
   isGlobalAdmin,
+  canEditCms,
   children,
 }: AppShellProps) {
   const [open, setOpen] = React.useState(true);
@@ -80,6 +87,7 @@ export function AppShell({
             canViewInvites={canViewInvites}
             canReadFinance={canReadFinance}
             isGlobalAdmin={isGlobalAdmin}
+            canEditCms={canEditCms}
           />
         )}
         <SidebarInset>

@@ -199,6 +199,20 @@ export default async function BranchDetailPage({ params }: BranchDetailPageProps
 
   const catalogById = new Map(positionCatalogRows.map((c) => [c.id, c]));
 
+  // Fetch member_accounts for position holders up front so the
+  // governance table's Role column can resolve holder → auth_user_id
+  // → role_assignment client-side.
+  const { data: holderAccounts } = positionMemberIds.length
+    ? await supabase
+        .schema('core')
+        .from('member_accounts')
+        .select('member_id, auth_user_id')
+        .in('member_id', positionMemberIds)
+    : { data: [] as Array<{ member_id: string; auth_user_id: string | null }> };
+  const authUserByPositionMember = new Map(
+    (holderAccounts ?? []).map((a) => [a.member_id, a.auth_user_id]),
+  );
+
   const positionHolders: PositionHolderRow[] = (positionAssignments ?? []).map((a) => {
     const cat = catalogById.get(a.position_catalog_id);
     const mem = positionMemberMap.get(a.member_id);
@@ -208,6 +222,7 @@ export default async function BranchDetailPage({ params }: BranchDetailPageProps
       positionName: cat?.name ?? '(unknown)',
       memberId: a.member_id,
       memberName: mem?.full_name ?? '(unknown member)',
+      authUserId: authUserByPositionMember.get(a.member_id) ?? null,
       customTitle: a.custom_title,
       startsAt: a.starts_at,
     };

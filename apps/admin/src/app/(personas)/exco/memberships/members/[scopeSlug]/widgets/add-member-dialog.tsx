@@ -23,7 +23,7 @@ import {
 
 import { getBrowserClient } from '@/lib/supabase-browser';
 
-import { addMemberToScope } from '../../../actions';
+import { addMemberToScope } from '../../../add-member-actions';
 import type { MembersPageScope } from './members-page';
 
 interface AddMemberDialogProps {

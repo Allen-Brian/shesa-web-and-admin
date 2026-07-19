@@ -23,7 +23,7 @@ import { ArrowDown, ArrowUp, ImagePlus, Star, Trash2 } from 'lucide-react';
 
 import { Button, toast } from '@shesa/ui';
 
-import { uploadEventAdvertImage } from '@/app/(personas)/exco/events/actions';
+import { uploadEventAdvertImage } from '@/app/(personas)/exco/events/event-image-actions';
 
 export interface EventImagesPickerProps {
   /** Hidden input's name attribute — the form reads FormData.get(name). */

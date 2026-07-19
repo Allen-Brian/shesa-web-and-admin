@@ -2,7 +2,7 @@ import { StatsCard } from '@shesa/ui';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import { AnnouncementsListView, type AnnouncementRow } from './widgets/list-view';
+import { AnnouncementsListView, type AnnouncementRow } from './widgets/announcements-list-view';
 
 export const dynamic = 'force-dynamic';
 

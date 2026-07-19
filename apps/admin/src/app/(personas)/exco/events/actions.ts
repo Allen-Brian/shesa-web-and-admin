@@ -2,16 +2,30 @@
 
 import { revalidatePath } from 'next/cache';
 
-import { clientEnv } from '@shesa/config/env.client';
-import { AUDIENCE_ALL, AudienceDefinition } from '@shesa/domain/audience';
-import { createServiceRoleClient } from '@shesa/supabase/service-role';
-
 import { extractInvokeMessage } from '@/lib/edge-invoke';
 import { getServerClient } from '@/lib/supabase-server';
 
+import type { EventFormState } from './event-form-types';
+import {
+  extractId,
+  parseAdvertImagesJson,
+  parseAudienceJson,
+  parseProgramItemsJson,
+  parseReminderCadence,
+  parseTypesJson,
+  readNullableString,
+  readString,
+  validateCoreEventFields,
+  validateScheduledPublishAt,
+} from './event-form-parser';
+
+export type { EventFormState } from './event-form-types';
+
 /**
  * Server Actions for exco.events — the envelope layer per ADR-0033.
- * All mutations go through the events/* Edge Functions.
+ * All mutations go through the events/* Edge Functions. Form-parsing
+ * helpers live in event-form-parser.ts; the image upload action lives
+ * in event-image-actions.ts.
  */
 
 // ─── Row-level actions used by the list ──────────────────────────────
@@ -42,192 +56,45 @@ export async function archiveEvent(
   return { ok: true, id };
 }
 
-// ─── Form state contract ─────────────────────────────────────────────
-
-export type EventFormState =
-  | { ok: true; id?: string; published?: boolean }
-  | {
-      ok: false;
-      message?: string;
-      fieldErrors?: Partial<Record<EventFormField, string>>;
-      values?: Partial<Record<EventFormField, string>>;
-    };
-
-type EventFormField =
-  'ownerScopeId' | 'name' | 'description' | 'startAt' | 'endAt' | 'scheduledPublishAt' | 'venue';
-
-const EVENT_TYPES = [
-  'sports',
-  'entertainment',
-  'meeting',
-  'mentorship',
-  'assembly',
-  'networking',
-  'fundraiser',
-  'community_service',
-  'cultural',
-  'training',
-  'ceremony',
-  'celebration',
-  'conference',
-  'other',
-] as const;
-type EventType = (typeof EVENT_TYPES)[number];
-
-interface ProgramItemInput {
-  readonly startsAt: string;
-  readonly title: string;
-  readonly detail?: string | null;
-  readonly sortOrder?: number;
-}
-
 // ─── createEvent — the form's submit action ──────────────────────────
 
 /**
  * Create an event. Reads FormData; intent (draft / schedule / publish)
- * comes from the named submit button.
- *
- * The Edge Function validates fully with Zod. This action does light
- * shape work — pulling JSON hidden inputs, normalizing empties,
- * mapping intent → status → chain publish if needed.
+ * comes from the named submit button. The Edge Function validates
+ * fully with Zod; this action does light shape work + intent routing.
  */
 export async function createEvent(
   _prev: EventFormState,
   formData: FormData,
 ): Promise<EventFormState> {
-  const readString = (k: string) => {
-    const raw = formData.get(k);
-    return typeof raw === 'string' ? raw.trim() : '';
-  };
-  const readNullableString = (k: string) => {
-    const s = readString(k);
-    return s === '' ? null : s;
-  };
-
-  const ownerScopeId = readString('ownerScopeId');
-  const name = readString('name');
-  const description = readString('description');
-  const timezone = readString('timezone') || 'UTC';
-
-  const startAt = readString('startAt');
-  const endAt = readString('endAt');
-
-  const venueName = readNullableString('venueName');
-  const venueAddress = readNullableString('venueAddress');
-  const venueMapUrl = readNullableString('venueMapUrl');
-  const onlineUrl = readNullableString('onlineUrl');
-
+  const ownerScopeId = readString(formData, 'ownerScopeId');
+  const name = readString(formData, 'name');
+  const description = readString(formData, 'description');
+  const timezone = readString(formData, 'timezone') || 'UTC';
+  const startAt = readString(formData, 'startAt');
+  const endAt = readString(formData, 'endAt');
+  const venueName = readNullableString(formData, 'venueName');
+  const venueAddress = readNullableString(formData, 'venueAddress');
+  const venueMapUrl = readNullableString(formData, 'venueMapUrl');
+  const onlineUrl = readNullableString(formData, 'onlineUrl');
   const rsvpEnabled = formData.get('rsvpEnabled') === 'on';
-  const scheduledPublishAtRaw = readString('scheduledPublishAt');
-  const intent = readString('intent') as 'draft' | 'schedule' | 'publish' | '';
+  const scheduledPublishAtRaw = readString(formData, 'scheduledPublishAt');
+  const intent = readString(formData, 'intent') as 'draft' | 'schedule' | 'publish' | '';
+  const reminderCadence = parseReminderCadence(readString(formData, 'reminderCadence'));
+  const reminderStartAt = readNullableString(formData, 'reminderStartAt');
+  const reminderCustomMessage = readNullableString(formData, 'reminderCustomMessage');
+  const contributionChargeId = readNullableString(formData, 'contributionChargeId');
 
-  const reminderCadenceRaw = readString('reminderCadence');
-  const reminderCadence =
-    reminderCadenceRaw === 'weekly' ||
-    reminderCadenceRaw === 'biweekly' ||
-    reminderCadenceRaw === 'monthly'
-      ? reminderCadenceRaw
-      : null;
-  const reminderStartAt = readNullableString('reminderStartAt');
-  const reminderCustomMessage = readNullableString('reminderCustomMessage');
-  const contributionChargeId = readNullableString('contributionChargeId');
-
-  const fieldErrors: Partial<Record<EventFormField, string>> = {};
+  const fieldErrors = validateCoreEventFields({ name, startAt, endAt, venueName, onlineUrl });
   if (!ownerScopeId) fieldErrors.ownerScopeId = 'Pick a scope to publish under.';
-  if (!name) fieldErrors.name = 'Event name is required.';
-  else if (name.length > 200) fieldErrors.name = 'Event name must be under 200 characters.';
-  if (!startAt) fieldErrors.startAt = 'Start date and time are required.';
-  if (!endAt) fieldErrors.endAt = 'End date and time are required.';
-  if (startAt && endAt && new Date(endAt).getTime() < new Date(startAt).getTime()) {
-    fieldErrors.endAt = 'End must be on or after start.';
-  }
-  if (!venueName && !onlineUrl) {
-    fieldErrors.venue = 'At least one of Venue or Online URL is required.';
-  }
 
-  let scheduledPublishAt: string | null = null;
-  if (intent === 'schedule') {
-    if (!scheduledPublishAtRaw) {
-      fieldErrors.scheduledPublishAt = 'Pick a date and time to schedule for.';
-    } else {
-      const when = new Date(scheduledPublishAtRaw);
-      if (Number.isNaN(when.getTime())) {
-        fieldErrors.scheduledPublishAt = 'Invalid schedule time.';
-      } else if (when.getTime() <= Date.now()) {
-        fieldErrors.scheduledPublishAt = 'Schedule time must be in the future.';
-      } else {
-        scheduledPublishAt = when.toISOString();
-      }
-    }
-  }
+  const scheduledPublishAt =
+    intent === 'schedule' ? validateScheduledPublishAt(scheduledPublishAtRaw, fieldErrors) : null;
 
-  // ── JSON hidden inputs ────────────────────────────────────────────
-  let audienceDefinition = AUDIENCE_ALL;
-  const audienceRaw = readString('audienceDefinitionJson');
-  if (audienceRaw) {
-    try {
-      const parsed = AudienceDefinition.safeParse(JSON.parse(audienceRaw));
-      if (parsed.success) audienceDefinition = parsed.data;
-    } catch {
-      /* fall back to All — Edge Function re-validates */
-    }
-  }
-
-  let programItems: ProgramItemInput[] = [];
-  const programItemsRaw = readString('programItemsJson');
-  if (programItemsRaw) {
-    try {
-      const parsed = JSON.parse(programItemsRaw);
-      if (Array.isArray(parsed)) {
-        programItems = parsed
-          .filter(
-            (p): p is ProgramItemInput =>
-              p &&
-              typeof p === 'object' &&
-              typeof p.startsAt === 'string' &&
-              typeof p.title === 'string',
-          )
-          .map((p, idx) => ({
-            startsAt: p.startsAt,
-            title: p.title.trim(),
-            detail: p.detail ? String(p.detail).trim() : null,
-            sortOrder: typeof p.sortOrder === 'number' ? p.sortOrder : idx,
-          }))
-          .filter((p) => p.title.length > 0);
-      }
-    } catch {
-      /* no program items */
-    }
-  }
-
-  let types: EventType[] = [];
-  const typesRaw = readString('typesJson');
-  if (typesRaw) {
-    try {
-      const parsed = JSON.parse(typesRaw);
-      if (Array.isArray(parsed)) {
-        const allowed = new Set(EVENT_TYPES);
-        types = parsed.filter(
-          (t): t is EventType => typeof t === 'string' && allowed.has(t as EventType),
-        );
-      }
-    } catch {
-      /* no types */
-    }
-  }
-
-  let advertImageUrls: string[] = [];
-  const advertImagesRaw = readString('advertImageUrlsJson');
-  if (advertImagesRaw) {
-    try {
-      const parsed = JSON.parse(advertImagesRaw);
-      if (Array.isArray(parsed)) {
-        advertImageUrls = parsed.filter((s): s is string => typeof s === 'string' && s.length > 0);
-      }
-    } catch {
-      /* no images */
-    }
-  }
+  const audienceDefinition = parseAudienceJson(readString(formData, 'audienceDefinitionJson'));
+  const programItems = parseProgramItemsJson(readString(formData, 'programItemsJson'));
+  const types = parseTypesJson(readString(formData, 'typesJson'));
+  const advertImageUrls = parseAdvertImagesJson(readString(formData, 'advertImageUrlsJson'));
 
   if (Object.keys(fieldErrors).length > 0) {
     return {
@@ -293,14 +160,6 @@ export async function createEvent(
   return { ok: true, id: id ?? undefined };
 }
 
-function extractId(data: unknown): string | null {
-  if (!data || typeof data !== 'object') return null;
-  const rec = data as { id?: unknown; data?: { id?: unknown } };
-  const nested = rec.data?.id;
-  const flat = rec.id;
-  return typeof nested === 'string' ? nested : typeof flat === 'string' ? flat : null;
-}
-
 // ─── updateEvent — the edit-page submit action ───────────────────────
 //
 // PATCH-style update against events/update. Program items get sent as
@@ -312,135 +171,30 @@ export async function updateEvent(
   _prev: EventFormState,
   formData: FormData,
 ): Promise<EventFormState> {
-  const readString = (k: string) => {
-    const raw = formData.get(k);
-    return typeof raw === 'string' ? raw.trim() : '';
-  };
-  const readNullableString = (k: string) => {
-    const s = readString(k);
-    return s === '' ? null : s;
-  };
-
-  const name = readString('name');
-  const description = readString('description');
-  const timezone = readString('timezone') || 'UTC';
-
-  const startAt = readString('startAt');
-  const endAt = readString('endAt');
-
-  const venueName = readNullableString('venueName');
-  const venueAddress = readNullableString('venueAddress');
-  const venueMapUrl = readNullableString('venueMapUrl');
-  const onlineUrl = readNullableString('onlineUrl');
-
+  const name = readString(formData, 'name');
+  const description = readString(formData, 'description');
+  const timezone = readString(formData, 'timezone') || 'UTC';
+  const startAt = readString(formData, 'startAt');
+  const endAt = readString(formData, 'endAt');
+  const venueName = readNullableString(formData, 'venueName');
+  const venueAddress = readNullableString(formData, 'venueAddress');
+  const venueMapUrl = readNullableString(formData, 'venueMapUrl');
+  const onlineUrl = readNullableString(formData, 'onlineUrl');
   const rsvpEnabled = formData.get('rsvpEnabled') === 'on';
-  const scheduledPublishAtRaw = readString('scheduledPublishAt');
-  const intent = readString('intent') as 'draft' | 'schedule' | '';
+  const scheduledPublishAtRaw = readString(formData, 'scheduledPublishAt');
+  const intent = readString(formData, 'intent') as 'draft' | 'schedule' | '';
+  const reminderCadence = parseReminderCadence(readString(formData, 'reminderCadence'));
+  const reminderStartAt = readNullableString(formData, 'reminderStartAt');
+  const reminderCustomMessage = readNullableString(formData, 'reminderCustomMessage');
 
-  const reminderCadenceRaw = readString('reminderCadence');
-  const reminderCadence =
-    reminderCadenceRaw === 'weekly' ||
-    reminderCadenceRaw === 'biweekly' ||
-    reminderCadenceRaw === 'monthly'
-      ? reminderCadenceRaw
-      : null;
-  const reminderStartAt = readNullableString('reminderStartAt');
-  const reminderCustomMessage = readNullableString('reminderCustomMessage');
+  const fieldErrors = validateCoreEventFields({ name, startAt, endAt, venueName, onlineUrl });
+  const scheduledPublishAt =
+    intent === 'schedule' ? validateScheduledPublishAt(scheduledPublishAtRaw, fieldErrors) : null;
 
-  const fieldErrors: Partial<Record<EventFormField, string>> = {};
-  if (!name) fieldErrors.name = 'Event name is required.';
-  else if (name.length > 200) fieldErrors.name = 'Event name must be under 200 characters.';
-  if (!startAt) fieldErrors.startAt = 'Start date and time are required.';
-  if (!endAt) fieldErrors.endAt = 'End date and time are required.';
-  if (startAt && endAt && new Date(endAt).getTime() < new Date(startAt).getTime()) {
-    fieldErrors.endAt = 'End must be on or after start.';
-  }
-  if (!venueName && !onlineUrl) {
-    fieldErrors.venue = 'At least one of Venue or Online URL is required.';
-  }
-
-  let scheduledPublishAt: string | null = null;
-  if (intent === 'schedule') {
-    if (!scheduledPublishAtRaw) {
-      fieldErrors.scheduledPublishAt = 'Pick a date and time to schedule for.';
-    } else {
-      const when = new Date(scheduledPublishAtRaw);
-      if (Number.isNaN(when.getTime())) {
-        fieldErrors.scheduledPublishAt = 'Invalid schedule time.';
-      } else if (when.getTime() <= Date.now()) {
-        fieldErrors.scheduledPublishAt = 'Schedule time must be in the future.';
-      } else {
-        scheduledPublishAt = when.toISOString();
-      }
-    }
-  }
-
-  let audienceDefinition = AUDIENCE_ALL;
-  const audienceRaw = readString('audienceDefinitionJson');
-  if (audienceRaw) {
-    try {
-      const parsed = AudienceDefinition.safeParse(JSON.parse(audienceRaw));
-      if (parsed.success) audienceDefinition = parsed.data;
-    } catch {
-      /* fall back to All */
-    }
-  }
-
-  let programItems: ProgramItemInput[] = [];
-  const programItemsRaw = readString('programItemsJson');
-  if (programItemsRaw) {
-    try {
-      const parsed = JSON.parse(programItemsRaw);
-      if (Array.isArray(parsed)) {
-        programItems = parsed
-          .filter(
-            (p): p is ProgramItemInput =>
-              p &&
-              typeof p === 'object' &&
-              typeof p.startsAt === 'string' &&
-              typeof p.title === 'string',
-          )
-          .map((p, idx) => ({
-            startsAt: p.startsAt,
-            title: p.title.trim(),
-            detail: p.detail ? String(p.detail).trim() : null,
-            sortOrder: typeof p.sortOrder === 'number' ? p.sortOrder : idx,
-          }))
-          .filter((p) => p.title.length > 0);
-      }
-    } catch {
-      /* no program items */
-    }
-  }
-
-  let types: EventType[] = [];
-  const typesRaw = readString('typesJson');
-  if (typesRaw) {
-    try {
-      const parsed = JSON.parse(typesRaw);
-      if (Array.isArray(parsed)) {
-        const allowed = new Set(EVENT_TYPES);
-        types = parsed.filter(
-          (t): t is EventType => typeof t === 'string' && allowed.has(t as EventType),
-        );
-      }
-    } catch {
-      /* no types */
-    }
-  }
-
-  let advertImageUrls: string[] = [];
-  const advertImagesRaw = readString('advertImageUrlsJson');
-  if (advertImagesRaw) {
-    try {
-      const parsed = JSON.parse(advertImagesRaw);
-      if (Array.isArray(parsed)) {
-        advertImageUrls = parsed.filter((s): s is string => typeof s === 'string' && s.length > 0);
-      }
-    } catch {
-      /* no images */
-    }
-  }
+  const audienceDefinition = parseAudienceJson(readString(formData, 'audienceDefinitionJson'));
+  const programItems = parseProgramItemsJson(readString(formData, 'programItemsJson'));
+  const types = parseTypesJson(readString(formData, 'typesJson'));
+  const advertImageUrls = parseAdvertImagesJson(readString(formData, 'advertImageUrlsJson'));
 
   if (Object.keys(fieldErrors).length > 0) {
     return {
@@ -490,75 +244,4 @@ export async function updateEvent(
   revalidatePath('/exco/events');
   revalidatePath(`/exco/events/${id}`);
   return { ok: true, id };
-}
-
-// ─── Image upload ────────────────────────────────────────────────────
-
-const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // matches the bucket file_size_limit
-
-/**
- * Upload a single advert image for an event. Called from the
- * EventImagesPicker's onChange. Returns a public CDN URL the form
- * embeds into the hidden `advertImageUrlsJson` payload.
- *
- * Auth model: the caller must be signed in (getServerClient reads
- * the session cookie). Beyond that, uploads land in an
- * uploader-scoped folder in the public `event-advert-images` bucket
- * — the caller can only overwrite their own path. When we wire the
- * events/create Edge Function to associate images to a specific
- * event, unreferenced uploads become reap candidates for a
- * scheduled cleanup job.
- */
-export async function uploadEventAdvertImage(
-  formData: FormData,
-): Promise<{ ok: true; url: string; path: string } | { ok: false; message: string }> {
-  const supabase = await getServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: 'Not signed in.' };
-
-  const file = formData.get('file');
-  if (!(file instanceof File)) return { ok: false, message: 'No file supplied.' };
-  if (file.size === 0) return { ok: false, message: 'File is empty.' };
-  if (file.size > MAX_IMAGE_BYTES) {
-    return { ok: false, message: 'Image must be under 5 MB.' };
-  }
-  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    return {
-      ok: false,
-      message: `Unsupported file type "${file.type}". Use JPEG, PNG, WebP, or AVIF.`,
-    };
-  }
-
-  // Path convention: {user_id}/{timestamp}-{sanitized-name}
-  const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 80);
-  const path = `${user.id}/${Date.now()}-${cleanName}`;
-
-  const serviceClient = createServiceRoleClient();
-  const { error: upErr } = await serviceClient.storage
-    .from('event-advert-images')
-    .upload(path, file, {
-      contentType: file.type,
-      cacheControl: '3600',
-      upsert: false,
-    });
-
-  if (upErr) {
-    return {
-      ok: false,
-      message: upErr.message ?? 'Could not upload the image.',
-    };
-  }
-
-  // Build the URL from the client-facing base rather than the
-  // Storage SDK's getPublicUrl. In local Docker dev the admin server
-  // reaches Supabase over an internal hostname (host.docker.internal),
-  // and getPublicUrl would bake that into the URL — unreachable from
-  // the browser. NEXT_PUBLIC_SUPABASE_URL is always the browser-facing
-  // origin, on every environment.
-  const publicBase = clientEnv.NEXT_PUBLIC_SUPABASE_URL.replace(/\/+$/, '');
-  const url = `${publicBase}/storage/v1/object/public/event-advert-images/${path}`;
-  return { ok: true, url, path };
 }

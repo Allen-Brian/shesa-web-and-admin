@@ -103,6 +103,20 @@ export default async function MainstreamSettingsPage() {
     ((allMemberRows ?? []) as Array<{ id: string; full_name: string }>).map((m) => [m.id, m]),
   );
 
+  // Fetch member_accounts up front for the position holders so the
+  // governance table's Role column can resolve holder → auth_user_id →
+  // role_assignment in one client-side pass.
+  const { data: holderAccounts } = memberIdsFromPositions.length
+    ? await supabase
+        .schema('core')
+        .from('member_accounts')
+        .select('member_id, auth_user_id')
+        .in('member_id', memberIdsFromPositions)
+    : { data: [] as Array<{ member_id: string; auth_user_id: string | null }> };
+  const authUserByMember = new Map(
+    (holderAccounts ?? []).map((a) => [a.member_id, a.auth_user_id]),
+  );
+
   const positionHolders: GovernancePositionHolderRow[] = (positionAssignments ?? []).map((a) => {
     const cat = catalogById.get(a.position_catalog_id);
     const mem = memberById.get(a.member_id);
@@ -112,6 +126,7 @@ export default async function MainstreamSettingsPage() {
       positionName: cat?.name ?? '(unknown)',
       memberId: a.member_id,
       memberName: mem?.full_name ?? '(unknown member)',
+      authUserId: authUserByMember.get(a.member_id) ?? null,
       customTitle: a.custom_title,
       startsAt: a.starts_at,
     };
@@ -143,36 +158,22 @@ export default async function MainstreamSettingsPage() {
     };
   });
 
-  // Post-2026-07-05 position assignment no longer requires an auth
-  // account, so hasAccount is informational. Lookup accounts only for
-  // members already holding a position (avoid pulling every account).
-  const { data: accounts } = memberIdsFromPositions.length
-    ? await supabase
-        .schema('core')
-        .from('member_accounts')
-        .select('member_id, auth_user_id, claim_status')
-        .in('member_id', memberIdsFromPositions)
-    : {
-        data: [] as Array<{
-          member_id: string;
-          auth_user_id: string | null;
-          claim_status: string;
-        }>,
-      };
-  const accountByMember = new Map((accounts ?? []).map((a) => [a.member_id, a]));
-
+  // Reuse the position-holder account map for the picker (positions can
+  // only be assigned to a member already holding — or eligible to hold —
+  // one). authUserId is informational for hasAccount; post-2026-07-05
+  // positions don't require an account.
   const memberPicker: GovernanceMemberPickerRow[] = (
     (allMemberRows ?? []) as Array<{
       id: string;
       full_name: string;
     }>
   ).map((m) => {
-    const acct = accountByMember.get(m.id);
+    const authUserId = authUserByMember.get(m.id) ?? null;
     return {
       memberId: m.id,
       fullName: m.full_name,
-      hasAccount: !!acct?.auth_user_id,
-      authUserId: acct?.auth_user_id ?? null,
+      hasAccount: !!authUserId,
+      authUserId,
     };
   });
 
@@ -188,19 +189,21 @@ export default async function MainstreamSettingsPage() {
           {mainstream.name}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Federation-wide governance. The Mainstream executive slate holds these positions; global
-          admin roles live below.
+          Federation-wide governance — the executive slate and the portal roles that run alongside
+          each position.
         </p>
       </div>
 
       <GovernancePanel
         scopeId={scopeId}
         scopeLabel={mainstream.name}
+        scopeType="mainstream"
         positionCatalog={positionCatalog}
         positionHolders={positionHolders}
         roleHolders={roleHolders}
         memberPicker={memberPicker}
         canManage={canManageGovernance === true}
+        canCreatePositions={canManageGovernance === true}
         emptyCatalogHint="No mainstream position catalog exists yet."
         emptyRolesHint="No global roles granted yet."
       />

@@ -186,15 +186,31 @@ export default async function SettingsScopePage({ params }: Params) {
     : { data: [] as Array<{ id: string; full_name: string }> };
   const memberById = new Map((memberRows ?? []).map((m) => [m.id, m]));
 
+  // Member picker — links members to auth users when available. Fetch
+  // once so both `positionHolders.authUserId` (for the Role column in
+  // the governance table) and the picker's `hasAccount` share the map.
+  const { data: accounts } = memberIds.length
+    ? await supabase
+        .schema('core')
+        .from('member_accounts')
+        .select('member_id, auth_user_id, claim_status')
+        .in('member_id', memberIds)
+    : {
+        data: [] as Array<{ member_id: string; auth_user_id: string | null; claim_status: string }>,
+      };
+  const accountByMember = new Map((accounts ?? []).map((a) => [a.member_id, a]));
+
   const positionHolders: GovernancePositionHolderRow[] = (positionAssignments ?? []).map((a) => {
     const cat = catalogById.get(a.position_catalog_id);
     const mem = memberById.get(a.member_id);
+    const acct = accountByMember.get(a.member_id);
     return {
       assignmentId: a.id,
       positionCatalogId: a.position_catalog_id,
       positionName: cat?.name ?? '(unknown)',
       memberId: a.member_id,
       memberName: mem?.full_name ?? '(unknown member)',
+      authUserId: acct?.auth_user_id ?? null,
       customTitle: a.custom_title,
       startsAt: a.starts_at,
     };
@@ -224,20 +240,9 @@ export default async function SettingsScopePage({ params }: Params) {
     };
   });
 
-  // Member picker — links members to auth users when available. Post
-  // 2026-07-05 the account requirement was dropped for position
-  // assignment, so hasAccount is informational only.
-  const { data: accounts } = memberIds.length
-    ? await supabase
-        .schema('core')
-        .from('member_accounts')
-        .select('member_id, auth_user_id, claim_status')
-        .in('member_id', memberIds)
-    : {
-        data: [] as Array<{ member_id: string; auth_user_id: string | null; claim_status: string }>,
-      };
-  const accountByMember = new Map((accounts ?? []).map((a) => [a.member_id, a]));
-
+  // Picker is drawn from the scope's active/passive memberships (only
+  // members of this branch qualify to hold its positions). `hasAccount`
+  // is informational post-2026-07-05.
   const memberPicker: GovernanceMemberPickerRow[] = (memberships ?? [])
     .map((m) => {
       const mem = memberById.get(m.member_id);
@@ -306,6 +311,7 @@ export default async function SettingsScopePage({ params }: Params) {
       memberPicker={memberPicker}
       canUpdate={canUpdate === true}
       canManageGovernance={canManageGovernance === true}
+      canCreatePositions={isGlobalAdmin}
       hideEditTab={isGlobalAdmin}
     />
   );

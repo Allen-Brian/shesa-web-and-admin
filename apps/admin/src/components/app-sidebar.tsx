@@ -10,6 +10,7 @@ import {
   ChevronRight,
   ClipboardList,
   Cog,
+  Crown,
   GraduationCap,
   Home,
   Layers,
@@ -65,6 +66,13 @@ interface AppSidebarProps {
    * receiver, of branch-level levies.
    */
   readonly isGlobalAdmin?: boolean;
+  /**
+   * True when the caller holds `cms.edit` at any scope — surfaces the
+   * "Content" sidebar group. In practice this is the Site Editor
+   * (unscoped) plus mainstream_admin. The public-website Leadership,
+   * Announcements copy, etc. live under this group.
+   */
+  readonly canEditCms?: boolean;
 }
 
 interface NavItem {
@@ -121,6 +129,7 @@ export function AppSidebar({
   canViewInvites = false,
   canReadFinance = false,
   isGlobalAdmin = false,
+  canEditCms = false,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const meta = PERSONA_META[persona];
@@ -271,6 +280,35 @@ export function AppSidebar({
         </SidebarGroup>
 
         {/*
+         * Content (CMS) — surfaces the public-website curation. Only
+         * for callers holding `cms.edit` (Site Editor + mainstream_admin).
+         * Leadership is the first (and currently only) surface.
+         */}
+        {canEditCms && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Leadership"
+                    isActive={
+                      pathname === `/${persona}/leadership` ||
+                      pathname.startsWith(`/${persona}/leadership/`)
+                    }
+                  >
+                    <Link href={`/${persona}/leadership`}>
+                      <Crown />
+                      <span>Leadership</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/*
          * Finance visibility — READ-ONLY. Admins (Global + Branch) can
          * see Charges, Contributions, and Obligations at scopes they
          * have finance-read at. The money-mover surface (Payments,
@@ -322,11 +360,11 @@ export function AppSidebar({
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
                               asChild
-                              isActive={pathname.startsWith(`/${persona}/finance-view/assessments`)}
+                              isActive={pathname.startsWith(`/${persona}/finance-view/obligations`)}
                             >
-                              <Link href={`/${persona}/finance-view/assessments`}>
+                              <Link href={`/${persona}/finance-view/obligations`}>
                                 <ClipboardList />
-                                <span>Assessments</span>
+                                <span>Obligations</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>

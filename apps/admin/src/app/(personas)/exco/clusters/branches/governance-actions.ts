@@ -116,3 +116,35 @@ export async function revokeRole(assignmentId: string): Promise<ActionResult> {
   revalidatePath('/exco/clusters', 'layout');
   return { ok: true };
 }
+
+/**
+ * Adds a new entry to the position catalog for a given scope_type
+ * (mainstream / branch / chapter / batch). RLS on the Edge Function
+ * enforces `scope.manage_capabilities` at Mainstream — this is a
+ * mainstream_admin-only action; the catalog is federation-wide.
+ */
+export async function createPositionCatalogEntry(input: {
+  scopeType: 'mainstream' | 'branch' | 'chapter' | 'batch';
+  name: string;
+  description: string | null;
+  sortOrder: number;
+}): Promise<ActionResult> {
+  const supabase = await getServerClient();
+  const { error } = await supabase.functions.invoke('positions/create-position-catalog-entry', {
+    body: {
+      scopeType: input.scopeType,
+      name: input.name,
+      description: input.description,
+      sortOrder: input.sortOrder,
+    },
+  });
+  if (error) {
+    return {
+      ok: false,
+      message: await extractInvokeMessage(error, 'Could not create the position.'),
+    };
+  }
+  revalidatePath('/exco/settings', 'layout');
+  revalidatePath('/exco/clusters', 'layout');
+  return { ok: true };
+}

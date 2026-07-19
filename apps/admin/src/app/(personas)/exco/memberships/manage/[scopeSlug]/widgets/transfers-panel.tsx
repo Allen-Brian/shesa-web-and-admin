@@ -2,28 +2,20 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, MoreHorizontal, X } from 'lucide-react';
 
 import {
-  Button,
   ConfirmDialog,
   DataTable,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
   EntityTablePanel,
   toast,
-  type ColDef,
   type GridApi,
-  type ICellRendererParams,
   type MassActions,
   type RowClickedEvent,
 } from '@shesa/ui';
 
-import { approveTransfer } from '../../../actions';
+import { approveTransfer } from '../../../join-transfer-actions';
 import type { TransferRow } from './switcher';
+import { buildTransferColumns } from './transfers-columns';
 
 interface TransfersPanelProps {
   readonly transfers: readonly TransferRow[];
@@ -39,12 +31,10 @@ type ConfirmState =
 
 /**
  * Incoming transfers panel (destination view). Selectable table with
- * bulk approve/deny, row-click opens the member profile, and per-row
- * actions live in a "more" dropdown. Per the M1 flip: approve fires
- * memberships/approve-transfer against the destination scope (this
- * one), and the source-scope admin is notified after.
- *
- * Deny is stubbed pending its Edge Function.
+ * bulk approve/deny. Per the M1 flip: approve fires
+ * memberships/approve-transfer against the destination scope; the
+ * source-scope admin is notified after. Deny is stubbed pending its
+ * Edge Function.
  */
 export function TransfersPanel({ transfers, scopeSlug }: TransfersPanelProps) {
   const router = useRouter();
@@ -89,62 +79,13 @@ export function TransfersPanel({ transfers, scopeSlug }: TransfersPanelProps) {
     toast.warning('Transfer denial is not implemented yet.');
   };
 
-  const columnDefs = useMemo<ColDef<SerialRow>[]>(
-    () => [
-      {
-        headerName: 'S/N',
-        field: 'serial',
-        width: 72,
-        maxWidth: 72,
-        sortable: false,
-        filter: false,
-        suppressMovable: true,
-      },
-      { headerName: 'Name', field: 'full_name', flex: 2, minWidth: 200 },
-      {
-        headerName: 'Batch',
-        field: 'batch_name',
-        flex: 1.5,
-        minWidth: 180,
-        valueFormatter: (p) => p.value ?? '—',
-      },
-      {
-        headerName: 'From',
-        field: 'source_scope_name',
-        flex: 1.5,
-        minWidth: 180,
-        valueFormatter: (p) => p.value ?? '—',
-      },
-      {
-        headerName: 'Email',
-        field: 'email',
-        flex: 1.5,
-        minWidth: 180,
-        valueFormatter: (p) => p.value ?? '—',
-      },
-      {
-        headerName: 'Requested At',
-        field: 'requested_at',
-        width: 150,
-        valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleDateString() : '—'),
-      },
-      {
-        headerName: '',
-        colId: 'row_actions',
-        width: 64,
-        sortable: false,
-        filter: false,
-        suppressMovable: true,
-        cellRenderer: (p: ICellRendererParams<SerialRow>) =>
-          p.data ? (
-            <RowMenu
-              disabled={pending}
-              onApprove={() => runApprove([p.data as SerialRow])}
-              onDeny={() => setConfirm({ kind: 'deny', targets: [p.data as SerialRow] })}
-            />
-          ) : null,
-      },
-    ],
+  const columnDefs = useMemo(
+    () =>
+      buildTransferColumns({
+        pending,
+        onApprove: (row) => runApprove([row]),
+        onDeny: (row) => setConfirm({ kind: 'deny', targets: [row] }),
+      }),
     [pending],
   );
 
@@ -232,44 +173,5 @@ export function TransfersPanel({ transfers, scopeSlug }: TransfersPanelProps) {
         onCancel={() => setConfirm(null)}
       />
     </div>
-  );
-}
-
-function RowMenu({
-  disabled,
-  onApprove,
-  onDeny,
-}: {
-  readonly disabled: boolean;
-  readonly onApprove: () => void;
-  readonly onDeny: () => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 rounded-md p-0"
-          aria-label="Row actions"
-          disabled={disabled}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-        <DropdownMenuItem onClick={onApprove}>
-          <Check className="h-4 w-4" />
-          Approve
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDeny}>
-          <X className="h-4 w-4" />
-          Deny
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }

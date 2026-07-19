@@ -9,20 +9,20 @@ export const dynamic = 'force-dynamic';
 const PAGE_LIMIT = 500;
 
 /**
- * Invites page — the operational surface for member invitations. Each
- * imported member surfaces here with their current claim status, last
- * invite dispatch, resent count, and any Auth admin API error.
+ * Invites page — the operational surface for member invitations. Only
+ * a Mainstream admin ever lands here: they are the sole persona that
+ * imports members into the system, and every imported member surfaces
+ * as a row with claim status, last dispatch, resent count, and any
+ * Auth admin API error.
  *
- * Filters (client-side):
- *   - By batch — every member has a batch_scope_id.
- *   - By claim status (invited / claimed / not_invited / disabled).
- *   - By error state — quickly focus on the failed invites.
+ * Filters (client-side): by batch, claim status, or error state.
  *
- * Row action: Resend — fires the same members/send-invite flow that the
- * import confirm uses. Idempotent; safe to spam.
+ * Row action: Resend — fires the same members/send-invite flow that
+ * batch-import confirm uses. Idempotent; safe to spam.
  *
- * Access: RLS on core.member_accounts admits any user holding
- * member.import at any scope (see 20260705150000).
+ * Access: gated by `member.import` at the Mainstream scope. A branch
+ * admin holding member.import only at their own branch is redirected
+ * to the exco root — Invites is not their surface.
  */
 export default async function InvitesPage() {
   const supabase = await getServerClient();
@@ -30,6 +30,21 @@ export default async function InvitesPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/exco/invites');
+
+  const { data: mainstream } = await supabase
+    .schema('core')
+    .from('scopes')
+    .select('id')
+    .eq('scope_type', 'mainstream')
+    .maybeSingle();
+  if (!mainstream) redirect('/exco');
+
+  const { data: allowed } = await supabase.schema('core').rpc('has_permission', {
+    p_user_id: user.id,
+    p_scope_id: mainstream.id,
+    p_permission_key: 'member.import',
+  });
+  if (allowed !== true) redirect('/exco');
 
   const { data: accounts } = await supabase
     .schema('core')

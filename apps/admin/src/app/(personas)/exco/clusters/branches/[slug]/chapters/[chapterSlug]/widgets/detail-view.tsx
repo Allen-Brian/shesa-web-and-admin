@@ -232,11 +232,13 @@ export function ChapterDetailView(props: ChapterDetailViewProps) {
             <GovernancePanel
               scopeId={props.chapterId}
               scopeLabel={props.name}
+              scopeType="chapter"
               positionCatalog={props.positionCatalog}
               positionHolders={props.positionHolders}
               roleHolders={props.roleHolders}
               memberPicker={props.memberPicker}
               canManage={props.canManageGovernance}
+              canCreatePositions={props.canManageGovernance}
               emptyCatalogHint="No position catalog exists for chapters yet."
               emptyRolesHint="No roles granted at this chapter yet."
             />

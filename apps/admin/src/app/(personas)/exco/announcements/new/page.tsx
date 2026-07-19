@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getServerClient } from '@/lib/supabase-server';
 import type { AudienceOptions } from '@/components/audience/audience-selector';
 
-import { AnnouncementForm, type OwnerScopeOption } from '../widgets/form';
+import { AnnouncementForm, type OwnerScopeOption } from '../widgets/announcement-form';
 
 export const dynamic = 'force-dynamic';
 

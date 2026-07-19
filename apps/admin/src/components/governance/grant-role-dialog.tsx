@@ -40,6 +40,8 @@ interface GrantRoleDialogProps {
   readonly scopeId: string;
   readonly scopeLabel: string;
   readonly members: readonly GovernanceMemberPickerRow[];
+  /** Pre-select a member. Used by the positions table's Grant-role action. */
+  readonly initialMemberId?: string | null;
 }
 
 export function GrantRoleDialog({
@@ -48,11 +50,12 @@ export function GrantRoleDialog({
   scopeId,
   scopeLabel,
   members,
+  initialMemberId,
 }: GrantRoleDialogProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [memberOpen, setMemberOpen] = useState(false);
-  const [memberId, setMemberId] = useState<string | null>(null);
+  const [memberId, setMemberId] = useState<string | null>(initialMemberId ?? null);
   const [roleKey, setRoleKey] = useState<string>(GOVERNANCE_ROLE_OPTIONS[0]!.key);
 
   // Only members with linked auth accounts can hold a role.
@@ -121,7 +124,8 @@ export function GrantRoleDialog({
                       {eligible.map((m) => (
                         <CommandItem
                           key={m.memberId}
-                          value={m.fullName}
+                          value={m.memberId}
+                          keywords={[m.fullName]}
                           onSelect={() => {
                             setMemberId(m.memberId);
                             setMemberOpen(false);

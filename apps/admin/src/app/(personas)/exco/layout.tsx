@@ -56,10 +56,15 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
   const memberableScopes = await resolveMemberableScopes(supabase, user.id);
   const canManageMemberships = memberableScopes.length > 0;
 
-  // Audit + Settings + Invites visibility. For the global admin
-  // (mainstream) the check runs at Mainstream; for a branch admin it
-  // runs at their first scoped grant. `has_permission` walks up the
-  // tree, so both cases resolve without special-casing.
+  // Audit + Settings visibility. For the global admin (mainstream) the
+  // check runs at Mainstream; for a branch admin it runs at their first
+  // scoped grant. `has_permission` walks up the tree, so both cases
+  // resolve without special-casing.
+  //
+  // Invites is DIFFERENT — it is a Mainstream-exclusive surface. Only
+  // the global admin imports members into the system, so only they see
+  // Invites. Branches never dispatch invites themselves; they just
+  // manage members that already exist.
   let canReadAudit = false;
   let canEditOwnScope = false;
   let canViewInvites = false;
@@ -86,14 +91,12 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
     canEditOwnScope = allowedUpdate === true;
     canViewInvites = allowedInvites === true;
   }
-  // A branch admin's grant is scoped, so the Mainstream check above
-  // returns false. Fall back: they qualify if they have any scoped
-  // grant that carries the permission. `memberableScopes` already
-  // resolved their branch-like scopes; check the first.
-  if (!canReadAudit || !canEditOwnScope || !canViewInvites) {
+  // Branch-scope fallback covers Audit + Settings only. Invites is
+  // deliberately excluded here — see comment above.
+  if (!canReadAudit || !canEditOwnScope) {
     const firstScope = memberableScopes[0];
     if (firstScope) {
-      const [{ data: audit2 }, { data: update2 }, { data: invites2 }] = await Promise.all([
+      const [{ data: audit2 }, { data: update2 }] = await Promise.all([
         canReadAudit
           ? Promise.resolve({ data: true })
           : supabase.schema('core').rpc('has_permission', {
@@ -108,45 +111,43 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
               p_scope_id: firstScope.id,
               p_permission_key: 'scope.update',
             }),
-        canViewInvites
-          ? Promise.resolve({ data: true })
-          : supabase.schema('core').rpc('has_permission', {
-              p_user_id: user.id,
-              p_scope_id: firstScope.id,
-              p_permission_key: 'member.import',
-            }),
       ]);
       canReadAudit = canReadAudit || audit2 === true;
       canEditOwnScope = canEditOwnScope || update2 === true;
-      canViewInvites = canViewInvites || invites2 === true;
     }
   }
 
-  // Finance-read visibility on the admin sidebar. Any active grant of
-  // treasury.read or finance.read anywhere on the tree qualifies —
-  // mainstream_admin passes via NULL scope; branch_admin passes at
-  // their own scope; the Finance role also passes but they route to
-  // the /finance persona instead of /exco.
-  let canReadFinance = false;
-  if (mainstream) {
-    const { data: allowedTreasury } = await supabase.schema('core').rpc('has_permission', {
-      p_user_id: user.id,
-      p_scope_id: mainstream.id,
-      p_permission_key: 'treasury.read',
-    });
-    canReadFinance = allowedTreasury === true;
-  }
-  if (!canReadFinance) {
-    const firstScope = memberableScopes[0];
-    if (firstScope) {
-      const { data: allowedTreasury } = await supabase.schema('core').rpc('has_permission', {
+  // Finance-read visibility on the admin sidebar. The finance module's
+  // RLS treats `treasury.read` and `finance.read` as parallel keys —
+  // either grant reveals charges / obligations / contributions to the
+  // caller. We mirror that here so:
+  //   - mainstream_admin (NULL-scope treasury.read) — YES
+  //   - branch_admin (scoped finance.read per the seed) — YES
+  //   - finance role at their body — YES (but they usually route to
+  //     the /finance persona; the exco sidebar still shows them the
+  //     read-only surface if they poke around here).
+  //
+  // `has_permission_at_any_scope` is SECURITY DEFINER so it bypasses
+  // RLS on the RBAC tables. Two lookups instead of one avoids a
+  // brittle nested PostgREST filter and stays cheap on the same
+  // request.
+  const [{ data: allowedTreasury }, { data: allowedFinance }] = await Promise.all([
+    supabase.schema('core').rpc(
+      'has_permission_at_any_scope' as never,
+      {
         p_user_id: user.id,
-        p_scope_id: firstScope.id,
-        p_permission_key: 'treasury.read',
-      });
-      canReadFinance = allowedTreasury === true;
-    }
-  }
+        p_key: 'treasury.read',
+      } as never,
+    ),
+    supabase.schema('core').rpc(
+      'has_permission_at_any_scope' as never,
+      {
+        p_user_id: user.id,
+        p_key: 'finance.read',
+      } as never,
+    ),
+  ]);
+  const canReadFinance = allowedTreasury === true || allowedFinance === true;
 
   // Global Admin heuristic: `scope.manage_capabilities` at Mainstream
   // is a mainstream_admin-only permission (branch_admin doesn't have

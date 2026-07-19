@@ -2,27 +2,19 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, MoreHorizontal, X } from 'lucide-react';
 
 import {
-  Button,
   ConfirmDialog,
   DataTable,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
   EntityTablePanel,
   toast,
-  type ColDef,
   type GridApi,
-  type ICellRendererParams,
   type MassActions,
   type RowClickedEvent,
 } from '@shesa/ui';
 
-import { approveJoinRequest, rejectJoinRequest } from '../../../actions';
+import { approveJoinRequest, rejectJoinRequest } from '../../../join-transfer-actions';
+import { buildRequestColumns } from './requests-columns';
 import type { RequestRow } from './switcher';
 
 interface RequestsPanelProps {
@@ -39,9 +31,7 @@ type ConfirmState =
 
 /**
  * Requests panel — selectable table with mass actions for bulk
- * approve / reject. Row-click opens the member profile (the details
- * previously in the per-row dialog live on the profile page). Per-row
- * actions live in a "more" dropdown to keep the row clean.
+ * approve / reject. Row-click opens the member profile.
  */
 export function RequestsPanel({ requests, scopeSlug }: RequestsPanelProps) {
   const router = useRouter();
@@ -97,62 +87,13 @@ export function RequestsPanel({ requests, scopeSlug }: RequestsPanelProps) {
     });
   };
 
-  const columnDefs = useMemo<ColDef<SerialRow>[]>(
-    () => [
-      {
-        headerName: 'S/N',
-        field: 'serial',
-        width: 72,
-        maxWidth: 72,
-        sortable: false,
-        filter: false,
-        suppressMovable: true,
-      },
-      { headerName: 'Name', field: 'full_name', flex: 2, minWidth: 200 },
-      {
-        headerName: 'Batch',
-        field: 'batch_name',
-        width: 140,
-        valueFormatter: (p) => p.value ?? '—',
-      },
-      {
-        headerName: 'Email',
-        field: 'email',
-        flex: 1.5,
-        minWidth: 180,
-        valueFormatter: (p) => p.value ?? '—',
-      },
-      { headerName: 'Phone', field: 'phone', width: 140, valueFormatter: (p) => p.value ?? '—' },
-      {
-        headerName: 'Method',
-        field: 'join_method',
-        width: 130,
-        cellClass: 'text-xs',
-      },
-      {
-        headerName: 'Requested At',
-        field: 'requested_at',
-        width: 150,
-        valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleDateString() : '—'),
-      },
-      {
-        headerName: '',
-        colId: 'row_actions',
-        width: 64,
-        sortable: false,
-        filter: false,
-        suppressMovable: true,
-        cellRenderer: (p: ICellRendererParams<SerialRow>) =>
-          p.data ? (
-            <RowMenu
-              row={p.data}
-              disabled={pending}
-              onApprove={() => runApprove([p.data as SerialRow])}
-              onReject={() => setConfirm({ kind: 'reject', targets: [p.data as SerialRow] })}
-            />
-          ) : null,
-      },
-    ],
+  const columnDefs = useMemo(
+    () =>
+      buildRequestColumns({
+        pending,
+        onApprove: (row) => runApprove([row]),
+        onReject: (row) => setConfirm({ kind: 'reject', targets: [row] }),
+      }),
     [pending],
   );
 
@@ -240,45 +181,5 @@ export function RequestsPanel({ requests, scopeSlug }: RequestsPanelProps) {
         onCancel={() => setConfirm(null)}
       />
     </div>
-  );
-}
-
-function RowMenu({
-  disabled,
-  onApprove,
-  onReject,
-}: {
-  readonly row: RequestRow;
-  readonly disabled: boolean;
-  readonly onApprove: () => void;
-  readonly onReject: () => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 rounded-md p-0"
-          aria-label="Row actions"
-          disabled={disabled}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-        <DropdownMenuItem onClick={onApprove}>
-          <Check className="h-4 w-4" />
-          Approve
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onReject}>
-          <X className="h-4 w-4" />
-          Reject
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }

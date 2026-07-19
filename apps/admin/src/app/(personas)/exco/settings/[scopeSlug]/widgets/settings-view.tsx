@@ -40,6 +40,8 @@ interface SettingsViewProps {
   readonly memberPicker: readonly GovernanceMemberPickerRow[];
   readonly canUpdate: boolean;
   readonly canManageGovernance: boolean;
+  /** Mainstream-admin-only — extending the position catalog. */
+  readonly canCreatePositions: boolean;
   /**
    * True for global mainstream_admin viewers — the Edit tab is hidden
    * because editing branch/chapter metadata belongs to the branch admin
@@ -79,7 +81,11 @@ export function SettingsView(props: SettingsViewProps) {
           <Cog className="h-6 w-6" />
           {props.scope.name}
         </h1>
-        <p className="text-xs text-muted-foreground">{props.scope.slug}</p>
+        <p className="text-sm text-muted-foreground">
+          {showEdit
+            ? 'Metadata + governance for this scope. Positions carry portal roles inline.'
+            : 'Governance for this scope. Positions carry portal roles inline.'}
+        </p>
       </div>
 
       <Tabs defaultValue={defaultTab} className="flex min-h-0 flex-1 flex-col gap-4">
@@ -132,11 +138,13 @@ export function SettingsView(props: SettingsViewProps) {
           <GovernancePanel
             scopeId={props.scope.id}
             scopeLabel={props.scope.name}
+            scopeType={isChapter ? 'chapter' : 'branch'}
             positionCatalog={props.positionCatalog}
             positionHolders={props.positionHolders}
             roleHolders={props.roleHolders}
             memberPicker={props.memberPicker}
             canManage={props.canManageGovernance}
+            canCreatePositions={props.canCreatePositions}
             emptyCatalogHint={
               isChapter
                 ? 'No position catalog exists for chapters yet.'

@@ -16,7 +16,7 @@ import {
   toast,
 } from '@shesa/ui';
 
-import { createBatchMember } from '../../actions';
+import { createBatchMember } from '../../batch-member-actions';
 
 interface RefOption {
   readonly id: string;
@@ -103,7 +103,12 @@ export function CreateMemberDialog({
         toast.error(result.message);
         return;
       }
-      toast.success(`${fullName.trim()} added to ${batchName}.`);
+      const inviteHint = result.inviteSent
+        ? ' Invite dispatched.'
+        : email.trim()
+          ? ' Invite failed — resend from Invites.'
+          : '';
+      toast.success(`${fullName.trim()} added to ${batchName}.${inviteHint}`);
       closeAndReset();
       router.refresh();
     });
