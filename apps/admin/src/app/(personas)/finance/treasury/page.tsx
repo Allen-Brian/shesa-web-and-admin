@@ -4,11 +4,8 @@ import { GradientPanel } from '@shesa/ui';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import {
-  TreasuryLandingView,
-  type RecentEntry,
-  type TreasuryEntry,
-} from './widgets/treasury-landing-view';
+import { TreasuryLandingView } from './widgets/treasury-landing-view';
+import type { RecentEntry, TreasuryEntry } from './widgets/treasury-landing-types';
 
 export const dynamic = 'force-dynamic';
 
