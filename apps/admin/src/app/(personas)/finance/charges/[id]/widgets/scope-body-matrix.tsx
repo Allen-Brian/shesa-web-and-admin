@@ -5,7 +5,7 @@ import { Download } from 'lucide-react';
 
 import { Button, Input } from '@shesa/ui';
 
-import type { ChargeSummary, MatrixMember, MatrixPeriod, PoolPayment } from './charge-detail-view';
+import type { ChargeSummary, MatrixMember, MatrixPeriod, PoolPayment } from './charge-detail-types';
 import { ScopeBodyDrillPanel } from './scope-body-drill-panel';
 import { ScopeBodyMatrixRow } from './scope-body-matrix-row';
 import { deriveCellState } from './shared-cell-state';

@@ -9,7 +9,7 @@ import type {
   PaymentTimingStats,
   PoolPayment,
   SeriesPoint,
-} from '@/app/(personas)/finance/charges/[id]/widgets/charge-detail-view';
+} from '@/app/(personas)/finance/charges/[id]/widgets/charge-detail-types';
 import { getServerClient } from '@/lib/supabase-server';
 
 /**

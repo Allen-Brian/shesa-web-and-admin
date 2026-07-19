@@ -1,4 +1,4 @@
-import type { MatrixCell } from './charge-detail-view';
+import type { MatrixCell } from './charge-detail-types';
 
 export type CellStateKey =
   'paid' | 'partial' | 'open' | 'overdue' | 'waived' | 'cancelled' | 'upcoming' | 'not_applicable';

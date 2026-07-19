@@ -4,7 +4,7 @@ import { Building2, X } from 'lucide-react';
 
 import { Button, Sheet, SheetContent, SheetHeader, SheetTitle } from '@shesa/ui';
 
-import type { MatrixMember, MatrixPeriod, PoolPayment } from './charge-detail-view';
+import type { MatrixMember, MatrixPeriod, PoolPayment } from './charge-detail-types';
 import { CELL_DOT, CELL_LABEL, deriveCellState } from './shared-cell-state';
 import { formatMethod, formatMoney, formatPeriodHeader } from './shared-formatters';
 

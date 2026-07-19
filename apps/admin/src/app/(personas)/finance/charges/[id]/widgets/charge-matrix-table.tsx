@@ -1,0 +1,119 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { Clock, Download } from 'lucide-react';
+
+import { Button, DataTable, Input, type GridApi } from '@shesa/ui';
+
+import type { ChargeDetailMatrixProps, MatrixRow } from './charge-detail-types';
+import { buildChargeMatrixColumnDefs } from './charge-matrix-columns';
+import { exportChargeMatrixCsv } from './charge-matrix-csv';
+import { ChargeMatrixFilterChipRow } from './charge-matrix-filter-chip-row';
+import { ChargeMatrixLegend } from './charge-matrix-legend';
+import {
+  buildMatrixMemberTotals,
+  computeMatrixFilterCounts,
+  filterAndRankMatrixRows,
+  pickCurrentPeriodKey,
+} from './charge-matrix-totals';
+import type { MemberFilter } from './charge-detail-types';
+
+/**
+ * Member × period collection matrix. Pinned Member / Coverage columns
+ * on the left, a scrolling middle strip of period columns, then pinned
+ * Paid / Outstanding rollups on the right. Filter chips + search
+ * narrow the visible rows; the "Today" button re-centres the current
+ * period after manual scrolling.
+ */
+export function ChargeMatrixTable({ summary, periods, members }: ChargeDetailMatrixProps) {
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<MemberFilter>('all');
+  const [gridApi, setGridApi] = useState<GridApi<MatrixRow> | null>(null);
+
+  const currentPeriodKey = useMemo(() => pickCurrentPeriodKey(periods), [periods]);
+
+  // On grid ready or when the current-period key shifts, centre the
+  // current-period column so the operator sees ~3 past + 3 future
+  // without manual scrolling.
+  useEffect(() => {
+    if (!gridApi || !currentPeriodKey) return;
+    gridApi.ensureColumnVisible(`period_${currentPeriodKey}`, 'middle');
+  }, [gridApi, currentPeriodKey]);
+
+  const withTotals = useMemo(() => buildMatrixMemberTotals(members, periods), [members, periods]);
+  const filtered = useMemo(
+    () => filterAndRankMatrixRows(withTotals, search, filter),
+    [withTotals, search, filter],
+  );
+  const filterCounts = useMemo(() => computeMatrixFilterCounts(withTotals), [withTotals]);
+
+  const columnDefs = useMemo(
+    () =>
+      buildChargeMatrixColumnDefs({
+        periods,
+        currency: summary.currency,
+        currentPeriodKey,
+      }),
+    [periods, summary.currency, currentPeriodKey],
+  );
+
+  const upcomingCount = periods.filter((p) => p.isUpcoming).length;
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChargeMatrixFilterChipRow filter={filter} onChange={setFilter} counts={filterCounts} />
+        <div className="flex items-center gap-2">
+          <Input
+            type="search"
+            placeholder="Search members..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-9 w-56"
+          />
+          {currentPeriodKey && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => gridApi?.ensureColumnVisible(`period_${currentPeriodKey}`, 'middle')}
+              className="gap-1.5"
+              title="Scroll to today's period"
+            >
+              <Clock className="h-3.5 w-3.5" />
+              Today
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportChargeMatrixCsv({ summary, periods, members })}
+            className="gap-1.5"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+        <ChargeMatrixLegend />
+        <span>
+          {filtered.length} of {members.length} {members.length === 1 ? 'member' : 'members'}
+          {upcomingCount > 0 &&
+            ` · ${upcomingCount} upcoming period${upcomingCount === 1 ? '' : 's'}`}
+          {' · scroll ↔ for more history'}
+        </span>
+      </div>
+
+      <DataTable<MatrixRow>
+        rowData={filtered as MatrixRow[]}
+        columnDefs={columnDefs}
+        getRowId={(p) => p.data.memberId}
+        onGridReady={(e) => setGridApi(e.api)}
+        showColumnPicker={false}
+        selectable={false}
+      />
+    </div>
+  );
+}

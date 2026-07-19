@@ -2,7 +2,7 @@
 
 import { Clock, Minus } from 'lucide-react';
 
-import type { MatrixCell } from './charge-detail-view';
+import type { MatrixCell } from './charge-detail-types';
 import { CELL_DOT, CELL_LABEL, deriveCellState } from './shared-cell-state';
 import { formatMoney } from './shared-formatters';
 

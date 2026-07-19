@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Building2, ChevronRight } from 'lucide-react';
 
-import type { MatrixMember, MatrixPeriod } from './charge-detail-view';
+import type { MatrixMember, MatrixPeriod } from './charge-detail-types';
 import { ScopeBodyMatrixCell } from './scope-body-matrix-cell';
 import { formatMoney } from './shared-formatters';
 
