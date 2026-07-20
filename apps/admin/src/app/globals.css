@@ -139,17 +139,52 @@
   right: 4px;
 }
 
-/* Options dropdown — reuse the app's surface tokens */
+/* Alignment picker — Quill's align picker shows an icon that reads
+ * the *current* alignment. Its default rendering is tiny (12px caret
+ * only). Give the icon proper size and space so it reads at a glance,
+ * and expand the label so the icon isn't cropped. */
+.ql-toolbar.ql-snow .ql-picker.ql-align .ql-picker-label {
+  width: 42px;
+  padding: 6px 8px !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-align .ql-picker-label svg {
+  width: 18px;
+  height: 18px;
+  position: static;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-align .ql-picker-item svg {
+  width: 18px;
+  height: 18px;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-align .ql-picker-item {
+  padding: 6px 10px;
+}
+/* The align picker's options popover inherits Quill's default
+ * `min-width: 100%` — 100% of the 42-px picker button. That squeezes
+ * the alignment icons together. Give the dropdown a proper roomy
+ * width matched to the icon set. */
+.ql-toolbar.ql-snow .ql-picker.ql-align .ql-picker-options {
+  min-width: 56px !important;
+  width: 56px;
+}
+
+/* Options dropdown — mix the card token with a touch of foreground
+ * so the popover reads as a distinct surface. In dark mode
+ * `--color-popover` and `--color-card` both resolve to hsl(0 0% 7%)
+ * — indistinguishable from the surrounding editor without a nudge.
+ * The strong outline + shadow keep it legible on both themes. */
 .ql-toolbar.ql-snow .ql-picker-options {
   border: 1px solid var(--color-border) !important;
   border-radius: 8px !important;
-  background: var(--color-popover) !important;
+  background: color-mix(in srgb, var(--color-popover) 100%, var(--color-foreground) 8%) !important;
   color: var(--color-popover-foreground) !important;
   box-shadow:
-    0 6px 20px rgb(0 0 0 / 0.08),
-    0 2px 4px rgb(0 0 0 / 0.03);
+    0 12px 32px -8px rgb(0 0 0 / 0.5),
+    0 0 0 1px var(--color-border);
   padding: 4px !important;
   margin-top: 4px;
+  z-index: 30;
+  opacity: 1 !important;
 }
 .ql-toolbar.ql-snow .ql-picker-item {
   color: var(--color-popover-foreground) !important;
@@ -219,6 +254,10 @@
 .ql-container.ql-snow {
   border: none !important;
   font-family: inherit;
+  /* Keep floating children (link tooltip, offscreen clipboard) pinned
+   * inside the editor's box so they can't overlay the next form section. */
+  position: relative;
+  overflow: hidden;
 }
 .ql-editor {
   min-height: 400px;
@@ -229,8 +268,32 @@
   color: var(--color-foreground);
   overflow-y: auto;
 }
+/* The `<div className="quill-container">` wrapper Quill mounts into.
+ * A rounded, clipped box gives the whole editor a clean footprint and
+ * — crucially — prevents any absolute-positioned Quill child (the
+ * offscreen clipboard, the link tooltip) from painting outside its
+ * bounds and covering the milestones / impact sections that follow. */
 .quill-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
   background: var(--color-card);
+  /* Full CSS containment — anything positioned inside this container
+   * (Quill's link tooltip, clipboard, picker options) is clipped by
+   * the paint layer AND kept out of the parent's layout box. That
+   * makes it impossible for the editor to visually leak into the
+   * milestone / impact editors that follow below. */
+  contain: layout paint;
+  isolation: isolate;
+}
+.ql-clipboard {
+  position: absolute !important;
+  left: -9999px !important;
+  top: 0 !important;
+}
+.ql-snow .ql-tooltip.ql-hidden {
+  display: none !important;
 }
 .ql-toolbar.ql-snow {
   background: var(--color-card) !important;

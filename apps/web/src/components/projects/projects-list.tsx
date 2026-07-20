@@ -5,13 +5,11 @@ import Link from 'next/link';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { useMemo, useState } from 'react';
 
-import {
-  projectCategories,
-  projects,
-  type Project,
-  type ProjectCategoryFilter,
-  type ProjectStatus,
-} from './data';
+import { isLocalSupabaseUrl } from '../leadership/is-local-supabase-url';
+import type { Project, ProjectStatus } from './data';
+
+/** "All" first, then every unique category name from the loaded set. */
+type CategoryFilter = 'All' | string;
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -32,12 +30,20 @@ const statusStyles: Record<ProjectStatus, string> = {
   Completed: 'border-black/15 bg-white text-black/55',
 };
 
-export function ProjectsList() {
-  const [filter, setFilter] = useState<ProjectCategoryFilter>('All');
+interface Props {
+  readonly projects: readonly Project[];
+  /** Category names to render as filter chips. "All" is always prepended. */
+  readonly categories: readonly string[];
+}
+
+export function ProjectsList({ projects, categories }: Props) {
+  const [filter, setFilter] = useState<CategoryFilter>('All');
+
+  const filterOptions = useMemo<readonly string[]>(() => ['All', ...categories], [categories]);
 
   const list = useMemo(
-    () => (filter === 'All' ? projects : projects.filter((p) => p.category === filter)),
-    [filter],
+    () => (filter === 'All' ? projects : projects.filter((p) => p.categories.includes(filter))),
+    [projects, filter],
   );
 
   return (
@@ -98,10 +104,12 @@ export function ProjectsList() {
           custom={3}
           className="mt-10 flex flex-wrap items-center gap-2 md:mt-12"
         >
-          {projectCategories.map((c) => {
+          {filterOptions.map((c) => {
             const active = filter === c;
             const count =
-              c === 'All' ? projects.length : projects.filter((p) => p.category === c).length;
+              c === 'All'
+                ? projects.length
+                : projects.filter((p) => p.categories.includes(c)).length;
             return (
               <button
                 key={c}
@@ -183,6 +191,7 @@ function ProjectCard({ project }: { readonly project: Project }) {
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           quality={75}
+          unoptimized={isLocalSupabaseUrl(project.image)}
           className="object-cover transition-transform duration-1000 group-hover:scale-105"
         />
         <div

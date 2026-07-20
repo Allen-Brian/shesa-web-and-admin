@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { useMemo, useState } from 'react';
 
-import { albumCategories, albums, type AlbumCategory } from './data';
+import type { Album } from './data';
+import { ALL_CATEGORY } from './data';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -18,12 +19,19 @@ const fadeUp: Variants = {
   }),
 };
 
-export function AlbumGrid() {
-  const [filter, setFilter] = useState<AlbumCategory>('All');
+interface AlbumGridProps {
+  readonly albums: readonly Album[];
+  readonly categories: readonly string[];
+}
+
+export function AlbumGrid({ albums, categories }: AlbumGridProps) {
+  const [filter, setFilter] = useState<string>(ALL_CATEGORY);
+
+  const filters = useMemo(() => [ALL_CATEGORY, ...categories], [categories]);
 
   const list = useMemo(
-    () => (filter === 'All' ? albums : albums.filter((a) => a.category === filter)),
-    [filter],
+    () => (filter === ALL_CATEGORY ? albums : albums.filter((a) => a.category === filter)),
+    [albums, filter],
   );
 
   return (
@@ -83,10 +91,10 @@ export function AlbumGrid() {
           custom={3}
           className="mt-10 flex flex-wrap items-center gap-2 md:mt-12"
         >
-          {albumCategories.map((c) => {
+          {filters.map((c) => {
             const active = filter === c;
             const count =
-              c === 'All' ? albums.length : albums.filter((a) => a.category === c).length;
+              c === ALL_CATEGORY ? albums.length : albums.filter((a) => a.category === c).length;
             return (
               <button
                 key={c}
@@ -150,7 +158,7 @@ export function AlbumGrid() {
   );
 }
 
-function AlbumCard({ album }: { readonly album: (typeof albums)[number] }) {
+function AlbumCard({ album }: { readonly album: Album }) {
   const photoCount = album.media.filter((m) => m.type === 'photo').length;
   const videoCount = album.media.filter((m) => m.type === 'video').length;
 

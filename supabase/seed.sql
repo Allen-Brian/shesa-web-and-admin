@@ -571,6 +571,26 @@ INSERT INTO auth.users (
     '', 0, NULL,
     '', NULL, FALSE, NULL,
     FALSE
+  ),
+  (
+    -- Site editor — curates public-website content (Leadership,
+    -- Announcements, Events copy). Single-scope role (Mainstream only)
+    -- since the public site is one property.
+    '00000000-0000-0000-0000-000000000000',
+    '55555555-0000-0000-0000-000000000020',
+    'authenticated', 'authenticated',
+    'editor@shesa.test',
+    crypt('password', gen_salt('bf')),
+    NOW(), NULL, '', NULL,
+    '', NULL, '', '',
+    NULL, NULL,
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"display_name":"Site Editor"}'::jsonb,
+    FALSE, NOW(), NOW(), NULL, NULL,
+    '', '', NULL,
+    '', 0, NULL,
+    '', NULL, FALSE, NULL,
+    FALSE
   )
 ON CONFLICT (id) DO NOTHING;
 
@@ -628,6 +648,17 @@ INSERT INTO auth.identities (
       'phone_verified', false
     ),
     'email', NOW(), NOW(), NOW()
+  ),
+  (
+    '55555555-0000-0000-0000-000000000020',
+    '55555555-0000-0000-0000-000000000020',
+    jsonb_build_object(
+      'sub',   '55555555-0000-0000-0000-000000000020',
+      'email', 'editor@shesa.test',
+      'email_verified', true,
+      'phone_verified', false
+    ),
+    'email', NOW(), NOW(), NOW()
   )
 ON CONFLICT (provider, provider_id) DO NOTHING;
 
@@ -640,7 +671,8 @@ VALUES
   ('55555555-0000-0000-0000-000000000001', 'Global Admin',       'admin@shesa.test',            'exco'),
   ('55555555-0000-0000-0000-000000000002', 'Global Finance',     'finance@shesa.test',          'finance'),
   ('55555555-0000-0000-0000-000000000010', 'Shesa Buea Admin',   'buea-admin@shesa.test',       'exco'),
-  ('55555555-0000-0000-0000-000000000011', 'Shesa Buea Finance', 'buea-finance@shesa.test',     'finance')
+  ('55555555-0000-0000-0000-000000000011', 'Shesa Buea Finance', 'buea-finance@shesa.test',     'finance'),
+  ('55555555-0000-0000-0000-000000000020', 'Site Editor',        'editor@shesa.test',           'editor')
 ON CONFLICT (id) DO NOTHING;
 
 -------------------------------------------------------------------------------
@@ -682,6 +714,16 @@ VALUES
     '55555555-0000-0000-0000-000000000011',
     '00000000-0000-0000-0000-000000000010',
     '11111111-0000-0000-0000-000000000004',  -- finance
+    NOW()
+  ),
+  (
+    -- Site Editor — unscoped editor grant. `cms.edit` at NULL scope
+    -- means they can curate the public-website content on the CMS
+    -- surfaces (Leadership tabs, etc.). No operational-membership
+    -- reach — Site Editor never touches members or finance.
+    '55555555-0000-0000-0000-000000000020',
+    NULL,
+    '11111111-0000-0000-0000-000000000005',  -- editor
     NOW()
   )
 ON CONFLICT DO NOTHING;
@@ -1686,6 +1728,152 @@ BEGIN
        '55555555-0000-0000-0000-000000000002')
     ON CONFLICT (id) DO NOTHING;
   END IF;
+END $$;
+
+-------------------------------------------------------------------------------
+-- 6.4C — Scenario E: Mainstream monthly dues fanned across every branch
+-- and autonomous chapter (branch-body obligations, 7-month history)
+-------------------------------------------------------------------------------
+-- A single Mainstream-issued monthly charge with target_party_type='branch'.
+-- One obligation per body per month for the last 6 closed months + the
+-- current (still-open) month. Payments are seeded deterministically so a
+-- branch admin lands on a realistic mix: fully paid history that fades
+-- into partial + missed periods as the current month approaches.
+--
+-- Bodies covered (XAF only — the charge is XAF, so Shesa DC / USD is
+-- excluded to sidestep FX in the demo):
+--   * Shesa Buea               00…0010
+--   * Shesa Douala             00…0011
+--   * Buea University Chapter  00…0020
+--
+-- Idempotent: charge id + obligation UNIQUE (charge, party, period) +
+-- payments guarded by a `seed_marker='branch-monthly-dues'` metadata key.
+
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, base_amount, currency, recurrence,
+   recurrence_interval, activation_date, status, target_filter, target_party_type,
+   created_by, created_at, updated_at)
+VALUES
+  ('77777777-1111-0000-0000-000000000050',
+   '00000000-0000-0000-0000-000000000001',
+   'charge',
+   'Mainstream Monthly Dues',
+   'Monthly membership dues owed by every branch and autonomous chapter to the Mainstream.',
+   100000, 'XAF', 'monthly', 1,
+   date_trunc('month', NOW() - INTERVAL '6 months'),
+   'active',
+   jsonb_build_object('target_scope_ids', jsonb_build_array(
+     '00000000-0000-0000-0000-000000000010',
+     '00000000-0000-0000-0000-000000000011',
+     '00000000-0000-0000-0000-000000000020'
+   )),
+   'branch',
+   '55555555-0000-0000-0000-000000000001',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- Fan out 7 monthly obligations per body (t-6 .. t-0).
+DO $$
+DECLARE
+  v_charge_id UUID := '77777777-1111-0000-0000-000000000050';
+  v_bodies    UUID[] := ARRAY[
+    '00000000-0000-0000-0000-000000000010',
+    '00000000-0000-0000-0000-000000000011',
+    '00000000-0000-0000-0000-000000000020'
+  ];
+  v_body      UUID;
+  v_offset    INTEGER;
+  v_period    DATE;
+BEGIN
+  FOREACH v_body IN ARRAY v_bodies LOOP
+    FOR v_offset IN 0..6 LOOP
+      v_period := (date_trunc('month', NOW()) - (v_offset || ' months')::interval)::date;
+      INSERT INTO finance.obligations
+        (id, charge_id, scope_id, party_type, party_id,
+         amount, currency, status, period_start, period_end,
+         created_at, updated_at)
+      VALUES (
+        gen_random_uuid(),
+        v_charge_id,
+        v_body,
+        'branch', v_body,
+        100000, 'XAF', 'open',
+        v_period,
+        (v_period + INTERVAL '1 month' - INTERVAL '1 day')::date,
+        v_period::timestamptz,
+        NOW()
+      )
+      ON CONFLICT (charge_id, party_type, party_id, period_start) DO NOTHING;
+    END LOOP;
+  END LOOP;
+END $$;
+
+-- Seed payments: older periods lean paid, recent ones lean unpaid.
+-- Deterministic per (body, period) via hashtext so `db:reset` is stable.
+DO $$
+DECLARE
+  v_ob         finance.obligations%ROWTYPE;
+  v_bucket     INTEGER;   -- 0..99 stable hash
+  v_kind       INTEGER;   -- 0 = full pay, 1 = partial, 2 = unpaid
+  v_amount     NUMERIC;
+  v_paid_at    TIMESTAMPTZ;
+BEGIN
+  FOR v_ob IN
+    SELECT * FROM finance.obligations
+     WHERE charge_id = '77777777-1111-0000-0000-000000000050'
+     ORDER BY period_start, party_id
+  LOOP
+    -- Skip future / current-still-mid-cycle periods for the SECOND
+    -- payment pass; we still seed a small chance of partial payment on
+    -- the current month below.
+    IF v_ob.period_start IS NULL THEN CONTINUE; END IF;
+
+    -- Skip if we already seeded a payment for this obligation.
+    IF EXISTS (
+      SELECT 1 FROM finance.payments
+        WHERE obligation_id = v_ob.id
+          AND metadata->>'seed_marker' = 'branch-monthly-dues'
+    ) THEN CONTINUE; END IF;
+
+    v_bucket := abs(hashtext(v_ob.party_id::text || v_ob.period_start::text)) % 100;
+
+    v_kind := CASE
+      -- >= 5 months old: almost everyone paid in full.
+      WHEN v_ob.period_start <= (CURRENT_DATE - INTERVAL '5 months')::date THEN
+        CASE WHEN v_bucket < 85 THEN 0 WHEN v_bucket < 95 THEN 1 ELSE 2 END
+      -- 3–4 months old: still mostly paid, more partials sneak in.
+      WHEN v_ob.period_start <= (CURRENT_DATE - INTERVAL '3 months')::date THEN
+        CASE WHEN v_bucket < 60 THEN 0 WHEN v_bucket < 85 THEN 1 ELSE 2 END
+      -- 1–2 months old: mix of everything.
+      WHEN v_ob.period_start <= (CURRENT_DATE - INTERVAL '1 month')::date THEN
+        CASE WHEN v_bucket < 35 THEN 0 WHEN v_bucket < 70 THEN 1 ELSE 2 END
+      -- current month: mostly still open; a couple paid partial early.
+      ELSE
+        CASE WHEN v_bucket < 15 THEN 0 WHEN v_bucket < 40 THEN 1 ELSE 2 END
+    END;
+
+    IF v_kind = 2 THEN CONTINUE; END IF;
+
+    v_amount := CASE WHEN v_kind = 0 THEN v_ob.amount ELSE v_ob.amount / 2 END;
+    -- Post the payment mid-period so the timeline looks realistic.
+    v_paid_at := v_ob.period_start::timestamptz + INTERVAL '18 days';
+
+    INSERT INTO finance.payments
+      (id, obligation_id, charge_id, scope_id, payer_member_id,
+       amount, currency, method, source, recorded_by, created_at, metadata)
+    VALUES (
+      gen_random_uuid(),
+      v_ob.id, v_ob.charge_id, v_ob.scope_id,
+      NULL,
+      v_amount, v_ob.currency,
+      (ARRAY['mtn_momo', 'orange_money', 'bank_transfer', 'cash']
+        ::finance.payment_method[])[1 + (v_bucket % 4)],
+      'manual',
+      '55555555-0000-0000-0000-000000000001',
+      v_paid_at,
+      jsonb_build_object('seed_marker', 'branch-monthly-dues')
+    );
+  END LOOP;
 END $$;
 
 -------------------------------------------------------------------------------

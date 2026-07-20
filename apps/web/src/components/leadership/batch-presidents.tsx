@@ -1,6 +1,8 @@
 'use client';
 
 import Image from 'next/image';
+
+import { isLocalSupabaseUrl } from './is-local-supabase-url';
 import Link from 'next/link';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
@@ -16,76 +18,24 @@ const fadeUp: Variants = {
   }),
 };
 
-type BatchPresident = {
+export type BatchPresident = {
   readonly name: string;
   readonly batch: string;
   readonly photo: string;
   readonly slug: string;
 };
-
-// Batches run 1953–2019 (per the association's records). Names below
-// are placeholders — replace each entry in this array with the real
-// batch chair as records are confirmed.
-const TITLES = ['Mr.', 'Mr.', 'Dr.', 'Mr.', 'Barr.', 'Mr.', 'Eng.', 'Mr.'] as const;
-const SURNAMES = [
-  'Ndifon',
-  'Achu',
-  'Tanyi',
-  'Fru',
-  'Kum',
-  'Ngwa',
-  'Fon',
-  'Chi',
-  'Neba',
-  'Foncha',
-  'Mbah',
-  'Nchang',
-  'Awasum',
-  'Bih',
-  'Kwenti',
-  'Nkeng',
-] as const;
-const GIVENS = [
-  'Peter',
-  'Julius',
-  'George',
-  'Emmanuel',
-  'Alfred',
-  'Emile',
-  'Vincent',
-  'Andrew',
-  'Christian',
-  'Herbert',
-  'Blaise',
-  'Simon',
-  'Denis',
-  'Reynolds',
-  'Michael',
-  'Bertrand',
-  'Roland',
-  'Cyrille',
-] as const;
-
-function generateBatches(): readonly BatchPresident[] {
-  const list: BatchPresident[] = [];
-  for (let year = 2019; year >= 1953; year--) {
-    const i = 2019 - year;
-    list.push({
-      batch: String(year),
-      name: `${TITLES[i % TITLES.length]} ${SURNAMES[i % SURNAMES.length]} ${GIVENS[(i * 3) % GIVENS.length]}`,
-      photo: i % 2 === 0 ? '/president_one.jpg' : '/president_two.jpg',
-      slug: String(year),
-    });
-  }
-  return list;
-}
-
 const PAGE_SIZE = 15;
 const AUTO_ADVANCE_MS = 8000;
 
-export function BatchPresidents() {
+interface BatchPresidentsProps {
+  /** Live batch chairs from the CMS. Empty → the whole section short-circuits. */
+  readonly presidents: readonly BatchPresident[];
+}
+
+export function BatchPresidents({ presidents }: BatchPresidentsProps) {
   const reduce = useReducedMotion();
-  const batches = useMemo(generateBatches, []);
+  const batches = useMemo(() => presidents, [presidents]);
+  if (batches.length === 0) return null;
   const pages = useMemo(() => {
     const out: BatchPresident[][] = [];
     for (let i = 0; i < batches.length; i += PAGE_SIZE) {
@@ -269,6 +219,7 @@ function BatchCard({ president }: { readonly president: BatchPresident }) {
           fill
           sizes="(min-width: 1024px) 15vw, (min-width: 640px) 22vw, 33vw"
           quality={75}
+          unoptimized={isLocalSupabaseUrl(president.photo)}
           className="pointer-events-none object-cover object-top transition-transform duration-1000 group-hover:scale-105"
         />
         <div

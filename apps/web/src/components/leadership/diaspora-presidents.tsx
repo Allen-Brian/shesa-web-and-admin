@@ -1,6 +1,8 @@
 'use client';
 
 import Image from 'next/image';
+
+import { isLocalSupabaseUrl } from './is-local-supabase-url';
 import { motion, type Variants } from 'framer-motion';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -14,7 +16,7 @@ const fadeUp: Variants = {
   }),
 };
 
-type DiasporaPresident = {
+export type DiasporaPresident = {
   readonly name: string;
   readonly chapter: string;
   readonly city: string;
@@ -22,66 +24,13 @@ type DiasporaPresident = {
   readonly slug: string;
 };
 
-const diasporaPresidents: readonly DiasporaPresident[] = [
-  {
-    name: 'Dr. Chi Rodrigue',
-    chapter: 'USA Chapter',
-    city: 'Washington DC · United States',
-    photo: '/president_one.jpg',
-    slug: 'usa',
-  },
-  {
-    name: 'Mr. Ndifon Blaise',
-    chapter: 'Canada Chapter',
-    city: 'Toronto · Canada',
-    photo: '/president_two.jpg',
-    slug: 'canada',
-  },
-  {
-    name: 'Mr. Ngwa Alfred',
-    chapter: 'United Kingdom Chapter',
-    city: 'London · United Kingdom',
-    photo: '/president_one.jpg',
-    slug: 'united-kingdom',
-  },
-  {
-    name: 'Eng. Fon Bertrand',
-    chapter: 'Germany Chapter',
-    city: 'Berlin · Germany',
-    photo: '/president_two.jpg',
-    slug: 'germany',
-  },
-  {
-    name: 'Barr. Awasum Simon',
-    chapter: 'France Chapter',
-    city: 'Paris · France',
-    photo: '/president_one.jpg',
-    slug: 'france',
-  },
-  {
-    name: 'Mr. Kum Emile',
-    chapter: 'Belgium Chapter',
-    city: 'Brussels · Belgium',
-    photo: '/president_two.jpg',
-    slug: 'belgium',
-  },
-  {
-    name: 'Mr. Tanyi Michael',
-    chapter: 'Nigeria Chapter',
-    city: 'Abuja · Nigeria',
-    photo: '/president_one.jpg',
-    slug: 'nigeria',
-  },
-  {
-    name: 'Dr. Bih Christian',
-    chapter: 'South Africa Chapter',
-    city: 'Johannesburg · South Africa',
-    photo: '/president_two.jpg',
-    slug: 'south-africa',
-  },
-];
+interface DiasporaPresidentsProps {
+  /** Live list from the CMS. Empty → the whole section short-circuits. */
+  readonly presidents: readonly DiasporaPresident[];
+}
 
-export function DiasporaPresidents() {
+export function DiasporaPresidents({ presidents }: DiasporaPresidentsProps) {
+  if (presidents.length === 0) return null;
   return (
     <section className="relative overflow-hidden bg-white py-20 text-black md:py-28">
       <BackdropWorld />
@@ -129,7 +78,7 @@ export function DiasporaPresidents() {
         </div>
 
         <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 md:mt-16 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
-          {diasporaPresidents.map((p, i) => (
+          {presidents.map((p, i) => (
             <motion.div
               key={p.slug}
               initial={{ opacity: 0, y: 20 }}
@@ -156,6 +105,7 @@ function DiasporaCard({ president }: { readonly president: DiasporaPresident }) 
           fill
           sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
           quality={75}
+          unoptimized={isLocalSupabaseUrl(president.photo)}
           className="object-cover object-top"
         />
         <span

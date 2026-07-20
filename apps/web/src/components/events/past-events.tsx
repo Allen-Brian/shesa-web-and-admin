@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { motion, type Variants } from 'framer-motion';
 import { useMemo, useState } from 'react';
 
-import { pastEvents, type SiteEvent } from './data';
+import type { SiteEvent } from './data';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 const PAGE_SIZE = 4;
@@ -35,8 +35,13 @@ function chunk<T>(arr: readonly T[], size: number): T[][] {
   return out;
 }
 
-export function PastEvents() {
-  const grouped = groupByYear(pastEvents);
+interface Props {
+  readonly past: readonly SiteEvent[];
+}
+
+export function PastEvents({ past }: Props) {
+  const grouped = groupByYear(past);
+  if (past.length === 0) return null;
 
   return (
     <section className="relative bg-white py-20 text-black md:py-24">

@@ -1,6 +1,8 @@
 'use client';
 
 import Image from 'next/image';
+
+import { isLocalSupabaseUrl } from './is-local-supabase-url';
 import { motion, type Variants } from 'framer-motion';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -14,7 +16,7 @@ const fadeUp: Variants = {
   }),
 };
 
-type BranchPresident = {
+export type BranchPresident = {
   readonly name: string;
   readonly branch: string;
   readonly city: string;
@@ -22,66 +24,13 @@ type BranchPresident = {
   readonly slug: string;
 };
 
-const branchPresidents: readonly BranchPresident[] = [
-  {
-    name: 'Mr. Neba Christian',
-    branch: 'Yaoundé Branch',
-    city: 'Centre Region',
-    photo: '/president_one.jpg',
-    slug: 'yaounde',
-  },
-  {
-    name: 'Dr. Fon Emile',
-    branch: 'Douala Branch',
-    city: 'Littoral Region',
-    photo: '/president_two.jpg',
-    slug: 'douala',
-  },
-  {
-    name: 'Barr. Mbah Julius',
-    branch: 'Buea Branch',
-    city: 'South-West Region',
-    photo: '/president_one.jpg',
-    slug: 'buea',
-  },
-  {
-    name: 'Mr. Kum Divine',
-    branch: 'Bamenda Branch',
-    city: 'North-West Region',
-    photo: '/president_two.jpg',
-    slug: 'bamenda',
-  },
-  {
-    name: 'Eng. Foncha Blaise',
-    branch: 'Bafoussam Branch',
-    city: 'West Region',
-    photo: '/president_one.jpg',
-    slug: 'bafoussam',
-  },
-  {
-    name: 'Dr. Nchang Peter',
-    branch: 'Kumba Branch',
-    city: 'South-West Region',
-    photo: '/president_two.jpg',
-    slug: 'kumba',
-  },
-  {
-    name: 'Mr. Fru Vincent',
-    branch: 'Limbe Branch',
-    city: 'South-West Region',
-    photo: '/president_one.jpg',
-    slug: 'limbe',
-  },
-  {
-    name: 'Barr. Awasum Denis',
-    branch: 'Ngaoundéré Branch',
-    city: 'Adamawa Region',
-    photo: '/president_two.jpg',
-    slug: 'ngaoundere',
-  },
-];
+interface BranchPresidentsProps {
+  /** Live list from the CMS. Empty → the whole section short-circuits. */
+  readonly presidents: readonly BranchPresident[];
+}
 
-export function BranchPresidents() {
+export function BranchPresidents({ presidents }: BranchPresidentsProps) {
+  if (presidents.length === 0) return null;
   return (
     <section
       className="relative overflow-hidden py-20 text-black md:py-28"
@@ -133,7 +82,7 @@ export function BranchPresidents() {
         </div>
 
         <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 md:mt-16 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
-          {branchPresidents.map((p, i) => (
+          {presidents.map((p, i) => (
             <motion.div
               key={p.slug}
               initial={{ opacity: 0, y: 20 }}
@@ -160,6 +109,7 @@ function BranchCard({ president }: { readonly president: BranchPresident }) {
           fill
           sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
           quality={75}
+          unoptimized={isLocalSupabaseUrl(president.photo)}
           className="object-cover object-top"
         />
       </div>

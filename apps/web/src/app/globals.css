@@ -188,3 +188,80 @@ html.lenis body {
   opacity: 0.7;
   animation: beam-rotate 2.8s linear infinite;
 }
+
+/* ---------------------------------------------------------------------
+ * News article body — typography for HTML content produced by the CMS
+ * Quill editor. We render `contentHtml` verbatim, so headings, lists,
+ * links, and inline images need styles here rather than at markup time.
+ * ------------------------------------------------------------------ */
+.news-article-body > * + * {
+  margin-top: 1.25em;
+}
+.news-article-body p {
+  margin: 0;
+}
+.news-article-body h1,
+.news-article-body h2,
+.news-article-body h3,
+.news-article-body h4 {
+  font-family: var(--font-heading, inherit);
+  color: #000;
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin-top: 2em;
+}
+.news-article-body h1 {
+  font-size: 1.9rem;
+}
+.news-article-body h2 {
+  font-size: 1.55rem;
+}
+.news-article-body h3 {
+  font-size: 1.25rem;
+}
+.news-article-body h4 {
+  font-size: 1.05rem;
+}
+.news-article-body a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.news-article-body a:hover {
+  text-decoration-thickness: 2px;
+}
+.news-article-body ul,
+.news-article-body ol {
+  margin: 0;
+  padding-left: 1.25em;
+}
+.news-article-body li + li {
+  margin-top: 0.35em;
+}
+.news-article-body blockquote {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 1rem;
+  margin: 1.25em 0;
+  font-style: italic;
+  color: rgba(0, 0, 0, 0.7);
+}
+.news-article-body img {
+  border-radius: 0.125rem;
+  max-width: 100%;
+  height: auto;
+  margin: 1.75em 0;
+}
+.news-article-body pre,
+.news-article-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 0.15em 0.4em;
+  border-radius: 0.15rem;
+  font-size: 0.9em;
+}
+.news-article-body pre {
+  padding: 1rem;
+  overflow-x: auto;
+}

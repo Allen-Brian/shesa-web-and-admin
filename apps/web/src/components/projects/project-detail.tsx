@@ -4,8 +4,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 
+import { isLocalSupabaseUrl } from '../leadership/is-local-supabase-url';
 import { formatMoney } from './projects-list';
-import { projects, type Project } from './data';
+import type { Project } from './data';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -28,11 +29,17 @@ const revealLine: Variants = {
   visible: { y: 0, transition: { duration: 1, ease } },
 };
 
-export function ProjectDetail({ project }: { readonly project: Project }) {
-  const related = projects
-    .filter((p) => p.id !== project.id && p.category === project.category)
-    .slice(0, 3);
+interface Props {
+  readonly project: Project;
+  /**
+   * Optional related-project list — the server page pre-picks up to
+   * three same-category siblings so this component doesn't have to
+   * hold a reference to the full CMS.
+   */
+  readonly related?: readonly Project[];
+}
 
+export function ProjectDetail({ project, related = [] }: Props) {
   return (
     <>
       <ProjectHero project={project} />
@@ -59,6 +66,7 @@ function ProjectHero({ project }: { readonly project: Project }) {
           priority
           quality={45}
           sizes="100vw"
+          unoptimized={isLocalSupabaseUrl(project.image)}
           className="object-cover opacity-30"
         />
         <div
@@ -470,6 +478,7 @@ function RelatedCard({ project }: { readonly project: Project }) {
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           quality={75}
+          unoptimized={isLocalSupabaseUrl(project.image)}
           className="object-cover transition-transform duration-1000 group-hover:scale-105"
         />
         <div

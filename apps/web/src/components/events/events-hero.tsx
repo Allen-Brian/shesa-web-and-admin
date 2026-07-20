@@ -3,7 +3,8 @@
 import Image from 'next/image';
 import { motion, type Variants } from 'framer-motion';
 
-import { pastEvents, upcomingEvents } from './data';
+// Hero counts drive the three-stat strip below the tagline. The
+// server page counts on the CMS and passes them in as props.
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -26,10 +27,15 @@ const revealLine: Variants = {
   visible: { y: 0, transition: { duration: 1, ease } },
 };
 
-export function EventsHero() {
+interface Props {
+  readonly upcomingCount: number;
+  readonly pastCount: number;
+}
+
+export function EventsHero({ upcomingCount, pastCount }: Props) {
   const stats = [
-    { value: String(upcomingEvents.length), label: 'Upcoming' },
-    { value: String(pastEvents.length), label: 'In the archive' },
+    { value: String(upcomingCount), label: 'Upcoming' },
+    { value: String(pastCount), label: 'In the archive' },
     { value: '9', label: 'Cities served' },
   ];
 

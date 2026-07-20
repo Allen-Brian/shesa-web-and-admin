@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 
-import { upcomingEvents, type EventCategory, type SiteEvent } from './data';
+import type { SiteEvent } from './data';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 const PAGE_SIZE = 9;
@@ -19,29 +19,31 @@ const fadeUp: Variants = {
   }),
 };
 
-const categories: readonly (EventCategory | 'All')[] = [
-  'All',
-  'Reunion',
-  'Ceremony',
-  'Community',
-  'Cultural',
-  'Fundraising',
-  'Career',
-];
-
 function chunk<T>(arr: readonly T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
 }
 
-export function EventsList() {
-  const [filter, setFilter] = useState<EventCategory | 'All'>('All');
+interface Props {
+  /** Upcoming events, chronological. Empty → the section short-circuits. */
+  readonly upcoming: readonly SiteEvent[];
+  /** Filter chips shown at the top. "All" is always prepended. */
+  readonly categories: readonly string[];
+}
+
+export function EventsList({ upcoming, categories: categoryOptions }: Props) {
+  const [filter, setFilter] = useState<string>('All');
   const [page, setPage] = useState(0);
 
+  const categories = useMemo<readonly string[]>(
+    () => ['All', ...categoryOptions],
+    [categoryOptions],
+  );
+
   const list = useMemo(
-    () => (filter === 'All' ? upcomingEvents : upcomingEvents.filter((e) => e.category === filter)),
-    [filter],
+    () => (filter === 'All' ? upcoming : upcoming.filter((e) => e.categories.includes(filter))),
+    [upcoming, filter],
   );
 
   const pages = useMemo(() => chunk(list, PAGE_SIZE), [list]);
@@ -117,8 +119,8 @@ export function EventsList() {
             const active = filter === c;
             const count =
               c === 'All'
-                ? upcomingEvents.length
-                : upcomingEvents.filter((e) => e.category === c).length;
+                ? upcoming.length
+                : upcoming.filter((e) => e.categories.includes(c)).length;
             return (
               <button
                 key={c}

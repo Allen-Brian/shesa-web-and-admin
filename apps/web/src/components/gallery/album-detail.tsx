@@ -128,6 +128,25 @@ function AlbumHero({
           </span>
         </motion.h1>
 
+        {album.linkedEventSlug && (
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.5 }}
+            variants={fadeUp}
+            custom={3}
+            className="mt-6"
+          >
+            <Link
+              href={`/events/${album.linkedEventSlug}`}
+              className="inline-flex items-center gap-2 rounded-xs border border-white/25 bg-white/5 px-4 py-2 text-[12.5px] font-medium tracking-wide text-white transition-colors hover:border-primary hover:bg-primary"
+            >
+              View the event
+              <span aria-hidden>→</span>
+            </Link>
+          </motion.div>
+        )}
+
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -139,34 +158,34 @@ function AlbumHero({
           <p className="max-w-xl text-[15px] leading-[1.75] text-white/75 md:col-span-7 md:text-base">
             {album.description}
           </p>
-          <div className="flex flex-wrap items-center gap-6 md:col-span-5 md:justify-end">
-            <div>
+          <div className="flex flex-wrap items-start gap-x-8 gap-y-4 md:col-span-5 md:justify-end">
+            <div className="flex flex-col">
               <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-white/50">
                 Photos
               </p>
               <p
-                className="mt-1 font-heading font-thin tabular-nums text-white"
+                className="mt-1 font-heading font-thin leading-none tabular-nums text-white"
                 style={{ fontSize: 'clamp(1.5rem, 2.6vw, 2.25rem)' }}
               >
                 {photos}
               </p>
             </div>
-            <div>
+            <div className="flex flex-col">
               <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-white/50">
                 Videos
               </p>
               <p
-                className="mt-1 font-heading font-thin tabular-nums text-white"
+                className="mt-1 font-heading font-thin leading-none tabular-nums text-white"
                 style={{ fontSize: 'clamp(1.5rem, 2.6vw, 2.25rem)' }}
               >
                 {videos}
               </p>
             </div>
-            <div>
+            <div className="flex min-w-40 flex-col">
               <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-white/50">
                 Location
               </p>
-              <p className="mt-1 font-heading text-sm font-light text-white md:text-base">
+              <p className="mt-2 font-heading text-sm font-light leading-tight text-white md:text-base">
                 {album.location}
               </p>
             </div>

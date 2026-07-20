@@ -3,6 +3,8 @@
 import Image from 'next/image';
 import { motion, type Variants } from 'framer-motion';
 
+import { isLocalSupabaseUrl } from './is-local-supabase-url';
+
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 const fadeUp: Variants = {
@@ -14,7 +16,7 @@ const fadeUp: Variants = {
   }),
 };
 
-type Leader = {
+export type Leader = {
   readonly name: string;
   readonly position: string;
   readonly location?: string;
@@ -22,144 +24,11 @@ type Leader = {
   readonly slug: string;
 };
 
-type Tier = {
+export type Tier = {
   readonly heading: string;
   readonly caption: string;
   readonly leaders: readonly Leader[];
 };
-
-// 17 posts across 5 tiers, in hierarchical order.
-const tiers: readonly Tier[] = [
-  {
-    heading: 'The Executive',
-    caption: 'The office of the President',
-    leaders: [
-      {
-        name: 'Dr. Etonge Ambe',
-        position: 'National President',
-        location: 'Yaoundé · Cameroon',
-        photo: '/president_one.jpg',
-        slug: 'etonge-ambe',
-      },
-      {
-        name: 'Barr. Achu Nkeng',
-        position: 'Vice President',
-        location: 'Buea · Cameroon',
-        photo: '/president_two.jpg',
-        slug: 'achu-nkeng',
-      },
-      {
-        name: 'Eng. Ndifon Nkweta',
-        position: 'Secretary General',
-        location: 'Douala · Cameroon',
-        photo: '/president_one.jpg',
-        slug: 'ndifon-nkweta',
-      },
-    ],
-  },
-  {
-    heading: 'Council Portfolios',
-    caption: 'The working core of the association',
-    leaders: [
-      {
-        name: 'Mrs. Tanyi Bih',
-        position: 'Treasurer',
-        photo: '/president_two.jpg',
-        slug: 'tanyi-bih',
-      },
-      {
-        name: 'Mr. Ngwa Divine',
-        position: 'Financial Secretary',
-        photo: '/president_one.jpg',
-        slug: 'ngwa-divine',
-      },
-      {
-        name: 'Mrs. Awasum Grace',
-        position: 'Asst. Secretary General',
-        photo: '/president_two.jpg',
-        slug: 'awasum-grace',
-      },
-      {
-        name: 'Mr. Fru Wilson',
-        position: 'Communications Secretary',
-        photo: '/president_one.jpg',
-        slug: 'fru-wilson',
-      },
-    ],
-  },
-  {
-    heading: 'Coordinators',
-    caption: 'Portfolios and programme leads',
-    leaders: [
-      {
-        name: 'Dr. Chi Emmanuel',
-        position: 'Programs Secretary',
-        photo: '/president_two.jpg',
-        slug: 'chi-emmanuel',
-      },
-      {
-        name: 'Mrs. Nkeng Josephine',
-        position: 'Welfare Secretary',
-        photo: '/president_one.jpg',
-        slug: 'nkeng-josephine',
-      },
-      {
-        name: 'Mr. Achu Jean',
-        position: 'Publicity Secretary',
-        photo: '/president_two.jpg',
-        slug: 'achu-jean',
-      },
-      {
-        name: 'Mrs. Fon Beatrice',
-        position: "Women's Coordinator",
-        photo: '/president_one.jpg',
-        slug: 'fon-beatrice',
-      },
-      {
-        name: 'Mr. Tanyi Peter',
-        position: 'Youth Coordinator',
-        photo: '/president_two.jpg',
-        slug: 'tanyi-peter',
-      },
-    ],
-  },
-  {
-    heading: 'Advisory Council',
-    caption: 'Counsel, oversight, and stewardship',
-    leaders: [
-      {
-        name: 'Barr. Ndifon George',
-        position: 'Legal Adviser',
-        photo: '/president_one.jpg',
-        slug: 'ndifon-george',
-      },
-      {
-        name: 'Rev. Fr. Kwenti Anthony',
-        position: 'Chaplain',
-        photo: '/president_two.jpg',
-        slug: 'kwenti-anthony',
-      },
-      {
-        name: 'Mr. Bih Roland',
-        position: 'Provost',
-        photo: '/president_one.jpg',
-        slug: 'bih-roland',
-      },
-      {
-        name: 'Mr. Ngwa Charles',
-        position: 'Auditor',
-        photo: '/president_two.jpg',
-        slug: 'ngwa-charles',
-      },
-      {
-        name: 'Dr. Achu Samuel',
-        position: 'Immediate Past President',
-        photo: '/president_one.jpg',
-        slug: 'achu-samuel',
-      },
-    ],
-  },
-];
 
 // All tiers left-aligned within the section container. No `mx-auto`
 // on any variant.
@@ -171,7 +40,18 @@ const gridForSize: Record<number, string> = {
   5: 'grid max-w-6xl grid-cols-2 gap-4 sm:grid-cols-3 md:gap-5 lg:grid-cols-5',
 };
 
-export function MainOrgan() {
+interface MainOrganProps {
+  /**
+   * The mainstream executive slate, grouped into hierarchical tiers.
+   * Supplied by the server page from the `cms` schema. When empty the
+   * whole section short-circuits — an empty CMS renders nothing.
+   */
+  readonly tiers: readonly Tier[];
+}
+
+export function MainOrgan({ tiers }: MainOrganProps) {
+  if (tiers.length === 0) return null;
+
   return (
     <section className="relative overflow-hidden bg-white py-20 text-black md:py-28">
       <div className="mx-auto max-w-350 px-5 md:px-8 lg:px-12">
@@ -263,6 +143,7 @@ function LeaderCard({ leader }: { readonly leader: Leader }) {
           fill
           sizes="(min-width: 1024px) 20vw, 40vw"
           quality={75}
+          unoptimized={isLocalSupabaseUrl(leader.photo)}
           className="object-cover object-top"
         />
         <div

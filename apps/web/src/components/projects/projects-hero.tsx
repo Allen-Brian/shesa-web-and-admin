@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { motion, type Variants } from 'framer-motion';
 
-import { projects } from './data';
+import type { Project } from './data';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -26,7 +26,15 @@ const revealLine: Variants = {
   visible: { y: 0, transition: { duration: 1, ease } },
 };
 
-export function ProjectsHero() {
+interface Props {
+  /**
+   * Every project in the CMS. Used solely to compute the three
+   * count-by-status headline stats below the hero copy.
+   */
+  readonly projects: readonly Project[];
+}
+
+export function ProjectsHero({ projects }: Props) {
   const active = projects.filter((p) => p.status === 'Active' || p.status === 'Ongoing').length;
   const completed = projects.filter((p) => p.status === 'Completed').length;
   const fundraising = projects.filter((p) => p.status === 'Fundraising').length;

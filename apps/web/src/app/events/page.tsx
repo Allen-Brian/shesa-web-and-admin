@@ -1,22 +1,81 @@
 import type { Metadata } from 'next';
 
+import type { SiteEvent } from '@/components/events/data';
 import { EventsHero } from '@/components/events/events-hero';
 import { EventsList } from '@/components/events/events-list';
+import { formatEvent, type RawSiteEvent } from '@/components/events/format-event';
 import { NextEvent } from '@/components/events/next-event';
 import { PastEvents } from '@/components/events/past-events';
+import { getServerClient } from '@/lib/supabase-server';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Events · SHESA',
   description: 'Reunions, ceremonies, community drives, and cultural nights — the SHESA calendar.',
 };
 
-export default function EventsPage() {
+interface RawCategory {
+  readonly id: string;
+  readonly name: string;
+}
+interface RawMap {
+  readonly event_id: string;
+  readonly category_id: string;
+}
+
+/**
+ * Public Events page. Fetches every `cms.site_events` row + category
+ * join in one round trip, formats to the public `SiteEvent` shape,
+ * splits into upcoming + past, and hands each strip its slice.
+ */
+export default async function EventsPage() {
+  const supabase = await getServerClient();
+
+  const [{ data: eventsRaw }, { data: categoriesRaw }, { data: mapRaw }] = await Promise.all([
+    supabase
+      .schema('cms' as never)
+      .from('site_events' as never)
+      .select(
+        'id, slug, title, short_description, description_html, banner_url, starts_at, ends_at, location, city, is_featured, has_ticketing, ticket_url, ticket_price, ticket_currency, flyers, program, album_slug',
+      )
+      .order('starts_at', { ascending: true }),
+    supabase
+      .schema('cms' as never)
+      .from('site_event_categories' as never)
+      .select('id, name'),
+    supabase
+      .schema('cms' as never)
+      .from('site_event_categories_map' as never)
+      .select('event_id, category_id'),
+  ]);
+
+  const catNameById = new Map(((categoriesRaw ?? []) as RawCategory[]).map((c) => [c.id, c.name]));
+  const catsByEvent = new Map<string, string[]>();
+  for (const m of (mapRaw ?? []) as RawMap[]) {
+    const name = catNameById.get(m.category_id);
+    if (!name) continue;
+    const bucket = catsByEvent.get(m.event_id) ?? [];
+    bucket.push(name);
+    catsByEvent.set(m.event_id, bucket);
+  }
+
+  const all: SiteEvent[] = ((eventsRaw ?? []) as RawSiteEvent[]).map((r) =>
+    formatEvent(r, catsByEvent.get(r.id) ?? []),
+  );
+
+  const upcoming = all.filter((e) => e.upcoming);
+  const past = all.filter((e) => !e.upcoming).sort((a, b) => b.fullDate.localeCompare(a.fullDate));
+
+  const featured = all.find((e) => e.featured) ?? upcoming[0] ?? null;
+  const categories = Array.from(catNameById.values()).sort();
+
   return (
     <>
-      <EventsHero />
-      <NextEvent />
-      <EventsList />
-      <PastEvents />
+      <EventsHero upcomingCount={upcoming.length} pastCount={past.length} />
+      <NextEvent featuredEvent={featured} />
+      <EventsList upcoming={upcoming} categories={categories} />
+      <PastEvents past={past} />
     </>
   );
 }

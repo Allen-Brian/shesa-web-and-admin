@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
-import { events, upcomingEvents, type SiteEvent } from './data';
+import type { SiteEvent } from './data';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -79,16 +79,22 @@ function daysUntil(dateStr: string): number {
   return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 }
 
-export function EventDetail({ event }: { readonly event: SiteEvent }) {
+interface Props {
+  readonly event: SiteEvent;
+  /**
+   * Pre-picked related events for the "Also upcoming" strip at the
+   * bottom. The server page picks up to three same-status siblings so
+   * this component doesn't have to know about the full CMS.
+   */
+  readonly related?: readonly SiteEvent[];
+}
+
+export function EventDetail({ event, related = [] }: Props) {
   const [days, setDays] = useState<number | null>(null);
 
   useEffect(() => {
     setDays(daysUntil(event.fullDate));
   }, [event.fullDate]);
-
-  const related = (event.upcoming ? upcomingEvents : events)
-    .filter((e) => e.id !== event.id)
-    .slice(0, 3);
 
   return (
     <>

@@ -13,13 +13,17 @@ import {
   Crown,
   GraduationCap,
   Home,
+  Images,
   Layers,
   MailOpen,
   Megaphone,
+  Music,
   Network,
+  Newspaper,
   ScrollText,
   Settings2,
   Target,
+  Ticket,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -242,47 +246,71 @@ export function AppSidebar({
          * RLS on exco.events + exco.announcements gates visibility per
          * ADR-0041; the list pages render an empty state for anyone
          * without admin scopes rather than hiding the link.
+         *
+         * Hidden for the Site Editor persona — those are operational
+         * exco surfaces, unrelated to the public-website content the
+         * Editor curates. The Editor's own Site Events / Site
+         * Announcements live under the Content group below.
          */}
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  tooltip="Events"
-                  isActive={
-                    pathname === `/${persona}/events` || pathname.startsWith(`/${persona}/events/`)
-                  }
-                >
-                  <Link href={`/${persona}/events`}>
-                    <CalendarDays />
-                    <span>Events</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  tooltip="Announcements"
-                  isActive={
-                    pathname === `/${persona}/announcements` ||
-                    pathname.startsWith(`/${persona}/announcements/`)
-                  }
-                >
-                  <Link href={`/${persona}/announcements`}>
-                    <Megaphone />
-                    <span>Announcements</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {persona !== 'editor' && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Events"
+                    isActive={
+                      pathname === `/${persona}/events` ||
+                      pathname.startsWith(`/${persona}/events/`)
+                    }
+                  >
+                    <Link href={`/${persona}/events`}>
+                      <CalendarDays />
+                      <span>Events</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Announcements"
+                    isActive={
+                      pathname === `/${persona}/announcements` ||
+                      pathname.startsWith(`/${persona}/announcements/`)
+                    }
+                  >
+                    <Link href={`/${persona}/announcements`}>
+                      <Megaphone />
+                      <span>Announcements</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                {(persona === 'exco' || persona === 'finance') && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip="AGM 2026 tickets"
+                      isActive={
+                        pathname === `/${persona}/agm-tickets` ||
+                        pathname.startsWith(`/${persona}/agm-tickets/`)
+                      }
+                    >
+                      <Link href={`/${persona}/agm-tickets`}>
+                        <Ticket />
+                        <span>AGM tickets</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/*
          * Content (CMS) — surfaces the public-website curation. Only
          * for callers holding `cms.edit` (Site Editor + mainstream_admin).
-         * Leadership is the first (and currently only) surface.
          */}
         {canEditCms && (
           <SidebarGroup>
@@ -300,6 +328,94 @@ export function AppSidebar({
                     <Link href={`/${persona}/leadership`}>
                       <Crown />
                       <span>Leadership</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="News"
+                    isActive={
+                      pathname === `/${persona}/news` || pathname.startsWith(`/${persona}/news/`)
+                    }
+                  >
+                    <Link href={`/${persona}/news`}>
+                      <Newspaper />
+                      <span>News</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Projects"
+                    isActive={
+                      pathname === `/${persona}/projects` ||
+                      pathname.startsWith(`/${persona}/projects/`)
+                    }
+                  >
+                    <Link href={`/${persona}/projects`}>
+                      <Target />
+                      <span>Projects</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Site Events"
+                    isActive={
+                      pathname === `/${persona}/site-events` ||
+                      pathname.startsWith(`/${persona}/site-events/`)
+                    }
+                  >
+                    <Link href={`/${persona}/site-events`}>
+                      <CalendarDays />
+                      <span>Site Events</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Gallery"
+                    isActive={
+                      pathname === `/${persona}/gallery` ||
+                      pathname.startsWith(`/${persona}/gallery/`)
+                    }
+                  >
+                    <Link href={`/${persona}/gallery`}>
+                      <Images />
+                      <span>Gallery</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Organs"
+                    isActive={
+                      pathname === `/${persona}/organs` ||
+                      pathname.startsWith(`/${persona}/organs/`)
+                    }
+                  >
+                    <Link href={`/${persona}/organs`}>
+                      <Network />
+                      <span>Organs</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Songs"
+                    isActive={
+                      pathname === `/${persona}/songs` || pathname.startsWith(`/${persona}/songs/`)
+                    }
+                  >
+                    <Link href={`/${persona}/songs`}>
+                      <Music />
+                      <span>Songs</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

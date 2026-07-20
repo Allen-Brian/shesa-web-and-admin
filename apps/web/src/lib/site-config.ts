@@ -21,10 +21,11 @@ export const navItems: readonly NavItem[] = [
   { label: 'About', href: '/about' },
   { label: 'Leadership', href: '/leadership' },
   { label: 'Organs', href: '/organs' },
-  { label: 'News & Announcements', href: '/news' },
+  { label: 'News', href: '/news' },
   { label: 'Events', href: '/events' },
   { label: 'Projects', href: '/projects' },
   { label: 'Gallery', href: '/gallery' },
+  { label: 'Songs', href: '/songs' },
   { label: 'Sponsors', href: '/sponsors' },
   { label: 'Contact Us', href: '/contact' },
 ] as const;

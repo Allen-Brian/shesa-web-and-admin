@@ -93,7 +93,7 @@ export function DataTable<T>({
   massActions,
   pagination = true,
   pageSize: pageSizeProp = 8,
-  pageSizeOptions = [8, 16, 24, 32],
+  pageSizeOptions = [4, 6, 8, 16, 24, 32],
   autoHeight = false,
   ...rest
 }: DataTableProps<T>) {

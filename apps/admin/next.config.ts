@@ -1,6 +1,44 @@
 import path from 'node:path';
 import type { NextConfig } from 'next';
 
+/**
+ * `next/image` whitelist. The Site Editor's leader photo picker uploads
+ * to the `cms-media` bucket and stores the returned public URL; the
+ * table + dialog previews render those URLs through `next/image`,
+ * which needs the host whitelisted here.
+ *
+ * The bucket URL host varies by environment:
+ *   local Docker Supabase → 127.0.0.1:54321 (http)
+ *   hosted Supabase       → <project>.supabase.co (https)
+ * We derive the production host from NEXT_PUBLIC_SUPABASE_URL and
+ * always include the two local dev hosts so the fresh-clone experience
+ * works without a build-arg dance.
+ */
+function buildImageRemotePatterns() {
+  const patterns: NonNullable<NextConfig['images']>['remotePatterns'] = [
+    { protocol: 'http', hostname: '127.0.0.1', port: '54321', pathname: '/storage/v1/object/**' },
+    { protocol: 'http', hostname: 'localhost', port: '54321', pathname: '/storage/v1/object/**' },
+  ];
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (raw) {
+    try {
+      const u = new URL(raw);
+      const host = u.hostname;
+      const isLocal = host === '127.0.0.1' || host === 'localhost';
+      if (!isLocal) {
+        patterns.push({
+          protocol: u.protocol.replace(':', '') as 'http' | 'https',
+          hostname: host,
+          pathname: '/storage/v1/object/**',
+        });
+      }
+    } catch {
+      // ignore — build continues with the local-only fallback
+    }
+  }
+  return patterns;
+}
+
 const nextConfig: NextConfig = {
   // Vercel monorepo builds: trace files from the workspace root so
   // @shesa/* package sources are included in the deploy bundle.
@@ -13,6 +51,9 @@ const nextConfig: NextConfig = {
     '@shesa/ui',
   ],
   reactStrictMode: true,
+  images: {
+    remotePatterns: buildImageRemotePatterns(),
+  },
   experimental: {
     // Most admin mutations flow Server Action -> Edge Function (ADR-0033).
     // A few (profile-owned single-row updates, member imports with

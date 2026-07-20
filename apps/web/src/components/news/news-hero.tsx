@@ -1,10 +1,12 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 import { useRef, useState } from 'react';
 
-import { articles } from './data';
+import { isLocalSupabaseUrl } from '../leadership/is-local-supabase-url';
+import type { Article } from './data';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -17,12 +19,21 @@ const fadeUp: Variants = {
   }),
 };
 
-export function NewsHero() {
+interface Props {
+  /** Featured articles for the top carousel. Empty → the carousel hides. */
+  readonly featured: readonly Article[];
+}
+
+/**
+ * Public News page hero — headline + description on the left,
+ * horizontal Featured carousel on the right. Each card is a Link
+ * back to `/news?id={article.id}` so clicking sets the reader's
+ * active article without a full navigation cycle in the reader.
+ */
+export function NewsHero({ featured }: Props) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [reachStart, setReachStart] = useState(true);
   const [reachEnd, setReachEnd] = useState(false);
-
-  const featured = articles.slice(0, 6);
 
   const scrollBy = (dx: number) => {
     scrollerRef.current?.scrollBy({ left: dx, behavior: 'smooth' });
@@ -47,7 +58,7 @@ export function NewsHero() {
               variants={fadeUp}
               className="font-heading text-sm font-medium uppercase tracking-[0.28em] text-primary"
             >
-              News & Announcements
+              News
             </motion.p>
 
             <motion.h1
@@ -73,7 +84,7 @@ export function NewsHero() {
               custom={2}
               className="mt-6 max-w-md text-[15px] leading-[1.7] text-black/60"
             >
-              Every announcement, every dispatch, every proud milestone. The official record of what
+              Every dispatch, every announcement, every proud milestone. The official record of what
               the movement is up to, in one place.
             </motion.p>
           </div>
@@ -89,57 +100,74 @@ export function NewsHero() {
               <p className="font-heading text-[11px] font-medium uppercase tracking-[0.28em] text-black/60">
                 Featured
               </p>
-              <div className="flex items-center gap-2">
-                <ScrollArrow
-                  direction="left"
-                  disabled={reachStart}
-                  onClick={() => scrollBy(-360)}
-                />
-                <ScrollArrow direction="right" disabled={reachEnd} onClick={() => scrollBy(360)} />
-              </div>
+              {featured.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <ScrollArrow
+                    direction="left"
+                    disabled={reachStart}
+                    onClick={() => scrollBy(-360)}
+                  />
+                  <ScrollArrow
+                    direction="right"
+                    disabled={reachEnd}
+                    onClick={() => scrollBy(360)}
+                  />
+                </div>
+              )}
             </div>
 
-            <div
-              ref={scrollerRef}
-              onScroll={onScroll}
-              className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2"
-              style={{ scrollbarWidth: 'none' }}
-            >
-              {featured.map((article) => (
-                <div
-                  key={article.id}
-                  className="relative aspect-[3/2] w-[280px] shrink-0 snap-start overflow-hidden rounded-xs md:w-[320px]"
-                >
-                  <Image
-                    src={article.image}
-                    alt={article.title}
-                    fill
-                    sizes="320px"
-                    quality={75}
-                    className="object-cover"
-                  />
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0"
-                    style={{
-                      background:
-                        'linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,0.7) 100%)',
-                    }}
-                  />
-                  <div className="absolute inset-x-0 bottom-0 p-4">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-white/80">
-                      {article.category}
-                    </p>
-                    <p
-                      className="mt-1 line-clamp-2 font-heading font-light leading-tight text-white"
-                      style={{ fontSize: '0.95rem', letterSpacing: '-0.005em' }}
-                    >
-                      {article.title}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {featured.length === 0 ? (
+              <p className="rounded-xs border border-dashed border-black/12 bg-black/2 p-8 text-center text-sm text-black/50">
+                No featured articles yet.
+              </p>
+            ) : (
+              <div
+                ref={scrollerRef}
+                onScroll={onScroll}
+                className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2"
+                style={{ scrollbarWidth: 'none' }}
+              >
+                {featured.map((article) => (
+                  <Link
+                    key={article.id}
+                    href={`/news?id=${article.id}`}
+                    scroll={false}
+                    className="group relative aspect-3/2 w-70 shrink-0 snap-start overflow-hidden rounded-xs md:w-80"
+                  >
+                    {article.bannerUrl && (
+                      <Image
+                        src={article.bannerUrl}
+                        alt=""
+                        fill
+                        sizes="320px"
+                        quality={75}
+                        unoptimized={isLocalSupabaseUrl(article.bannerUrl)}
+                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                    )}
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        background:
+                          'linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,0.7) 100%)',
+                      }}
+                    />
+                    <div className="absolute inset-x-0 bottom-0 p-4">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-white/80">
+                        {article.categories[0] ?? 'Featured'}
+                      </p>
+                      <p
+                        className="mt-1 line-clamp-2 font-heading font-light leading-tight text-white"
+                        style={{ fontSize: '0.95rem', letterSpacing: '-0.005em' }}
+                      >
+                        {article.title}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </motion.div>
         </div>
       </div>

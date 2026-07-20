@@ -6,6 +6,11 @@ import { getServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Editor persona — curates public-website content (Leadership,
+ * announcements copy, etc.). Single-scope: everything happens at
+ * Mainstream. Non-editor users get redirected out.
+ */
 export default async function EditorLayout({ children }: { readonly children: ReactNode }) {
   const supabase = await getServerClient();
   const {
@@ -14,6 +19,21 @@ export default async function EditorLayout({ children }: { readonly children: Re
 
   if (!user) {
     redirect('/login?next=/editor');
+  }
+
+  // `cms.edit` at any scope is the ticket in. Anyone without it (a
+  // branch admin who somehow navigated here, a plain member, etc.) is
+  // bounced back out. Uses the SECURITY DEFINER RPC — bypasses RLS on
+  // the RBAC tables.
+  const { data: allowedCms } = await supabase.schema('core').rpc(
+    'has_permission_at_any_scope' as never,
+    {
+      p_user_id: user.id,
+      p_key: 'cms.edit',
+    } as never,
+  );
+  if (allowedCms !== true) {
+    redirect('/');
   }
 
   const { data: profile } = await supabase
@@ -32,6 +52,7 @@ export default async function EditorLayout({ children }: { readonly children: Re
       userEmail={userEmail}
       userName={userName}
       avatarUrl={profile?.avatar_url ?? undefined}
+      canEditCms
     >
       {children}
     </AppShell>

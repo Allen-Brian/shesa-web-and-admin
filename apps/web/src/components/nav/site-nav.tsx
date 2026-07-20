@@ -97,7 +97,7 @@ export function SiteNav() {
               : 'border-b border-transparent bg-transparent text-black'
         }`}
       >
-        <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-6 px-5 md:h-20 md:px-8 lg:px-12">
+        <div className="mx-auto flex h-16 max-w-350 items-center justify-between gap-6 px-5 md:h-20 md:px-8 lg:px-12">
           <Link
             href="/"
             className="group flex items-center gap-3 text-lg font-black tracking-tight md:text-xl"
@@ -174,17 +174,17 @@ export function SiteNav() {
               <span className="relative block h-3 w-5">
                 <span
                   className={`absolute left-0 top-0 h-0.5 w-5 bg-current transition-transform duration-300 ${
-                    open ? 'translate-y-[6px] rotate-45' : ''
+                    open ? 'translate-y-1.5 rotate-45' : ''
                   }`}
                 />
                 <span
-                  className={`absolute left-0 top-[6px] h-0.5 w-5 bg-current transition-opacity duration-200 ${
+                  className={`absolute left-0 top-1.5 h-0.5 w-5 bg-current transition-opacity duration-200 ${
                     open ? 'opacity-0' : 'opacity-100'
                   }`}
                 />
                 <span
-                  className={`absolute left-0 top-[12px] h-0.5 w-5 bg-current transition-transform duration-300 ${
-                    open ? '-translate-y-[6px] -rotate-45' : ''
+                  className={`absolute left-0 top-3 h-0.5 w-5 bg-current transition-transform duration-300 ${
+                    open ? '-translate-y-1.5 -rotate-45' : ''
                   }`}
                 />
               </span>
@@ -210,7 +210,7 @@ export function SiteNav() {
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="absolute inset-x-0 top-0 max-h-screen overflow-y-auto bg-white pb-10 pt-24 shadow-2xl"
             >
-              <nav className="mx-auto max-w-[1400px] px-6">
+              <nav className="mx-auto max-w-350 px-6">
                 <ul className="flex flex-col divide-y divide-black/5">
                   {navItems.map((item, i) => {
                     const active =

@@ -3,8 +3,6 @@
 import Image from 'next/image';
 import { motion, type Variants } from 'framer-motion';
 
-import { albums } from './data';
-
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 const fadeUp: Variants = {
@@ -26,20 +24,17 @@ const revealLine: Variants = {
   visible: { y: 0, transition: { duration: 1, ease } },
 };
 
-export function GalleryHero() {
-  const totalPhotos = albums.reduce(
-    (n, a) => n + a.media.filter((m) => m.type === 'photo').length,
-    0,
-  );
-  const totalVideos = albums.reduce(
-    (n, a) => n + a.media.filter((m) => m.type === 'video').length,
-    0,
-  );
+interface GalleryHeroProps {
+  readonly albumCount: number;
+  readonly photoCount: number;
+  readonly videoCount: number;
+}
 
+export function GalleryHero({ albumCount, photoCount, videoCount }: GalleryHeroProps) {
   const stats = [
-    { value: String(albums.length), label: 'Albums' },
-    { value: String(totalPhotos), label: 'Photos' },
-    { value: String(totalVideos), label: 'Videos' },
+    { value: String(albumCount), label: 'Albums' },
+    { value: String(photoCount), label: 'Photos' },
+    { value: String(videoCount), label: 'Videos' },
   ];
 
   return (

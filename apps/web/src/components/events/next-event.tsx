@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
-import { featuredEvent } from './data';
+import type { SiteEvent } from './data';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -26,13 +26,18 @@ function daysUntil(dateStr: string): number | null {
   return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 }
 
-export function NextEvent() {
+interface Props {
+  /** Currently featured event (or the next upcoming) — omit to hide this section. */
+  readonly featuredEvent?: SiteEvent | null;
+}
+
+export function NextEvent({ featuredEvent }: Props) {
   const [days, setDays] = useState<number | null>(null);
 
   useEffect(() => {
     if (!featuredEvent) return;
     setDays(daysUntil(featuredEvent.fullDate));
-  }, []);
+  }, [featuredEvent]);
 
   if (!featuredEvent) return null;
 
