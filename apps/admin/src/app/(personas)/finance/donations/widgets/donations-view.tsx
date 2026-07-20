@@ -87,7 +87,6 @@ export function DonationsView({ campaigns, donations, scopeOptions }: DonationsV
         onArchive: setArchivingId,
         pending,
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [pending],
   );
 

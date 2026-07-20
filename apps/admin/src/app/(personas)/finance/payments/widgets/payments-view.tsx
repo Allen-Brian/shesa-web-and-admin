@@ -87,7 +87,6 @@ export function PaymentsView({ payments, chargeOptions, baseUrl }: PaymentsViewP
           row.receiptToken && copyUrl(buildVerifyUrl(baseUrl, row.receiptToken)),
         onReverse: setReversing,
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [reversedIds, pending, baseUrl],
   );
 

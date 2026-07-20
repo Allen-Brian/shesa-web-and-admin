@@ -91,7 +91,6 @@ export function ContributionsView({ contributions, scopeOptions }: Contributions
         onExtend: openExtend,
         onArchive: setArchivingId,
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [pending],
   );
 

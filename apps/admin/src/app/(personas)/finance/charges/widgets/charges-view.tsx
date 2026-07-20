@@ -75,7 +75,6 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
         onGenerate: actions.runGenerate,
         onArchive: setArchivingId,
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [pending],
   );
 

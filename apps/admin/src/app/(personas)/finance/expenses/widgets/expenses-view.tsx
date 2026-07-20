@@ -81,7 +81,6 @@ export function ExpensesView({ expenses, scopeOptions, categoryOptions }: Expens
         onApprove: actions.runApprove,
         onReverse: setReversing,
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [pending],
   );
 

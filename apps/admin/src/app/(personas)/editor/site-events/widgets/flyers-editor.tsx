@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useTransition } from 'react';
+import { useRef, useTransition } from 'react';
 import Image from 'next/image';
 import { ImageIcon, Loader2, Plus, X } from 'lucide-react';
 
