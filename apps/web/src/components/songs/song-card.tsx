@@ -54,7 +54,7 @@ interface Props {
 
 /**
  * Card for a single song in the browse grid. Cover image (or a
- * lettered fallback), title/subtitle/performer, a play/pause pill that
+ * lettered fallback), title + performer, a play/pause pill that
  * flips to "Playing…" state when this song is the docked player's
  * current track, and a tiny download icon. Hovering nudges the card up
  * and reveals a subtle glow on the cover.
@@ -122,7 +122,7 @@ export function SongCard({ song, index }: Props) {
               {song.title}
             </h3>
             <p className="mt-1 truncate text-[11.5px] font-medium uppercase tracking-[0.24em] text-white/75">
-              {song.performer ?? song.composer ?? '—'}
+              {song.performer ?? '—'}
             </p>
           </div>
 
@@ -143,14 +143,9 @@ export function SongCard({ song, index }: Props) {
 
       <div className="flex items-start justify-between gap-3 border-t border-black/8 bg-white/95 p-4">
         <div className="min-w-0">
-          {song.subtitle && (
+          {song.description && (
             <p className="line-clamp-2 text-[12.5px] leading-[1.55] text-black/60">
-              {song.subtitle}
-            </p>
-          )}
-          {(song.composer || song.releasedYear) && (
-            <p className="mt-1.5 text-[10.5px] font-medium uppercase tracking-[0.22em] text-black/40">
-              {[song.composer, song.releasedYear].filter(Boolean).join(' · ')}
+              {song.description}
             </p>
           )}
         </div>

@@ -15,14 +15,11 @@ interface RawSong {
   readonly group_id: string;
   readonly slug: string;
   readonly title: string;
-  readonly subtitle: string | null;
-  readonly composer: string | null;
   readonly performer: string | null;
   readonly description: string | null;
   readonly audio_url: string;
   readonly cover_url: string | null;
   readonly duration_seconds: number | null;
-  readonly released_year: number | null;
   readonly lyrics: string | null;
   readonly sort_order: number;
   readonly created_at: string;
@@ -35,14 +32,11 @@ function normaliseSong(raw: RawSong): SongRow {
     groupId: raw.group_id,
     slug: raw.slug,
     title: raw.title,
-    subtitle: raw.subtitle,
-    composer: raw.composer,
     performer: raw.performer,
     description: raw.description,
     audioUrl: raw.audio_url,
     coverUrl: raw.cover_url,
     durationSeconds: raw.duration_seconds,
-    releasedYear: raw.released_year,
     lyrics: raw.lyrics,
     sortOrder: raw.sort_order,
     createdAt: raw.created_at,
@@ -63,7 +57,7 @@ export async function loadEditorSongs(): Promise<LoadedSongs> {
       .schema('cms' as never)
       .from('songs' as never)
       .select(
-        'id, group_id, slug, title, subtitle, composer, performer, description, audio_url, cover_url, duration_seconds, released_year, lyrics, sort_order, created_at, updated_at',
+        'id, group_id, slug, title, performer, description, audio_url, cover_url, duration_seconds, lyrics, sort_order, created_at, updated_at',
       )
       .order('sort_order')
       .order('title'),

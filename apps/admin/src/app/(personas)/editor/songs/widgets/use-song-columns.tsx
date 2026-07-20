@@ -63,10 +63,7 @@ export function useSongColumns({ onOpen }: Args): ColDef<SongSerialRow>[] {
               className="flex flex-col justify-center py-1 text-left leading-snug"
             >
               <span className="text-sm font-medium text-foreground">{p.data.title}</span>
-              <span className="text-xs text-muted-foreground">
-                {p.data.subtitle && <span>{p.data.subtitle} · </span>}
-                {p.data.performer ?? p.data.composer ?? '—'}
-              </span>
+              <span className="text-xs text-muted-foreground">{p.data.performer ?? '—'}</span>
             </button>
           ) : null,
       },
@@ -88,13 +85,6 @@ export function useSongColumns({ onOpen }: Args): ColDef<SongSerialRow>[] {
               {formatDuration(p.data.durationSeconds)}
             </span>
           ) : null,
-      },
-      {
-        headerName: 'Year',
-        field: 'releasedYear',
-        width: 90,
-        cellClass: 'text-xs text-muted-foreground tabular-nums',
-        valueFormatter: (p) => (p.value ? String(p.value) : '—'),
       },
     ],
     [onOpen],

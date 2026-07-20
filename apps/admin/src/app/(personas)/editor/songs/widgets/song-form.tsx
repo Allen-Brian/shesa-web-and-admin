@@ -27,9 +27,7 @@ export function SongForm({ groups, editing }: Props) {
   const [title, setTitle] = useState(editing?.title ?? '');
   const [slug, setSlug] = useState(editing?.slug ?? '');
   const [slugTouched, setSlugTouched] = useState(!!editing);
-  const [subtitle, setSubtitle] = useState(editing?.subtitle ?? '');
   const [groupId, setGroupId] = useState<string>(editing?.groupId ?? groups[0]?.id ?? '');
-  const [composer, setComposer] = useState(editing?.composer ?? '');
   const [performer, setPerformer] = useState(editing?.performer ?? '');
   const [description, setDescription] = useState(editing?.description ?? '');
   const [audioUrl, setAudioUrl] = useState(editing?.audioUrl ?? '');
@@ -37,9 +35,6 @@ export function SongForm({ groups, editing }: Props) {
     editing?.durationSeconds ?? null,
   );
   const [coverUrl, setCoverUrl] = useState(editing?.coverUrl ?? '');
-  const [releasedYear, setReleasedYear] = useState(
-    editing?.releasedYear != null ? String(editing.releasedYear) : '',
-  );
   const [lyrics, setLyrics] = useState(editing?.lyrics ?? '');
   const [manageOpen, setManageOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -67,24 +62,16 @@ export function SongForm({ groups, editing }: Props) {
       toast.error('Audio is required.');
       return;
     }
-    const year = releasedYear ? Number.parseInt(releasedYear, 10) : null;
-    if (releasedYear && (!Number.isFinite(year) || year! < 1800 || year! > 2100)) {
-      toast.error('Released year looks off — use a plain 4-digit year.');
-      return;
-    }
 
     const payload: SongInput = {
       groupId,
       slug,
       title,
-      subtitle: subtitle || null,
-      composer: composer || null,
       performer: performer || null,
       description: description || null,
       audioUrl,
       coverUrl: coverUrl || null,
       durationSeconds,
-      releasedYear: year,
       lyrics: lyrics || null,
       sortOrder: editing?.sortOrder ?? 999,
     };
@@ -146,29 +133,6 @@ export function SongForm({ groups, editing }: Props) {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="sg-subtitle">Subtitle (optional)</Label>
-              <Input
-                id="sg-subtitle"
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
-                placeholder="The one every alum knows by heart"
-                maxLength={200}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="sg-composer">Composer</Label>
-              <Input
-                id="sg-composer"
-                value={composer}
-                onChange={(e) => setComposer(e.target.value)}
-                placeholder="B. Ngufor"
-                maxLength={200}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
               <Label htmlFor="sg-performer">Performer</Label>
               <Input
                 id="sg-performer"
@@ -180,32 +144,18 @@ export function SongForm({ groups, editing }: Props) {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="sg-year">Released year</Label>
-              <Input
-                id="sg-year"
-                type="number"
-                min="1800"
-                max="2100"
-                value={releasedYear}
-                onChange={(e) => setReleasedYear(e.target.value)}
-                placeholder="1998"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="sg-duration">Duration (seconds)</Label>
-              <Input
-                id="sg-duration"
-                type="number"
-                min="1"
-                value={durationSeconds ?? ''}
-                onChange={(e) =>
-                  setDurationSeconds(e.target.value ? Number.parseInt(e.target.value, 10) : null)
-                }
-                placeholder="Auto-detected on upload"
-              />
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="sg-duration">Duration (seconds)</Label>
+            <Input
+              id="sg-duration"
+              type="number"
+              min="1"
+              value={durationSeconds ?? ''}
+              onChange={(e) =>
+                setDurationSeconds(e.target.value ? Number.parseInt(e.target.value, 10) : null)
+              }
+              placeholder="Auto-detected on upload"
+            />
           </div>
 
           <div className="flex flex-col gap-2">

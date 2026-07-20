@@ -27,14 +27,11 @@ interface RawSong {
   readonly group_id: string;
   readonly slug: string;
   readonly title: string;
-  readonly subtitle: string | null;
-  readonly composer: string | null;
   readonly performer: string | null;
   readonly description: string | null;
   readonly audio_url: string;
   readonly cover_url: string | null;
   readonly duration_seconds: number | null;
-  readonly released_year: number | null;
   readonly lyrics: string | null;
 }
 
@@ -43,14 +40,11 @@ function toSong(r: RawSong): PublicSong {
     id: r.id,
     slug: r.slug,
     title: r.title,
-    subtitle: r.subtitle,
-    composer: r.composer,
     performer: r.performer,
     description: r.description,
     audioUrl: r.audio_url,
     coverUrl: r.cover_url,
     durationSeconds: r.duration_seconds,
-    releasedYear: r.released_year,
     lyrics: r.lyrics,
     groupId: r.group_id,
   };
@@ -69,7 +63,7 @@ export default async function SongsPage() {
       .schema('cms' as never)
       .from('songs' as never)
       .select(
-        'id, group_id, slug, title, subtitle, composer, performer, description, audio_url, cover_url, duration_seconds, released_year, lyrics',
+        'id, group_id, slug, title, performer, description, audio_url, cover_url, duration_seconds, lyrics',
       )
       .order('sort_order')
       .order('title'),

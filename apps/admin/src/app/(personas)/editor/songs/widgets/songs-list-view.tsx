@@ -56,8 +56,6 @@ export function SongsListView({ songs, groups }: Props) {
       return (
         r.title.toLowerCase().includes(q) ||
         r.groupName.toLowerCase().includes(q) ||
-        !!r.subtitle?.toLowerCase().includes(q) ||
-        !!r.composer?.toLowerCase().includes(q) ||
         !!r.performer?.toLowerCase().includes(q)
       );
     });

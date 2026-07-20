@@ -149,7 +149,7 @@ export function DockedPlayer() {
                     {song.title}
                   </p>
                   <p className="truncate text-[11px] uppercase tracking-[0.24em] text-white/60">
-                    {song.performer ?? song.composer ?? 'SHESA'}
+                    {song.performer ?? 'SHESA'}
                   </p>
                 </div>
               </div>

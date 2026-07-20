@@ -64,8 +64,6 @@ export function SongsBrowser({ songs, groups }: Props) {
       if (!q) return true;
       return (
         s.title.toLowerCase().includes(q) ||
-        !!s.subtitle?.toLowerCase().includes(q) ||
-        !!s.composer?.toLowerCase().includes(q) ||
         !!s.performer?.toLowerCase().includes(q) ||
         groupName.toLowerCase().includes(q)
       );
@@ -117,7 +115,7 @@ export function SongsBrowser({ songs, groups }: Props) {
             custom={2}
             className="max-w-md text-[15px] leading-[1.7] text-black/60 md:col-span-4"
           >
-            Search by title, composer, or chapter — press play and it stays with you as you scroll.
+            Search by title, performer, or chapter — press play and it stays with you as you scroll.
           </motion.p>
         </div>
 
@@ -135,7 +133,7 @@ export function SongsBrowser({ songs, groups }: Props) {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search anthems, chapters, composers…"
+              placeholder="Search anthems, chapters, performers…"
               className="w-full rounded-xs border border-black/12 bg-white py-3.5 pl-11 pr-5 text-[14px] text-black placeholder:text-black/40 focus:border-primary focus:outline-none"
             />
           </label>
