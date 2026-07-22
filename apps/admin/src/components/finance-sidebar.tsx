@@ -11,6 +11,7 @@ import {
   Target,
   Wallet,
 } from 'lucide-react';
+// Wallet retained (still used for the Expenses icon).
 
 import {
   Logo,
@@ -53,11 +54,10 @@ interface NavItem {
  */
 const NAV_ITEMS: readonly NavItem[] = [
   { href: '/finance', label: 'Dashboard', Icon: Home },
+  { href: '/finance/payments', label: 'Transactions', Icon: LandPlot },
   { href: '/finance/charges', label: 'Charges', Icon: BadgeDollarSign },
   { href: '/finance/contributions', label: 'Contributions', Icon: Target },
   { href: '/finance/donations', label: 'Donations', Icon: CircleDollarSign },
-  { href: '/finance/payments', label: 'Payments', Icon: LandPlot },
-  { href: '/finance/treasury', label: 'Treasury', Icon: Wallet },
   { href: '/finance/expenses', label: 'Expenses', Icon: Wallet },
   { href: '/finance/reports', label: 'Reports', Icon: BarChart3 },
 ];

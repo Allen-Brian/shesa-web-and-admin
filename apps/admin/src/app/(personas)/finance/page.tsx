@@ -8,7 +8,6 @@ import { FinanceHeroKpis } from './widgets/hero-kpis';
 import { PendingApprovalsPanel } from './widgets/pending-approvals-panel';
 import { QuickActionsGrid } from './widgets/quick-actions-grid';
 import { RecentActivityPanel } from './widgets/recent-activity-panel';
-import { TopTreasuriesPanel } from './widgets/top-treasuries-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,19 +16,12 @@ export const metadata = {
 };
 
 /**
- * Finance dashboard — the persona's landing.
- *
- * Organised as an operational triage view rather than a data
- * explorer: hero KPIs surface treasury balances + 30-day flow, quick
- * actions jump straight into the mainline mutation flows, then two
- * side-by-side panels highlight top treasuries and pending approvals
- * so nothing slips off the operator's radar. Data loading + all
- * reduce logic lives in `loadFinanceDashboard`; each section is its
- * own sibling widget.
- *
- * RLS on the finance schema does the visibility work: SELECT filters
- * to scopes the caller holds `finance.read` at. That gate lives in
- * the migration layer, not here.
+ * Finance dashboard — reduced to the three numbers the mainstream
+ * operator needs at a glance (Income / Expenses / Net for the last 30
+ * days), then Recent Activity and Pending Approvals so nothing slips
+ * off the radar. Every read is scoped to the caller's active finance
+ * scope (mainstream-only for Global Finance; own branch scopes
+ * otherwise) — see `lib/finance/active-scope.ts`.
  */
 export default async function FinanceDashboardPage() {
   const supabase = await getServerClient();
@@ -38,7 +30,7 @@ export default async function FinanceDashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/finance');
 
-  const { treasuries, topTreasuries, pendingExpenses, pendingSummary, scopeById, kpis, activity } =
+  const { pendingExpenses, pendingSummary, scopeById, kpis, activity } =
     await loadFinanceDashboard();
 
   return (
@@ -52,9 +44,7 @@ export default async function FinanceDashboardPage() {
           Dashboard
         </h1>
         <p className="text-sm text-muted-foreground">
-          {treasuries.length === 0
-            ? 'No treasuries are visible to you yet.'
-            : `${treasuries.length} treasur${treasuries.length === 1 ? 'y' : 'ies'} in view · financial pulse for the last 30 days.`}
+          Money in · money out · what's left, for the last 30 days.
         </p>
       </header>
 
@@ -63,15 +53,13 @@ export default async function FinanceDashboardPage() {
       <QuickActionsGrid pendingCount={pendingSummary.count} />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-        <TopTreasuriesPanel treasuries={topTreasuries} scopeById={scopeById} />
+        <RecentActivityPanel activity={activity} />
         <PendingApprovalsPanel
           summary={pendingSummary}
           pendingExpenses={pendingExpenses}
           scopeById={scopeById}
         />
       </div>
-
-      <RecentActivityPanel activity={activity} />
     </section>
   );
 }
