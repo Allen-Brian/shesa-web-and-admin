@@ -11,9 +11,6 @@ import { ChargeMatrixReports } from './charge-matrix-reports';
 import { ChargeMatrixTable } from './charge-matrix-table';
 import { ChargePoolReports } from './charge-pool-reports';
 import { ChargePoolTable } from './charge-pool-table';
-import { ChargeScopeBodyReports } from './charge-scope-body-reports';
-import { ChargeTargetsPlanCard } from './charge-targets-plan-card';
-import { ScopeBodyMatrix } from './scope-body-matrix';
 
 /**
  * ChargeDetailView — the "who has paid" drill-down for a single
@@ -56,12 +53,6 @@ export function ChargeDetailView(props: ChargeDetailProps) {
       ) : (
         <ChargeHero summary={props.summary} backLinkHref={props.backLinkHref} />
       )}
-      {props.chargeTargets && props.chargeTargets.length > 0 && (
-        <ChargeTargetsPlanCard
-          chargeTargets={props.chargeTargets}
-          currency={props.summary.currency}
-        />
-      )}
       <Tabs defaultValue="table" className="flex min-h-0 flex-1 flex-col gap-4">
         <TabsList className="self-start">
           <TabsTrigger value="table" className="gap-1.5">
@@ -79,16 +70,7 @@ export function ChargeDetailView(props: ChargeDetailProps) {
           className="flex min-h-0 flex-1 flex-col gap-4 focus-visible:outline-none"
         >
           {props.mode === 'matrix' ? (
-            props.variant === 'scope-body' ? (
-              <ScopeBodyMatrix
-                summary={props.summary}
-                periods={props.periods}
-                members={props.members}
-                paymentLog={props.paymentLog}
-              />
-            ) : (
-              <ChargeMatrixTable {...props} />
-            )
+            <ChargeMatrixTable {...props} />
           ) : (
             <ChargePoolTable {...props} />
           )}
@@ -99,11 +81,7 @@ export function ChargeDetailView(props: ChargeDetailProps) {
           className="flex min-h-0 flex-1 flex-col gap-4 focus-visible:outline-none"
         >
           {props.mode === 'matrix' ? (
-            props.variant === 'scope-body' ? (
-              <ChargeScopeBodyReports {...props} />
-            ) : (
-              <ChargeMatrixReports {...props} />
-            )
+            <ChargeMatrixReports {...props} />
           ) : (
             <ChargePoolReports {...props} />
           )}

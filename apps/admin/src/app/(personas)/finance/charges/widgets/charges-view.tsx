@@ -6,10 +6,18 @@ import { CreditCard } from 'lucide-react';
 
 import { ConfirmDialog, DataTable, EntityTablePanel, type GridApi } from '@shesa/ui';
 
+import { FilterChips } from '@/components/filters/filter-chips';
+import { FilterDropdown } from '@/components/filters/filter-dropdown';
+import { useFilterState } from '@/lib/filters/use-filter-state';
+
 import { buildChargeColumns } from './charge-columns';
 import { CreateChargeDialog } from './create-charge-dialog';
 import { ChargesKpiStrip } from './charges-kpi-strip';
-import { ChargesTableFilters } from './charges-table-filters';
+import {
+  CHARGES_FILTER_CONFIG,
+  CHARGES_FILTER_DIMENSIONS,
+  type ChargesFilterDim,
+} from './charges-filter-config';
 import { buildChargeKpis } from './charges-kpis';
 import { initialCreate, toEditForm } from './charges-helpers';
 import type {
@@ -18,10 +26,7 @@ import type {
   EditForm,
   ScopeOption,
   SerialRow,
-  ShapeFilter,
-  StatusFilter,
   TargetScopeOption,
-  TypeFilter,
 } from './charges-types';
 import { EditChargeDialog } from './edit-charge-dialog';
 import { useChargesActions } from './use-charges-actions';
@@ -33,19 +38,18 @@ interface ChargesViewProps {
 }
 
 /**
- * Charges portfolio — KPI strip + filterable DataTable + two dialogs
- * (create draft, edit metadata) + archive confirm. Row-click routes
- * to the charge-detail drill-down. Every rendered chunk delegates to
- * a sibling widget so this file stays under the 200-line cap.
+ * Charges portfolio — KPI strip + URL-backed FilterDropdown + chips +
+ * DataTable + create/edit/archive/delete dialogs. Row-click routes to
+ * the charge-detail drill-down; every rendered chunk delegates to a
+ * sibling widget so this file stays under the 200-line cap.
  */
 export function ChargesView({ charges, scopeOptions, targetScopeOptions }: ChargesViewProps) {
   const router = useRouter();
   const actions = useChargesActions({ scopeOptions });
   const { pending } = actions;
 
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [shapeFilter, setShapeFilter] = useState<ShapeFilter>('all');
+  const filterState = useFilterState<ChargesFilterDim>(CHARGES_FILTER_DIMENSIONS);
+
   const [search, setSearch] = useState('');
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -58,11 +62,14 @@ export function ChargesView({ charges, scopeOptions, targetScopeOptions }: Charg
 
   const filtered = useMemo<readonly SerialRow[]>(() => {
     const q = search.trim().toLowerCase();
+    const typeSel = filterState.values.type as readonly string[] | undefined;
+    const shapeSel = filterState.values.shape as readonly string[] | undefined;
+    const statusSel = filterState.values.status as readonly string[] | undefined;
     return charges
       .filter((c) => {
-        if (typeFilter !== 'all' && c.targetPartyType !== typeFilter) return false;
-        if (statusFilter !== 'all' && c.status !== statusFilter) return false;
-        if (shapeFilter !== 'all' && c.shape !== shapeFilter) return false;
+        if (typeSel?.length && !typeSel.includes(c.targetPartyType)) return false;
+        if (shapeSel?.length && !shapeSel.includes(c.shape)) return false;
+        if (statusSel?.length && !statusSel.includes(c.status)) return false;
         if (!q) return true;
         if (c.name.toLowerCase().includes(q)) return true;
         if (c.scopeName.toLowerCase().includes(q)) return true;
@@ -70,7 +77,7 @@ export function ChargesView({ charges, scopeOptions, targetScopeOptions }: Charg
         return false;
       })
       .map((c, i) => ({ ...c, serial: i + 1 }));
-  }, [charges, search, statusFilter, shapeFilter, typeFilter]);
+  }, [charges, search, filterState.values]);
 
   const columnDefs = useMemo(
     () =>
@@ -116,15 +123,21 @@ export function ChargesView({ charges, scopeOptions, targetScopeOptions }: Charg
         createLabel="New charge"
         onCreate={openCreate}
         filters={
-          <ChargesTableFilters
-            type={typeFilter}
-            onTypeChange={setTypeFilter}
-            shape={shapeFilter}
-            onShapeChange={setShapeFilter}
-            status={statusFilter}
-            onStatusChange={setStatusFilter}
+          <FilterDropdown
+            dimensions={CHARGES_FILTER_CONFIG}
+            values={filterState.values}
+            onApply={filterState.setValues}
+            onClearAll={filterState.clearAll}
+            activeCount={filterState.activeCount}
           />
         }
+      />
+
+      <FilterChips
+        values={filterState.values}
+        dimensions={CHARGES_FILTER_CONFIG}
+        onRemove={(dim, value) => filterState.removeValue(dim as ChargesFilterDim, value)}
+        onClearAll={filterState.clearAll}
       />
 
       <DataTable<SerialRow>

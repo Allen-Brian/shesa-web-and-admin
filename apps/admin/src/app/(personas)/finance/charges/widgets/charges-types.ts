@@ -58,10 +58,6 @@ export interface TargetScopeOption {
 
 export type SerialRow = ChargeRow & { readonly serial: number };
 
-export type StatusFilter = 'all' | ChargeRow['status'];
-export type ShapeFilter = 'all' | 'charge' | 'fixed';
-export type TypeFilter = 'all' | TargetPartyType;
-
 export const RECURRENCES = [
   { value: 'one_time', label: 'One-time' },
   { value: 'monthly', label: 'Monthly' },

@@ -41,8 +41,8 @@ export function buildChargeMatrixColumnDefs({
       headerName: 'Member',
       field: 'fullName',
       pinned: 'left',
-      minWidth: 220,
-      flex: 1,
+      minWidth: 350,
+      flex: 1.5,
       cellRenderer: (p: ICellRendererParams<MatrixRow>) =>
         p.data ? <ChargeMatrixMemberCell member={p.data} currency={currency} /> : null,
     },
@@ -64,7 +64,9 @@ export function buildChargeMatrixColumnDefs({
     cols.push({
       headerName: formatPeriodHeader(period) + (isCurrent ? ' · today' : ''),
       colId: `period_${period.key}`,
-      width: 150,
+      // Current period gets extra room so "MMM YYYY · today" plus the
+      // AG-Grid header menu chevron never clip on a laptop viewport.
+      width: isCurrent ? 210 : 150,
       sortable: false,
       filter: false,
       headerClass: period.isUpcoming
