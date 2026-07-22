@@ -16,6 +16,9 @@ export interface ContributionRow {
   readonly status: string;
   readonly raised: number;
   readonly contributorCount: number;
+  /** Event group this contribution belongs to, if any. */
+  readonly groupId: string | null;
+  readonly groupName: string | null;
 }
 
 export interface ScopeOption {

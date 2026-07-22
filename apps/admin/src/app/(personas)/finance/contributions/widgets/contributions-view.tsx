@@ -66,6 +66,7 @@ export function ContributionsView({ contributions, scopeOptions }: Contributions
         if (c.name.toLowerCase().includes(q)) return true;
         if (c.scopeName.toLowerCase().includes(q)) return true;
         if (c.description?.toLowerCase().includes(q)) return true;
+        if (c.groupName?.toLowerCase().includes(q)) return true;
         return false;
       })
       .map((c, i) => ({ ...c, serial: i + 1 }));
