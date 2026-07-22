@@ -184,7 +184,7 @@ export function ReceiptCard({ receipt, qrSvg }: Props) {
               </ReceiptRow>
             </div>
 
-            {receipt.kind === 'attire' && <AttireMeasurements metadata={receipt.metadata} />}
+            {receipt.kind === 'attire' && <AttireSize metadata={receipt.metadata} />}
           </div>
 
           <div className="flex flex-col items-center gap-3 border-t border-dashed border-black/15 pt-8 md:border-l md:border-t-0 md:pl-8 md:pt-0">
@@ -235,31 +235,18 @@ function ReceiptRow({
   );
 }
 
-interface Measurements {
-  readonly chest?: string;
-  readonly waist?: string;
-  readonly hip?: string;
-  readonly height?: string;
-  readonly size?: string;
-}
-
-function AttireMeasurements({ metadata }: { readonly metadata: Record<string, unknown> }) {
-  const m = (metadata.measurements ?? {}) as Measurements;
-  const entries = Object.entries(m).filter(([, v]) => typeof v === 'string' && v.length > 0);
-  if (entries.length === 0) return null;
+function AttireSize({ metadata }: { readonly metadata: Record<string, unknown> }) {
+  const size = typeof metadata.size === 'string' ? metadata.size : null;
+  if (!size) return null;
   return (
     <div className="flex flex-col gap-2 rounded-xs border border-dashed border-black/15 p-4">
       <p className="font-heading text-[10.5px] font-medium uppercase tracking-[0.24em] text-black/50">
-        Measurements
+        Size
       </p>
-      <div className="grid grid-cols-2 gap-3 text-[13px] text-black/70 sm:grid-cols-3">
-        {entries.map(([k, v]) => (
-          <div key={k} className="flex flex-col">
-            <span className="text-[11px] uppercase tracking-[0.18em] text-black/40">{k}</span>
-            <span className="font-mono">{String(v)}</span>
-          </div>
-        ))}
-      </div>
+      <p className="font-heading text-2xl font-light tracking-[0.16em] text-black">{size}</p>
+      <p className="text-[12px] text-black/50">
+        Bring this receipt to the pick-up desk on Assembly Day.
+      </p>
     </div>
   );
 }
