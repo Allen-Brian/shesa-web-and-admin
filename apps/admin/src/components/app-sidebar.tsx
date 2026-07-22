@@ -23,7 +23,6 @@ import {
   ScrollText,
   Settings2,
   Target,
-  Ticket,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -286,23 +285,6 @@ export function AppSidebar({
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                {(persona === 'exco' || persona === 'finance') && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip="AGM 2026 tickets"
-                      isActive={
-                        pathname === `/${persona}/agm-tickets` ||
-                        pathname.startsWith(`/${persona}/agm-tickets/`)
-                      }
-                    >
-                      <Link href={`/${persona}/agm-tickets`}>
-                        <Ticket />
-                        <span>AGM tickets</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

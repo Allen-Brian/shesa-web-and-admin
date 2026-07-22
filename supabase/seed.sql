@@ -2080,3 +2080,159 @@ VALUES
    '55555555-0000-0000-0000-000000000010',
    NOW() - INTERVAL '6 days')
 ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================================
+-- Section 8. AGM 2026 event group + charges — 2026-07-22
+-- =============================================================================
+--
+-- Seeds the flagship event group (AGM 2026) that drives the public
+-- /agm-2026 page. Every finance surface (Dashboard, Transactions,
+-- Donations, Expenses, Reports) inside the group's shell filters on
+-- `group_id = <this>` — the same rows still show in the mainstream
+-- ledger, so the group is a lens, not a silo.
+--
+-- Charges seeded under the group:
+--   • Default AGM 2026 donation campaign (same name as the group).
+--   • Ticket (ticketed, 20 000 XAF).
+--   • Attire (ticketed, 50 000 XAF).
+--   • Funding tiers: Bronze / Silver / Gold / Platinum donation
+--     campaigns with per-tier suggested minimums.
+--
+-- Idempotent via hand-picked UUIDs + ON CONFLICT.
+
+-------------------------------------------------------------------------------
+-- 8.1 The group
+-------------------------------------------------------------------------------
+
+INSERT INTO finance.groups
+  (id, slug, name, description, starts_on, ends_on, status, show_in_sidebar,
+   scope_id, created_by, created_at, updated_at)
+VALUES
+  ('88888888-2026-0000-0000-000000000001',
+   'agm-2026',
+   'AGM 2026',
+   'Annual General Meeting 2026 — tickets, attire orders, and funding tiers all roll up here.',
+   (date_trunc('year', NOW()) + INTERVAL '6 months')::date,
+   (date_trunc('year', NOW()) + INTERVAL '7 months')::date,
+   'active', TRUE,
+   '00000000-0000-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- 8.2 Charges — default donation + Ticket + Attire + 4 Funding tiers
+-------------------------------------------------------------------------------
+
+-- Default same-named donation campaign. The catch-all bucket for
+-- "donate to the AGM" without picking a tier; the four tiered
+-- campaigns below sit alongside it for the tier-driven ask.
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, currency, target_filter,
+   lifecycle, open_date, close_date, status, group_id,
+   created_by, created_at, updated_at)
+VALUES
+  ('88888888-2026-1111-0000-000000000001',
+   '00000000-0000-0000-0000-000000000001',
+   'donation', 'AGM 2026',
+   'Default AGM 2026 donation campaign. Any amount, any tier.',
+   'XAF', '{}'::jsonb,
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '9 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- Ticket (ticketed, 20 000 XAF). The flat entry price for the AGM.
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, base_amount, currency,
+   target_filter, target_party_type, lifecycle, open_date, close_date,
+   status, group_id, created_by, created_at, updated_at)
+VALUES
+  ('88888888-2026-1111-0000-000000000002',
+   '00000000-0000-0000-0000-000000000001',
+   'ticketed', 'Ticket',
+   'AGM 2026 entry ticket — 20 000 XAF per head.',
+   20000, 'XAF', '{}'::jsonb, 'member',
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '7 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- Attire (ticketed, 50 000 XAF). Custom-tailored piece; buyer supplies
+-- measurements in payments.metadata.
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, base_amount, currency,
+   target_filter, target_party_type, lifecycle, open_date, close_date,
+   status, group_id, created_by, created_at, updated_at)
+VALUES
+  ('88888888-2026-1111-0000-000000000003',
+   '00000000-0000-0000-0000-000000000001',
+   'ticketed', 'Attire',
+   'AGM 2026 attire order — 50 000 XAF. Measurements captured at purchase.',
+   50000, 'XAF', '{}'::jsonb, 'member',
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '6 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- Funding tiers — donation-shape charges keyed by suggested minimum.
+-- Public site collects the tier + payer identity in payments.metadata.
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, currency, min_amount,
+   target_filter, lifecycle, open_date, close_date, status, group_id,
+   created_by, created_at, updated_at)
+VALUES
+  ('88888888-2026-1111-0000-000000000010',
+   '00000000-0000-0000-0000-000000000001',
+   'donation', 'Bronze Funding',
+   'AGM 2026 funding tier — Bronze. Suggested 50 000 XAF.',
+   'XAF', 50000, '{}'::jsonb,
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '9 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW()),
+  ('88888888-2026-1111-0000-000000000011',
+   '00000000-0000-0000-0000-000000000001',
+   'donation', 'Silver Funding',
+   'AGM 2026 funding tier — Silver. Suggested 250 000 XAF.',
+   'XAF', 250000, '{}'::jsonb,
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '9 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW()),
+  ('88888888-2026-1111-0000-000000000012',
+   '00000000-0000-0000-0000-000000000001',
+   'donation', 'Gold Funding',
+   'AGM 2026 funding tier — Gold. Suggested 1 000 000 XAF.',
+   'XAF', 1000000, '{}'::jsonb,
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '9 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW()),
+  ('88888888-2026-1111-0000-000000000013',
+   '00000000-0000-0000-0000-000000000001',
+   'donation', 'Platinum Funding',
+   'AGM 2026 funding tier — Platinum. Suggested 5 000 000 XAF.',
+   'XAF', 5000000, '{}'::jsonb,
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '9 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
