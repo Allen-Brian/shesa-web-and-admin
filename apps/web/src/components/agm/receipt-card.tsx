@@ -2,35 +2,57 @@
 
 import { motion } from 'framer-motion';
 
-import { AGM_META, PAYMENT_OPTIONS } from './data';
+import { AGM_META } from './data';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
-interface TicketRow {
-  readonly code: string;
-  readonly full_name: string;
+/**
+ * Charge kinds the AGM receipt can render. Drives header copy +
+ * status label so a Ticket, an Attire order, or a Funding donation
+ * each get language that matches what the visitor actually bought.
+ */
+export type AgmReceiptKind = 'ticket' | 'attire' | 'donation' | 'other';
+
+export interface AgmReceiptData {
+  readonly kind: AgmReceiptKind;
+  readonly chargeName: string;
+  readonly receiptNumber: string;
+  readonly payerName: string;
   readonly email: string | null;
   readonly phone: string | null;
-  readonly amount_xaf: number | string;
-  readonly payment_option: string;
-  readonly status: 'issued' | 'paid' | 'cancelled';
-  readonly created_at: string;
+  readonly amount: number;
+  readonly currency: string;
+  readonly method: string;
+  readonly createdAt: string;
+  /** Payment metadata surfaces buyer-supplied context (measurements, tier). */
+  readonly metadata: Record<string, unknown>;
 }
 
 interface Props {
-  readonly ticket: TicketRow;
-  /** Pre-rendered QR SVG (data-URI or raw SVG markup). */
+  readonly receipt: AgmReceiptData;
+  /** Pre-rendered QR SVG. */
   readonly qrSvg: string;
 }
 
-function paymentLabel(option: string): string {
-  return PAYMENT_OPTIONS.find((o) => o.value === option)?.label ?? option;
+function methodLabel(method: string): string {
+  switch (method) {
+    case 'mtn_momo':
+      return 'MTN Mobile Money';
+    case 'orange_money':
+      return 'Orange Money';
+    case 'bank_transfer':
+      return 'Bank transfer';
+    case 'card':
+      return 'Card (Visa / MasterCard)';
+    case 'cash':
+      return 'Cash on arrival';
+    default:
+      return method;
+  }
 }
 
-function formatMoney(value: number | string): string {
-  const n = typeof value === 'string' ? Number.parseFloat(value) : value;
-  if (!Number.isFinite(n)) return String(value);
-  return n.toLocaleString();
+function formatMoney(value: number): string {
+  return Number.isFinite(value) ? Math.round(value).toLocaleString() : String(value);
 }
 
 function formatDate(iso: string): string {
@@ -45,13 +67,22 @@ function formatDate(iso: string): string {
   });
 }
 
+const KIND_HEADING: Record<AgmReceiptKind, string> = {
+  ticket: 'Ticket',
+  attire: 'Attire order',
+  donation: 'Donation receipt',
+  other: 'Receipt',
+};
+
 /**
- * The printable receipt card. Header carries the SHESA mark; body has
- * the ticket-holder details, tier, amount, status; footer holds the
- * QR code + print/back CTAs. Uses `contain-strict` on the card so
- * @media print can target just this element.
+ * The printable receipt card. Header carries the SHESA mark; body
+ * lists the buyer details, charge name, amount, method, receipt
+ * number; footer holds the QR code + print/back CTAs. The heading
+ * label switches by `kind` so a Ticket / Attire / Donation each read
+ * naturally.
  */
-export function ReceiptCard({ ticket, qrSvg }: Props) {
+export function ReceiptCard({ receipt, qrSvg }: Props) {
+  const heading = KIND_HEADING[receipt.kind];
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-5 py-16 md:py-24">
       <div className="flex items-center justify-between gap-4 print:hidden">
@@ -78,7 +109,6 @@ export function ReceiptCard({ ticket, qrSvg }: Props) {
         id="agm-receipt"
         className="relative overflow-hidden rounded-xs border border-black/12 bg-white shadow-[0_14px_50px_-20px_rgba(0,0,0,0.18)] print:border-black/40 print:shadow-none"
       >
-        {/* Header */}
         <header
           className="relative px-8 py-8 text-white md:px-12"
           style={{
@@ -97,65 +127,64 @@ export function ReceiptCard({ ticket, qrSvg }: Props) {
                   className="mt-1 font-heading font-thin leading-tight text-white"
                   style={{ fontSize: '1.75rem', letterSpacing: '-0.02em' }}
                 >
-                  AGM {AGM_META.edition} — Yaoundé
+                  AGM {AGM_META.edition} — {heading}
                 </p>
               </div>
             </div>
             <div className="text-right">
               <p className="font-heading text-[10.5px] font-medium uppercase tracking-[0.24em] text-white/70">
-                Ticket
+                Receipt №
               </p>
               <p className="mt-1 font-mono text-lg font-semibold tracking-[0.15em] text-white">
-                {ticket.code}
+                {receipt.receiptNumber}
               </p>
             </div>
           </div>
         </header>
 
-        {/* Body */}
         <div className="grid gap-8 px-8 py-10 md:grid-cols-[1fr_220px] md:px-12">
           <div className="flex flex-col gap-6">
-            <ReceiptRow label="Attendee">
+            <ReceiptRow label={receipt.kind === 'donation' ? 'Donor' : 'Buyer'}>
               <span className="font-heading text-2xl font-light text-black">
-                {ticket.full_name}
+                {receipt.payerName}
               </span>
             </ReceiptRow>
 
             <div className="grid gap-6 sm:grid-cols-2">
-              {ticket.email && (
+              {receipt.email && (
                 <ReceiptRow label="Email">
-                  <span className="text-[14px] text-black/70">{ticket.email}</span>
+                  <span className="text-[14px] text-black/70">{receipt.email}</span>
                 </ReceiptRow>
               )}
-              {ticket.phone && (
+              {receipt.phone && (
                 <ReceiptRow label="Phone">
-                  <span className="text-[14px] text-black/70">{ticket.phone}</span>
+                  <span className="text-[14px] text-black/70">{receipt.phone}</span>
                 </ReceiptRow>
               )}
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2">
-              <ReceiptRow label="Amount">
+              <ReceiptRow label={receipt.kind === 'donation' ? 'Amount donated' : 'Amount'}>
                 <span className="font-heading text-2xl font-light tabular-nums text-black">
-                  {formatMoney(ticket.amount_xaf)}{' '}
-                  <span className="text-sm text-black/50">XAF</span>
+                  {formatMoney(receipt.amount)}{' '}
+                  <span className="text-sm text-black/50">{receipt.currency}</span>
                 </span>
               </ReceiptRow>
-              <ReceiptRow label="Payment option">
-                <span className="text-[14px] text-black/70">
-                  {paymentLabel(ticket.payment_option)}
-                </span>
+              <ReceiptRow label="Payment method">
+                <span className="text-[14px] text-black/70">{methodLabel(receipt.method)}</span>
               </ReceiptRow>
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2">
-              <ReceiptRow label="Status">
-                <StatusBadge status={ticket.status} />
+              <ReceiptRow label="Charge">
+                <span className="text-[14px] text-black/70">{receipt.chargeName}</span>
               </ReceiptRow>
               <ReceiptRow label="Issued">
-                <span className="text-[13px] text-black/60">{formatDate(ticket.created_at)}</span>
+                <span className="text-[13px] text-black/60">{formatDate(receipt.createdAt)}</span>
               </ReceiptRow>
             </div>
+
+            {receipt.kind === 'attire' && <AttireMeasurements metadata={receipt.metadata} />}
           </div>
 
           <div className="flex flex-col items-center gap-3 border-t border-dashed border-black/15 pt-8 md:border-l md:border-t-0 md:pl-8 md:pt-0">
@@ -167,12 +196,11 @@ export function ReceiptCard({ ticket, qrSvg }: Props) {
               Scan at check-in
             </p>
             <p className="text-center font-mono text-[11px] tracking-[0.12em] text-black/70">
-              {ticket.code}
+              {receipt.receiptNumber}
             </p>
           </div>
         </div>
 
-        {/* Footer */}
         <footer className="border-t border-black/10 bg-black/[0.02] px-8 py-6 md:px-12">
           <div className="flex flex-wrap items-baseline justify-between gap-4 text-[12px] text-black/55">
             <p>
@@ -207,27 +235,32 @@ function ReceiptRow({
   );
 }
 
-function StatusBadge({ status }: { readonly status: 'issued' | 'paid' | 'cancelled' }) {
-  const map: Record<
-    typeof status,
-    { readonly label: string; readonly bg: string; readonly fg: string }
-  > = {
-    issued: {
-      label: 'Issued — awaiting reconciliation',
-      bg: 'color-mix(in srgb, var(--color-primary) 12%, white)',
-      fg: 'var(--color-primary)',
-    },
-    paid: { label: 'Paid', bg: '#e5f6ea', fg: '#1c7a3c' },
-    cancelled: { label: 'Cancelled', bg: '#f5e5e5', fg: '#8a1a1a' },
-  };
-  const s = map[status];
+interface Measurements {
+  readonly chest?: string;
+  readonly waist?: string;
+  readonly hip?: string;
+  readonly height?: string;
+  readonly size?: string;
+}
+
+function AttireMeasurements({ metadata }: { readonly metadata: Record<string, unknown> }) {
+  const m = (metadata.measurements ?? {}) as Measurements;
+  const entries = Object.entries(m).filter(([, v]) => typeof v === 'string' && v.length > 0);
+  if (entries.length === 0) return null;
   return (
-    <span
-      className="inline-flex w-fit items-center rounded-xs px-2.5 py-1 font-heading text-[10.5px] font-medium uppercase tracking-[0.22em]"
-      style={{ backgroundColor: s.bg, color: s.fg }}
-    >
-      {s.label}
-    </span>
+    <div className="flex flex-col gap-2 rounded-xs border border-dashed border-black/15 p-4">
+      <p className="font-heading text-[10.5px] font-medium uppercase tracking-[0.24em] text-black/50">
+        Measurements
+      </p>
+      <div className="grid grid-cols-2 gap-3 text-[13px] text-black/70 sm:grid-cols-3">
+        {entries.map(([k, v]) => (
+          <div key={k} className="flex flex-col">
+            <span className="text-[11px] uppercase tracking-[0.18em] text-black/40">{k}</span>
+            <span className="font-mono">{String(v)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

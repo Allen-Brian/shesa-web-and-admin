@@ -7,8 +7,8 @@
 export const AGM_META = {
   edition: '2026',
   themeLine: 'The Yaoundé Assembly',
-  tagline: 'Where the story writes its next chapter.',
-  dates: 'Fri 20 — Sun 22 November 2026',
+  tagline: 'Three days. One tournament, one assembly, one grand celebration.',
+  dates: 'Fri 13 — Sun 15 November 2026',
   city: 'Yaoundé, Cameroon',
   venue: 'Palais des Congrès · Yaoundé',
   registrationOpens: 'Registration is open',
@@ -28,85 +28,166 @@ export interface AgmScheduleItem {
 export const AGM_SCHEDULE: readonly AgmScheduleItem[] = [
   {
     day: 'Friday',
-    date: '20 November',
+    date: '13 November · Regional Football Tournament',
     sessions: [
-      { time: '14:00', title: 'Arrival & badge pickup', detail: 'Palais des Congrès · Main foyer' },
-      { time: '17:00', title: 'Opening cocktail', detail: 'Hosted by the AGM committee' },
       {
-        time: '19:30',
-        title: 'Cultural welcome night',
-        detail: 'Traditional performances + dinner',
+        time: '15:00',
+        title: 'Grassfield vs Coastal',
+        detail: 'NW · SW · West Branches take on Douala + South. Prize pool: 1,000,000 XAF.',
+      },
+      {
+        time: '15:00',
+        title: 'Centre vs Northern',
+        detail: 'Yaoundé + East Branches face the Northern Cluster.',
+      },
+      {
+        time: '18:30',
+        title: 'Batch meetings',
+        detail: 'Each batch gathers for its annual convocation — venues shared on-site.',
       },
     ],
   },
   {
     day: 'Saturday',
-    date: '21 November',
+    date: '14 November · Assembly Day · Palais des Congrès · Dress: new SHESA uniform',
     sessions: [
+      { time: '08:30', title: 'Mass', detail: 'Opening service at Palais des Congrès.' },
+      { time: '09:30', title: 'March past', detail: 'Branches and batches parade in formation.' },
+      { time: '10:00', title: 'Breakfast', detail: 'Served in the main hall.' },
       {
-        time: '09:00',
-        title: 'General Assembly session I',
-        detail: 'Reports of the outgoing executive',
+        time: '10:30',
+        title: 'Arrival of dignitaries',
+        detail:
+          'Diplomatic missions, ministers, the Governor of the Centre Region, and special invitees.',
+      },
+      { time: '11:00', title: 'Anthems', detail: 'National Anthem followed by the SHESA Anthem.' },
+      {
+        time: '11:10',
+        title: 'Welcome remarks',
+        detail: 'By the President General.',
+      },
+      { time: '11:20', title: 'Remarks by the Arch-Bishop', detail: '' },
+      {
+        time: '11:25',
+        title: 'Keynote address',
+        detail:
+          '“Leveraging alumni associations as a driving force for economic empowerment, social cohesion, and nation-building.” By H.E. Paul Tasong or H.E. Mbayu Felix.',
+      },
+      { time: '11:35', title: 'Cultural dance & display', detail: '' },
+      {
+        time: '11:45',
+        title: 'Opening remarks',
+        detail: 'By the Prime Minister, Head of Government.',
+      },
+      { time: '11:55', title: 'Group photos + exhibition', detail: '' },
+      { time: '12:20', title: 'Departure of dignitaries', detail: '' },
+      {
+        time: '12:20',
+        title: 'AGM — opening',
+        detail: 'Opening remarks by the President General.',
       },
       {
-        time: '11:30',
-        title: 'Chapter roundtables',
-        detail: 'National, sector, and diaspora tables',
+        time: '12:30',
+        title: 'Minutes & report',
+        detail: 'Presented by the Secretary General.',
       },
-      { time: '14:00', title: 'General Assembly session II', detail: 'Elections and resolutions' },
-      { time: '19:30', title: 'The Grand Gala', detail: 'Scholarship awards + dinner' },
+      {
+        time: '13:00',
+        title: 'Financial report + fiscal budget',
+        detail: 'Presented by the Treasurer.',
+      },
+      { time: '13:20', title: 'Presentation of SHESA projects', detail: '' },
+      { time: '13:40', title: 'Plenary discussion', detail: '' },
+      { time: '14:30', title: 'Adoption of the constitution', detail: '' },
+      {
+        time: '15:30',
+        title: 'Resolutions + closing remarks',
+        detail: 'By the President General.',
+      },
+      {
+        time: '19:00',
+        title: 'Gala · arrival of guests',
+        detail: 'Delegates, guests, dignitaries.',
+      },
+      { time: '19:30', title: 'SHESA Anthem', detail: '' },
+      { time: '19:40', title: 'Gala opening remarks', detail: 'By the President General.' },
+      {
+        time: '19:45',
+        title: 'SHESA-Connect launch',
+        detail: 'Presentation of the SHESA-Connect project.',
+      },
+      {
+        time: '20:00',
+        title: 'Dinner + cultural competitions',
+        detail: 'Branches and batches compete for the cultural night trophy.',
+      },
+      { time: '21:00', title: 'Awards + keynote', detail: '' },
+      { time: '22:00', title: 'Dance floor opens', detail: 'Dance. Dance. Dance.' },
     ],
   },
   {
     day: 'Sunday',
-    date: '22 November',
+    date: '15 November · Thanksgiving',
     sessions: [
-      { time: '10:00', title: 'Foundation Mass', detail: 'Basilique Marie-Reine des Apôtres' },
-      { time: '13:00', title: 'Closing lunch', detail: 'Palais des Congrès · Terrace' },
-      { time: '16:00', title: 'Departure', detail: 'Farewells and next-AGM handover' },
+      {
+        time: '10:00',
+        title: 'Thanksgiving Mass',
+        detail: 'Closing service of gratitude before departure.',
+      },
     ],
   },
 ];
 
-export interface AgmPricingTier {
-  readonly key: string;
+/**
+ * Flat unit price for the AGM 2026 ticket. Kept in one place so the
+ * form's total calculation, the pricing panel, and the marketing
+ * copy all read the same number. Multiple tickets scale linearly.
+ */
+export const AGM_TICKET_UNIT_PRICE_XAF = 20_000;
+
+/**
+ * Attire package price — a custom-tailored piece the buyer specifies
+ * measurements for at purchase time. Also flat.
+ */
+export const AGM_ATTIRE_UNIT_PRICE_XAF = 50_000;
+
+/**
+ * Funding tiers for AGM 2026. Suggested minimums; the public form
+ * lets the donor bump above the tier's minimum. The tier label lands
+ * in payment metadata so Finance can roll up by tier in the group's
+ * Donations tab.
+ */
+export interface AgmFundingTier {
+  readonly key: 'bronze' | 'silver' | 'gold' | 'platinum';
   readonly label: string;
   readonly amountXaf: number;
   readonly caption: string;
-  readonly perks: readonly string[];
 }
 
-export const AGM_PRICING: readonly AgmPricingTier[] = [
+export const AGM_FUNDING_TIERS: readonly AgmFundingTier[] = [
   {
-    key: 'standard',
-    label: 'Standard',
-    amountXaf: 25_000,
-    caption: 'The everyone-welcome pass',
-    perks: ['Access to all three days', 'Cocktail + welcome night', 'Grand Gala + dinner'],
+    key: 'bronze',
+    label: 'Bronze',
+    amountXaf: 50_000,
+    caption: 'For every alumnus who wants a seat at the table.',
   },
   {
-    key: 'patron',
-    label: 'Patron',
-    amountXaf: 100_000,
-    caption: 'For those who lift the room',
-    perks: [
-      'Everything in Standard',
-      'Reserved seating at the Gala',
-      'Named in the AGM programme',
-      "Access to the Patron's lounge",
-    ],
+    key: 'silver',
+    label: 'Silver',
+    amountXaf: 250_000,
+    caption: 'For those who back the association behind the scenes.',
   },
   {
-    key: 'benefactor',
-    label: 'Benefactor',
-    amountXaf: 500_000,
-    caption: 'Underwrite a scholarship seat',
-    perks: [
-      'Everything in Patron',
-      'Named scholarship award in your honour',
-      'Table of six at the Gala',
-      'Private board briefing',
-    ],
+    key: 'gold',
+    label: 'Gold',
+    amountXaf: 1_000_000,
+    caption: 'For patrons who move the needle.',
+  },
+  {
+    key: 'platinum',
+    label: 'Platinum',
+    amountXaf: 5_000_000,
+    caption: 'For benefactors who leave a mark.',
   },
 ];
 
