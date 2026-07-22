@@ -1014,7 +1014,34 @@ END $$;
 --   * A pending-approval honorarium expense (30000 XAF) — above threshold.
 --   * Expense threshold set at 20000 XAF for Buea.
 --
--- Idempotent via hand-picked UUIDs + ON CONFLICT.
+-- Idempotent via hand-picked UUIDs + ON CONFLICT — but the ON CONFLICT
+-- path means re-running the seed doesn't pick up new rows or edits to
+-- old rows. To make the seed truly reproducible we start Section 6 by
+-- wiping every finance row (this is dev-only seed data; prod uses
+-- migrations). The TRUNCATE walks the dependency graph via CASCADE
+-- so a single call handles ledger_entries, tickets, payments, etc.
+
+-------------------------------------------------------------------------------
+-- 6.0 Clean slate — wipe every finance row before reseeding
+-------------------------------------------------------------------------------
+
+TRUNCATE
+  finance.reconciliations,
+  finance.tickets,
+  finance.payments,
+  finance.obligations,
+  finance.charge_targets,
+  finance.contribution_extensions,
+  finance.exceptions,
+  finance.expenses,
+  finance.expense_settings,
+  finance.charges,
+  finance.groups,
+  finance.receipt_verifications,
+  finance.payment_intents,
+  finance.ledger_entries,
+  finance.treasury_balances
+RESTART IDENTITY CASCADE;
 
 -------------------------------------------------------------------------------
 -- 6.1 Charges at Shesa Buea

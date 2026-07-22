@@ -73,7 +73,12 @@ const NAV_ITEMS: readonly NavItem[] = [
 export function FinanceSidebar({ isGlobal = false, sidebarGroups = [] }: FinanceSidebarProps) {
   const pathname = usePathname();
   const meta = PERSONA_META.finance;
-  const showGroups = sidebarGroups.length > 0;
+  // Show the Event Groups section for mainstream users (isGlobal) even
+  // when they have no groups yet — otherwise they can't navigate to
+  // /finance/groups to create the first one. Branch finance users only
+  // see the section when they actually have visible groups, which RLS
+  // filters down to nothing for them today.
+  const showGroups = isGlobal || sidebarGroups.length > 0;
   const groupsActive = pathname === '/finance/groups' || pathname.startsWith('/finance/groups/');
 
   return (
