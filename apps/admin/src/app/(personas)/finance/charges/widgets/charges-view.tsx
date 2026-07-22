@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BadgeDollarSign } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 
 import { ConfirmDialog, DataTable, EntityTablePanel, type GridApi } from '@shesa/ui';
 
@@ -90,7 +90,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
           Finance
         </div>
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <BadgeDollarSign className="h-6 w-6" />
+          <CreditCard className="h-6 w-6" />
           Charges
         </h1>
         <p className="text-sm text-muted-foreground">

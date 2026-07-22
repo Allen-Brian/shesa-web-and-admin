@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { BarChart3 } from 'lucide-react';
+import { BarChart } from 'lucide-react';
 
 import type { ReportKey } from '../actions';
 import { ReportCataloguePicker } from './report-catalogue-picker';
@@ -60,7 +60,7 @@ export function ReportsView({ scopeOptions }: ReportsViewProps) {
           Finance
         </div>
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <BarChart3 className="h-6 w-6" />
+          <BarChart className="h-6 w-6" />
           Reports
         </h1>
         <p className="text-sm text-muted-foreground">

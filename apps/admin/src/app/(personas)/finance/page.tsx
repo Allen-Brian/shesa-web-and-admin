@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { Wallet } from 'lucide-react';
+import { Home } from 'lucide-react';
 
 import { getServerClient } from '@/lib/supabase-server';
 
@@ -40,7 +40,7 @@ export default async function FinanceDashboardPage() {
           Finance
         </div>
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <Wallet className="h-6 w-6" />
+          <Home className="h-6 w-6" />
           Dashboard
         </h1>
         <p className="text-sm text-muted-foreground">

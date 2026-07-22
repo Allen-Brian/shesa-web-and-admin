@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Target } from 'lucide-react';
+import { Landmark } from 'lucide-react';
 
 import {
   DataTable,
@@ -101,7 +101,7 @@ export function ContributionsView({ contributions, scopeOptions }: Contributions
           Finance
         </div>
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <Target className="h-6 w-6" />
+          <Landmark className="h-6 w-6" />
           Contributions
         </h1>
         <p className="text-sm text-muted-foreground">
