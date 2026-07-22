@@ -2,6 +2,7 @@ import { Undo2 } from 'lucide-react';
 
 import { Badge, Button, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
+import { DonationCampaignCell } from './donation-campaign-cell';
 import { formatMethod } from './donations-helpers';
 import type { DonationRow, SerialDonationRow } from './donations-types';
 
@@ -53,7 +54,14 @@ export function buildDonationColumns(actions: DonationColumnActions): ColDef<Ser
         );
       },
     },
-    { headerName: 'Campaign', field: 'campaignName', flex: 1.5, minWidth: 180 },
+    {
+      headerName: 'Campaign',
+      field: 'campaignName',
+      flex: 1.5,
+      minWidth: 200,
+      cellRenderer: (p: ICellRendererParams<SerialDonationRow>) =>
+        p.data ? <DonationCampaignCell row={p.data} /> : null,
+    },
     {
       headerName: 'Amount',
       field: 'amount',

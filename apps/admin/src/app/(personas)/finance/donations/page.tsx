@@ -20,6 +20,12 @@ interface RawChargeRow {
   readonly close_date: string | null;
   readonly status: string;
   readonly created_at: string;
+  readonly group_id: string | null;
+}
+
+interface RawGroupRow {
+  readonly id: string;
+  readonly name: string;
 }
 
 interface RawPaymentRow {
@@ -70,7 +76,7 @@ export default async function DonationsPage() {
       .schema('finance' as never)
       .from('charges' as never)
       .select(
-        'id, scope_id, name, description, currency, lifecycle, open_date, close_date, status, created_at',
+        'id, scope_id, name, description, currency, lifecycle, open_date, close_date, status, created_at, group_id',
       )
       .eq('shape', 'donation')
       .order('created_at', { ascending: false }),
@@ -90,6 +96,22 @@ export default async function DonationsPage() {
 
   const chargesData = (chargesRaw ?? []) as RawChargeRow[];
   const paymentsData = (paymentsRaw ?? []) as RawPaymentRow[];
+
+  // Groups the donation campaigns hang off. One IN-list query — the
+  // group name renders as a chip on both the campaign row and every
+  // donation row so operators can spot event-scoped rows in the
+  // mainstream list without pivoting into the group view.
+  const groupIds = Array.from(
+    new Set(chargesData.map((c) => c.group_id).filter((id): id is string => !!id)),
+  );
+  const { data: groupsRaw } = groupIds.length
+    ? await supabase
+        .schema('finance' as never)
+        .from('groups' as never)
+        .select('id, name')
+        .in('id', groupIds)
+    : { data: [] as RawGroupRow[] };
+  const groupById = new Map(((groupsRaw ?? []) as RawGroupRow[]).map((g) => [g.id, g] as const));
 
   const scopeSet = new Set<string>([
     ...((treasuriesRaw ?? []) as Array<{ scope_id: string }>).map((t) => t.scope_id),
@@ -151,6 +173,8 @@ export default async function DonationsPage() {
       status: c.status,
       raised: agg.raised,
       donationCount: agg.count,
+      groupId: c.group_id,
+      groupName: c.group_id ? (groupById.get(c.group_id)?.name ?? null) : null,
     };
   });
 
@@ -168,6 +192,7 @@ export default async function DonationsPage() {
         member?.full_name ??
         meta.donor_name ??
         (meta.public_donation ? 'Anonymous donor' : 'Walk-in');
+      const groupId = charge?.group_id ?? null;
       return {
         id: p.id,
         campaignName: charge?.name ?? '—',
@@ -181,6 +206,8 @@ export default async function DonationsPage() {
         reversesPaymentId: p.reverses_payment_id,
         isReversed: reversedIds.has(p.id),
         createdAt: p.created_at,
+        groupId,
+        groupName: groupId ? (groupById.get(groupId)?.name ?? null) : null,
       };
     });
 

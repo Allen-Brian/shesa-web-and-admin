@@ -2,6 +2,7 @@ import { Archive, CalendarPlus, CircleCheck, Square } from 'lucide-react';
 
 import { Button, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
+import { CampaignNameCell } from './campaign-name-cell';
 import type { CampaignRow, SerialCampaignRow } from './donations-types';
 import { LifecycleBadge } from './lifecycle-badge';
 
@@ -36,14 +37,9 @@ export function buildCampaignColumns(actions: CampaignColumnActions): ColDef<Ser
       headerName: 'Campaign',
       field: 'name',
       flex: 2,
-      minWidth: 200,
+      minWidth: 220,
       cellRenderer: (p: ICellRendererParams<SerialCampaignRow, string>) =>
-        p.data ? (
-          <div className="flex flex-col leading-tight">
-            <span className="font-medium text-foreground">{p.data.name}</span>
-            <span className="text-xs text-muted-foreground">{p.data.scopeName}</span>
-          </div>
-        ) : null,
+        p.data ? <CampaignNameCell row={p.data} /> : null,
     },
     {
       headerName: 'Raised',
