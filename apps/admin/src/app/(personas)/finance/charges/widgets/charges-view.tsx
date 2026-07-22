@@ -20,6 +20,8 @@ import type {
   SerialRow,
   ShapeFilter,
   StatusFilter,
+  TargetScopeOption,
+  TypeFilter,
 } from './charges-types';
 import { EditChargeDialog } from './edit-charge-dialog';
 import { useChargesActions } from './use-charges-actions';
@@ -27,6 +29,7 @@ import { useChargesActions } from './use-charges-actions';
 interface ChargesViewProps {
   readonly charges: readonly ChargeRow[];
   readonly scopeOptions: readonly ScopeOption[];
+  readonly targetScopeOptions: readonly TargetScopeOption[];
 }
 
 /**
@@ -35,11 +38,12 @@ interface ChargesViewProps {
  * to the charge-detail drill-down. Every rendered chunk delegates to
  * a sibling widget so this file stays under the 200-line cap.
  */
-export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
+export function ChargesView({ charges, scopeOptions, targetScopeOptions }: ChargesViewProps) {
   const router = useRouter();
   const actions = useChargesActions({ scopeOptions });
   const { pending } = actions;
 
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [shapeFilter, setShapeFilter] = useState<ShapeFilter>('all');
   const [search, setSearch] = useState('');
@@ -55,6 +59,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
     const q = search.trim().toLowerCase();
     return charges
       .filter((c) => {
+        if (typeFilter !== 'all' && c.targetPartyType !== typeFilter) return false;
         if (statusFilter !== 'all' && c.status !== statusFilter) return false;
         if (shapeFilter !== 'all' && c.shape !== shapeFilter) return false;
         if (!q) return true;
@@ -64,7 +69,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
         return false;
       })
       .map((c, i) => ({ ...c, serial: i + 1 }));
-  }, [charges, search, statusFilter, shapeFilter]);
+  }, [charges, search, statusFilter, shapeFilter, typeFilter]);
 
   const columnDefs = useMemo(
     () =>
@@ -94,8 +99,8 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
           Charges
         </h1>
         <p className="text-sm text-muted-foreground">
-          Dues + levies at scopes you can see. Each active charge generates its next period&apos;s
-          obligations automatically on the hourly sweep.
+          Dues + levies at scopes you can see. Individual charges fan out to members; Group charges
+          land one obligation per branch/batch with per-target amounts.
         </p>
       </div>
 
@@ -112,6 +117,8 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
         onCreate={openCreate}
         filters={
           <ChargesTableFilters
+            type={typeFilter}
+            onTypeChange={setTypeFilter}
             shape={shapeFilter}
             onShapeChange={setShapeFilter}
             status={statusFilter}
@@ -136,6 +143,7 @@ export function ChargesView({ charges, scopeOptions }: ChargesViewProps) {
         form={createForm}
         onFormChange={(patch) => setCreateForm((f) => ({ ...f, ...patch }))}
         scopeOptions={scopeOptions}
+        targetScopeOptions={targetScopeOptions}
         onSubmit={() => actions.runCreate(createForm, () => setCreateOpen(false))}
         pending={pending}
       />

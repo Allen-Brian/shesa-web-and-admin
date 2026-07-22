@@ -2,9 +2,11 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shesa/ui';
 
-import type { ShapeFilter, StatusFilter } from './charges-types';
+import type { ShapeFilter, StatusFilter, TypeFilter } from './charges-types';
 
 interface ChargesTableFiltersProps {
+  readonly type: TypeFilter;
+  readonly onTypeChange: (v: TypeFilter) => void;
   readonly shape: ShapeFilter;
   readonly onShapeChange: (v: ShapeFilter) => void;
   readonly status: StatusFilter;
@@ -12,11 +14,13 @@ interface ChargesTableFiltersProps {
 }
 
 /**
- * Shape + status two-select cluster rendered in the
+ * Type + shape + status three-select cluster rendered in the
  * EntityTablePanel's filters slot. Kept as a widget so the
  * orchestrator doesn't inline half a page of Select JSX.
  */
 export function ChargesTableFilters({
+  type,
+  onTypeChange,
   shape,
   onShapeChange,
   status,
@@ -24,6 +28,16 @@ export function ChargesTableFilters({
 }: ChargesTableFiltersProps) {
   return (
     <div className="flex items-center gap-2">
+      <Select value={type} onValueChange={(v) => onTypeChange(v as TypeFilter)}>
+        <SelectTrigger className="h-8 w-32 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All types</SelectItem>
+          <SelectItem value="member">Individual</SelectItem>
+          <SelectItem value="branch">Group</SelectItem>
+        </SelectContent>
+      </Select>
       <Select value={shape} onValueChange={(v) => onShapeChange(v as ShapeFilter)}>
         <SelectTrigger className="h-8 w-32 text-xs">
           <SelectValue />

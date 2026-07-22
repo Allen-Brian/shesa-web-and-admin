@@ -17,6 +17,11 @@ import { getServerClient } from '@/lib/supabase-server';
 export type ActionResult<T = unknown> =
   { ok: true; data?: T; message?: string } | { ok: false; message: string };
 
+interface CreateChargeTargetInput {
+  readonly targetScopeId: string;
+  readonly amount: number;
+}
+
 interface CreateChargeInput {
   readonly scopeId: string;
   readonly name: string;
@@ -27,6 +32,8 @@ interface CreateChargeInput {
   readonly recurrenceInterval?: number;
   readonly activationDate: string;
   readonly issueDate?: string;
+  readonly targetPartyType: 'member' | 'branch';
+  readonly chargeTargets?: readonly CreateChargeTargetInput[];
 }
 
 export async function createCharge(
@@ -46,6 +53,8 @@ export async function createCharge(
       recurrenceInterval: input.recurrenceInterval ?? 1,
       activationDate: input.activationDate,
       issueDate: input.issueDate ?? input.activationDate,
+      targetPartyType: input.targetPartyType,
+      chargeTargets: input.targetPartyType === 'branch' ? (input.chargeTargets ?? []) : undefined,
     },
   });
 

@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
+
 import {
   Button,
   Dialog,
@@ -8,19 +10,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Input,
-  Label,
-  NativeDateInput,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Textarea,
 } from '@shesa/ui';
 
-import type { CreateForm, Recurrence, ScopeOption } from './charges-types';
-import { RECURRENCES } from './charges-types';
+import { CreateChargeBasicsStep } from './create-charge-basics-step';
+import { CreateChargeReviewStep } from './create-charge-review-step';
+import { CreateChargeTargetsStep } from './create-charge-targets-step';
+import { CreateChargeTypeStep } from './create-charge-type-step';
+import type { CreateForm, ScopeOption, TargetScopeOption } from './charges-types';
 
 interface CreateChargeDialogProps {
   readonly open: boolean;
@@ -28,15 +24,29 @@ interface CreateChargeDialogProps {
   readonly form: CreateForm;
   readonly onFormChange: (patch: Partial<CreateForm>) => void;
   readonly scopeOptions: readonly ScopeOption[];
+  readonly targetScopeOptions: readonly TargetScopeOption[];
   readonly onSubmit: () => void;
   readonly pending: boolean;
 }
 
+type StepKey = 'type' | 'basics' | 'targets' | 'review';
+
+const INDIVIDUAL_STEPS: readonly StepKey[] = ['type', 'basics', 'review'];
+const GROUP_STEPS: readonly StepKey[] = ['type', 'basics', 'targets', 'review'];
+
+const STEP_LABEL: Record<StepKey, string> = {
+  type: 'Type',
+  basics: 'Basics',
+  targets: 'Targets',
+  review: 'Review',
+};
+
 /**
- * "New charge" dialog. Every charge starts as a draft — activation
- * flips the hourly-sweep switch. Amount + currency + recurrence are
- * captured here and then frozen once the draft exists so any
- * obligations already generated stay explainable.
+ * "New charge" wizard — 3 steps for Individual, 4 for Group. The
+ * per-step forms live in sibling files; this shell just orchestrates
+ * navigation and delegates the actual writes to the parent via
+ * `onFormChange`. Cross-step validation is loose — Next simply
+ * disables until the current step's required fields are set.
  */
 export function CreateChargeDialog({
   open,
@@ -44,115 +54,178 @@ export function CreateChargeDialog({
   form,
   onFormChange,
   scopeOptions,
+  targetScopeOptions,
   onSubmit,
   pending,
 }: CreateChargeDialogProps) {
+  const steps = form.targetPartyType === 'branch' ? GROUP_STEPS : INDIVIDUAL_STEPS;
+  const [stepIndex, setStepIndex] = useState(0);
+  const step = steps[stepIndex] ?? 'type';
+
+  // Reset to step 1 whenever the dialog reopens; also snap back if the
+  // step list shrinks because the user flipped from Group→Individual.
+  useEffect(() => {
+    if (open) setStepIndex(0);
+  }, [open]);
+  useEffect(() => {
+    if (stepIndex >= steps.length) setStepIndex(steps.length - 1);
+  }, [steps.length, stepIndex]);
+
+  const ownerScope = useMemo(
+    () => scopeOptions.find((s) => s.id === form.scopeId),
+    [scopeOptions, form.scopeId],
+  );
+  const targetLookup = useMemo(
+    () => new Map(targetScopeOptions.map((t) => [t.id, t])),
+    [targetScopeOptions],
+  );
+
+  const canAdvance = validateStep(step, form);
+  const isLast = stepIndex === steps.length - 1;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>New charge</DialogTitle>
           <DialogDescription>
-            A charge creates per-member obligations on its schedule. It starts as a draft; activate
-            it when you&apos;re ready for the hourly sweep to fire.
+            A charge starts as a draft; activate it when you&apos;re ready for the hourly sweep to
+            fire.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="scope">Scope</Label>
-            <Select value={form.scopeId} onValueChange={(v) => onFormChange({ scopeId: v })}>
-              <SelectTrigger id="scope">
-                <SelectValue placeholder="Pick a scope" />
-              </SelectTrigger>
-              <SelectContent>
-                {scopeOptions.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name} · {s.currency}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={form.name}
-              onChange={(e) => onFormChange({ name: e.target.value })}
-              placeholder="e.g. Monthly Dues"
-              maxLength={200}
+
+        <StepBreadcrumbs steps={steps} activeIndex={stepIndex} />
+
+        <div className="pt-1">
+          {step === 'type' && (
+            <CreateChargeTypeStep
+              value={form.targetPartyType}
+              onChange={(v) => onFormChange({ targetPartyType: v, chargeTargets: [] })}
             />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="description">Description (optional)</Label>
-            <Textarea
-              id="description"
-              rows={2}
-              value={form.description}
-              onChange={(e) => onFormChange({ description: e.target.value })}
-              placeholder="What this charge is for."
-              maxLength={2000}
+          )}
+          {step === 'basics' && (
+            <CreateChargeBasicsStep
+              form={form}
+              scopeOptions={scopeOptions}
+              onChange={onFormChange}
             />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="amount">Base amount</Label>
-              <Input
-                id="amount"
-                type="number"
-                min="0"
-                step="1"
-                value={form.baseAmount}
-                onChange={(e) => onFormChange({ baseAmount: e.target.value })}
-                placeholder="25000"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="recurrence">Recurrence</Label>
-              <Select
-                value={form.recurrence}
-                onValueChange={(v) => onFormChange({ recurrence: v as Recurrence })}
-              >
-                <SelectTrigger id="recurrence">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {RECURRENCES.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>
-                      {r.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="activation">Activation date</Label>
-            <NativeDateInput
-              id="activation"
-              value={form.activationDate}
-              onChange={(v) => onFormChange({ activationDate: v })}
+          )}
+          {step === 'targets' && (
+            <CreateChargeTargetsStep
+              form={form}
+              targetScopeOptions={targetScopeOptions}
+              currency={ownerScope?.currency ?? 'XAF'}
+              onChange={onFormChange}
             />
-            <span className="text-xs text-muted-foreground">
-              The instant arrears begin. Obligations for the current period generate from here.
-            </span>
-          </div>
+          )}
+          {step === 'review' && (
+            <CreateChargeReviewStep
+              form={form}
+              ownerScope={ownerScope}
+              targetLookup={targetLookup}
+            />
+          )}
         </div>
-        <DialogFooter>
+
+        <DialogFooter className="flex-row justify-between sm:justify-between">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={() => onOpenChange(false)}
-            disabled={pending}
+            onClick={() => setStepIndex((i) => Math.max(0, i - 1))}
+            disabled={pending || stepIndex === 0}
           >
-            Cancel
+            Back
           </Button>
-          <Button type="button" size="sm" onClick={onSubmit} disabled={pending}>
-            Create draft
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              disabled={pending}
+            >
+              Cancel
+            </Button>
+            {isLast ? (
+              <Button type="button" size="sm" onClick={onSubmit} disabled={pending || !canAdvance}>
+                Create draft
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setStepIndex((i) => Math.min(steps.length - 1, i + 1))}
+                disabled={pending || !canAdvance}
+              >
+                Next
+              </Button>
+            )}
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function validateStep(step: StepKey, form: CreateForm): boolean {
+  if (step === 'type') return true;
+  if (step === 'basics') {
+    if (!form.scopeId || !form.name.trim()) return false;
+    const amt = parseFloat(form.baseAmount);
+    if (!Number.isFinite(amt) || amt <= 0) return false;
+    return !!form.activationDate;
+  }
+  if (step === 'targets') {
+    if (form.chargeTargets.length === 0) return false;
+    return form.chargeTargets.every((t) => {
+      const n = parseFloat(t.amount);
+      return Number.isFinite(n) && n > 0;
+    });
+  }
+  return true;
+}
+
+interface StepBreadcrumbsProps {
+  readonly steps: readonly StepKey[];
+  readonly activeIndex: number;
+}
+
+function StepBreadcrumbs({ steps, activeIndex }: StepBreadcrumbsProps) {
+  return (
+    <ol className="flex items-center gap-1 text-xs">
+      {steps.map((s, i) => {
+        const active = i === activeIndex;
+        const past = i < activeIndex;
+        return (
+          <li key={s} className="flex items-center gap-1">
+            <span
+              className={
+                'flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-semibold ' +
+                (active
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : past
+                    ? 'border-primary/60 bg-primary/15 text-primary'
+                    : 'border-muted-foreground/30 text-muted-foreground')
+              }
+            >
+              {i + 1}
+            </span>
+            <span
+              className={
+                active
+                  ? 'font-semibold text-foreground'
+                  : past
+                    ? 'text-foreground/80'
+                    : 'text-muted-foreground'
+              }
+            >
+              {STEP_LABEL[s]}
+            </span>
+            {i < steps.length - 1 && <span className="mx-1 text-muted-foreground/50">›</span>}
+          </li>
+        );
+      })}
+    </ol>
   );
 }

@@ -31,6 +31,18 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
     const scope = scopeOptions.find((s) => s.id === form.scopeId);
     if (!scope) return toast.error('Invalid scope.');
 
+    const isGroup = form.targetPartyType === 'branch';
+    if (isGroup && form.chargeTargets.length === 0)
+      return toast.error('Pick at least one target for a Group charge.');
+    const chargeTargets = isGroup
+      ? form.chargeTargets.map((t) => ({
+          targetScopeId: t.targetScopeId,
+          amount: parseFloat(t.amount),
+        }))
+      : [];
+    if (isGroup && chargeTargets.some((t) => !Number.isFinite(t.amount) || t.amount <= 0))
+      return toast.error('Every target needs a positive amount.');
+
     startTransition(async () => {
       const result = await createCharge({
         scopeId: form.scopeId,
@@ -41,6 +53,8 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
         recurrence: form.recurrence,
         recurrenceInterval: 1,
         activationDate: new Date(form.activationDate).toISOString(),
+        targetPartyType: form.targetPartyType,
+        chargeTargets: isGroup ? chargeTargets : undefined,
       });
       if (!result.ok) {
         toast.error(result.message);

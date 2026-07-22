@@ -2,7 +2,14 @@
  * Shared row + form shapes for the finance charges view. Kept in a
  * plain file so the server-side page loader and every widget sibling
  * can import from one source.
+ *
+ * `targetPartyType` is the Individual-vs-Group axis:
+ *   - 'member' → per-member obligations (default; every existing charge)
+ *   - 'branch' → one obligation per target scope with a per-target amount
+ *     driven by `finance.charge_targets`
  */
+
+export type TargetPartyType = 'member' | 'branch';
 
 export interface ChargeRow {
   readonly id: string;
@@ -19,6 +26,8 @@ export interface ChargeRow {
   readonly status: string;
   readonly activationDate: string | null;
   readonly createdAt: string;
+  readonly targetPartyType: TargetPartyType;
+  readonly targetCount: number;
   /** Sum of open obligation amounts on this charge. */
   readonly expected: number;
   /** Sum of settled payments (minus reversals). */
@@ -33,10 +42,25 @@ export interface ScopeOption {
   readonly scopeType: string;
 }
 
+/**
+ * Target scope options for Group charges — branches + batches the
+ * caller can see. Currency stays inherited from the mainstream owner
+ * scope (a Group charge is created once and its per-target amounts
+ * are all in the owner-scope currency).
+ */
+export interface TargetScopeOption {
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
+  readonly scopeType: 'branch' | 'batch';
+  readonly parentName: string | null;
+}
+
 export type SerialRow = ChargeRow & { readonly serial: number };
 
 export type StatusFilter = 'all' | ChargeRow['status'];
 export type ShapeFilter = 'all' | 'charge' | 'fixed';
+export type TypeFilter = 'all' | TargetPartyType;
 
 export const RECURRENCES = [
   { value: 'one_time', label: 'One-time' },
@@ -48,13 +72,20 @@ export const RECURRENCES = [
 
 export type Recurrence = (typeof RECURRENCES)[number]['value'];
 
+export interface ChargeTargetDraft {
+  readonly targetScopeId: string;
+  readonly amount: string;
+}
+
 export interface CreateForm {
+  targetPartyType: TargetPartyType;
   scopeId: string;
   name: string;
   description: string;
   baseAmount: string;
   recurrence: Recurrence;
   activationDate: string;
+  chargeTargets: readonly ChargeTargetDraft[];
 }
 
 export interface EditForm {

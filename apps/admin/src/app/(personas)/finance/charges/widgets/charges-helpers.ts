@@ -3,12 +3,14 @@ import type { ChargeRow, CreateForm, EditForm, ScopeOption } from './charges-typ
 /** Fresh state for the "new charge" dialog — first scope preselected. */
 export function initialCreate(scopeOptions: readonly ScopeOption[]): CreateForm {
   return {
+    targetPartyType: 'member',
     scopeId: scopeOptions[0]?.id ?? '',
     name: '',
     description: '',
     baseAmount: '',
     recurrence: 'monthly',
     activationDate: new Date().toISOString().slice(0, 10),
+    chargeTargets: [],
   };
 }
 

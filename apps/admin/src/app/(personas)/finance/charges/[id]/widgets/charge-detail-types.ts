@@ -130,10 +130,29 @@ export interface MatrixFilterCounts {
   readonly unpaid: number;
 }
 
+/**
+ * Per-target amount plan for Group charges (target_party_type='branch').
+ * Read from finance.charge_targets and rendered as a plan-reference
+ * card above the matrix so a draft (no obligations yet) still shows
+ * what the operator has configured.
+ */
+export interface ChargeTargetPlanRow {
+  readonly targetScopeId: string;
+  readonly targetName: string;
+  readonly scopeType: string;
+  readonly amount: number;
+  readonly currency: string;
+}
+
 export interface CommonChargeDetailProps {
   readonly summary: ChargeSummary;
   /** Where the "Back to charges" link points. Different per persona. */
   readonly backLinkHref: string;
+  /**
+   * Only populated for Group charges. Empty/undefined on Individual
+   * charges; the target-plan card is hidden in that case.
+   */
+  readonly chargeTargets?: readonly ChargeTargetPlanRow[];
   readonly paymentsByMethod: readonly PaymentMethodStat[];
   readonly paymentsBySource: readonly PaymentSourceStat[];
   readonly paymentTiming: PaymentTimingStats;

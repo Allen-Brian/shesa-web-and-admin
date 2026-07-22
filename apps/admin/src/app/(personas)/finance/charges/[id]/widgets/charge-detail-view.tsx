@@ -12,6 +12,7 @@ import { ChargeMatrixTable } from './charge-matrix-table';
 import { ChargePoolReports } from './charge-pool-reports';
 import { ChargePoolTable } from './charge-pool-table';
 import { ChargeScopeBodyReports } from './charge-scope-body-reports';
+import { ChargeTargetsPlanCard } from './charge-targets-plan-card';
 import { ScopeBodyMatrix } from './scope-body-matrix';
 
 /**
@@ -54,6 +55,12 @@ export function ChargeDetailView(props: ChargeDetailProps) {
         />
       ) : (
         <ChargeHero summary={props.summary} backLinkHref={props.backLinkHref} />
+      )}
+      {props.chargeTargets && props.chargeTargets.length > 0 && (
+        <ChargeTargetsPlanCard
+          chargeTargets={props.chargeTargets}
+          currency={props.summary.currency}
+        />
       )}
       <Tabs defaultValue="table" className="flex min-h-0 flex-1 flex-col gap-4">
         <TabsList className="self-start">

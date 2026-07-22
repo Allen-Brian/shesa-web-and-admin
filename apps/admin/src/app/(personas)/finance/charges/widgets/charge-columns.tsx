@@ -6,6 +6,7 @@ import { ChargeNameCell } from './charge-name-cell';
 import { ChargeProgressCell } from './charge-progress-cell';
 import { ChargeRowActionsMenu } from './charge-row-actions-menu';
 import { ChargeStatusBadge } from './charge-status-badge';
+import { ChargeTypeCell } from './charge-type-cell';
 import type { ChargeRow, SerialRow } from './charges-types';
 
 interface ChargeColumnActions {
@@ -42,6 +43,14 @@ export function buildChargeColumns(actions: ChargeColumnActions): ColDef<SerialR
       minWidth: 260,
       cellRenderer: (p: ICellRendererParams<SerialRow>) =>
         p.data ? <ChargeNameCell row={p.data} /> : null,
+    },
+    {
+      headerName: 'Type',
+      colId: 'type',
+      field: 'targetPartyType',
+      width: 170,
+      cellRenderer: (p: ICellRendererParams<SerialRow>) =>
+        p.data ? <ChargeTypeCell row={p.data} /> : null,
     },
     {
       headerName: 'Amount',

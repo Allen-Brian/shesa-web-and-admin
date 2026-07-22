@@ -3,7 +3,12 @@ import { redirect } from 'next/navigation';
 import { getServerClient } from '@/lib/supabase-server';
 
 import { ChargesView } from './widgets/charges-view';
-import type { ChargeRow, ScopeOption } from './widgets/charges-types';
+import type {
+  ChargeRow,
+  ScopeOption,
+  TargetPartyType,
+  TargetScopeOption,
+} from './widgets/charges-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +27,7 @@ interface RawChargeRow {
   readonly status: string;
   readonly activation_date: string | null;
   readonly created_at: string;
+  readonly target_party_type: TargetPartyType | null;
 }
 
 interface RawScopeRow {
@@ -31,6 +37,7 @@ interface RawScopeRow {
   readonly scope_type: string;
   readonly chapter_kind: string | null;
   readonly currency_code: string;
+  readonly parent_scope_id: string | null;
 }
 
 interface RawObligationRow {
@@ -43,6 +50,10 @@ interface RawPaymentRow {
   readonly obligation_id: string | null;
   readonly amount: string;
   readonly reverses_payment_id: string | null;
+}
+
+interface RawChargeTargetRow {
+  readonly charge_id: string;
 }
 
 /**
@@ -67,6 +78,10 @@ interface RawPaymentRow {
  * limit clamps to 5000 payments — enough for demo + early prod, and
  * we'll swap to a materialised view or dashboard RPC when charge
  * counts pass that ceiling.
+ *
+ * Group charges (target_party_type='branch') own an amount-per-target
+ * row in finance.charge_targets; the list column just needs the count,
+ * so we tally client-side from a lightweight `SELECT charge_id`.
  */
 export default async function ChargesPage() {
   const supabase = await getServerClient();
@@ -80,7 +95,7 @@ export default async function ChargesPage() {
       .schema('finance' as never)
       .from('charges' as never)
       .select(
-        'id, scope_id, name, description, shape, base_amount, currency, recurrence, recurrence_interval, status, activation_date, created_at',
+        'id, scope_id, name, description, shape, base_amount, currency, recurrence, recurrence_interval, status, activation_date, created_at, target_party_type',
       )
       .in('shape', ['charge', 'fixed'])
       .order('created_at', { ascending: false }),
@@ -93,24 +108,35 @@ export default async function ChargesPage() {
   const chargesData = (chargesRaw ?? []) as RawChargeRow[];
   const chargeIds = chargesData.map((c) => c.id);
 
-  const [{ data: obligationsRaw }, { data: paymentsRaw }] = chargeIds.length
-    ? await Promise.all([
-        supabase
-          .schema('finance' as never)
-          .from('obligations' as never)
-          .select('charge_id, amount, currency')
-          .in('charge_id', chargeIds),
-        supabase
-          .schema('finance' as never)
-          .from('payments' as never)
-          .select('obligation_id, amount, reverses_payment_id')
-          .in('charge_id', chargeIds)
-          .limit(5000),
-      ])
-    : [{ data: [] as RawObligationRow[] }, { data: [] as RawPaymentRow[] }];
+  const [{ data: obligationsRaw }, { data: paymentsRaw }, { data: chargeTargetsRaw }] =
+    chargeIds.length
+      ? await Promise.all([
+          supabase
+            .schema('finance' as never)
+            .from('obligations' as never)
+            .select('charge_id, amount, currency')
+            .in('charge_id', chargeIds),
+          supabase
+            .schema('finance' as never)
+            .from('payments' as never)
+            .select('obligation_id, amount, reverses_payment_id')
+            .in('charge_id', chargeIds)
+            .limit(5000),
+          supabase
+            .schema('finance' as never)
+            .from('charge_targets' as never)
+            .select('charge_id')
+            .in('charge_id', chargeIds),
+        ])
+      : [
+          { data: [] as RawObligationRow[] },
+          { data: [] as RawPaymentRow[] },
+          { data: [] as RawChargeTargetRow[] },
+        ];
 
   const obligations = (obligationsRaw ?? []) as RawObligationRow[];
   const payments = (paymentsRaw ?? []) as RawPaymentRow[];
+  const chargeTargets = (chargeTargetsRaw ?? []) as RawChargeTargetRow[];
 
   // Expected per charge — sum of obligation amounts.
   const expectedByCharge = new Map<string, number>();
@@ -119,6 +145,14 @@ export default async function ChargesPage() {
       o.charge_id,
       (expectedByCharge.get(o.charge_id) ?? 0) + parseFloat(o.amount),
     );
+  }
+
+  // Target count per Group charge — displayed in the list Type cell so
+  // "Group · 4 targets" reads at a glance without opening the detail
+  // page.
+  const targetCountByCharge = new Map<string, number>();
+  for (const t of chargeTargets) {
+    targetCountByCharge.set(t.charge_id, (targetCountByCharge.get(t.charge_id) ?? 0) + 1);
   }
 
   // Collected per charge — sum of settled payment amounts minus reversals.
@@ -161,7 +195,7 @@ export default async function ChargesPage() {
     ? await supabase
         .schema('core')
         .from('scopes')
-        .select('id, name, slug, scope_type, chapter_kind, currency_code')
+        .select('id, name, slug, scope_type, chapter_kind, currency_code, parent_scope_id')
         .in('id', Array.from(scopeSet))
     : { data: [] as RawScopeRow[] };
   const scopesData = (scopeRows ?? []) as RawScopeRow[];
@@ -184,6 +218,8 @@ export default async function ChargesPage() {
       status: c.status,
       activationDate: c.activation_date,
       createdAt: c.created_at,
+      targetPartyType: c.target_party_type ?? 'member',
+      targetCount: targetCountByCharge.get(c.id) ?? 0,
       expected: expectedByCharge.get(c.id) ?? 0,
       collected: Math.max(0, collectedByCharge.get(c.id) ?? 0),
     };
@@ -205,5 +241,43 @@ export default async function ChargesPage() {
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  return <ChargesView charges={charges} scopeOptions={scopeOptions} />;
+  // Target scopes for Group charges — every visible Branch + Batch.
+  // Batches are global (no parent scope), branches carry their own
+  // name; the extra parentName field surfaces "Batch · Class of 2019"
+  // vs "Branch · Shesa Buea" grouping in the picker.
+  const targetScopeSet = new Set<string>();
+  {
+    const { data: rawTargetScopes } = await supabase
+      .schema('core')
+      .from('scopes')
+      .select('id, name, slug, scope_type, chapter_kind, currency_code, parent_scope_id')
+      .in('scope_type', ['branch', 'batch']);
+    for (const s of (rawTargetScopes ?? []) as RawScopeRow[]) {
+      targetScopeSet.add(s.id);
+      scopeById.set(s.id, s);
+    }
+  }
+
+  const targetScopeOptions: TargetScopeOption[] = Array.from(targetScopeSet)
+    .map((id) => scopeById.get(id))
+    .filter((s): s is RawScopeRow => !!s)
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      slug: s.slug,
+      scopeType: s.scope_type as 'branch' | 'batch',
+      parentName: s.parent_scope_id ? (scopeById.get(s.parent_scope_id)?.name ?? null) : null,
+    }))
+    .sort((a, b) => {
+      if (a.scopeType !== b.scopeType) return a.scopeType.localeCompare(b.scopeType);
+      return a.name.localeCompare(b.name);
+    });
+
+  return (
+    <ChargesView
+      charges={charges}
+      scopeOptions={scopeOptions}
+      targetScopeOptions={targetScopeOptions}
+    />
+  );
 }
