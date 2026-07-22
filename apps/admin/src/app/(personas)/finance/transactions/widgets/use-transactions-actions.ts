@@ -5,8 +5,13 @@ import { useRouter } from 'next/navigation';
 
 import { toast } from '@shesa/ui';
 
-import { recordManualPayment, reversePayment } from '../actions';
-import type { ChargeOption, RecordForm } from './payments-types';
+import {
+  markReconciled,
+  recordManualPayment,
+  reversePayment,
+  undoReconciliation,
+} from '../actions';
+import type { ChargeOption, RecordForm } from './transactions-types';
 
 interface UsePaymentsActionsInput {
   readonly chargeOptions: readonly ChargeOption[];
@@ -19,7 +24,7 @@ interface UsePaymentsActionsInput {
  * router.refresh out of the view so the orchestrator stays layout-
  * focused.
  */
-export function usePaymentsActions({ chargeOptions }: UsePaymentsActionsInput) {
+export function useTransactionsActions({ chargeOptions }: UsePaymentsActionsInput) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -63,5 +68,46 @@ export function usePaymentsActions({ chargeOptions }: UsePaymentsActionsInput) {
     });
   };
 
-  return { pending, runRecord, runReverse };
+  const runReconcile = (
+    paymentIds: readonly string[],
+    matchedRef: string | null,
+    notes: string | null,
+    onDone: () => void,
+  ) => {
+    if (paymentIds.length === 0) return;
+    startTransition(async () => {
+      const result = await markReconciled(paymentIds, matchedRef, notes);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success(
+        paymentIds.length === 1
+          ? 'Transaction reconciled.'
+          : `${paymentIds.length} transactions reconciled.`,
+      );
+      onDone();
+      router.refresh();
+    });
+  };
+
+  const runUndoReconciliation = (paymentIds: readonly string[], onDone: () => void) => {
+    if (paymentIds.length === 0) return;
+    startTransition(async () => {
+      const result = await undoReconciliation(paymentIds);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success(
+        paymentIds.length === 1
+          ? 'Reconciliation undone.'
+          : `${paymentIds.length} reconciliations undone.`,
+      );
+      onDone();
+      router.refresh();
+    });
+  };
+
+  return { pending, runRecord, runReverse, runReconcile, runUndoReconciliation };
 }

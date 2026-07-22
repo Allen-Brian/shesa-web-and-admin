@@ -22,7 +22,10 @@ export function DashboardLatestTransactionsCard({
           </h2>
           <p className="text-xs text-muted-foreground">Most recent payments in your reach</p>
         </div>
-        <Link href="/finance/payments" className="text-xs font-medium text-primary hover:underline">
+        <Link
+          href="/finance/transactions"
+          className="text-xs font-medium text-primary hover:underline"
+        >
           Open ledger →
         </Link>
       </div>

@@ -1,16 +1,17 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+import { activeFinanceScope } from '@/lib/finance/active-scope';
 import { getServerClient } from '@/lib/supabase-server';
 
-import { PaymentsView } from './widgets/payments-view';
-import type { ChargeOption, PaymentRow } from './widgets/payments-types';
+import { TransactionsView } from './widgets/transactions-view';
+import type { ChargeOption, TransactionRow } from './widgets/transactions-types';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = { title: 'Shesa Finance — Payments' };
+export const metadata = { title: 'Shesa Finance — Transactions' };
 
-interface RawPaymentRow {
+interface RawTransactionRow {
   readonly id: string;
   readonly obligation_id: string | null;
   readonly charge_id: string | null;
@@ -47,50 +48,85 @@ interface RawMemberRow {
   readonly full_name: string;
 }
 
+interface RawReconciliationRow {
+  readonly payment_id: string;
+  readonly reconciled_at: string;
+  readonly matched_ref: string | null;
+  readonly notes: string | null;
+}
+
+interface PayerMetadata {
+  readonly donor_name?: string;
+  readonly donor_email?: string;
+  readonly note?: string;
+  readonly public_donation?: boolean;
+  readonly payer_name?: string;
+  readonly payer_email?: string;
+  readonly payer_phone?: string;
+  readonly payer_location?: string;
+  readonly public_ticket_purchase?: boolean;
+}
+
 /**
- * Payments page — every recorded payment across scopes the caller can see.
- *
- * The record-manual entry lets Finance enter a cash / bank / MoMo
- * payment against a charge (contribution / donation / goal). Reversals
- * insert a new row that cancels an original out — same table, same
- * flow.
+ * Transactions page — every recorded payment across scopes the caller
+ * can see (Mainstream Finance is filtered to mainstream-scope rows
+ * via `activeFinanceScope`). Cash / bank / MoMo manual entries and
+ * gateway-confirmed public payments share the table. Reversals are
+ * new immutable rows — never edits.
  */
-export default async function PaymentsPage() {
+export default async function TransactionsPage() {
   const supabase = await getServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect('/login?next=/finance/payments');
+  if (!user) redirect('/login?next=/finance/transactions');
 
-  const [{ data: paymentsRaw }, { data: chargesRaw }, { data: receiptsRaw }] = await Promise.all([
+  const active = await activeFinanceScope(user.id);
+  const scopeFilterIds = active?.scopeIds ?? [];
+
+  const [
+    { data: paymentsRaw },
+    { data: chargesRaw },
+    { data: receiptsRaw },
+    { data: reconciliationsRaw },
+  ] = await Promise.all([
     supabase
       .schema('finance' as never)
       .from('payments' as never)
       .select(
         'id, obligation_id, charge_id, scope_id, payer_member_id, amount, currency, method, source, reverses_payment_id, external_ref, metadata, created_at',
       )
+      .in('scope_id', scopeFilterIds)
       .order('created_at', { ascending: false })
       .limit(500),
     supabase
       .schema('finance' as never)
       .from('charges' as never)
       .select('id, scope_id, name, shape, currency, status, lifecycle')
+      .in('scope_id', scopeFilterIds)
       .eq('status', 'active')
       .order('name'),
     supabase
       .schema('finance' as never)
       .from('receipt_verifications' as never)
       .select('token, payment_id, receipt_number'),
+    supabase
+      .schema('finance' as never)
+      .from('reconciliations' as never)
+      .select('payment_id, reconciled_at, matched_ref, notes'),
   ]);
 
-  const paymentsData = (paymentsRaw ?? []) as RawPaymentRow[];
+  const paymentsData = (paymentsRaw ?? []) as RawTransactionRow[];
   const chargesData = (chargesRaw ?? []) as RawChargeRow[];
   const receiptsData = (receiptsRaw ?? []) as Array<{
     token: string;
     payment_id: string;
     receipt_number: string;
   }>;
+  const reconciliations = (reconciliationsRaw ?? []) as RawReconciliationRow[];
+
   const receiptByPayment = new Map(receiptsData.map((r) => [r.payment_id, r]));
+  const reconciliationByPayment = new Map(reconciliations.map((r) => [r.payment_id, r]));
 
   const hdrs = await headers();
   const host = hdrs.get('host') ?? 'localhost:3000';
@@ -116,8 +152,8 @@ export default async function PaymentsPage() {
   const memberById = new Map(((memberRows ?? []) as RawMemberRow[]).map((m) => [m.id, m]));
   const chargeById = new Map(chargesData.map((c) => [c.id, c]));
 
-  // Charges referenced by payments but no longer active (e.g. archived
-  // or closed) still need names for the payments table.
+  // Charges referenced by payments but no longer active (archived / closed)
+  // still need names for the table.
   const staleChargeIds = Array.from(
     new Set(
       paymentsData
@@ -134,13 +170,22 @@ export default async function PaymentsPage() {
     : { data: [] as RawChargeRow[] };
   for (const c of (staleChargeRows ?? []) as RawChargeRow[]) chargeById.set(c.id, c);
 
-  const payments: PaymentRow[] = paymentsData.map((p) => {
+  const transactions: TransactionRow[] = paymentsData.map((p) => {
     const scope = scopeById.get(p.scope_id);
     const member = p.payer_member_id ? memberById.get(p.payer_member_id) : null;
     const charge = p.charge_id ? chargeById.get(p.charge_id) : null;
-    const meta = (p.metadata ?? {}) as { donor_name?: string; public_donation?: boolean };
-    const donorLabel = meta.donor_name ?? (meta.public_donation ? 'Anonymous donor' : null);
+    const meta = (p.metadata ?? {}) as PayerMetadata;
+    const anonName = meta.donor_name ?? meta.payer_name ?? null;
+    const isAnon = !member && !!(meta.public_donation || meta.public_ticket_purchase || anonName);
+    const donorLabel =
+      anonName ??
+      (meta.public_donation
+        ? 'Anonymous donor'
+        : meta.public_ticket_purchase
+          ? 'Anonymous buyer'
+          : null);
     const receipt = receiptByPayment.get(p.id);
+    const reconciliation = reconciliationByPayment.get(p.id);
     return {
       id: p.id,
       obligationId: p.obligation_id,
@@ -149,15 +194,24 @@ export default async function PaymentsPage() {
       chargeShape: charge?.shape ?? null,
       scopeName: scope?.name ?? '—',
       payerLabel: member?.full_name ?? donorLabel ?? '—',
+      payerEmail: meta.donor_email ?? meta.payer_email ?? null,
+      payerPhone: meta.payer_phone ?? null,
+      payerLocation: meta.payer_location ?? null,
+      isAnonymousPayer: isAnon,
       amount: parseFloat(p.amount),
       currency: p.currency,
       method: p.method,
       source: p.source,
       reversesPaymentId: p.reverses_payment_id,
       externalRef: p.external_ref,
+      memo: meta.note ?? null,
       createdAt: p.created_at,
       receiptToken: receipt?.token ?? null,
       receiptNumber: receipt?.receipt_number ?? null,
+      reconciled: !!reconciliation,
+      reconciledAt: reconciliation?.reconciled_at ?? null,
+      reconciliationMatchedRef: reconciliation?.matched_ref ?? null,
+      reconciliationNotes: reconciliation?.notes ?? null,
     };
   });
 
@@ -175,5 +229,7 @@ export default async function PaymentsPage() {
       };
     });
 
-  return <PaymentsView payments={payments} chargeOptions={chargeOptions} baseUrl={baseUrl} />;
+  return (
+    <TransactionsView transactions={transactions} chargeOptions={chargeOptions} baseUrl={baseUrl} />
+  );
 }

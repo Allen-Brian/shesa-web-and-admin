@@ -5,7 +5,7 @@ import { Badge } from '@shesa/ui';
  * is-reversal, is-reversed-original, cleared — collapse into a
  * single coloured chip so the outlier row jumps out.
  */
-export function PaymentStatusBadge({
+export function TransactionStatusBadge({
   isReversal,
   isReversedOriginal,
 }: {

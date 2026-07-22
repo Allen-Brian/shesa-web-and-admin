@@ -14,11 +14,11 @@ import {
   Textarea,
 } from '@shesa/ui';
 
-import { formatMethod } from './payments-helpers';
-import type { PaymentRow } from './payments-types';
+import { formatMethod } from './transactions-helpers';
+import type { TransactionRow } from './transactions-types';
 
-interface ReversePaymentDialogProps {
-  readonly target: PaymentRow | null;
+interface ReverseTransactionDialogProps {
+  readonly target: TransactionRow | null;
   readonly onClose: () => void;
   readonly reason: string;
   readonly onReasonChange: (v: string) => void;
@@ -33,14 +33,14 @@ interface ReversePaymentDialogProps {
  * balance. The reason lands in the audit trail so a future auditor
  * can trace why the balance shifted.
  */
-export function ReversePaymentDialog({
+export function ReverseTransactionDialog({
   target,
   onClose,
   reason,
   onReasonChange,
   onSubmit,
   pending,
-}: ReversePaymentDialogProps) {
+}: ReverseTransactionDialogProps) {
   return (
     <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">

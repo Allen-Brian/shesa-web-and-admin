@@ -2,28 +2,31 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shesa/ui';
 
-import type { MethodFilter, SourceFilter } from './payments-types';
-import { PAYMENT_METHODS } from './payments-types';
+import type { MethodFilter, ReconciliationFilter, SourceFilter } from './transactions-types';
+import { PAYMENT_METHODS } from './transactions-types';
 
-interface PaymentsTableFiltersProps {
+interface TransactionsTableFiltersProps {
   readonly methodFilter: MethodFilter;
   readonly onMethodChange: (m: MethodFilter) => void;
   readonly sourceFilter: SourceFilter;
   readonly onSourceChange: (s: SourceFilter) => void;
+  readonly reconciliationFilter: ReconciliationFilter;
+  readonly onReconciliationChange: (r: ReconciliationFilter) => void;
 }
 
 /**
- * Two-select filter cluster rendered inside the EntityTablePanel's
- * `filters` slot. Kept separate from the panel so both selects can
- * share the same visual language without the orchestrator threading
- * a heavy JSX blob through.
+ * Three-select filter cluster rendered inside the EntityTablePanel's
+ * `filters` slot. Method / Source / Reconciliation — grouped so both
+ * selects share the same visual language.
  */
-export function PaymentsTableFilters({
+export function TransactionsTableFilters({
   methodFilter,
   onMethodChange,
   sourceFilter,
   onSourceChange,
-}: PaymentsTableFiltersProps) {
+  reconciliationFilter,
+  onReconciliationChange,
+}: TransactionsTableFiltersProps) {
   return (
     <div className="flex items-center gap-2">
       <Select value={methodFilter} onValueChange={(v) => onMethodChange(v as MethodFilter)}>
@@ -47,6 +50,19 @@ export function PaymentsTableFilters({
           <SelectItem value="all">All sources</SelectItem>
           <SelectItem value="manual">Manual entries</SelectItem>
           <SelectItem value="auto">Auto / gateway</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select
+        value={reconciliationFilter}
+        onValueChange={(v) => onReconciliationChange(v as ReconciliationFilter)}
+      >
+        <SelectTrigger className="h-8 w-40 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All reconciliation</SelectItem>
+          <SelectItem value="unreconciled">Unreconciled only</SelectItem>
+          <SelectItem value="reconciled">Reconciled only</SelectItem>
         </SelectContent>
       </Select>
     </div>

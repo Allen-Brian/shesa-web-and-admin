@@ -1,4 +1,11 @@
-import { Copy, MoreHorizontal, Receipt as ReceiptIcon, Undo2 } from 'lucide-react';
+import {
+  BadgeCheck,
+  Copy,
+  MoreHorizontal,
+  Receipt as ReceiptIcon,
+  RotateCcw,
+  Undo2,
+} from 'lucide-react';
 
 import {
   Button,
@@ -9,16 +16,18 @@ import {
   DropdownMenuTrigger,
 } from '@shesa/ui';
 
-import type { PaymentRow } from './payments-types';
+import type { TransactionRow } from './transactions-types';
 
-interface PaymentRowActionsProps {
-  readonly row: PaymentRow;
+interface TransactionRowActionsProps {
+  readonly row: TransactionRow;
   readonly canReverse: boolean;
   readonly hasReceipt: boolean;
   readonly pending: boolean;
-  readonly onPreviewReceipt: (row: PaymentRow) => void;
-  readonly onCopyVerifyUrl: (row: PaymentRow) => void;
-  readonly onReverse: (row: PaymentRow) => void;
+  readonly onPreviewReceipt: (row: TransactionRow) => void;
+  readonly onCopyVerifyUrl: (row: TransactionRow) => void;
+  readonly onReverse: (row: TransactionRow) => void;
+  readonly onReconcile: (row: TransactionRow) => void;
+  readonly onUndoReconciliation: (row: TransactionRow) => void;
 }
 
 /**
@@ -28,7 +37,7 @@ interface PaymentRowActionsProps {
  * empty). Row-click propagation is stopped so the drop-down doesn't
  * navigate the table.
  */
-export function PaymentRowActions({
+export function TransactionRowActions({
   row,
   canReverse,
   hasReceipt,
@@ -36,8 +45,9 @@ export function PaymentRowActions({
   onPreviewReceipt,
   onCopyVerifyUrl,
   onReverse,
-}: PaymentRowActionsProps) {
-  if (!canReverse && !hasReceipt) return null;
+  onReconcile,
+  onUndoReconciliation,
+}: TransactionRowActionsProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -54,8 +64,20 @@ export function PaymentRowActions({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+        {row.reconciled ? (
+          <DropdownMenuItem onSelect={() => onUndoReconciliation(row)}>
+            <RotateCcw className="h-4 w-4" />
+            Undo reconciliation
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onSelect={() => onReconcile(row)}>
+            <BadgeCheck className="h-4 w-4" />
+            Mark reconciled
+          </DropdownMenuItem>
+        )}
         {hasReceipt && (
           <>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => onPreviewReceipt(row)}>
               <ReceiptIcon className="h-4 w-4" />
               View / print receipt
@@ -64,17 +86,19 @@ export function PaymentRowActions({
               <Copy className="h-4 w-4" />
               Copy verify URL
             </DropdownMenuItem>
-            {canReverse && <DropdownMenuSeparator />}
           </>
         )}
         {canReverse && (
-          <DropdownMenuItem
-            onSelect={() => onReverse(row)}
-            className="text-destructive focus:text-destructive"
-          >
-            <Undo2 className="h-4 w-4" />
-            Reverse payment
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => onReverse(row)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Undo2 className="h-4 w-4" />
+              Reverse payment
+            </DropdownMenuItem>
+          </>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

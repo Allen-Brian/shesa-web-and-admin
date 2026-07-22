@@ -1,4 +1,4 @@
-import type { PaymentRow } from './payments-types';
+import type { TransactionRow } from './transactions-types';
 
 export interface PaymentKpis {
   readonly total: number;
@@ -19,7 +19,7 @@ export interface PaymentKpis {
  * rate surface separately so operators can catch a spike in
  * corrections at a glance.
  */
-export function buildPaymentKpis(payments: readonly PaymentRow[]): PaymentKpis {
+export function buildPaymentKpis(payments: readonly TransactionRow[]): PaymentKpis {
   const currencies = new Map<string, number>();
   let cleared = 0;
   let reversals = 0;

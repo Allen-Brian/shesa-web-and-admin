@@ -20,10 +20,10 @@ import {
 } from '@shesa/ui';
 
 import type { PaymentMethod } from '../actions';
-import type { ChargeOption, RecordForm } from './payments-types';
-import { PAYMENT_METHODS } from './payments-types';
+import type { ChargeOption, RecordForm } from './transactions-types';
+import { PAYMENT_METHODS } from './transactions-types';
 
-interface RecordPaymentDialogProps {
+interface RecordTransactionDialogProps {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
   readonly form: RecordForm;
@@ -39,7 +39,7 @@ interface RecordPaymentDialogProps {
  * ref field carries a bank slip # or MoMo transaction id into the
  * ledger so reconciliation can trace back to the source document.
  */
-export function RecordPaymentDialog({
+export function RecordTransactionDialog({
   open,
   onOpenChange,
   form,
@@ -47,7 +47,7 @@ export function RecordPaymentDialog({
   chargeOptions,
   onSubmit,
   pending,
-}: RecordPaymentDialogProps) {
+}: RecordTransactionDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">

@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  BadgeDollarSign,
-  BarChart3,
-  CircleDollarSign,
+  BarChart,
+  CreditCard,
+  HandCoins,
   Home,
-  LandPlot,
-  Target,
+  Landmark,
+  TextAlignJustify,
   Wallet,
 } from 'lucide-react';
 // Wallet retained (still used for the Expenses icon).
@@ -54,12 +54,12 @@ interface NavItem {
  */
 const NAV_ITEMS: readonly NavItem[] = [
   { href: '/finance', label: 'Dashboard', Icon: Home },
-  { href: '/finance/payments', label: 'Transactions', Icon: LandPlot },
-  { href: '/finance/charges', label: 'Charges', Icon: BadgeDollarSign },
-  { href: '/finance/contributions', label: 'Contributions', Icon: Target },
-  { href: '/finance/donations', label: 'Donations', Icon: CircleDollarSign },
+  { href: '/finance/transactions', label: 'Transactions', Icon: TextAlignJustify },
+  { href: '/finance/charges', label: 'Charges', Icon: CreditCard },
+  { href: '/finance/contributions', label: 'Contributions', Icon: Landmark },
+  { href: '/finance/donations', label: 'Donations', Icon: HandCoins },
   { href: '/finance/expenses', label: 'Expenses', Icon: Wallet },
-  { href: '/finance/reports', label: 'Reports', Icon: BarChart3 },
+  { href: '/finance/reports', label: 'Reports', Icon: BarChart },
 ];
 
 export function FinanceSidebar({ isGlobal = false }: FinanceSidebarProps) {

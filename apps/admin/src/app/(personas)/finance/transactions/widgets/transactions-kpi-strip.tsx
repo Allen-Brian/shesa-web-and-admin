@@ -1,6 +1,6 @@
 import { StatsCard } from '@shesa/ui';
 
-import type { PaymentKpis } from './payments-kpis';
+import type { PaymentKpis } from './transactions-kpis';
 
 /**
  * Headline KPI strip above the payments table — 5 stats cards.
@@ -8,7 +8,7 @@ import type { PaymentKpis } from './payments-kpis';
  * uses one currency (otherwise summing is meaningless without a
  * reference rate).
  */
-export function PaymentsKpiStrip({ kpis }: { readonly kpis: PaymentKpis }) {
+export function TransactionsKpiStrip({ kpis }: { readonly kpis: PaymentKpis }) {
   const money = (n: number) =>
     kpis.primaryCurrency
       ? `${new Intl.NumberFormat().format(Math.round(n))} ${kpis.primaryCurrency}`

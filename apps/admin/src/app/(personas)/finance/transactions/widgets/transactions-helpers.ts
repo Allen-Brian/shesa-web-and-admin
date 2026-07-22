@@ -1,4 +1,4 @@
-import type { ChargeOption, RecordForm } from './payments-types';
+import type { ChargeOption, RecordForm } from './transactions-types';
 
 /** Human label for the payment method enum. */
 export function formatMethod(method: string): string {

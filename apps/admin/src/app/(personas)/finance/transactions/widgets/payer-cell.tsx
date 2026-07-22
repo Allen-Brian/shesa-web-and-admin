@@ -1,4 +1,4 @@
-import { getInitials } from './payments-helpers';
+import { getInitials } from './transactions-helpers';
 
 /**
  * Left-most "who paid" cell — initials chip + payer label. Same
