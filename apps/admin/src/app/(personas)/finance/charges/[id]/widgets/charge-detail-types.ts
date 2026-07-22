@@ -83,6 +83,17 @@ export interface PoolPayment {
    * scope-body Collection timeline to group payments per period.
    */
   readonly obligationId?: string | null;
+  /**
+   * Receipt verification token minted by the M5 trigger. Present on
+   * every payment; pool payments surface it in the collection table
+   * so operators can jump straight to the receipt view.
+   */
+  readonly receiptToken?: string | null;
+  readonly receiptNumber?: string | null;
+  /** True when a finance.reconciliations row references this payment. */
+  readonly reconciled?: boolean;
+  /** True when another payment carries `reverses_payment_id = this.id`. */
+  readonly isReversedOriginal?: boolean;
 }
 
 export interface PaymentMethodStat {
