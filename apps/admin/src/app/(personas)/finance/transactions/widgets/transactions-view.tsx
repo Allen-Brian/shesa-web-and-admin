@@ -47,6 +47,9 @@ export function TransactionsView({ transactions, chargeOptions, baseUrl }: Trans
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [methodFilter, setMethodFilter] = useState<MethodFilter>('all');
   const [reconciliationFilter, setReconciliationFilter] = useState<ReconciliationFilter>('all');
+  const [reasonFilter, setReasonFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
 
   const [recordOpen, setRecordOpen] = useState(false);
@@ -59,15 +62,32 @@ export function TransactionsView({ transactions, chargeOptions, baseUrl }: Trans
 
   const kpis = useMemo(() => buildPaymentKpis(transactions), [transactions]);
   const reversedIds = useMemo(() => collectReversedIds(transactions), [transactions]);
+  const reasonOptions = useMemo(() => {
+    const names = new Set<string>();
+    for (const t of transactions) {
+      if (t.chargeName && t.chargeName !== '—') names.add(t.chargeName);
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [transactions]);
 
   const filtered = useMemo<readonly SerialRow[]>(() => {
     const q = search.trim().toLowerCase();
+    // Date range works on `createdAt` — inclusive on both ends. Empty
+    // string means "unbounded on that side".
+    const fromMs = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
+    const toMs = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null;
     return transactions
       .filter((p) => {
         if (sourceFilter !== 'all' && p.source !== sourceFilter) return false;
         if (methodFilter !== 'all' && p.method !== methodFilter) return false;
         if (reconciliationFilter === 'reconciled' && !p.reconciled) return false;
         if (reconciliationFilter === 'unreconciled' && p.reconciled) return false;
+        if (reasonFilter && p.chargeName !== reasonFilter) return false;
+        if (fromMs !== null || toMs !== null) {
+          const ts = new Date(p.createdAt).getTime();
+          if (fromMs !== null && ts < fromMs) return false;
+          if (toMs !== null && ts > toMs) return false;
+        }
         if (!q) return true;
         if (p.payerLabel.toLowerCase().includes(q)) return true;
         if (p.chargeName.toLowerCase().includes(q)) return true;
@@ -76,7 +96,16 @@ export function TransactionsView({ transactions, chargeOptions, baseUrl }: Trans
         return false;
       })
       .map((p, i) => ({ ...p, serial: i + 1 }));
-  }, [transactions, search, sourceFilter, methodFilter, reconciliationFilter]);
+  }, [
+    transactions,
+    search,
+    sourceFilter,
+    methodFilter,
+    reconciliationFilter,
+    reasonFilter,
+    dateFrom,
+    dateTo,
+  ]);
 
   const copyUrl = async (url: string) => {
     try {
@@ -186,6 +215,15 @@ export function TransactionsView({ transactions, chargeOptions, baseUrl }: Trans
             onSourceChange={setSourceFilter}
             reconciliationFilter={reconciliationFilter}
             onReconciliationChange={setReconciliationFilter}
+            reasonFilter={reasonFilter}
+            onReasonChange={setReasonFilter}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onDateRangeChange={(from, to) => {
+              setDateFrom(from);
+              setDateTo(to);
+            }}
+            reasonOptions={reasonOptions}
           />
         }
       />

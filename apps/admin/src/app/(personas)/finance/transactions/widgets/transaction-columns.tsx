@@ -48,7 +48,7 @@ export function buildTransactionColumns(actions: TransactionColumnActions): ColD
       suppressMovable: true,
     },
     {
-      headerName: 'When',
+      headerName: 'Date',
       field: 'createdAt',
       width: 170,
       valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleString() : '—'),
@@ -62,7 +62,7 @@ export function buildTransactionColumns(actions: TransactionColumnActions): ColD
         p.data ? <PayerCell label={p.data.payerLabel} /> : null,
     },
     {
-      headerName: 'For',
+      headerName: 'Reason',
       field: 'chargeName',
       flex: 1.6,
       minWidth: 220,
@@ -101,25 +101,18 @@ export function buildTransactionColumns(actions: TransactionColumnActions): ColD
     {
       headerName: 'Method',
       field: 'method',
-      width: 130,
-      valueFormatter: (p) => formatMethod(p.value ?? ''),
-    },
-    {
-      headerName: 'Source',
-      field: 'source',
-      width: 100,
-      cellRenderer: (p: ICellRendererParams<SerialRow, string>) => (
-        <Badge
-          variant="outline"
-          className={
-            p.value === 'auto'
-              ? 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300'
-              : 'border-border text-foreground'
-          }
-        >
-          {p.value === 'auto' ? 'Auto' : 'Manual'}
-        </Badge>
-      ),
+      width: 160,
+      autoHeight: true,
+      cellRenderer: (p: ICellRendererParams<SerialRow>) => {
+        if (!p.data) return null;
+        const sourceLabel = p.data.source === 'auto' ? 'Website' : 'Manual';
+        return (
+          <div className="flex flex-col justify-center py-1 leading-tight">
+            <span className="text-sm text-foreground">{formatMethod(p.data.method)}</span>
+            <span className="text-[11px] text-muted-foreground">({sourceLabel})</span>
+          </div>
+        );
+      },
     },
     {
       headerName: 'Status',
