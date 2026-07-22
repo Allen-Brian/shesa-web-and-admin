@@ -6,6 +6,7 @@ import { Download } from 'lucide-react';
 import { Button, Input } from '@shesa/ui';
 
 import type { ChargeSummary, MatrixMember, MatrixPeriod, PoolPayment } from './charge-detail-types';
+import { pickCurrentPeriodKey } from './charge-matrix-totals';
 import { ScopeBodyDrillPanel } from './scope-body-drill-panel';
 import { ScopeBodyMatrixRow } from './scope-body-matrix-row';
 import { deriveCellState } from './shared-cell-state';
@@ -20,10 +21,14 @@ interface ScopeBodyMatrixProps {
 
 /**
  * Branch × period matrix — the replacement for ScopeBodyCollection's
- * stacked cards. Each branch is one row, each period one compact
- * column, and clicking a row opens a side sheet with that branch's
- * full period timeline + payment log. 20 branches × 12 months fits on
- * a single screen without endless vertical scroll.
+ * stacked cards. Each branch is one row, each period one column, and
+ * clicking a row opens a side sheet with that branch's full period
+ * timeline + payment log.
+ *
+ * Layout parity with the member matrix: the current-period column
+ * gets a slightly wider min-width, a primary-tinted header + cell
+ * background, and a "today" hint under the header so operators can
+ * spot the active period at a glance.
  */
 export function ScopeBodyMatrix({ summary, periods, members, paymentLog }: ScopeBodyMatrixProps) {
   const [search, setSearch] = useState('');
@@ -49,8 +54,21 @@ export function ScopeBodyMatrix({ summary, periods, members, paymentLog }: Scope
     return members.filter((m) => m.fullName.toLowerCase().includes(q));
   }, [members, search]);
 
+  const currentPeriodKey = useMemo(() => pickCurrentPeriodKey(periods), [periods]);
   const activePeriods = periods.filter((p) => !p.isUpcoming);
-  const gridStyle = { ['--n-periods' as string]: periods.length } as React.CSSProperties;
+
+  // Each period column is a CSS grid track; the current one grows a
+  // little to make room for the "today" hint and to draw the eye.
+  const gridTemplate = useMemo(
+    () =>
+      'minmax(200px,240px) ' +
+      periods
+        .map((p) => (p.key === currentPeriodKey ? 'minmax(84px,1.35fr)' : 'minmax(64px,1fr)'))
+        .join(' ') +
+      ' minmax(220px,260px) 32px',
+    [periods, currentPeriodKey],
+  );
+  const gridStyle = { gridTemplateColumns: gridTemplate } as React.CSSProperties;
 
   const exportCsv = () => {
     const header = ['Branch', 'Scope type', 'Period', 'Owed', 'Paid', 'Outstanding', 'Status'];
@@ -96,15 +114,36 @@ export function ScopeBodyMatrix({ summary, periods, members, paymentLog }: Scope
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
-        <div className="min-w-225" style={gridStyle}>
-          <div className="grid grid-cols-[minmax(180px,220px)_repeat(var(--n-periods),minmax(56px,1fr))_minmax(180px,220px)_32px] items-center gap-2 border-b border-border bg-muted/30 px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="min-w-225">
+          <div
+            className="grid items-center gap-2 border-b border-border bg-muted/30 px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+            style={gridStyle}
+          >
             <span>Branch</span>
-            {periods.map((p) => (
-              <span key={p.key} className="text-center">
-                {formatPeriodShort(p)}
-              </span>
-            ))}
-            <span className="text-right">Total · % paid</span>
+            {periods.map((p) => {
+              const isCurrent = p.key === currentPeriodKey;
+              return (
+                <span
+                  key={p.key}
+                  className={
+                    'flex flex-col items-center leading-tight ' +
+                    (isCurrent
+                      ? 'text-primary'
+                      : p.isUpcoming
+                        ? 'text-muted-foreground/60'
+                        : undefined)
+                  }
+                >
+                  <span>{formatPeriodShort(p)}</span>
+                  {isCurrent && (
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary/80">
+                      today
+                    </span>
+                  )}
+                </span>
+              );
+            })}
+            <span className="whitespace-nowrap text-right">Total · % paid</span>
             <span />
           </div>
 
@@ -118,7 +157,9 @@ export function ScopeBodyMatrix({ summary, periods, members, paymentLog }: Scope
                 key={party.memberId}
                 party={party}
                 periods={periods}
+                currentPeriodKey={currentPeriodKey}
                 currency={summary.currency}
+                gridStyle={gridStyle}
                 onOpen={setActiveParty}
               />
             ))
