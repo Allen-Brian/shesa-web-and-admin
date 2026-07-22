@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
 
+import { activeFinanceScope } from '@/lib/finance/active-scope';
 import { getServerClient } from '@/lib/supabase-server';
 
 import { ReportsView } from './widgets/reports-view';
-import type { ScopeOption } from './widgets/reports-types';
+import type { GroupOption, ScopeOption } from './widgets/reports-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,17 @@ interface RawScopeRow {
   readonly currency_code: string;
 }
 
+interface RawGroup {
+  readonly id: string;
+  readonly name: string;
+  readonly status: string;
+}
+
+interface RawCharge {
+  readonly id: string;
+  readonly group_id: string;
+}
+
 /**
  * Reports page — picker + rendered table for each of the six
  * scope-based DB report functions (M9 + M11):
@@ -29,10 +41,14 @@ interface RawScopeRow {
  *   expense_report_by_category — sum by category
  *   donation_report           — freewill income per campaign
  *
- * The two per-entity reports (contribution_progress and member_statement)
- * surface on their owning pages instead — contribution_progress shows
- * inline on the Contributions list, and member_statement will land on
- * the member profile in a follow-up.
+ * The scope picker is narrowed by `activeFinanceScope`: mainstream
+ * users see only the mainstream scope (never a rollup of branches);
+ * branch users see the scopes they hold `finance` at.
+ *
+ * The optional Group picker narrows already-returned rows by charge —
+ * the report RPCs stay scope-native and don't grow a group_id param
+ * (per the module plan's non-goal); the client filter is enough for
+ * every report that carries a `charge_id` in its rows.
  */
 export default async function ReportsPage() {
   const supabase = await getServerClient();
@@ -41,13 +57,22 @@ export default async function ReportsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/finance/reports');
 
+  const active = await activeFinanceScope(user.id);
+  const allowedScopeIds = active?.scopeIds ?? [];
+
   const { data: treasuriesRaw } = await supabase
     .schema('finance' as never)
     .from('treasury_balances' as never)
     .select('scope_id');
 
+  const treasuryScopeIds = ((treasuriesRaw ?? []) as Array<{ scope_id: string }>).map(
+    (t) => t.scope_id,
+  );
+  // Intersect the treasury-visible set with the active scope: RLS lets
+  // mainstream users see every treasury but the reports picker must
+  // stay mainstream-only.
   const scopeIds = Array.from(
-    new Set(((treasuriesRaw ?? []) as Array<{ scope_id: string }>).map((t) => t.scope_id)),
+    new Set(treasuryScopeIds.filter((id) => allowedScopeIds.includes(id))),
   );
 
   const { data: scopeRows } = scopeIds.length
@@ -72,5 +97,37 @@ export default async function ReportsPage() {
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  return <ReportsView scopeOptions={scopeOptions} />;
+  // Groups + their charges. Reports narrow to a group by intersecting
+  // returned rows' charge_id with this list, so we ship the map to the
+  // client once.
+  const { data: groupsRaw } = await supabase
+    .schema('finance' as never)
+    .from('groups' as never)
+    .select('id, name, status')
+    .in('status', ['active', 'closed'])
+    .order('name');
+  const groupsData = (groupsRaw ?? []) as RawGroup[];
+  const groupIds = groupsData.map((g) => g.id);
+
+  const { data: chargesRaw } = groupIds.length
+    ? await supabase
+        .schema('finance' as never)
+        .from('charges' as never)
+        .select('id, group_id')
+        .in('group_id', groupIds)
+    : { data: [] as RawCharge[] };
+  const chargesByGroup = new Map<string, string[]>();
+  for (const c of (chargesRaw ?? []) as RawCharge[]) {
+    const bucket = chargesByGroup.get(c.group_id) ?? [];
+    bucket.push(c.id);
+    chargesByGroup.set(c.group_id, bucket);
+  }
+
+  const groupOptions: GroupOption[] = groupsData.map((g) => ({
+    id: g.id,
+    name: g.name,
+    chargeIds: chargesByGroup.get(g.id) ?? [],
+  }));
+
+  return <ReportsView scopeOptions={scopeOptions} groupOptions={groupOptions} />;
 }

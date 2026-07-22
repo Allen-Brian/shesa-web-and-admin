@@ -7,22 +7,24 @@ import type { ReportKey } from '../actions';
 import { ReportCataloguePicker } from './report-catalogue-picker';
 import { ReportControlsCard } from './report-controls-card';
 import { ReportResultPanel } from './report-result-panel';
-import { PRESETS, REPORTS, type Preset, type ScopeOption } from './reports-types';
+import { PRESETS, REPORTS, type GroupOption, type Preset, type ScopeOption } from './reports-types';
 import { useRunReport } from './use-run-report';
 
 interface ReportsViewProps {
   readonly scopeOptions: readonly ScopeOption[];
+  readonly groupOptions: readonly GroupOption[];
 }
 
 /**
- * Reports view — pick a report, pick a scope, pick a window, run.
- * Every rendered chunk (catalogue picker, run controls, result
- * panel) lives in its own sibling; this file wires state + the
- * run-report hook.
+ * Reports view — pick a report, pick a scope, optionally narrow to a
+ * group, pick a window, run. Every rendered chunk (catalogue picker,
+ * run controls, result panel) lives in its own sibling; this file
+ * wires state + the run-report hook.
  */
-export function ReportsView({ scopeOptions }: ReportsViewProps) {
+export function ReportsView({ scopeOptions, groupOptions }: ReportsViewProps) {
   const [reportKey, setReportKey] = useState<ReportKey>('collections');
   const [scopeId, setScopeId] = useState<string>(scopeOptions[0]?.id ?? '');
+  const [groupId, setGroupId] = useState<string>('');
   const [preset, setPreset] = useState<Preset>('30d');
   const [customFrom, setCustomFrom] = useState<string>('');
   const [customTo, setCustomTo] = useState<string>(new Date().toISOString().slice(0, 10));
@@ -32,11 +34,15 @@ export function ReportsView({ scopeOptions }: ReportsViewProps) {
     () => scopeOptions.find((s) => s.id === scopeId),
     [scopeOptions, scopeId],
   );
+  const currentGroup = useMemo(
+    () => groupOptions.find((g) => g.id === groupId) ?? null,
+    [groupOptions, groupId],
+  );
 
   const { pending, result, run } = useRunReport();
 
   const summaryLine =
-    `${currentScope ? currentScope.name : 'no scope'} · ` +
+    `${currentScope ? currentScope.name : 'no scope'}${currentGroup ? ` · ${currentGroup.name}` : ''} · ` +
     (currentReport.usesDates
       ? preset === 'custom'
         ? `${customFrom || 'beginning'} → ${customTo}`
@@ -51,6 +57,7 @@ export function ReportsView({ scopeOptions }: ReportsViewProps) {
       preset,
       customFrom,
       customTo,
+      group: currentGroup,
     });
 
   return (
@@ -64,7 +71,8 @@ export function ReportsView({ scopeOptions }: ReportsViewProps) {
           Reports
         </h1>
         <p className="text-sm text-muted-foreground">
-          Pick a report and a scope. Windowed reports respect the date preset below.
+          Pick a report and a scope. Windowed reports respect the date preset below. An event group
+          narrows the rows to that group without changing the underlying scope.
         </p>
       </div>
 
@@ -74,6 +82,9 @@ export function ReportsView({ scopeOptions }: ReportsViewProps) {
         scopeOptions={scopeOptions}
         scopeId={scopeId}
         onScopeChange={setScopeId}
+        groupOptions={groupOptions}
+        groupId={groupId}
+        onGroupChange={setGroupId}
         usesDates={currentReport.usesDates}
         preset={preset}
         onPresetChange={setPreset}

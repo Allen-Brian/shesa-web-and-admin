@@ -13,12 +13,15 @@ import {
   SelectValue,
 } from '@shesa/ui';
 
-import { PRESETS, type Preset, type ScopeOption } from './reports-types';
+import { PRESETS, type GroupOption, type Preset, type ScopeOption } from './reports-types';
 
 interface ReportControlsCardProps {
   readonly scopeOptions: readonly ScopeOption[];
   readonly scopeId: string;
   readonly onScopeChange: (id: string) => void;
+  readonly groupOptions: readonly GroupOption[];
+  readonly groupId: string;
+  readonly onGroupChange: (id: string) => void;
   readonly usesDates: boolean;
   readonly preset: Preset;
   readonly onPresetChange: (p: Preset) => void;
@@ -62,8 +65,35 @@ export function ReportControlsCard(props: ReportControlsCardProps) {
           </Select>
         </div>
 
+        {props.groupOptions.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="group">Event group (optional)</Label>
+            <Select
+              value={props.groupId || 'all'}
+              onValueChange={(v) => props.onGroupChange(v === 'all' ? '' : v)}
+            >
+              <SelectTrigger id="group">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All groups</SelectItem>
+                {props.groupOptions.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {props.usesDates && (
-          <div className="flex flex-col gap-1.5 lg:col-span-2">
+          <div
+            className={
+              'flex flex-col gap-1.5 ' +
+              (props.groupOptions.length > 0 ? 'lg:col-span-3' : 'lg:col-span-2')
+            }
+          >
             <Label>Window</Label>
             <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-background p-0.5">
               {PRESETS.map((p) => {

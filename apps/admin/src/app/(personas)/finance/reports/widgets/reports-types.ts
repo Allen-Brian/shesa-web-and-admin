@@ -23,6 +23,18 @@ export interface ScopeOption {
   readonly currency: string;
 }
 
+/**
+ * Event group option for the optional group narrower. `chargeIds`
+ * carries every charge belonging to this group so the client can
+ * filter report rows without a second RPC. The plan explicitly
+ * defers SQL-level group awareness in the reporting fns.
+ */
+export interface GroupOption {
+  readonly id: string;
+  readonly name: string;
+  readonly chargeIds: readonly string[];
+}
+
 export interface ReportCatalogueEntry {
   readonly value: ReportKey;
   readonly label: string;
@@ -120,4 +132,10 @@ export interface RunResult {
   readonly ranAt: string;
   readonly scopeName: string;
   readonly windowLabel: string;
+  /**
+   * Set when the run was narrowed to a group; drives the "· AGM 2026"
+   * suffix on the result panel header. `null` when the run was
+   * unrestricted.
+   */
+  readonly groupName: string | null;
 }

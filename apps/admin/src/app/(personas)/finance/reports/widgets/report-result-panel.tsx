@@ -59,8 +59,9 @@ export function ReportResultPanel({ result, scopeCurrency }: ReportResultPanelPr
             {REPORTS.find((r) => r.value === result.report)?.label ?? result.report}
           </h2>
           <span className="text-xs text-muted-foreground">
-            {result.scopeName} · {result.windowLabel} · {result.rows.length} row
-            {result.rows.length === 1 ? '' : 's'} · ran{' '}
+            {result.scopeName}
+            {result.groupName ? ` · ${result.groupName}` : ''} · {result.windowLabel} ·{' '}
+            {result.rows.length} row{result.rows.length === 1 ? '' : 's'} · ran{' '}
             {new Date(result.ranAt).toLocaleTimeString()}
           </span>
         </div>
