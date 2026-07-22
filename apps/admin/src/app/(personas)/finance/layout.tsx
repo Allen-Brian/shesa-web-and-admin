@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/app-shell';
+import { loadSidebarGroups } from '@/lib/finance/groups/load-sidebar-groups';
 import { getServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
@@ -66,6 +67,12 @@ export default async function FinanceLayout({ children }: { readonly children: R
     return true;
   });
 
+  // Event Groups are mainstream-only lenses — RLS on finance.groups
+  // filters this list down to nothing for branch finance users, so we
+  // fetch unconditionally and let the sidebar hide its own section
+  // when the list is empty.
+  const sidebarGroups = await loadSidebarGroups();
+
   return (
     <AppShell
       persona="finance"
@@ -73,6 +80,7 @@ export default async function FinanceLayout({ children }: { readonly children: R
       userName={userName}
       avatarUrl={profile?.avatar_url ?? undefined}
       isGlobalFinance={isGlobalFinance}
+      sidebarGroups={sidebarGroups}
     >
       {children}
     </AppShell>

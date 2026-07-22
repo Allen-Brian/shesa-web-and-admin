@@ -8,6 +8,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { BreadcrumbProvider } from '@/components/breadcrumb-context';
 import { FinanceSidebar } from '@/components/finance-sidebar';
 import { Topbar } from '@/components/topbar';
+import type { SidebarGroupItem } from '@/lib/finance/groups/load-sidebar-groups';
 import type { Persona } from '@/lib/personas';
 
 interface AppShellProps {
@@ -23,6 +24,12 @@ interface AppShellProps {
   readonly canReadFinance?: boolean;
   /** For finance persona — signals a NULL-scope grant (Global Finance). */
   readonly isGlobalFinance?: boolean;
+  /**
+   * For finance persona — event groups to render in the sidebar's
+   * Event Groups section. Empty for branch finance users; RLS filters
+   * them out server-side.
+   */
+  readonly sidebarGroups?: readonly SidebarGroupItem[];
   /**
    * True when the caller is a Mainstream (Global) Admin. Used by the
    * exco sidebar to hide items that are meaningless for the person
@@ -58,6 +65,7 @@ export function AppShell({
   canViewInvites,
   canReadFinance,
   isGlobalFinance,
+  sidebarGroups,
   isGlobalAdmin,
   canEditCms,
   children,
@@ -76,7 +84,7 @@ export function AppShell({
     <BreadcrumbProvider>
       <SidebarProvider open={open} onOpenChange={setOpen}>
         {persona === 'finance' ? (
-          <FinanceSidebar isGlobal={isGlobalFinance} />
+          <FinanceSidebar isGlobal={isGlobalFinance} sidebarGroups={sidebarGroups} />
         ) : (
           <AppSidebar
             persona={persona}
