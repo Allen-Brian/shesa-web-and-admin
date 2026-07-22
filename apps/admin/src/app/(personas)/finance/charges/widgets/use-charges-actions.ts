@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { toast } from '@shesa/ui';
 
-import { archiveCharge, createCharge, generateObligations, updateCharge } from '../actions';
+import { archiveCharge, createCharge, deleteCharge, updateCharge } from '../actions';
 import type { CreateForm, EditForm, ScopeOption } from './charges-types';
 
 interface UseChargesActionsInput {
@@ -14,9 +14,10 @@ interface UseChargesActionsInput {
 
 /**
  * Consolidates every mutation for the charges view — create / edit /
- * archive / activate a draft / regenerate obligations — behind one
- * hook. Each action validates client-side, awaits its server action,
- * toasts, and refreshes on success.
+ * archive / delete — behind one hook. Activation is a status flip on
+ * the edit dialog (draft → active), and obligation generation now
+ * happens automatically inside the update edge fn on that transition,
+ * so neither shows up as a stand-alone row action.
  */
 export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
   const router = useRouter();
@@ -79,7 +80,11 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
         toast.error(result.message);
         return;
       }
-      toast.success('Charge updated.');
+      toast.success(
+        editing.status === 'active'
+          ? 'Charge saved — obligations will populate shortly.'
+          : 'Charge updated.',
+      );
       onDone();
       router.refresh();
     });
@@ -97,34 +102,17 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
     });
   };
 
-  const runActivate = (chargeId: string) => {
+  const runDelete = (id: string) => {
     startTransition(async () => {
-      const result = await updateCharge({ id: chargeId, status: 'active' });
+      const result = await deleteCharge(id);
       if (!result.ok) {
         toast.error(result.message);
         return;
       }
-      toast.success('Charge activated.');
+      toast.success('Charge deleted.');
       router.refresh();
     });
   };
 
-  const runGenerate = (chargeId: string) => {
-    startTransition(async () => {
-      const result = await generateObligations(chargeId);
-      if (!result.ok) {
-        toast.error(result.message);
-        return;
-      }
-      const inserted = result.data?.inserted ?? 0;
-      toast.success(
-        inserted > 0
-          ? `Generated ${inserted} obligation${inserted === 1 ? '' : 's'}.`
-          : 'No new obligations — the current period is already covered.',
-      );
-      router.refresh();
-    });
-  };
-
-  return { pending, runCreate, runEdit, runArchive, runActivate, runGenerate };
+  return { pending, runCreate, runEdit, runArchive, runDelete };
 }

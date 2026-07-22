@@ -52,6 +52,7 @@ export function ChargesView({ charges, scopeOptions, targetScopeOptions }: Charg
   const [createForm, setCreateForm] = useState<CreateForm>(() => initialCreate(scopeOptions));
   const [editing, setEditing] = useState<EditForm | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<ChargeRow | null>(null);
 
   const kpis = useMemo(() => buildChargeKpis(charges), [charges]);
 
@@ -76,9 +77,8 @@ export function ChargesView({ charges, scopeOptions, targetScopeOptions }: Charg
       buildChargeColumns({
         pending,
         onEdit: (row) => setEditing(toEditForm(row)),
-        onActivate: actions.runActivate,
-        onGenerate: actions.runGenerate,
         onArchive: setArchivingId,
+        onDelete: setDeleting,
       }),
     [pending],
   );
@@ -168,6 +168,18 @@ export function ChargesView({ charges, scopeOptions, targetScopeOptions }: Charg
           setArchivingId(null);
         }}
         onCancel={() => setArchivingId(null)}
+      />
+
+      <ConfirmDialog
+        open={!!deleting}
+        title={deleting ? `Delete "${deleting.name}"?` : 'Delete this charge?'}
+        description="Deletion is permanent and cannot be undone. Charges with any recorded payments must be archived instead."
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (deleting) actions.runDelete(deleting.id);
+          setDeleting(null);
+        }}
+        onCancel={() => setDeleting(null)}
       />
     </div>
   );

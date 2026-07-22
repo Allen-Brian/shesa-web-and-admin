@@ -1,5 +1,3 @@
-import { ChevronRight } from 'lucide-react';
-
 import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
 import { ChargeNameCell } from './charge-name-cell';
@@ -12,19 +10,21 @@ import type { ChargeRow, SerialRow } from './charges-types';
 interface ChargeColumnActions {
   readonly pending: boolean;
   readonly onEdit: (row: ChargeRow) => void;
-  readonly onActivate: (id: string) => void;
-  readonly onGenerate: (id: string) => void;
   readonly onArchive: (id: string) => void;
+  readonly onDelete: (row: ChargeRow) => void;
 }
 
 /**
- * Column defs for the charges DataTable — S/N · Name · Amount ·
- * Progress · Status · Activates · row-chevron · row-actions. Row
- * click on any main cell opens the charge-detail page (wired at the
- * DataTable level); the chevron column exists as an affordance.
+ * Column defs for the charges DataTable — S/N · Name · Type · Amount ·
+ * Progress · Status · Activates · Actions. Row-click on any main cell
+ * opens the charge-detail page (wired at the DataTable level); the
+ * trailing Actions column carries the overflow menu (Edit / Archive
+ * / Delete). Activation is a status flip inside Edit and obligations
+ * generate automatically on that transition — neither has its own
+ * row action.
  */
 export function buildChargeColumns(actions: ChargeColumnActions): ColDef<SerialRow>[] {
-  const { pending, onEdit, onActivate, onGenerate, onArchive } = actions;
+  const { pending, onEdit, onArchive, onDelete } = actions;
   return [
     {
       headerName: '#',
@@ -93,32 +93,22 @@ export function buildChargeColumns(actions: ChargeColumnActions): ColDef<SerialR
       valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleDateString() : '—'),
     },
     {
-      headerName: '',
-      colId: 'row_chevron',
-      width: 48,
-      maxWidth: 48,
-      sortable: false,
-      filter: false,
-      suppressMovable: true,
-      cellRenderer: () => <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />,
-    },
-    {
-      headerName: '',
+      headerName: 'Actions',
       colId: 'row_actions',
-      width: 56,
-      maxWidth: 56,
+      width: 96,
+      maxWidth: 96,
       sortable: false,
       filter: false,
       suppressMovable: true,
+      cellClass: 'flex items-center justify-center',
       cellRenderer: (p: ICellRendererParams<SerialRow>) =>
         p.data ? (
           <ChargeRowActionsMenu
             row={p.data}
             pending={pending}
             onEdit={onEdit}
-            onActivate={onActivate}
-            onGenerate={onGenerate}
             onArchive={onArchive}
+            onDelete={onDelete}
           />
         ) : null,
     },

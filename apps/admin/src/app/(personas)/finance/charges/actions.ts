@@ -127,3 +127,19 @@ export async function generateObligations(
   revalidatePath('/finance', 'layout');
   return { ok: true, data: (data ?? { inserted: 0 }) as { inserted: number } };
 }
+
+export async function deleteCharge(id: string): Promise<ActionResult> {
+  const supabase = await getServerClient();
+
+  const { error } = await supabase.functions.invoke('charges/delete', {
+    body: { id },
+  });
+
+  if (error) {
+    return { ok: false, message: await extractInvokeMessage(error, 'Could not delete charge.') };
+  }
+
+  revalidatePath('/finance/charges');
+  revalidatePath('/finance', 'layout');
+  return { ok: true };
+}

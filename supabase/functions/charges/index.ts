@@ -34,6 +34,7 @@ import { approveContribution } from './approve.ts';
 import { archiveCharge } from './archive.ts';
 import { closeContribution } from './close.ts';
 import { createCharge } from './create.ts';
+import { deleteCharge } from './delete.ts';
 import { extendContribution } from './extend.ts';
 import { generateObligations } from './generate-obligations.ts';
 import { updateCharge } from './update.ts';
@@ -43,6 +44,7 @@ Deno.serve(
     create: createCharge,
     update: updateCharge,
     archive: archiveCharge,
+    delete: deleteCharge,
     'generate-obligations': generateObligations,
     approve: approveContribution,
     close: closeContribution,

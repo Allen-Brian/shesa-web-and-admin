@@ -1,4 +1,4 @@
-import { Archive, MoreHorizontal, Pencil, Play, RefreshCw } from 'lucide-react';
+import { Archive, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
 import {
   Button,
@@ -15,29 +15,25 @@ interface ChargeRowActionsMenuProps {
   readonly row: ChargeRow;
   readonly pending: boolean;
   readonly onEdit: (row: ChargeRow) => void;
-  readonly onActivate: (id: string) => void;
-  readonly onGenerate: (id: string) => void;
   readonly onArchive: (id: string) => void;
+  readonly onDelete: (row: ChargeRow) => void;
 }
 
 /**
- * Row overflow menu — edit / activate (drafts) / generate obligations
- * (active) / archive. Archived charges get no menu at all since there
- * are no valid transitions from that state. Click propagation is
- * stopped so the underlying row-click that opens the charge detail
- * page doesn't fire.
+ * Row overflow menu — Edit / Archive / Delete. Activation happens
+ * inside the edit dialog as a status flip (draft → active), and the
+ * update edge fn auto-generates obligations on that transition, so
+ * neither shows up here as its own item. Archived charges get no
+ * menu since there are no valid transitions from that state.
  */
 export function ChargeRowActionsMenu({
   row,
   pending,
   onEdit,
-  onActivate,
-  onGenerate,
   onArchive,
+  onDelete,
 }: ChargeRowActionsMenuProps) {
   if (row.status === 'archived') return null;
-  const canActivate = row.status === 'draft';
-  const canGenerate = row.status === 'active';
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -56,27 +52,19 @@ export function ChargeRowActionsMenu({
       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
         <DropdownMenuItem onSelect={() => onEdit(row)}>
           <Pencil className="h-4 w-4" />
-          Edit details
+          Edit
         </DropdownMenuItem>
-        {canActivate && (
-          <DropdownMenuItem onSelect={() => onActivate(row.id)}>
-            <Play className="h-4 w-4" />
-            Activate
-          </DropdownMenuItem>
-        )}
-        {canGenerate && (
-          <DropdownMenuItem onSelect={() => onGenerate(row.id)}>
-            <RefreshCw className="h-4 w-4" />
-            Generate obligations
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onSelect={() => onArchive(row.id)}
-          className="text-destructive focus:text-destructive"
-        >
+        <DropdownMenuItem onSelect={() => onArchive(row.id)}>
           <Archive className="h-4 w-4" />
           Archive
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onSelect={() => onDelete(row)}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
