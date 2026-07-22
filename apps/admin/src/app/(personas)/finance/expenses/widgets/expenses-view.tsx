@@ -14,6 +14,8 @@ import type {
   CategoryFilter,
   CategoryOption,
   ExpenseRow,
+  GroupFilter,
+  GroupOption,
   RecordForm,
   ScopeOption,
   SerialRow,
@@ -27,6 +29,7 @@ interface ExpensesViewProps {
   readonly expenses: readonly ExpenseRow[];
   readonly scopeOptions: readonly ScopeOption[];
   readonly categoryOptions: readonly CategoryOption[];
+  readonly groupOptions: readonly GroupOption[];
 }
 
 /**
@@ -36,13 +39,19 @@ interface ExpensesViewProps {
  * previews the threshold decision in the record dialog so operators
  * aren't surprised by pending_approval on submit.
  */
-export function ExpensesView({ expenses, scopeOptions, categoryOptions }: ExpensesViewProps) {
+export function ExpensesView({
+  expenses,
+  scopeOptions,
+  categoryOptions,
+  groupOptions,
+}: ExpensesViewProps) {
   const actions = useExpensesActions({ scopeOptions });
   const { pending } = actions;
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+  const [groupFilter, setGroupFilter] = useState<GroupFilter>('all');
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordForm, setRecordForm] = useState<RecordForm>(() => initialRecord(scopeOptions));
@@ -57,15 +66,19 @@ export function ExpensesView({ expenses, scopeOptions, categoryOptions }: Expens
       .filter((e) => {
         if (statusFilter !== 'all' && e.status !== statusFilter) return false;
         if (categoryFilter !== 'all' && e.categoryKey !== categoryFilter) return false;
+        if (groupFilter === 'none' && e.groupId) return false;
+        if (groupFilter !== 'all' && groupFilter !== 'none' && e.groupId !== groupFilter)
+          return false;
         if (!q) return true;
         if (e.payee.toLowerCase().includes(q)) return true;
         if (e.scopeName.toLowerCase().includes(q)) return true;
         if (e.categoryName?.toLowerCase().includes(q)) return true;
         if (e.description?.toLowerCase().includes(q)) return true;
+        if (e.groupName?.toLowerCase().includes(q)) return true;
         return false;
       })
       .map((e, i) => ({ ...e, serial: i + 1 }));
-  }, [expenses, search, statusFilter, categoryFilter]);
+  }, [expenses, search, statusFilter, categoryFilter, groupFilter]);
 
   const selectedScopeForRecord = scopeOptions.find((s) => s.id === recordForm.scopeId);
   const recordAmountNum = recordForm.amount ? parseFloat(recordForm.amount) : null;
@@ -126,6 +139,9 @@ export function ExpensesView({ expenses, scopeOptions, categoryOptions }: Expens
             onCategoryChange={setCategoryFilter}
             status={statusFilter}
             onStatusChange={setStatusFilter}
+            groupOptions={groupOptions}
+            group={groupFilter}
+            onGroupChange={setGroupFilter}
           />
         }
       />

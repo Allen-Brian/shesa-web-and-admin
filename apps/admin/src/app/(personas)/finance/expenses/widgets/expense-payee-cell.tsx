@@ -1,11 +1,16 @@
 import { Receipt } from 'lucide-react';
 
+import { GroupChip } from '@/components/finance/group-chip';
+
 import type { SerialRow } from './expenses-types';
 
 /**
  * "Payee" column cell — receipt icon avatar + payee + optional
  * description subtitle. Amber avatar signals "money out" so the
- * table reads distinctly from the payments (blue-ish) tables.
+ * table reads distinctly from the payments (blue-ish) tables. When
+ * the expense is tied to an event group, a compact group chip
+ * renders beside the subtitle so operators can spot event-scoped
+ * outflows without pivoting into the group view.
  */
 export function ExpensePayeeCell({ row }: { readonly row: SerialRow }) {
   return (
@@ -15,10 +20,13 @@ export function ExpensePayeeCell({ row }: { readonly row: SerialRow }) {
       </div>
       <div className="flex min-w-0 flex-col leading-tight">
         <span className="truncate text-sm font-medium text-foreground">{row.payee}</span>
-        <span className="truncate text-xs text-muted-foreground">
-          {row.scopeName}
-          {row.description && ` · ${row.description}`}
-        </span>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-xs text-muted-foreground">
+            {row.scopeName}
+            {row.description && ` · ${row.description}`}
+          </span>
+          {row.groupName && <GroupChip name={row.groupName} />}
+        </div>
       </div>
     </div>
   );

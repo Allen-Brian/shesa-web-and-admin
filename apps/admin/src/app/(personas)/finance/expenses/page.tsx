@@ -3,7 +3,12 @@ import { redirect } from 'next/navigation';
 import { getServerClient } from '@/lib/supabase-server';
 
 import { ExpensesView } from './widgets/expenses-view';
-import type { CategoryOption, ExpenseRow, ScopeOption } from './widgets/expenses-types';
+import type {
+  CategoryOption,
+  ExpenseRow,
+  GroupOption,
+  ScopeOption,
+} from './widgets/expenses-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +26,12 @@ interface RawExpenseRow {
   readonly reverses_expense_id: string | null;
   readonly incurred_at: string;
   readonly created_at: string;
+  readonly group_id: string | null;
+}
+
+interface RawGroupRow {
+  readonly id: string;
+  readonly name: string;
 }
 
 interface RawScopeRow {
@@ -74,7 +85,7 @@ export default async function ExpensesPage() {
       .schema('finance' as never)
       .from('expenses' as never)
       .select(
-        'id, scope_id, category_id, payee, amount, currency, description, status, reverses_expense_id, incurred_at, created_at',
+        'id, scope_id, category_id, payee, amount, currency, description, status, reverses_expense_id, incurred_at, created_at, group_id',
       )
       .order('incurred_at', { ascending: false })
       .limit(500),
@@ -97,6 +108,23 @@ export default async function ExpensesPage() {
   const expensesData = (expensesRaw ?? []) as RawExpenseRow[];
   const categoriesData = (categoriesRaw ?? []) as RawCategoryRow[];
   const settingsData = (settingsRaw ?? []) as RawSettingsRow[];
+
+  // Groups any expense hangs off (via inherited group_id from its
+  // parent charge, or direct assignment). One IN-list query — the
+  // chip renders in the payee cell and the filter picker below the
+  // KPI strip.
+  const groupIds = Array.from(
+    new Set(expensesData.map((e) => e.group_id).filter((id): id is string => !!id)),
+  );
+  const { data: groupsRaw } = groupIds.length
+    ? await supabase
+        .schema('finance' as never)
+        .from('groups' as never)
+        .select('id, name')
+        .in('id', groupIds)
+    : { data: [] as RawGroupRow[] };
+  const groupsData = (groupsRaw ?? []) as RawGroupRow[];
+  const groupById = new Map(groupsData.map((g) => [g.id, g] as const));
 
   const scopeSet = new Set<string>([
     ...((treasuriesRaw ?? []) as Array<{ scope_id: string }>).map((t) => t.scope_id),
@@ -135,8 +163,14 @@ export default async function ExpensesPage() {
       isReversed: reversedIds.has(e.id),
       incurredAt: e.incurred_at,
       createdAt: e.created_at,
+      groupId: e.group_id,
+      groupName: e.group_id ? (groupById.get(e.group_id)?.name ?? null) : null,
     };
   });
+
+  const groupOptions: GroupOption[] = groupsData
+    .map((g) => ({ id: g.id, name: g.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const scopeOptions: ScopeOption[] = scopesData
     .filter(
@@ -169,6 +203,7 @@ export default async function ExpensesPage() {
       expenses={expenses}
       scopeOptions={scopeOptions}
       categoryOptions={categoryOptions}
+      groupOptions={groupOptions}
     />
   );
 }
