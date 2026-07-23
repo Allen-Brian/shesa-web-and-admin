@@ -96,13 +96,29 @@ export async function loadPoolChargeDetail(
   }
 
   const poolPayments: PoolPayment[] = payments.map((p) => {
-    const meta = (p.metadata ?? {}) as { donor_name?: string; public_donation?: boolean };
-    const donorLabel = meta.donor_name ?? (meta.public_donation ? 'Anonymous donor' : null);
+    const meta = (p.metadata ?? {}) as {
+      donor_name?: string;
+      payer_name?: string;
+      public_donation?: boolean;
+      public_ticket_purchase?: boolean;
+    };
+    // Anonymous fallbacks for the two public paths: donations use
+    // `donor_name`, ticket/attire purchases use `payer_name`. Ticket
+    // purchases were rendering as "—" because the fallback only
+    // checked donor_name.
+    const anonName = meta.donor_name ?? meta.payer_name ?? null;
+    const fallbackLabel =
+      anonName ??
+      (meta.public_donation
+        ? 'Anonymous donor'
+        : meta.public_ticket_purchase
+          ? 'Anonymous buyer'
+          : null);
     const receipt = receiptByPayment.get(p.id);
     return {
       id: p.id,
       payerLabel:
-        (p.payer_member_id ? memberById.get(p.payer_member_id) : null) ?? donorLabel ?? '—',
+        (p.payer_member_id ? memberById.get(p.payer_member_id) : null) ?? fallbackLabel ?? '—',
       amount: parseFloat(p.amount),
       currency: p.currency,
       method: p.method,
