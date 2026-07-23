@@ -68,6 +68,23 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
   };
 
   const runEdit = (editing: EditForm, onDone: () => void) => {
+    if (!editing.name.trim()) return toast.error('Name is required.');
+    const isDraft = editing.status === 'draft';
+    const amount = editing.baseAmount ? parseFloat(editing.baseAmount) : NaN;
+    if (isDraft && (!Number.isFinite(amount) || amount <= 0))
+      return toast.error('Enter a positive base amount.');
+    const isGroup = editing.targetPartyType === 'branch';
+    const targets = isGroup
+      ? editing.chargeTargets.map((t) => ({
+          targetScopeId: t.targetScopeId,
+          amount: parseFloat(t.amount),
+        }))
+      : undefined;
+    if (isDraft && isGroup && (!targets || targets.length === 0))
+      return toast.error('Group charges need at least one target.');
+    if (isDraft && targets && targets.some((t) => !Number.isFinite(t.amount) || t.amount <= 0))
+      return toast.error('Every target needs a positive amount.');
+
     startTransition(async () => {
       const result = await updateCharge({
         id: editing.id,
@@ -75,6 +92,11 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
         description: editing.description.trim() || null,
         activationDate: new Date(editing.activationDate).toISOString(),
         status: editing.status,
+        // Only send draft-only fields when the row is still a draft;
+        // the edge fn rejects them outright on active/paused charges.
+        baseAmount: isDraft ? amount : undefined,
+        recurrence: isDraft ? editing.recurrence : undefined,
+        chargeTargets: isDraft && isGroup ? targets : undefined,
       });
       if (!result.ok) {
         toast.error(result.message);
@@ -86,6 +108,18 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
           : 'Charge updated.',
       );
       onDone();
+      router.refresh();
+    });
+  };
+
+  const runPublish = (id: string) => {
+    startTransition(async () => {
+      const result = await updateCharge({ id, status: 'active' });
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success('Charge published — obligations are populating.');
       router.refresh();
     });
   };
@@ -114,5 +148,5 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
     });
   };
 
-  return { pending, runCreate, runEdit, runArchive, runDelete };
+  return { pending, runCreate, runEdit, runPublish, runArchive, runDelete };
 }

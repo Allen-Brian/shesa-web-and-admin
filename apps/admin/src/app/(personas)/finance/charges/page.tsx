@@ -55,6 +55,8 @@ interface RawPaymentRow {
 
 interface RawChargeTargetRow {
   readonly charge_id: string;
+  readonly target_scope_id: string;
+  readonly amount: string;
 }
 
 /**
@@ -126,7 +128,7 @@ export default async function ChargesPage() {
           supabase
             .schema('finance' as never)
             .from('charge_targets' as never)
-            .select('charge_id')
+            .select('charge_id, target_scope_id, amount')
             .in('charge_id', chargeIds),
         ])
       : [
@@ -152,8 +154,12 @@ export default async function ChargesPage() {
   // "Group · 4 targets" reads at a glance without opening the detail
   // page.
   const targetCountByCharge = new Map<string, number>();
+  const targetsByCharge = new Map<string, { targetScopeId: string; amount: string }[]>();
   for (const t of chargeTargets) {
     targetCountByCharge.set(t.charge_id, (targetCountByCharge.get(t.charge_id) ?? 0) + 1);
+    const bucket = targetsByCharge.get(t.charge_id) ?? [];
+    bucket.push({ targetScopeId: t.target_scope_id, amount: t.amount });
+    targetsByCharge.set(t.charge_id, bucket);
   }
 
   // Collected per charge — sum of settled payment amounts minus reversals.
@@ -221,6 +227,7 @@ export default async function ChargesPage() {
       createdAt: c.created_at,
       targetPartyType: c.target_party_type ?? 'member',
       targetCount: targetCountByCharge.get(c.id) ?? 0,
+      chargeTargets: targetsByCharge.get(c.id) ?? [],
       expected: expectedByCharge.get(c.id) ?? 0,
       collected: Math.max(0, collectedByCharge.get(c.id) ?? 0),
     };

@@ -73,6 +73,9 @@ interface UpdateChargeInput {
   readonly description?: string | null;
   readonly activationDate?: string;
   readonly status?: 'draft' | 'active' | 'paused';
+  readonly baseAmount?: number;
+  readonly recurrence?: 'one_time' | 'monthly' | 'quarterly' | 'biannual' | 'yearly';
+  readonly chargeTargets?: readonly CreateChargeTargetInput[];
 }
 
 export async function updateCharge(input: UpdateChargeInput): Promise<ActionResult> {

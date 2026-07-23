@@ -75,6 +75,7 @@ export function ChargesView({
     initialCreate(defaultIndividualScopeId),
   );
   const [editing, setEditing] = useState<EditForm | null>(null);
+  const [publishing, setPublishing] = useState<ChargeRow | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<ChargeRow | null>(null);
 
@@ -104,6 +105,7 @@ export function ChargesView({
       buildChargeColumns({
         pending,
         onEdit: (row) => setEditing(toEditForm(row)),
+        onPublish: setPublishing,
         onArchive: setArchivingId,
         onDelete: setDeleting,
       }),
@@ -197,6 +199,7 @@ export function ChargesView({
       />
       <EditChargeDialog
         editing={editing}
+        targetScopeOptions={targetScopeOptions}
         onClose={() => setEditing(null)}
         onChange={(patch) => setEditing((prev) => (prev ? { ...prev, ...patch } : prev))}
         onSubmit={() => {
@@ -204,6 +207,18 @@ export function ChargesView({
           actions.runEdit(editing, () => setEditing(null));
         }}
         pending={pending}
+      />
+
+      <ConfirmDialog
+        open={!!publishing}
+        title={publishing ? `Publish "${publishing.name}"?` : 'Publish this charge?'}
+        description="Publishing flips the charge from draft to active and generates the full window of obligations. You can pause it later."
+        confirmLabel="Publish"
+        onConfirm={() => {
+          if (publishing) actions.runPublish(publishing.id);
+          setPublishing(null);
+        }}
+        onCancel={() => setPublishing(null)}
       />
 
       <ConfirmDialog

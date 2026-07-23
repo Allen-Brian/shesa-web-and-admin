@@ -10,6 +10,7 @@ import type { ChargeRow, SerialRow } from './charges-types';
 interface ChargeColumnActions {
   readonly pending: boolean;
   readonly onEdit: (row: ChargeRow) => void;
+  readonly onPublish: (row: ChargeRow) => void;
   readonly onArchive: (id: string) => void;
   readonly onDelete: (row: ChargeRow) => void;
 }
@@ -24,7 +25,7 @@ interface ChargeColumnActions {
  * row action.
  */
 export function buildChargeColumns(actions: ChargeColumnActions): ColDef<SerialRow>[] {
-  const { pending, onEdit, onArchive, onDelete } = actions;
+  const { pending, onEdit, onPublish, onArchive, onDelete } = actions;
   return [
     {
       headerName: '#',
@@ -107,6 +108,7 @@ export function buildChargeColumns(actions: ChargeColumnActions): ColDef<SerialR
             row={p.data}
             pending={pending}
             onEdit={onEdit}
+            onPublish={onPublish}
             onArchive={onArchive}
             onDelete={onDelete}
           />

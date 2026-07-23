@@ -28,6 +28,12 @@ export interface ChargeRow {
   readonly createdAt: string;
   readonly targetPartyType: TargetPartyType;
   readonly targetCount: number;
+  /**
+   * Per-target amounts for Group charges — empty on Individual rows.
+   * Kept on ChargeRow so the edit dialog can populate its Targets
+   * step without a second round-trip.
+   */
+  readonly chargeTargets: readonly ChargeTargetDraft[];
   /** Sum of open obligation amounts on this charge. */
   readonly expected: number;
   /** Sum of settled payments (minus reversals). */
@@ -90,4 +96,23 @@ export interface EditForm {
   description: string;
   activationDate: string;
   status: 'draft' | 'active' | 'paused';
+  /** Frozen once the charge activates — shown but only editable on drafts. */
+  baseAmount: string;
+  recurrence: Recurrence;
+  /**
+   * Type is displayed but never editable — flipping the shape mid-life
+   * would break every obligation already generated.
+   */
+  targetPartyType: TargetPartyType;
+  /**
+   * Currency inherited from the owner scope, shown alongside the amount
+   * for confirmation. Not editable.
+   */
+  currency: string;
+  /**
+   * Group-charge targets. Empty for Individual charges. Fully editable
+   * only when status is 'draft'; the edge fn rejects target edits on
+   * any activated charge.
+   */
+  chargeTargets: readonly ChargeTargetDraft[];
 }
