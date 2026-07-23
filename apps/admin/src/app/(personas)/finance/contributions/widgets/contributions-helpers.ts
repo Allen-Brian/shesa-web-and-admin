@@ -1,9 +1,14 @@
-import type { CreateForm, ScopeOption } from './contributions-types';
+import type { CreateForm } from './contributions-types';
 
-/** Fresh state for the "new contribution" dialog — goal shape, one-month window. */
-export function initialCreate(scopeOptions: readonly ScopeOption[]): CreateForm {
+/**
+ * Fresh state for the "new contribution" dialog — goal shape, one-month
+ * window, and the owner scope preselected server-side (the parent
+ * view auto-picks the operator's active finance scope so the form
+ * never asks).
+ */
+export function initialCreate(defaultScopeId: string): CreateForm {
   return {
-    scopeId: scopeOptions[0]?.id ?? '',
+    scopeId: defaultScopeId,
     shape: 'goal',
     name: '',
     description: '',

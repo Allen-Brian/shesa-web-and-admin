@@ -1,5 +1,7 @@
 import { StatsCard } from '@shesa/ui';
 
+import { formatCompactMoney } from '@/lib/finance/format-money';
+
 import type {
   ArrearsRow,
   CollectionsRow,
@@ -18,7 +20,6 @@ import {
 import { ReportBarChartPanel } from './report-bar-chart-panel';
 import { ReportDonutPanel } from './report-donut-panel';
 import type { RunResult } from './reports-types';
-import { formatMoney } from './reports-formatters';
 
 /**
  * KPI strip + chart card cluster shown above the results DataTable.
@@ -44,12 +45,17 @@ export function ResultInsights({
       <>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard label="Charges collecting" value={rows.length.toLocaleString()} />
-          <StatsCard label="Total collected" value={formatMoney(s.totalCollected, currency)} />
+          <StatsCard
+            label="Total collected"
+            value={formatCompactMoney(s.totalCollected, currency)}
+          />
           <StatsCard label="Payments" value={s.totalPayments.toLocaleString()} />
           <StatsCard
             label="Avg per payment"
             value={
-              s.totalPayments > 0 ? formatMoney(s.totalCollected / s.totalPayments, currency) : '—'
+              s.totalPayments > 0
+                ? formatCompactMoney(s.totalCollected / s.totalPayments, currency)
+                : '—'
             }
           />
         </div>
@@ -72,10 +78,12 @@ export function ResultInsights({
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard label="Rows" value={rows.length.toLocaleString()} />
           <StatsCard label="Members behind" value={s.memberCount.toLocaleString()} />
-          <StatsCard label="Total arrears" value={formatMoney(s.totalArrears, currency)} />
+          <StatsCard label="Total arrears" value={formatCompactMoney(s.totalArrears, currency)} />
           <StatsCard
             label="Avg per row"
-            value={rows.length > 0 ? formatMoney(s.totalArrears / rows.length, currency) : '—'}
+            value={
+              rows.length > 0 ? formatCompactMoney(s.totalArrears / rows.length, currency) : '—'
+            }
           />
         </div>
         {s.topOffenders.length > 0 && (
@@ -98,10 +106,16 @@ export function ResultInsights({
     const expenses = Number(row.expense_sum ?? 0);
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatsCard label="Opening" value={formatMoney(Number(row.opening_balance), currency)} />
-        <StatsCard label="Income" value={`+${formatMoney(income, currency)}`} />
-        <StatsCard label="Expenses" value={`−${formatMoney(expenses, currency)}`} />
-        <StatsCard label="Closing" value={formatMoney(Number(row.closing_balance), currency)} />
+        <StatsCard
+          label="Opening"
+          value={formatCompactMoney(Number(row.opening_balance), currency)}
+        />
+        <StatsCard label="Income" value={`+${formatCompactMoney(income, currency)}`} />
+        <StatsCard label="Expenses" value={`−${formatCompactMoney(expenses, currency)}`} />
+        <StatsCard
+          label="Closing"
+          value={formatCompactMoney(Number(row.closing_balance), currency)}
+        />
       </div>
     );
   }
@@ -113,7 +127,7 @@ export function ResultInsights({
       <>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard label="Methods used" value={rows.length.toLocaleString()} />
-          <StatsCard label="Total collected" value={formatMoney(s.total, currency)} />
+          <StatsCard label="Total collected" value={formatCompactMoney(s.total, currency)} />
           <StatsCard label="Top method" value={s.topLabel} />
           <StatsCard label="Top method share" value={s.topShare != null ? `${s.topShare}%` : '—'} />
         </div>
@@ -138,10 +152,10 @@ export function ResultInsights({
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard label="Categories" value={rows.length.toLocaleString()} />
           <StatsCard label="Expenses" value={s.totalExpenses.toLocaleString()} />
-          <StatsCard label="Total spent" value={formatMoney(s.total, currency)} />
+          <StatsCard label="Total spent" value={formatCompactMoney(s.total, currency)} />
           <StatsCard
             label="Avg per category"
-            value={rows.length > 0 ? formatMoney(s.total / rows.length, currency) : '—'}
+            value={rows.length > 0 ? formatCompactMoney(s.total / rows.length, currency) : '—'}
           />
         </div>
         {s.chartData.length > 0 && (
@@ -162,7 +176,7 @@ export function ResultInsights({
       <>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard label="Campaigns" value={rows.length.toLocaleString()} />
-          <StatsCard label="Total donated" value={formatMoney(s.totalDonated, currency)} />
+          <StatsCard label="Total donated" value={formatCompactMoney(s.totalDonated, currency)} />
           <StatsCard label="Named donors" value={s.named.toLocaleString()} />
           <StatsCard label="Anonymous" value={s.anonymous.toLocaleString()} />
         </div>

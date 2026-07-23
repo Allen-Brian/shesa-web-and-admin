@@ -4,6 +4,8 @@ import { AgmAbout } from '@/components/agm/agm-about';
 import { AgmHero } from '@/components/agm/agm-hero';
 import { AgmProgramme } from '@/components/agm/agm-programme';
 import { AgmVenue } from '@/components/agm/agm-venue';
+import { AttireSection } from '@/components/agm/attire-section';
+import { FundingSection } from '@/components/agm/funding-section';
 import { RegistrationSection } from '@/components/agm/registration-section';
 
 export const metadata: Metadata = {
@@ -27,8 +29,10 @@ export default async function Agm2026Page({
       <AgmHero />
       <AgmAbout />
       <AgmProgramme />
-      <AgmVenue />
+      <FundingSection initialError={error} />
       <RegistrationSection initialError={error} />
+      <AttireSection initialError={error} />
+      <AgmVenue />
     </>
   );
 }

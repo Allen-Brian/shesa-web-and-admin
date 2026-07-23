@@ -6,47 +6,46 @@ import type {
   RawLedgerEntry,
   RawPayment,
   ScopeRow,
-  TreasuryRow,
 } from './dashboard-types';
 
 /**
  * Pure aggregators over the raw rows the loader fetches. Kept out of
- * the loader file so the loader stays purely I/O — the reduce logic
- * is unit-testable without touching Supabase.
+ * the loader file so the reduce logic is unit-testable without
+ * touching Supabase.
  */
 
+interface Counts {
+  readonly ongoingContributions: number;
+  readonly txnsThisMonth: number;
+}
+
+/**
+ * Reduce the last-30-day ledger to Income / Expenses / Net, and layer
+ * on the pre-computed row counts. When every ledger row shares one
+ * currency we set `currency`; mixed-currency ledgers return `null` and
+ * the UI shows a placeholder for money cells.
+ */
 export function buildDashboardKpis(
-  treasuries: readonly TreasuryRow[],
   ledger: readonly RawLedgerEntry[],
+  counts: Counts,
 ): DashboardKpis {
-  const balanceByCurrency = new Map<string, number>();
-  for (const t of treasuries) {
-    balanceByCurrency.set(
-      t.currency,
-      (balanceByCurrency.get(t.currency) ?? 0) + parseFloat(t.balance),
-    );
-  }
-  const flowByCurrency = new Map<string, { income: number; expenses: number }>();
+  let income = 0;
+  let expensesSum = 0;
+  const currencies = new Set<string>();
   for (const e of ledger) {
     const amt = parseFloat(e.amount);
-    const cur = flowByCurrency.get(e.currency) ?? { income: 0, expenses: 0 };
-    if (e.direction === 'income') cur.income += amt;
-    else if (e.direction === 'expense') cur.expenses += amt;
-    flowByCurrency.set(e.currency, cur);
+    currencies.add(e.currency);
+    if (e.direction === 'income') income += amt;
+    else if (e.direction === 'expense') expensesSum += amt;
   }
-  const singleCurrency: string | null =
-    balanceByCurrency.size === 1 ? (balanceByCurrency.keys().next().value ?? null) : null;
-  const totalBalance = singleCurrency ? (balanceByCurrency.get(singleCurrency) ?? 0) : null;
-  const flow = singleCurrency ? flowByCurrency.get(singleCurrency) : null;
-  const income = flow?.income ?? 0;
-  const expensesSum = flow?.expenses ?? 0;
+  const currency = currencies.size === 1 ? (currencies.values().next().value ?? null) : null;
   return {
-    balanceByCurrency,
-    singleCurrency,
-    totalBalance,
     income,
     expensesSum,
     netFlow: income - expensesSum,
+    currency,
+    ongoingContributions: counts.ongoingContributions,
+    txnsThisMonth: counts.txnsThisMonth,
   };
 }
 
@@ -92,8 +91,20 @@ export function buildActivity({
       if (l.payment_id) {
         kind = 'payment';
         const p = paymentById.get(l.payment_id);
-        const meta = (p?.metadata ?? {}) as { donor_name?: string; public_donation?: boolean };
-        const donorLabel = meta.donor_name ?? (meta.public_donation ? 'Anonymous donor' : null);
+        const meta = (p?.metadata ?? {}) as {
+          donor_name?: string;
+          public_donation?: boolean;
+          payer_name?: string;
+          public_ticket_purchase?: boolean;
+        };
+        const donorLabel =
+          meta.donor_name ??
+          meta.payer_name ??
+          (meta.public_donation
+            ? 'Anonymous donor'
+            : meta.public_ticket_purchase
+              ? 'Anonymous buyer'
+              : null);
         counterparty =
           (p?.payer_member_id ? memberById.get(p.payer_member_id) : null) ??
           donorLabel ??

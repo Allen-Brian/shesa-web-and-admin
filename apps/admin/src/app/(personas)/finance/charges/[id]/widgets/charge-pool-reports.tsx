@@ -5,6 +5,8 @@ import { Repeat, TrendingUp } from 'lucide-react';
 
 import { StatsCard } from '@shesa/ui';
 
+import { formatCompactMoney } from '@/lib/finance/format-money';
+
 import type { ChargeDetailPoolProps } from './charge-detail-types';
 import { ChargeChartCard } from './charge-chart-card';
 import { ChargeConcentrationCurve } from './charge-concentration-curve';
@@ -76,13 +78,13 @@ export function ChargePoolReports(props: ChargeDetailPoolProps) {
     <div className="flex flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard label="Unique payers" value={payerCount.toLocaleString()} />
-        <StatsCard label="Collected" value={formatMoney(collected, summary.currency)} />
+        <StatsCard label="Collected" value={formatCompactMoney(collected, summary.currency)} />
         <StatsCard label="Payments" value={poolPayments.length.toLocaleString()} />
         <StatsCard
           label={summary.baseAmount !== null ? 'Unit price' : 'Reversals'}
           value={
             summary.baseAmount !== null
-              ? formatMoney(summary.baseAmount, summary.currency)
+              ? formatCompactMoney(summary.baseAmount, summary.currency)
               : reversals.toLocaleString()
           }
         />

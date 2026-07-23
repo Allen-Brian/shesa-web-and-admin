@@ -5,6 +5,8 @@ import { TrendingDown, TrendingUp } from 'lucide-react';
 
 import { StatsCard } from '@shesa/ui';
 
+import { formatCompactMoney } from '@/lib/finance/format-money';
+
 import type { ChargeDetailMatrixProps } from './charge-detail-types';
 import { ChargeChartCard } from './charge-chart-card';
 import { ChargeCoverageHistogram } from './charge-coverage-histogram';
@@ -70,9 +72,9 @@ export function ChargeMatrixReports(props: ChargeDetailMatrixProps) {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <StatsCard label="Members" value={members.length.toLocaleString()} />
         <StatsCard label="Active periods" value={activePeriods.toLocaleString()} />
-        <StatsCard label="Expected" value={formatMoney(expected, summary.currency)} />
-        <StatsCard label="Collected" value={formatMoney(collected, summary.currency)} />
-        <StatsCard label="Outstanding" value={formatMoney(outstanding, summary.currency)} />
+        <StatsCard label="Expected" value={formatCompactMoney(expected, summary.currency)} />
+        <StatsCard label="Collected" value={formatCompactMoney(collected, summary.currency)} />
+        <StatsCard label="Outstanding" value={formatCompactMoney(outstanding, summary.currency)} />
       </div>
 
       <ChargeVitalSignsStrip

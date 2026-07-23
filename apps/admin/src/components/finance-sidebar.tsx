@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  BadgeDollarSign,
-  BarChart3,
-  CircleDollarSign,
+  BarChart,
+  CalendarClock,
+  CreditCard,
+  HandCoins,
   Home,
-  LandPlot,
-  Target,
+  Landmark,
+  TextAlignJustify,
   Wallet,
 } from 'lucide-react';
 
@@ -18,12 +19,17 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from '@shesa/ui';
 
+import type { SidebarGroupItem } from '@/lib/finance/groups/load-sidebar-groups';
 import { PERSONA_META } from '@/lib/personas';
 
 interface FinanceSidebarProps {
@@ -34,6 +40,12 @@ interface FinanceSidebarProps {
    * what they're seeing.
    */
   readonly isGlobal?: boolean;
+  /**
+   * Event groups the caller can see and that the group manager has
+   * opted into the sidebar. Empty for branch finance users (RLS
+   * filters them out) — the Event Groups section hides entirely then.
+   */
+  readonly sidebarGroups?: readonly SidebarGroupItem[];
 }
 
 interface NavItem {
@@ -43,28 +55,31 @@ interface NavItem {
 }
 
 /**
- * Flat sidebar per 2026-07-06 direction — no grouping. Order follows the
- * secretary's read-order per spec Part XIV.
- *
- * Receipts intentionally aren't a top-level entry: every payment carries
- * its receipt inline (Payments row → More → Download receipt). Keeping
- * a separate Receipts page duplicated the payments list without adding
- * anything callers actually asked for.
+ * Two-section sidebar: the mainstream Finance nav on top, then an
+ * "Event Groups" section listing groups the caller can see. The
+ * section is hidden entirely when `sidebarGroups` is empty (branch
+ * finance users have no groups) so the mainstream nav stays clean.
  */
 const NAV_ITEMS: readonly NavItem[] = [
   { href: '/finance', label: 'Dashboard', Icon: Home },
-  { href: '/finance/charges', label: 'Charges', Icon: BadgeDollarSign },
-  { href: '/finance/contributions', label: 'Contributions', Icon: Target },
-  { href: '/finance/donations', label: 'Donations', Icon: CircleDollarSign },
-  { href: '/finance/payments', label: 'Payments', Icon: LandPlot },
-  { href: '/finance/treasury', label: 'Treasury', Icon: Wallet },
+  { href: '/finance/transactions', label: 'Transactions', Icon: TextAlignJustify },
+  { href: '/finance/charges', label: 'Charges', Icon: CreditCard },
+  { href: '/finance/contributions', label: 'Contributions', Icon: Landmark },
+  { href: '/finance/donations', label: 'Donations', Icon: HandCoins },
   { href: '/finance/expenses', label: 'Expenses', Icon: Wallet },
-  { href: '/finance/reports', label: 'Reports', Icon: BarChart3 },
+  { href: '/finance/reports', label: 'Reports', Icon: BarChart },
 ];
 
-export function FinanceSidebar({ isGlobal = false }: FinanceSidebarProps) {
+export function FinanceSidebar({ isGlobal = false, sidebarGroups = [] }: FinanceSidebarProps) {
   const pathname = usePathname();
   const meta = PERSONA_META.finance;
+  // Show the Event Groups section for mainstream users (isGlobal) even
+  // when they have no groups yet — otherwise they can't navigate to
+  // /finance/groups to create the first one. Branch finance users only
+  // see the section when they actually have visible groups, which RLS
+  // filters down to nothing for them today.
+  const showGroups = isGlobal || sidebarGroups.length > 0;
+  const groupsActive = pathname === '/finance/groups' || pathname.startsWith('/finance/groups/');
 
   return (
     <Sidebar collapsible="icon" variant="floating">
@@ -111,6 +126,45 @@ export function FinanceSidebar({ isGlobal = false }: FinanceSidebarProps) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {showGroups && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Event Groups</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="All groups"
+                    isActive={pathname === '/finance/groups'}
+                  >
+                    <Link href="/finance/groups">
+                      <CalendarClock />
+                      <span>All groups</span>
+                    </Link>
+                  </SidebarMenuButton>
+                  {groupsActive && sidebarGroups.length > 0 && (
+                    <SidebarMenuSub>
+                      {sidebarGroups.map((g) => {
+                        const href = `/finance/groups/${g.slug}`;
+                        const active = pathname === href || pathname.startsWith(`${href}/`);
+                        return (
+                          <SidebarMenuSubItem key={g.id}>
+                            <SidebarMenuSubButton asChild isActive={active}>
+                              <Link href={href}>
+                                <span className="truncate">{g.name}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        );
+                      })}
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );

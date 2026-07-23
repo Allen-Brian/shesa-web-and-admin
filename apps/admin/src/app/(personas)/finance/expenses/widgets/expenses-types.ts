@@ -13,6 +13,17 @@ export interface ExpenseRow {
   readonly isReversed: boolean;
   readonly incurredAt: string;
   readonly createdAt: string;
+  readonly groupId: string | null;
+  readonly groupName: string | null;
+}
+
+/**
+ * Event groups visible to the caller — used to build the Group
+ * filter dropdown above the expenses table.
+ */
+export interface GroupOption {
+  readonly id: string;
+  readonly name: string;
 }
 
 export interface ScopeOption {
@@ -31,6 +42,7 @@ export interface CategoryOption {
 export type SerialRow = ExpenseRow & { readonly serial: number };
 export type StatusFilter = 'all' | 'recorded' | 'pending_approval' | 'approved';
 export type CategoryFilter = 'all' | string;
+export type GroupFilter = 'all' | 'none' | string;
 
 export interface RecordForm {
   scopeId: string;

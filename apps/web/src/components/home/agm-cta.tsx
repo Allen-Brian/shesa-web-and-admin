@@ -4,8 +4,12 @@ import Link from 'next/link';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
-// AGM 2026 — 21 November 2026, anchored to Yaoundé local time (WAT, UTC+1).
-const AGM_TARGET = new Date('2026-11-21T00:00:00+01:00');
+// AGM 2026 — Assembly Day is Saturday 14 November 2026 at Palais des
+// Congrès, Yaoundé. Countdown anchors to the start of that day in
+// Yaoundé local time (WAT, UTC+1). Friday 13 hosts the regional
+// football tournament + batch meetings; Sunday 15 closes with the
+// thanksgiving mass.
+const AGM_TARGET = new Date('2026-11-14T00:00:00+01:00');
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -40,26 +44,26 @@ type Highlight = {
 const highlights: readonly Highlight[] = [
   {
     numeral: 'I',
-    title: 'Grand Reunion',
-    body: 'Alumni from every era, in the same hall for the first time in a decade.',
+    title: 'Regional Tournament',
+    body: 'Friday. Grassfield vs Coastal, Centre vs Northern. 1,000,000 XAF prize.',
     icon: <ReunionIcon />,
   },
   {
     numeral: 'II',
-    title: 'Award Ceremony',
-    body: 'Honouring lifelong service, professional excellence, and rising stars.',
-    icon: <AwardIcon />,
-  },
-  {
-    numeral: 'III',
-    title: 'Vision Summit',
-    body: 'Charting the SHESA of the next decade — stronger, wider, unshakable.',
+    title: 'Grand Opening',
+    body: 'Saturday morning. Mass, march past, keynote from H.E. Paul Tasong.',
     icon: <VisionIcon />,
   },
   {
+    numeral: 'III',
+    title: 'General Assembly',
+    body: 'Saturday afternoon. Reports, budget, projects, resolutions, constitution.',
+    icon: <AwardIcon />,
+  },
+  {
     numeral: 'IV',
-    title: 'Cultural Night',
-    body: 'The Shesa spirit in full song — food, music, and unforgettable stories.',
+    title: 'Gala & Awards Night',
+    body: 'Saturday evening. Dinner, cultural competitions, awards, and the dance floor.',
     icon: <NightIcon />,
   },
 ];
@@ -103,6 +107,9 @@ function saveToCalendar() {
     .replace(/[-:]/g, '')
     .replace(/\.\d{3}/, '');
 
+  // Anchored to Yaoundé local time (WAT, UTC+1). Friday tournament
+  // kick-off through Sunday's thanksgiving mass — a single calendar
+  // block so add-to-calendar reserves the whole weekend.
   const ics = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -112,11 +119,11 @@ function saveToCalendar() {
     'BEGIN:VEVENT',
     'UID:agm-2026@shesaconnect.com',
     `DTSTAMP:${stamp}`,
-    'DTSTART:20261121T090000',
-    'DTEND:20261121T170000',
-    'SUMMARY:SHESA AGM 2026',
+    'DTSTART;TZID=Africa/Douala:20261113T150000',
+    'DTEND;TZID=Africa/Douala:20261115T130000',
+    'SUMMARY:SHESA AGM 2026 — Yaoundé',
     'LOCATION:Palais des Congrès\\, Yaoundé\\, Cameroon',
-    'DESCRIPTION:All roads lead to Palais des Congrès. An AGM like never before. https://shesaconnect.com/agm-2026',
+    'DESCRIPTION:Fri 13 Nov — Regional football tournament + batch meetings. Sat 14 Nov — Assembly Day at Palais des Congrès (opening ceremony\\, AGM\\, gala night). Sun 15 Nov — Thanksgiving mass. https://shesaconnect.com/agm-2026',
     'URL:https://shesaconnect.com/agm-2026',
     'END:VEVENT',
     'END:VCALENDAR',
@@ -241,7 +248,7 @@ export function AgmCta() {
             className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-white/70 md:text-base"
           >
             <span className="font-heading font-medium tracking-[0.14em] text-white">
-              21 · 11 · 2026
+              13 — 15 · 11 · 2026
             </span>
             <span className="h-1 w-1 rounded-full bg-white/40" />
             <span className="font-heading font-light tracking-[0.14em]">Yaoundé · Cameroon</span>
@@ -339,7 +346,7 @@ function Highlights() {
         className="mx-auto mt-6 max-w-2xl text-center font-heading font-thin leading-[1.15] text-white"
         style={{ fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', letterSpacing: '-0.01em' }}
       >
-        Four days. One brotherhood. <span className="italic text-primary">Unforgettable.</span>
+        Three days. One brotherhood. <span className="italic text-primary">Unforgettable.</span>
       </motion.h3>
 
       <div className="mt-14 grid gap-10 md:grid-cols-2 md:gap-12 lg:grid-cols-4 lg:gap-8">

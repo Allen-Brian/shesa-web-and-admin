@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { toast } from '@shesa/ui';
 
-import { archiveCharge, createCharge, generateObligations, updateCharge } from '../actions';
+import { archiveCharge, createCharge, deleteCharge, updateCharge } from '../actions';
 import type { CreateForm, EditForm, ScopeOption } from './charges-types';
 
 interface UseChargesActionsInput {
@@ -14,9 +14,10 @@ interface UseChargesActionsInput {
 
 /**
  * Consolidates every mutation for the charges view — create / edit /
- * archive / activate a draft / regenerate obligations — behind one
- * hook. Each action validates client-side, awaits its server action,
- * toasts, and refreshes on success.
+ * archive / delete — behind one hook. Activation is a status flip on
+ * the edit dialog (draft → active), and obligation generation now
+ * happens automatically inside the update edge fn on that transition,
+ * so neither shows up as a stand-alone row action.
  */
 export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
   const router = useRouter();
@@ -31,6 +32,18 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
     const scope = scopeOptions.find((s) => s.id === form.scopeId);
     if (!scope) return toast.error('Invalid scope.');
 
+    const isGroup = form.targetPartyType === 'branch';
+    if (isGroup && form.chargeTargets.length === 0)
+      return toast.error('Pick at least one target for a Group charge.');
+    const chargeTargets = isGroup
+      ? form.chargeTargets.map((t) => ({
+          targetScopeId: t.targetScopeId,
+          amount: parseFloat(t.amount),
+        }))
+      : [];
+    if (isGroup && chargeTargets.some((t) => !Number.isFinite(t.amount) || t.amount <= 0))
+      return toast.error('Every target needs a positive amount.');
+
     startTransition(async () => {
       const result = await createCharge({
         scopeId: form.scopeId,
@@ -41,6 +54,8 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
         recurrence: form.recurrence,
         recurrenceInterval: 1,
         activationDate: new Date(form.activationDate).toISOString(),
+        targetPartyType: form.targetPartyType,
+        chargeTargets: isGroup ? chargeTargets : undefined,
       });
       if (!result.ok) {
         toast.error(result.message);
@@ -53,6 +68,23 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
   };
 
   const runEdit = (editing: EditForm, onDone: () => void) => {
+    if (!editing.name.trim()) return toast.error('Name is required.');
+    const isDraft = editing.status === 'draft';
+    const amount = editing.baseAmount ? parseFloat(editing.baseAmount) : NaN;
+    if (isDraft && (!Number.isFinite(amount) || amount <= 0))
+      return toast.error('Enter a positive base amount.');
+    const isGroup = editing.targetPartyType === 'branch';
+    const targets = isGroup
+      ? editing.chargeTargets.map((t) => ({
+          targetScopeId: t.targetScopeId,
+          amount: parseFloat(t.amount),
+        }))
+      : undefined;
+    if (isDraft && isGroup && (!targets || targets.length === 0))
+      return toast.error('Group charges need at least one target.');
+    if (isDraft && targets && targets.some((t) => !Number.isFinite(t.amount) || t.amount <= 0))
+      return toast.error('Every target needs a positive amount.');
+
     startTransition(async () => {
       const result = await updateCharge({
         id: editing.id,
@@ -60,13 +92,34 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
         description: editing.description.trim() || null,
         activationDate: new Date(editing.activationDate).toISOString(),
         status: editing.status,
+        // Only send draft-only fields when the row is still a draft;
+        // the edge fn rejects them outright on active/paused charges.
+        baseAmount: isDraft ? amount : undefined,
+        recurrence: isDraft ? editing.recurrence : undefined,
+        chargeTargets: isDraft && isGroup ? targets : undefined,
       });
       if (!result.ok) {
         toast.error(result.message);
         return;
       }
-      toast.success('Charge updated.');
+      toast.success(
+        editing.status === 'active'
+          ? 'Charge saved — obligations will populate shortly.'
+          : 'Charge updated.',
+      );
       onDone();
+      router.refresh();
+    });
+  };
+
+  const runPublish = (id: string) => {
+    startTransition(async () => {
+      const result = await updateCharge({ id, status: 'active' });
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success('Charge published — obligations are populating.');
       router.refresh();
     });
   };
@@ -83,34 +136,17 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
     });
   };
 
-  const runActivate = (chargeId: string) => {
+  const runDelete = (id: string) => {
     startTransition(async () => {
-      const result = await updateCharge({ id: chargeId, status: 'active' });
+      const result = await deleteCharge(id);
       if (!result.ok) {
         toast.error(result.message);
         return;
       }
-      toast.success('Charge activated.');
+      toast.success('Charge deleted.');
       router.refresh();
     });
   };
 
-  const runGenerate = (chargeId: string) => {
-    startTransition(async () => {
-      const result = await generateObligations(chargeId);
-      if (!result.ok) {
-        toast.error(result.message);
-        return;
-      }
-      const inserted = result.data?.inserted ?? 0;
-      toast.success(
-        inserted > 0
-          ? `Generated ${inserted} obligation${inserted === 1 ? '' : 's'}.`
-          : 'No new obligations — the current period is already covered.',
-      );
-      router.refresh();
-    });
-  };
-
-  return { pending, runCreate, runEdit, runArchive, runActivate, runGenerate };
+  return { pending, runCreate, runEdit, runPublish, runArchive, runDelete };
 }

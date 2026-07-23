@@ -1,5 +1,6 @@
 import type {
   ChargeSummary,
+  ChargeTargetPlanRow,
   MatrixMember,
   MatrixPeriod,
   PaymentMethodStat,
@@ -16,6 +17,7 @@ export interface PoolChargeDetail {
   readonly collected: number;
   readonly payerCount: number;
   readonly poolPayments: readonly PoolPayment[];
+  readonly chargeTargets?: readonly ChargeTargetPlanRow[];
   readonly paymentsByMethod: readonly PaymentMethodStat[];
   readonly paymentsBySource: readonly PaymentSourceStat[];
   readonly paymentTiming: PaymentTimingStats;
@@ -35,6 +37,7 @@ export interface MatrixChargeDetail {
   readonly collected: number;
   readonly periods: readonly MatrixPeriod[];
   readonly members: readonly MatrixMember[];
+  readonly chargeTargets?: readonly ChargeTargetPlanRow[];
   readonly paymentsByMethod: readonly PaymentMethodStat[];
   readonly paymentsBySource: readonly PaymentSourceStat[];
   readonly paymentTiming: PaymentTimingStats;

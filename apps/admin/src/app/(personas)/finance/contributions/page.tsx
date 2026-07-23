@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import { activeFinanceScope } from '@/lib/finance/active-scope';
 import { getServerClient } from '@/lib/supabase-server';
 
 import { ContributionsView } from './widgets/contributions-view';
@@ -25,6 +26,12 @@ interface RawChargeRow {
   readonly close_date: string | null;
   readonly status: string;
   readonly created_at: string;
+  readonly group_id: string | null;
+}
+
+interface RawGroupRow {
+  readonly id: string;
+  readonly name: string;
 }
 
 interface RawScopeRow {
@@ -65,7 +72,7 @@ export default async function ContributionsPage() {
       .schema('finance' as never)
       .from('charges' as never)
       .select(
-        'id, scope_id, name, description, shape, currency, base_amount, goal_amount, min_amount, capacity, lifecycle, open_date, close_date, status, created_at',
+        'id, scope_id, name, description, shape, currency, base_amount, goal_amount, min_amount, capacity, lifecycle, open_date, close_date, status, created_at, group_id',
       )
       .in('shape', ['goal', 'open', 'ticketed', 'fixed'])
       .order('created_at', { ascending: false }),
@@ -82,6 +89,21 @@ export default async function ContributionsPage() {
 
   const chargesData = (chargesRaw ?? []) as RawChargeRow[];
   const paymentsData = (paymentsRaw ?? []) as RawPaymentRow[];
+
+  // Groups the contributions map to — pull once so the list can prefix
+  // "AGM 2026 — Tickets" etc. without a per-row join. Missing group_id
+  // rows just render their name unchanged.
+  const groupIds = Array.from(
+    new Set(chargesData.map((c) => c.group_id).filter((id): id is string => !!id)),
+  );
+  const { data: groupsRaw } = groupIds.length
+    ? await supabase
+        .schema('finance' as never)
+        .from('groups' as never)
+        .select('id, name')
+        .in('id', groupIds)
+    : { data: [] as RawGroupRow[] };
+  const groupById = new Map(((groupsRaw ?? []) as RawGroupRow[]).map((g) => [g.id, g] as const));
 
   const scopeSet = new Set<string>([
     ...((treasuriesRaw ?? []) as Array<{ scope_id: string }>).map((t) => t.scope_id),
@@ -160,6 +182,8 @@ export default async function ContributionsPage() {
       status: c.status,
       raised: progress?.raised ?? 0,
       contributorCount: (progress?.contributors.size ?? 0) + (progress?.anonymousCount ?? 0),
+      groupId: c.group_id,
+      groupName: c.group_id ? (groupById.get(c.group_id)?.name ?? null) : null,
     };
   });
 
@@ -178,5 +202,21 @@ export default async function ContributionsPage() {
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  return <ContributionsView contributions={contributions} scopeOptions={scopeOptions} />;
+  // Auto-pick the owner scope so the create dialog never has to ask.
+  // Mainstream operators default to the mainstream scope; branch-scoped
+  // finance users default to their branch.
+  const active = await activeFinanceScope(user.id);
+  const mainstreamOption = scopeOptions.find((s) => {
+    const raw = scopesData.find((r) => r.id === s.id);
+    return raw?.scope_type === 'mainstream';
+  });
+  const defaultScopeId = active?.scopeIds[0] ?? mainstreamOption?.id ?? scopeOptions[0]?.id ?? '';
+
+  return (
+    <ContributionsView
+      contributions={contributions}
+      scopeOptions={scopeOptions}
+      defaultScopeId={defaultScopeId}
+    />
+  );
 }

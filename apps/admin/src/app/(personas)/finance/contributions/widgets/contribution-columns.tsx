@@ -1,5 +1,6 @@
 import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
+import { ContributionNameCell } from './contribution-name-cell';
 import { ContributionProgressCell } from './contribution-progress-cell';
 import { ContributionRowActions } from './contribution-row-actions';
 import type { ContributionRow, SerialRow } from './contributions-types';
@@ -36,14 +37,7 @@ export function buildContributionColumns(actions: ContributionColumnActions): Co
       flex: 2,
       minWidth: 200,
       cellRenderer: (p: ICellRendererParams<SerialRow, string>) =>
-        p.data ? (
-          <div className="flex flex-col leading-tight">
-            <span className="font-medium text-foreground">{p.data.name}</span>
-            <span className="text-xs text-muted-foreground">
-              {p.data.scopeName} · {p.data.shape}
-            </span>
-          </div>
-        ) : null,
+        p.data ? <ContributionNameCell row={p.data} /> : null,
     },
     {
       headerName: 'Progress',

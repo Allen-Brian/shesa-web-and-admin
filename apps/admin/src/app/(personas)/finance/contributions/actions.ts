@@ -31,6 +31,8 @@ interface CreateContributionInput {
   readonly capacity?: number;
   readonly openDate: string;
   readonly closeDate: string;
+  /** Bind this contribution to an event group when created from a group shell. */
+  readonly groupId?: string | null;
 }
 
 export async function createContribution(
@@ -49,6 +51,7 @@ export async function createContribution(
     lifecycle: 'draft',
     openDate: input.openDate,
     closeDate: input.closeDate,
+    groupId: input.groupId ?? null,
   };
   if (input.shape === 'goal' && input.goalAmount) body.goalAmount = input.goalAmount;
   if (input.shape === 'open' && input.minAmount) body.minAmount = input.minAmount;
@@ -71,6 +74,7 @@ export async function createContribution(
 
   revalidatePath('/finance/contributions');
   revalidatePath('/finance', 'layout');
+  revalidatePath('/finance/groups', 'layout');
   return { ok: true, data: (data ?? {}) as { id: string } };
 }
 

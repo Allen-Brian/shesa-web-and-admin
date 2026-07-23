@@ -20,6 +20,8 @@ export interface CampaignRow {
   readonly status: string;
   readonly raised: number;
   readonly donationCount: number;
+  readonly groupId: string | null;
+  readonly groupName: string | null;
 }
 
 export interface DonationRow {
@@ -35,6 +37,8 @@ export interface DonationRow {
   readonly reversesPaymentId: string | null;
   readonly isReversed: boolean;
   readonly createdAt: string;
+  readonly groupId: string | null;
+  readonly groupName: string | null;
 }
 
 export interface ScopeOption {

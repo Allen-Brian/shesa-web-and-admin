@@ -1,27 +1,27 @@
 import { StatsCard } from '@shesa/ui';
 
+import { formatCompactMoney } from '@/lib/finance/format-money';
+
 import type { ExpenseKpis } from './expenses-kpis';
 
 /**
- * 5-up KPI strip. Money totals only surface when every visible
- * expense shares one currency — multi-currency portfolios show "—"
- * to avoid misrepresenting totals.
+ * 5-up KPI strip. Money cells use the compact K/M formatter so
+ * eight-digit portfolio totals stay readable inside a StatsCard;
+ * falls back to XAF on a mixed-currency ledger so we always show a
+ * number, never a dash.
  */
 export function ExpensesKpiStrip({ kpis }: { readonly kpis: ExpenseKpis }) {
-  const money = (n: number) =>
-    kpis.primaryCurrency
-      ? `${new Intl.NumberFormat().format(Math.round(n))} ${kpis.primaryCurrency}`
-      : '—';
+  const currency = kpis.primaryCurrency ?? 'XAF';
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <StatsCard label="Expenses" value={kpis.total} />
       <StatsCard
         label="Net spent"
-        value={kpis.primaryCurrency && kpis.netSpent !== null ? money(kpis.netSpent) : '—'}
+        value={kpis.netSpent !== null ? formatCompactMoney(kpis.netSpent, currency) : '—'}
       />
       <StatsCard
         label="Avg. amount"
-        value={kpis.primaryCurrency && kpis.settledCount > 0 ? money(kpis.avg) : '—'}
+        value={kpis.settledCount > 0 ? formatCompactMoney(kpis.avg, currency) : '—'}
       />
       <StatsCard label="Pending approval" value={kpis.pending} />
       <StatsCard label="Reversals" value={kpis.reversalCount} />

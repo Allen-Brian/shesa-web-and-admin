@@ -17,6 +17,11 @@ import { getServerClient } from '@/lib/supabase-server';
 export type ActionResult<T = unknown> =
   { ok: true; data?: T; message?: string } | { ok: false; message: string };
 
+interface CreateChargeTargetInput {
+  readonly targetScopeId: string;
+  readonly amount: number;
+}
+
 interface CreateChargeInput {
   readonly scopeId: string;
   readonly name: string;
@@ -27,6 +32,8 @@ interface CreateChargeInput {
   readonly recurrenceInterval?: number;
   readonly activationDate: string;
   readonly issueDate?: string;
+  readonly targetPartyType: 'member' | 'branch';
+  readonly chargeTargets?: readonly CreateChargeTargetInput[];
 }
 
 export async function createCharge(
@@ -46,6 +53,8 @@ export async function createCharge(
       recurrenceInterval: input.recurrenceInterval ?? 1,
       activationDate: input.activationDate,
       issueDate: input.issueDate ?? input.activationDate,
+      targetPartyType: input.targetPartyType,
+      chargeTargets: input.targetPartyType === 'branch' ? (input.chargeTargets ?? []) : undefined,
     },
   });
 
@@ -64,6 +73,9 @@ interface UpdateChargeInput {
   readonly description?: string | null;
   readonly activationDate?: string;
   readonly status?: 'draft' | 'active' | 'paused';
+  readonly baseAmount?: number;
+  readonly recurrence?: 'one_time' | 'monthly' | 'quarterly' | 'biannual' | 'yearly';
+  readonly chargeTargets?: readonly CreateChargeTargetInput[];
 }
 
 export async function updateCharge(input: UpdateChargeInput): Promise<ActionResult> {
@@ -117,4 +129,20 @@ export async function generateObligations(
   revalidatePath('/finance/charges');
   revalidatePath('/finance', 'layout');
   return { ok: true, data: (data ?? { inserted: 0 }) as { inserted: number } };
+}
+
+export async function deleteCharge(id: string): Promise<ActionResult> {
+  const supabase = await getServerClient();
+
+  const { error } = await supabase.functions.invoke('charges/delete', {
+    body: { id },
+  });
+
+  if (error) {
+    return { ok: false, message: await extractInvokeMessage(error, 'Could not delete charge.') };
+  }
+
+  revalidatePath('/finance/charges');
+  revalidatePath('/finance', 'layout');
+  return { ok: true };
 }

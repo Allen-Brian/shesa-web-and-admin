@@ -1,18 +1,23 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Download } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, BadgeCheck, Download } from 'lucide-react';
 
 import { Badge, Button, DataTable, Input, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
 import type { ChargeDetailPoolProps, PoolRow } from './charge-detail-types';
-import { downloadCsv, formatMethod, formatMoney, getInitials, slugify } from './shared-formatters';
+import { downloadCsv, formatMethod, getInitials, slugify } from './shared-formatters';
 
 /**
  * Flat payments table for pool-shape charges (goal / open / ticketed
- * contributions where the money hits the charge directly, not a
- * per-member obligation). Search filters on payer label; CSV export
- * writes the raw log.
+ * / donation flavours). Visual parity with the mainstream
+ * Transactions view minus the Reason column — every row here belongs
+ * to the contribution the operator is already browsing, so a "For"
+ * cell would just repeat the header.
+ *
+ * Search filters on payer label; CSV export writes the raw log.
+ * Actions (reverse, reconcile, receipt) live on the mainstream
+ * Transactions page — this view is read-only for now.
  */
 export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps) {
   const [search, setSearch] = useState('');
@@ -29,10 +34,17 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
       {
         headerName: 'S/N',
         field: 'serial',
-        width: 68,
-        maxWidth: 68,
+        width: 72,
+        maxWidth: 72,
         sortable: false,
         filter: false,
+        suppressMovable: true,
+      },
+      {
+        headerName: 'Date',
+        field: 'createdAt',
+        width: 170,
+        valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleString() : '—'),
       },
       {
         headerName: 'Payer',
@@ -57,14 +69,19 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
         width: 160,
         cellRenderer: (p: ICellRendererParams<PoolRow>) => {
           if (!p.data) return null;
+          const isReversal = p.data.isReversal;
           return (
             <span
-              className={`text-sm tabular-nums ${
-                p.data.isReversal ? 'text-amber-700 dark:text-amber-400' : 'text-foreground'
+              className={`inline-flex items-center gap-1 text-sm ${
+                isReversal ? 'text-amber-700 dark:text-amber-400' : 'text-foreground'
               }`}
             >
-              {p.data.isReversal ? '-' : ''}
-              {formatMoney(p.data.amount, p.data.currency)}
+              {isReversal ? (
+                <ArrowDownRight className="h-3.5 w-3.5" />
+              ) : (
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              )}
+              {new Intl.NumberFormat().format(Math.round(p.data.amount))} {p.data.currency}
             </span>
           );
         },
@@ -72,46 +89,100 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
       {
         headerName: 'Method',
         field: 'method',
+        width: 160,
+        autoHeight: true,
+        cellRenderer: (p: ICellRendererParams<PoolRow>) => {
+          if (!p.data) return null;
+          const sourceLabel = p.data.source === 'auto' ? 'Website' : 'Manual';
+          return (
+            <div className="flex flex-col justify-center py-1 leading-tight">
+              <span className="text-sm text-foreground">{formatMethod(p.data.method)}</span>
+              <span className="text-[11px] text-muted-foreground">({sourceLabel})</span>
+            </div>
+          );
+        },
+      },
+      {
+        headerName: 'Status',
+        colId: 'status',
         width: 140,
-        valueFormatter: (p) => formatMethod(p.value ?? ''),
+        cellRenderer: (p: ICellRendererParams<PoolRow>) => {
+          if (!p.data) return null;
+          if (p.data.isReversal) {
+            return (
+              <Badge
+                variant="outline"
+                className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+              >
+                Reversal
+              </Badge>
+            );
+          }
+          if (p.data.isReversedOriginal) {
+            return (
+              <Badge
+                variant="outline"
+                className="border-destructive/40 bg-destructive/10 text-destructive"
+              >
+                Reversed
+              </Badge>
+            );
+          }
+          return (
+            <Badge
+              variant="outline"
+              className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+            >
+              Cleared
+            </Badge>
+          );
+        },
       },
       {
-        headerName: 'Source',
-        field: 'source',
-        width: 110,
-        cellRenderer: (p: ICellRendererParams<PoolRow, string>) => (
-          <Badge
-            variant="outline"
-            className={
-              p.value === 'auto'
-                ? 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300'
-                : 'border-border text-foreground'
-            }
-          >
-            {p.value === 'auto' ? 'Auto' : 'Manual'}
-          </Badge>
-        ),
-      },
-      {
-        headerName: 'When',
-        field: 'createdAt',
-        width: 180,
-        valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleString() : '—'),
+        headerName: 'Reconciled',
+        field: 'reconciled',
+        width: 140,
+        cellRenderer: (p: ICellRendererParams<PoolRow>) => {
+          if (!p.data) return null;
+          return p.data.reconciled ? (
+            <Badge
+              variant="outline"
+              className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+            >
+              <BadgeCheck className="h-3 w-3" />
+              Reconciled
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-border text-muted-foreground">
+              —
+            </Badge>
+          );
+        },
       },
     ],
     [],
   );
 
   const exportCsv = () => {
-    const header = ['Payer', 'Amount', 'Currency', 'Method', 'Source', 'Reversal', 'When'];
+    const header = [
+      'Date',
+      'Payer',
+      'Amount',
+      'Currency',
+      'Method',
+      'Source',
+      'Status',
+      'Reconciled',
+    ];
     const rows: string[][] = poolPayments.map((p) => [
+      p.createdAt,
       p.payerLabel,
       p.amount.toFixed(2),
       p.currency,
       formatMethod(p.method),
-      p.source === 'auto' ? 'Auto' : 'Manual',
-      p.isReversal ? 'Yes' : 'No',
-      p.createdAt,
+      p.source === 'auto' ? 'Website' : 'Manual',
+      p.isReversal ? 'Reversal' : p.isReversedOriginal ? 'Reversed' : 'Cleared',
+      p.reconciled ? 'Yes' : 'No',
     ]);
     downloadCsv(`${slugify(summary.name)}-payments`, [header, ...rows]);
   };

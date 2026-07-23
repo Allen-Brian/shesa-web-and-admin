@@ -83,6 +83,17 @@ export interface PoolPayment {
    * scope-body Collection timeline to group payments per period.
    */
   readonly obligationId?: string | null;
+  /**
+   * Receipt verification token minted by the M5 trigger. Present on
+   * every payment; pool payments surface it in the collection table
+   * so operators can jump straight to the receipt view.
+   */
+  readonly receiptToken?: string | null;
+  readonly receiptNumber?: string | null;
+  /** True when a finance.reconciliations row references this payment. */
+  readonly reconciled?: boolean;
+  /** True when another payment carries `reverses_payment_id = this.id`. */
+  readonly isReversedOriginal?: boolean;
 }
 
 export interface PaymentMethodStat {
@@ -130,10 +141,29 @@ export interface MatrixFilterCounts {
   readonly unpaid: number;
 }
 
+/**
+ * Per-target amount plan for Group charges (target_party_type='branch').
+ * Read from finance.charge_targets and rendered as a plan-reference
+ * card above the matrix so a draft (no obligations yet) still shows
+ * what the operator has configured.
+ */
+export interface ChargeTargetPlanRow {
+  readonly targetScopeId: string;
+  readonly targetName: string;
+  readonly scopeType: string;
+  readonly amount: number;
+  readonly currency: string;
+}
+
 export interface CommonChargeDetailProps {
   readonly summary: ChargeSummary;
   /** Where the "Back to charges" link points. Different per persona. */
   readonly backLinkHref: string;
+  /**
+   * Only populated for Group charges. Empty/undefined on Individual
+   * charges; the target-plan card is hidden in that case.
+   */
+  readonly chargeTargets?: readonly ChargeTargetPlanRow[];
   readonly paymentsByMethod: readonly PaymentMethodStat[];
   readonly paymentsBySource: readonly PaymentSourceStat[];
   readonly paymentTiming: PaymentTimingStats;

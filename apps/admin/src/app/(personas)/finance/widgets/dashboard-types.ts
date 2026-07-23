@@ -1,16 +1,7 @@
 /**
  * Shared shapes for the finance dashboard — raw DB row types the
- * loader reads, plus the derived shapes each panel consumes. Kept
- * plain so the server-only loader and the presentational panels can
- * import from a single source.
+ * loader reads, plus the derived shapes each panel consumes.
  */
-
-export interface TreasuryRow {
-  readonly scope_id: string;
-  readonly balance: string;
-  readonly currency: string;
-  readonly updated_at: string;
-}
 
 export interface ScopeRow {
   readonly id: string;
@@ -75,20 +66,31 @@ export interface PendingApprovalSummary {
   readonly totalByCurrency: ReadonlyMap<string, number>;
 }
 
-/** Hero-KPI cluster + supporting flow data derived by the loader. */
+/**
+ * The dashboard KPI cluster.
+ *
+ *   - `income` / `expensesSum` / `netFlow` — last-30-day ledger totals
+ *     at the caller's active scope.
+ *   - `ongoingContributions` — count of live contribution / donation /
+ *     ticketed / open / goal charges (status='active' AND
+ *     lifecycle='open').
+ *   - `txnsThisMonth` — count of non-reversal payments recorded in
+ *     the current calendar month at the active scope.
+ *
+ * Multi-currency ledgers set `currency` to `null` and the UI renders a
+ * placeholder for money cells.
+ */
 export interface DashboardKpis {
-  readonly balanceByCurrency: ReadonlyMap<string, number>;
-  readonly singleCurrency: string | null;
-  readonly totalBalance: number | null;
   readonly income: number;
   readonly expensesSum: number;
   readonly netFlow: number;
+  readonly currency: string | null;
+  readonly ongoingContributions: number;
+  readonly txnsThisMonth: number;
 }
 
 /** Everything the dashboard page needs to render, after loading. */
 export interface DashboardData {
-  readonly treasuries: readonly TreasuryRow[];
-  readonly topTreasuries: readonly TreasuryRow[];
   readonly pendingExpenses: readonly RawExpense[];
   readonly pendingSummary: PendingApprovalSummary;
   readonly scopeById: ReadonlyMap<string, ScopeRow>;

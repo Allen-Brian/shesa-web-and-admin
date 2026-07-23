@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 
 import { GradientPanel } from '@shesa/ui';
@@ -34,7 +33,6 @@ export function RecentActivityPanel({
             const isIncome = a.direction === 'income';
             const Icon = isIncome ? ArrowUpRight : ArrowDownRight;
             const tone = isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive';
-            const scopeHref = a.scopeSlug ? `/finance/treasury/${a.scopeSlug}` : null;
             return (
               <li
                 key={a.id}
@@ -56,15 +54,7 @@ export function RecentActivityPanel({
                       </span>
                     )}
                   </span>
-                  <span className="truncate text-[11px] text-muted-foreground">
-                    {scopeHref ? (
-                      <Link href={scopeHref} className="hover:text-foreground hover:underline">
-                        {a.scopeName}
-                      </Link>
-                    ) : (
-                      a.scopeName
-                    )}
-                  </span>
+                  <span className="truncate text-[11px] text-muted-foreground">{a.scopeName}</span>
                 </div>
                 <div className="ml-auto flex flex-col items-end leading-tight">
                   <span className={`text-sm font-medium tabular-nums ${tone}`}>

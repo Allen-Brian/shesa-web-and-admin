@@ -16,6 +16,8 @@ import type { ContributionRow, CreateForm, ScopeOption } from './contributions-t
 
 interface UseContributionsActionsInput {
   readonly scopeOptions: readonly ScopeOption[];
+  /** When set, every runCreate call passes groupId through so the new contribution binds to a group. */
+  readonly groupId?: string | null;
 }
 
 /**
@@ -26,7 +28,7 @@ interface UseContributionsActionsInput {
  * "goal requires a goal amount" / "ticketed requires a unit price"
  * rules stay in one place.
  */
-export function useContributionsActions({ scopeOptions }: UseContributionsActionsInput) {
+export function useContributionsActions({ scopeOptions, groupId }: UseContributionsActionsInput) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -63,6 +65,7 @@ export function useContributionsActions({ scopeOptions }: UseContributionsAction
         minAmount: form.shape === 'open' && amount ? amount : undefined,
         baseAmount: form.shape === 'fixed' || form.shape === 'ticketed' ? amount : undefined,
         capacity: form.shape === 'ticketed' ? capacity : undefined,
+        groupId: groupId ?? undefined,
       });
       if (!result.ok) {
         toast.error(result.message);

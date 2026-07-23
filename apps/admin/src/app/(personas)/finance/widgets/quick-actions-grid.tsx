@@ -17,7 +17,7 @@ export function QuickActionsGrid({ pendingCount }: { readonly pendingCount: numb
       </span>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <QuickActionCard
-          href="/finance/payments"
+          href="/finance/transactions"
           icon={HandCoins}
           iconClass="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
           label="Record a payment"

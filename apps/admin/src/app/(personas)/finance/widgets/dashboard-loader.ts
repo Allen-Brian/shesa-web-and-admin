@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { activeFinanceScope } from '@/lib/finance/active-scope';
 import { getServerClient } from '@/lib/supabase-server';
 
 import type {
@@ -9,49 +10,80 @@ import type {
   RawMember,
   RawPayment,
   ScopeRow,
-  TreasuryRow,
 } from './dashboard-types';
 import { buildActivity, buildDashboardKpis, buildPendingSummary } from './dashboard-stats';
 
 const THIRTY_DAY_MS = 30 * 24 * 60 * 60 * 1000;
 const RECENT_LIMIT = 8;
-const TOP_TREASURIES = 4;
+
+const EMPTY: DashboardData = {
+  pendingExpenses: [],
+  pendingSummary: { count: 0, totalByCurrency: new Map() },
+  scopeById: new Map(),
+  kpis: {
+    income: 0,
+    expensesSum: 0,
+    netFlow: 0,
+    currency: null,
+    ongoingContributions: 0,
+    txnsThisMonth: 0,
+  },
+  activity: [],
+};
+
+function startOfCurrentMonth(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
 
 /**
- * Server-only loader for the finance dashboard. Fans out 5 parallel
- * reads (treasuries + last-30-day ledger + pending expenses + recent
- * payments + recent expenses), then joins scope + member names in
- * two follow-up queries. Derived aggregates live in
- * `dashboard-stats.ts` so this file stays purely I/O.
+ * Server-only loader for the finance dashboard.
  *
- * RLS on the finance schema filters visible rows to scopes the caller
- * holds `finance.read` at — that gate lives in the migration layer.
+ * Every read is filtered to the caller's active finance scope —
+ * Mainstream Finance sees mainstream-scope rows only; a branch-scoped
+ * operator sees their own scopes. See `lib/finance/active-scope.ts`
+ * for the rule.
+ *
+ * Load shape: last-30-day ledger for the Income/Expenses/Net KPI
+ * strip, plus pending expenses + a small recent-activity feed.
+ * No treasury-balance rollup — the persona doesn't need it (see
+ * 2026-07 direction to reduce the dashboard to just those three
+ * numbers).
  */
 export async function loadFinanceDashboard(): Promise<DashboardData> {
   const supabase = await getServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return EMPTY;
+
+  const active = await activeFinanceScope(user.id);
+  if (!active) return EMPTY;
+
+  const scopeIds = active.scopeIds;
   const thirtyDaysAgo = new Date(Date.now() - THIRTY_DAY_MS);
+  const monthStart = startOfCurrentMonth();
 
   const [
-    { data: treasuriesRaw },
     { data: ledgerRaw },
     { data: pendingExpensesRaw },
     { data: recentPaymentsRaw },
     { data: recentExpensesRaw },
+    { count: ongoingContributions },
+    { count: txnsThisMonth },
   ] = await Promise.all([
-    supabase
-      .schema('finance' as never)
-      .from('treasury_balances' as never)
-      .select('scope_id, balance, currency, updated_at'),
     supabase
       .schema('finance' as never)
       .from('ledger_entries' as never)
       .select('id, scope_id, direction, amount, currency, payment_id, expense_id, memo, created_at')
+      .in('scope_id', scopeIds)
       .gte('created_at', thirtyDaysAgo.toISOString())
       .order('created_at', { ascending: false }),
     supabase
       .schema('finance' as never)
       .from('expenses' as never)
       .select('id, payee, amount, currency, scope_id, status, incurred_at, reverses_expense_id')
+      .in('scope_id', scopeIds)
       .eq('status', 'pending_approval')
       .order('incurred_at', { ascending: false })
       .limit(10),
@@ -59,37 +91,57 @@ export async function loadFinanceDashboard(): Promise<DashboardData> {
       .schema('finance' as never)
       .from('payments' as never)
       .select('id, payer_member_id, method, metadata, reverses_payment_id')
+      .in('scope_id', scopeIds)
       .order('created_at', { ascending: false })
       .limit(50),
     supabase
       .schema('finance' as never)
       .from('expenses' as never)
       .select('id, payee, amount, currency, scope_id, status, incurred_at, reverses_expense_id')
+      .in('scope_id', scopeIds)
       .order('incurred_at', { ascending: false })
       .limit(30),
+    // Ongoing contributions — donation / ticketed / goal / open / fixed
+    // charges currently live at the active scope.
+    supabase
+      .schema('finance' as never)
+      .from('charges' as never)
+      .select('id', { count: 'exact', head: true })
+      .in('scope_id', scopeIds)
+      .in('shape', ['goal', 'open', 'ticketed', 'donation', 'fixed'])
+      .eq('status', 'active')
+      .eq('lifecycle', 'open'),
+    // Non-reversal payments in the current calendar month at the active
+    // scope. Reversals are excluded so the number represents fresh
+    // movement rather than corrections.
+    supabase
+      .schema('finance' as never)
+      .from('payments' as never)
+      .select('id', { count: 'exact', head: true })
+      .in('scope_id', scopeIds)
+      .gte('created_at', monthStart.toISOString())
+      .is('reverses_payment_id', null),
   ]);
 
-  const treasuries = (treasuriesRaw ?? []) as TreasuryRow[];
   const ledger = (ledgerRaw ?? []) as RawLedgerEntry[];
   const pendingExpenses = (pendingExpensesRaw ?? []) as RawExpense[];
   const paymentsMeta = (recentPaymentsRaw ?? []) as RawPayment[];
   const recentExpenses = (recentExpensesRaw ?? []) as RawExpense[];
 
-  const scopeIds = Array.from(
+  const scopeIdsForNames = Array.from(
     new Set([
-      ...treasuries.map((t) => t.scope_id),
       ...ledger.map((l) => l.scope_id),
       ...pendingExpenses.map((e) => e.scope_id),
       ...recentExpenses.map((e) => e.scope_id),
     ]),
   );
 
-  const { data: scopeRows } = scopeIds.length
+  const { data: scopeRows } = scopeIdsForNames.length
     ? await supabase
         .schema('core')
         .from('scopes')
         .select('id, name, slug, scope_type')
-        .in('id', scopeIds)
+        .in('id', scopeIdsForNames)
     : { data: [] as ScopeRow[] };
   const scopeById = new Map(((scopeRows ?? []) as ScopeRow[]).map((s) => [s.id, s]));
   const paymentById = new Map(paymentsMeta.map((p) => [p.id, p]));
@@ -102,11 +154,10 @@ export async function loadFinanceDashboard(): Promise<DashboardData> {
     : { data: [] as RawMember[] };
   const memberById = new Map(((memberRows ?? []) as RawMember[]).map((m) => [m.id, m.full_name]));
 
-  const kpis = buildDashboardKpis(treasuries, ledger);
-  const topTreasuries = treasuries
-    .slice()
-    .sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance))
-    .slice(0, TOP_TREASURIES);
+  const kpis = buildDashboardKpis(ledger, {
+    ongoingContributions: ongoingContributions ?? 0,
+    txnsThisMonth: txnsThisMonth ?? 0,
+  });
   const pendingSummary = buildPendingSummary(pendingExpenses);
   const activity = buildActivity({
     ledger,
@@ -117,5 +168,5 @@ export async function loadFinanceDashboard(): Promise<DashboardData> {
     limit: RECENT_LIMIT,
   });
 
-  return { treasuries, topTreasuries, pendingExpenses, pendingSummary, scopeById, kpis, activity };
+  return { pendingExpenses, pendingSummary, scopeById, kpis, activity };
 }

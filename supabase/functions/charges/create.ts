@@ -64,8 +64,27 @@ const inputSchema = z
 
     targetFilter: z.record(z.unknown()).default({}),
     targetPartyType: z.enum(['member', 'branch']).nullable().optional(),
+    // Per-target amount rows for Group (target_party_type='branch')
+    // charges — mirrors finance.charge_targets. Ignored for Individual
+    // charges. Empty array acceptable only when targetPartyType!='branch'.
+    chargeTargets: z
+      .array(
+        z
+          .object({
+            targetScopeId: z.string().uuid(),
+            amount: z.number().positive(),
+          })
+          .strict(),
+      )
+      .optional(),
 
     eventId: z.string().uuid().nullable().optional(),
+    // Event group this charge belongs to. Optional; set when creating
+    // a contribution from inside a group's shell so the row shows up
+    // in that group's Contributions tab. Enforced elsewhere as
+    // mainstream-only via the finance.groups trigger on group_id
+    // consistency.
+    groupId: z.string().uuid().nullable().optional(),
     openDate: z.string().datetime().nullable().optional(),
     closeDate: z.string().datetime().nullable().optional(),
     goalAmount: z.number().positive().nullable().optional(),
@@ -174,6 +193,45 @@ export async function createCharge(req: Request): Promise<Response> {
   const recurrence =
     input.shape === 'charge' || input.shape === 'fixed' ? input.recurrence : 'one_time';
 
+  // 4b) Individual vs Group target-list invariants. The DB triggers
+  //     enforce this too, but we catch it here so the client gets a
+  //     friendly 422 instead of an opaque trigger error.
+  const isGroupCharge = input.targetPartyType === 'branch';
+  const chargeTargets = input.chargeTargets ?? [];
+  if (isGroupCharge && chargeTargets.length === 0) {
+    return withCors(
+      req,
+      validationError(
+        'A Group charge needs at least one target scope with a positive amount.',
+        ctx.traceId,
+        { field: 'chargeTargets' },
+      ),
+    );
+  }
+  if (!isGroupCharge && chargeTargets.length > 0) {
+    return withCors(
+      req,
+      validationError('chargeTargets can only be set when targetPartyType="branch".', ctx.traceId, {
+        field: 'chargeTargets',
+      }),
+    );
+  }
+  if (isGroupCharge) {
+    const seen = new Set<string>();
+    for (const t of chargeTargets) {
+      if (seen.has(t.targetScopeId)) {
+        return withCors(
+          req,
+          validationError('Duplicate target scope in chargeTargets.', ctx.traceId, {
+            field: 'chargeTargets',
+            targetScopeId: t.targetScopeId,
+          }),
+        );
+      }
+      seen.add(t.targetScopeId);
+    }
+  }
+
   // 5) INSERT (bypass RLS via service-role — writes go through this
   //    handler by design; the auth check above is the guard).
   const { data: row, error: insertErr } = await serviceClient
@@ -192,6 +250,7 @@ export async function createCharge(req: Request): Promise<Response> {
       target_filter: input.targetFilter,
       target_party_type: input.targetPartyType ?? null,
       event_id: input.eventId ?? null,
+      group_id: input.groupId ?? null,
       open_date: input.openDate ?? null,
       close_date: input.closeDate ?? null,
       goal_amount: input.goalAmount ?? null,
@@ -226,13 +285,57 @@ export async function createCharge(req: Request): Promise<Response> {
 
   const id = (row as { id: string }).id;
 
+  // 6) For Group charges, insert the per-target amount rows. If any
+  //    row fails (bad FK, currency mismatch, RLS reject) we DELETE the
+  //    freshly-created charge so we never leave a Group charge with an
+  //    empty target list — the trigger contract expects at least one.
+  if (isGroupCharge && chargeTargets.length > 0) {
+    const rows = chargeTargets.map((t) => ({
+      charge_id: id,
+      target_scope_id: t.targetScopeId,
+      amount: t.amount,
+      currency: input.currency,
+    }));
+    const { error: targetErr } = await serviceClient
+      .schema('finance' as never)
+      .from('charge_targets' as never)
+      .insert(rows as never);
+    if (targetErr) {
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          traceId: ctx.traceId,
+          message: 'charges/create: charge_targets insert failed — rolling back charge',
+          chargeId: id,
+          code: targetErr.code,
+          error: targetErr.message,
+        }),
+      );
+      await serviceClient
+        .schema('finance' as never)
+        .from('charges' as never)
+        .delete()
+        .eq('id', id);
+      if (targetErr.code === '23514' || targetErr.code === '23503') {
+        return withCors(req, validationError(targetErr.message, ctx.traceId));
+      }
+      return withCors(req, internalError(ctx.traceId));
+    }
+  }
+
   await logEvent(serviceClient, ctx, {
     action: 'charge.created',
     entitySchema: 'finance',
     entityTable: 'charges',
     entityId: id,
     scopeId: input.scopeId,
-    metadata: { shape: input.shape, name: input.name, currency: input.currency },
+    metadata: {
+      shape: input.shape,
+      name: input.name,
+      currency: input.currency,
+      targetPartyType: input.targetPartyType ?? 'member',
+      targetCount: chargeTargets.length,
+    },
   });
 
   const body: SuccessBody = { id, traceId: ctx.traceId };

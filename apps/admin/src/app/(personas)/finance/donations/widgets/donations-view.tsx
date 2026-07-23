@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CircleDollarSign } from 'lucide-react';
+import { HandCoins } from 'lucide-react';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shesa/ui';
 
@@ -102,7 +102,7 @@ export function DonationsView({ campaigns, donations, scopeOptions }: DonationsV
           Finance
         </div>
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <CircleDollarSign className="h-6 w-6" />
+          <HandCoins className="h-6 w-6" />
           Donations
         </h1>
         <p className="text-sm text-muted-foreground">

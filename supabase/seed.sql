@@ -299,7 +299,11 @@ ON CONFLICT DO NOTHING;
 -- Clusters, executed by branch or mainstream admins.
 
 -- Finance: money movement + visibility, plus audit (every payment/charge
--- creates audit entries — Finance needs to read them).
+-- creates audit entries — Finance needs to read them). The fine-grained
+-- Phase 3 keys (charge.*, payment.*, etc.) also live here because the
+-- catalog migration that ships those keys runs BEFORE this seed creates
+-- the finance role — its own role-bundle block matches zero rows if
+-- kept there. Same story for the M4 group/reconciliation keys.
 INSERT INTO core.role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM core.roles r
@@ -307,7 +311,18 @@ INNER JOIN core.permissions p ON p.key IN (
   'scope.read',
   'member.read',
   'finance.read', 'finance.write',
-  'audit.read'
+  'audit.read',
+  -- Phase 3 M1 (finance_permissions migration)
+  'charge.create', 'charge.update', 'charge.archive',
+  'contribution.approve', 'contribution.extend', 'donation.record',
+  'payment.record', 'payment.record_on_behalf', 'payment.reverse',
+  'obligation.cancel',
+  'exception.create',
+  'expense.record', 'expense.reverse',
+  'treasury.read', 'finance.report', 'finance.export',
+  'receipt.generate', 'exchange_rate.set', 'ticket.purchase',
+  -- Module 4 (finance_groups_targets_reconciliations migration)
+  'group.manage', 'reconciliation.record'
 )
 WHERE r.key = 'finance'
 ON CONFLICT DO NOTHING;
@@ -1014,120 +1029,126 @@ END $$;
 --   * A pending-approval honorarium expense (30000 XAF) — above threshold.
 --   * Expense threshold set at 20000 XAF for Buea.
 --
--- Idempotent via hand-picked UUIDs + ON CONFLICT.
+-- Idempotent via hand-picked UUIDs + ON CONFLICT — but the ON CONFLICT
+-- path means re-running the seed doesn't pick up new rows or edits to
+-- old rows. To make the seed truly reproducible we start Section 6 by
+-- wiping every finance row (this is dev-only seed data; prod uses
+-- migrations). The TRUNCATE walks the dependency graph via CASCADE
+-- so a single call handles ledger_entries, tickets, payments, etc.
 
 -------------------------------------------------------------------------------
--- 6.1 Charges at Shesa Buea
+-- 6.0 Clean slate — wipe every finance row before reseeding
 -------------------------------------------------------------------------------
 
--- Activation floats 12 months into the past so the seed always
--- produces a full year of historical obligations relative to "today"
--- — the Charge Detail's sliding-window centres on the current period
--- with real scroll-left history to explore.
+TRUNCATE
+  finance.reconciliations,
+  finance.tickets,
+  finance.payments,
+  finance.obligations,
+  finance.charge_targets,
+  finance.contribution_extensions,
+  finance.exceptions,
+  finance.expenses,
+  finance.expense_settings,
+  finance.charges,
+  finance.groups,
+  finance.receipt_verifications,
+  finance.payment_intents,
+  finance.ledger_entries,
+  finance.treasury_balances
+RESTART IDENTITY CASCADE;
+
+-------------------------------------------------------------------------------
+-- 6.1 Two charges: one Individual, one Group
+-------------------------------------------------------------------------------
+--
+-- We keep the finance demo intentionally small: just the two shapes an
+-- operator actually clicks through. Everything else (donations,
+-- expenses, contributions) is empty by design so the dashboard/
+-- transactions/charges pages tell a clean story of what these two
+-- primitives look like end-to-end.
+
+-- (A) Individual — per-member Monthly Dues at Shesa Buea. Activated
+--     12 months ago so obligation generation covers a full year of
+--     history that the Charge Detail's sliding window can scroll.
 INSERT INTO finance.charges
   (id, scope_id, shape, name, description, base_amount, currency, recurrence,
    recurrence_interval, activation_date, issue_date, status, target_filter,
-   created_by, created_at, updated_at)
+   target_party_type, created_by, created_at, updated_at)
 VALUES
   ('77777777-1111-0000-0000-000000000001',
    '00000000-0000-0000-0000-000000000010',
    'charge', 'Monthly Dues',
-   'Regular monthly dues for active members at Shesa Buea.',
+   'Regular monthly dues owed by every active Shesa Buea member.',
    25000, 'XAF', 'monthly', 1,
    date_trunc('month', NOW() - INTERVAL '12 months'),
    date_trunc('month', NOW() - INTERVAL '12 months'),
-   'active', '{}'::jsonb,
+   'active', '{}'::jsonb, 'member',
    '55555555-0000-0000-0000-000000000002',
-   NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
+   NOW(), NOW());
 
-INSERT INTO finance.charges
-  (id, scope_id, shape, name, description, currency, goal_amount, lifecycle,
-   open_date, close_date, status, target_filter,
-   created_by, created_at, updated_at)
-VALUES
-  ('77777777-1111-0000-0000-000000000002',
-   '00000000-0000-0000-0000-000000000010',
-   'goal', 'AGM Project Fund 2027',
-   'Rally toward the annual project fund. Any contribution welcome.',
-   'XAF', 200000, 'open',
-   NOW() - INTERVAL '10 days', NOW() + INTERVAL '60 days',
-   'active', '{}'::jsonb,
-   '55555555-0000-0000-0000-000000000002',
-   NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO finance.charges
-  (id, scope_id, shape, name, description, currency, lifecycle,
-   open_date, close_date, status, target_filter,
-   created_by, created_at, updated_at)
-VALUES
-  ('77777777-1111-0000-0000-000000000003',
-   '00000000-0000-0000-0000-000000000010',
-   'donation', 'Shesa Buea General Fund',
-   'Freewill gifts to Shesa Buea. Public + walk-in.',
-   'XAF', 'open',
-   NOW() - INTERVAL '30 days', NOW() + INTERVAL '365 days',
-   'active', '{}'::jsonb,
-   '55555555-0000-0000-0000-000000000002',
-   NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
-
--- Global levy — Mainstream charges Buea as-a-body (50000 XAF quarterly).
--- target_party_type='branch' — obligation generation for branch-targeted
--- charges is deferred to a follow-up (M3 in the roadmap); the row exists
--- so admins see the charge in reports and the future generator has data.
+-- (B) Group — Mainstream-owned charge whose obligations fan out to
+--     three target scopes with per-target amounts. `target_party_type
+--     = 'branch'` triggers the new generator branch (M4), which walks
+--     finance.charge_targets and produces one obligation per (target,
+--     period).
 INSERT INTO finance.charges
   (id, scope_id, shape, name, description, base_amount, currency, recurrence,
-   recurrence_interval, activation_date, status, target_filter, target_party_type,
-   created_by, created_at, updated_at)
+   recurrence_interval, activation_date, issue_date, status, target_filter,
+   target_party_type, created_by, created_at, updated_at)
 VALUES
   ('77777777-1111-0000-0000-000000000004',
    '00000000-0000-0000-0000-000000000001',
-   'charge', 'Global Q1 Levy on Buea',
-   'Quarterly national levy owed by Shesa Buea as a body.',
-   50000, 'XAF', 'quarterly', 1,
-   '2027-01-01T00:00:00Z',
-   'active', jsonb_build_object('target_scope_ids',
-     jsonb_build_array('00000000-0000-0000-0000-000000000010')),
-   'branch',
+   'charge', 'Branch Contribution',
+   'Mainstream levy split across the three visible branches/chapters.',
+   60000, 'XAF', 'monthly', 1,
+   date_trunc('month', NOW() - INTERVAL '12 months'),
+   date_trunc('month', NOW() - INTERVAL '12 months'),
+   'active', '{}'::jsonb, 'branch',
    '55555555-0000-0000-0000-000000000002',
-   NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
+   NOW(), NOW());
+
+INSERT INTO finance.charge_targets (id, charge_id, target_scope_id, amount, currency)
+VALUES
+  ('77777777-1111-2222-0000-000000000001',
+   '77777777-1111-0000-0000-000000000004',
+   '00000000-0000-0000-0000-000000000010',
+   60000, 'XAF'),
+  ('77777777-1111-2222-0000-000000000002',
+   '77777777-1111-0000-0000-000000000004',
+   '00000000-0000-0000-0000-000000000011',
+   50000, 'XAF'),
+  ('77777777-1111-2222-0000-000000000003',
+   '77777777-1111-0000-0000-000000000004',
+   '00000000-0000-0000-0000-000000000020',
+   40000, 'XAF');
 
 -------------------------------------------------------------------------------
--- 6.2 Generate a full year of obligations for the Monthly Dues charge
+-- 6.2 Generate a full year of obligations for both charges
 -------------------------------------------------------------------------------
--- The M2B generator skips members that joined after the target period,
--- and the base seed antedates memberships by only 1–10 days. Slide the
--- Buea membership join dates back 13 months so the historical periods
--- get proper obligation fan-out. Uses `LEAST()` so we don't clobber a
--- membership that already sits earlier than that.
+-- The M2B generator computes ONE period from a reference timestamp; we
+-- walk month-by-month from 12 months ago through the current month so
+-- the charge-detail's sliding-window centres on today's period with
+-- real history to scroll back through. UNIQUE (charge_id, party_type,
+-- party_id, period_start) keeps the loop idempotent across reseeds.
 
+-- Buea memberships need to predate the first billing period or the
+-- generator skips them. Slide join dates back to 13 months, taking the
+-- LEAST() so we never move someone forward in time by accident.
 UPDATE core.memberships
    SET joined_at   = LEAST(joined_at,   NOW() - INTERVAL '13 months' - INTERVAL '5 days'),
        approved_at = LEAST(approved_at, NOW() - INTERVAL '13 months' - INTERVAL '5 days')
  WHERE scope_id = '00000000-0000-0000-0000-000000000010'
    AND membership_status IN ('active', 'passive');
 
--- The M2B generator computes ONE period from a reference timestamp. To
--- build a scrollable year of history, we call it once per month from
--- 12 months back through the current month — so the Charge Detail's
--- sliding-window can center on today's period and reveal a full past
--- year on scroll-left. Idempotent via the UNIQUE constraint on
--- (charge_id, party_type, party_id, period_start).
-
 DO $$
 DECLARE
   v_reference    TIMESTAMPTZ;
   v_month_offset INTEGER;
-  v_total        INTEGER := 0;
+  v_total_ind    INTEGER := 0;
+  v_total_grp    INTEGER := 0;
   v_step         INTEGER;
 BEGIN
-  -- Walk month-by-month from 12 months ago through the current month.
-  -- Each call produces the obligation set for that reference's period;
-  -- the UNIQUE constraint on (charge_id, party_type, party_id,
-  -- period_start) makes the loop idempotent across `db:reset` runs.
   FOR v_month_offset IN 0..13 LOOP
     v_reference := date_trunc('month', NOW() - INTERVAL '12 months')
                    + (v_month_offset || ' months')::interval
@@ -1135,41 +1156,47 @@ BEGIN
     IF v_reference > NOW() + INTERVAL '1 month' THEN
       EXIT;
     END IF;
+
     SELECT finance.generate_obligations_for_charge(
       '77777777-1111-0000-0000-000000000001'::uuid,
       v_reference
     ) INTO v_step;
-    v_total := v_total + v_step;
+    v_total_ind := v_total_ind + v_step;
+
+    SELECT finance.generate_obligations_for_charge(
+      '77777777-1111-0000-0000-000000000004'::uuid,
+      v_reference
+    ) INTO v_step;
+    v_total_grp := v_total_grp + v_step;
   END LOOP;
-  RAISE NOTICE 'Finance seed: generated % monthly-dues obligations across the rolling year at Buea',
-    v_total;
+
+  RAISE NOTICE 'Finance seed: individual dues generated % obligations; group contribution generated %',
+    v_total_ind, v_total_grp;
 END $$;
 
--- Sprinkle a realistic mix of payments across the historical periods.
--- The rule: the further back the period, the closer everyone is to
--- fully paid — mimics the reality that older bills get settled while
--- recent ones are still mid-cycle.
---
--- Idempotency: each payment row carries metadata->>'seed_marker' =
--- 'monthly-dues-history'. On re-run we skip an obligation if a seed
--- payment is already attached, so `db:reset` is safe to repeat.
--- Payment ids are `gen_random_uuid()` so we can't collide.
+-------------------------------------------------------------------------------
+-- 6.3 Sprinkle a year of realistic payments across the individual charge
+-------------------------------------------------------------------------------
+-- Rule: the further back the period, the closer everyone is to fully
+-- paid — old bills settle while recent ones are still mid-cycle. Uses
+-- hashtext for deterministic-yet-varied pick, so the display looks
+-- real but stays stable across reseeds.
 
 DO $$
 DECLARE
-  v_ob           finance.obligations%ROWTYPE;
-  v_period       DATE;
-  v_methods      finance.payment_method[] := ARRAY[
+  v_ob         finance.obligations%ROWTYPE;
+  v_period     DATE;
+  v_methods    finance.payment_method[] := ARRAY[
     'mtn_momo'::finance.payment_method,
     'orange_money'::finance.payment_method,
     'cash'::finance.payment_method,
     'bank_transfer'::finance.payment_method
   ];
-  v_method       finance.payment_method;
-  v_amount       NUMERIC;
-  v_paid_ratio   NUMERIC;
-  v_bucket       INTEGER;
-  v_total        INTEGER := 0;
+  v_method     finance.payment_method;
+  v_amount     NUMERIC;
+  v_paid_ratio NUMERIC;
+  v_bucket     INTEGER;
+  v_total      INTEGER := 0;
 BEGIN
   FOR v_ob IN
     SELECT * FROM finance.obligations
@@ -1181,16 +1208,6 @@ BEGIN
       CONTINUE;
     END IF;
 
-    -- Idempotency guard.
-    IF EXISTS (
-      SELECT 1 FROM finance.payments
-        WHERE obligation_id = v_ob.id
-          AND metadata->>'seed_marker' = 'monthly-dues-history'
-    ) THEN
-      CONTINUE;
-    END IF;
-
-    -- Payment probability by age of the period.
     v_paid_ratio := CASE
       WHEN v_period <= CURRENT_DATE - INTERVAL '6 months' THEN 0.90
       WHEN v_period <= CURRENT_DATE - INTERVAL '3 months' THEN 0.75
@@ -1198,19 +1215,12 @@ BEGIN
       ELSE 0.35
     END;
 
-    -- Deterministic per (party, period) — hashtext gives us proper
-    -- entropy across member IDs (which otherwise share the '88888888'
-    -- prefix) and month offsets, so the pick stays stable across
-    -- `db:reset` runs but varies enough to look real.
     v_bucket := abs(hashtext(v_ob.party_id::text || v_period::text)) % 100;
     IF v_bucket >= (v_paid_ratio * 100) THEN
       CONTINUE;
     END IF;
 
-    -- Payment method rotates through the four.
     v_method := v_methods[1 + (v_bucket % 4)];
-
-    -- ~30% of payments are partial (half amount).
     IF v_bucket % 10 < 3 THEN
       v_amount := v_ob.amount / 2;
     ELSE
@@ -1233,687 +1243,85 @@ BEGIN
     );
     v_total := v_total + 1;
   END LOOP;
-  RAISE NOTICE 'Finance seed: sprinkled % historical payments across monthly-dues periods',
-    v_total;
+
+  RAISE NOTICE 'Finance seed: sprinkled % payments across monthly dues periods', v_total;
 END $$;
 
 -------------------------------------------------------------------------------
--- 6.3 Sample payments — enough to make the dashboard + reports interesting
+-- 6.4 Sprinkle a year of payments across the group charge
 -------------------------------------------------------------------------------
--- Picks the first three Buea members with a January obligation and gives
--- each a different payment story:
---   member #1 → full 25000 via mtn_momo (paid)
---   member #2 → 10000 via cash (partial)
---   member #3 → nothing (still open — surfaces in arrears)
---
--- The M4A recompute trigger transitions each obligation's status
--- automatically. The M6 ledger writer + treasury updates fire from the
--- payment INSERT trigger.
+-- Same age-based paid-ratio, but the deterministic bucket keys off the
+-- target scope + period so each branch has its own consistent pattern.
+-- Payments here have `payer_member_id=NULL` because a branch-as-a-body
+-- charge doesn't have an individual payer; the payment carries the
+-- target scope via obligation.party_id.
 
-DO $$
-DECLARE
-  v_member_ids UUID[];
-  v_obligation_id UUID;
-BEGIN
-  SELECT ARRAY(
-    SELECT o.party_id
-    FROM finance.obligations o
-    WHERE o.charge_id = '77777777-1111-0000-0000-000000000001'
-      AND o.party_type = 'member'
-    ORDER BY o.created_at
-    LIMIT 3
-  ) INTO v_member_ids;
-
-  IF array_length(v_member_ids, 1) IS NULL OR array_length(v_member_ids, 1) < 3 THEN
-    RAISE NOTICE 'Finance seed: not enough member obligations to seed payments, skipping';
-    RETURN;
-  END IF;
-
-  -- Member 1 pays in full via mtn_momo.
-  SELECT id INTO v_obligation_id FROM finance.obligations
-   WHERE charge_id = '77777777-1111-0000-0000-000000000001'
-     AND party_id = v_member_ids[1];
-  INSERT INTO finance.payments
-    (id, obligation_id, charge_id, scope_id, payer_member_id,
-     amount, currency, method, source, recorded_by)
-  VALUES (
-    '77777777-3333-0000-0000-000000000001',
-    v_obligation_id,
-    '77777777-1111-0000-0000-000000000001',
-    '00000000-0000-0000-0000-000000000010',
-    v_member_ids[1],
-    25000, 'XAF', 'mtn_momo', 'auto',
-    '55555555-0000-0000-0000-000000000011'
-  )
-  ON CONFLICT (id) DO NOTHING;
-
-  -- Member 2 pays half via cash.
-  SELECT id INTO v_obligation_id FROM finance.obligations
-   WHERE charge_id = '77777777-1111-0000-0000-000000000001'
-     AND party_id = v_member_ids[2];
-  INSERT INTO finance.payments
-    (id, obligation_id, charge_id, scope_id, payer_member_id,
-     amount, currency, method, source, recorded_by)
-  VALUES (
-    '77777777-3333-0000-0000-000000000002',
-    v_obligation_id,
-    '77777777-1111-0000-0000-000000000001',
-    '00000000-0000-0000-0000-000000000010',
-    v_member_ids[2],
-    10000, 'XAF', 'cash', 'manual',
-    '55555555-0000-0000-0000-000000000011'
-  )
-  ON CONFLICT (id) DO NOTHING;
-
-  -- Member 1 also contributes 15000 to the AGM goal (via orange_money).
-  INSERT INTO finance.payments
-    (id, charge_id, scope_id, payer_member_id,
-     amount, currency, method, source, recorded_by)
-  VALUES (
-    '77777777-3333-0000-0000-000000000003',
-    '77777777-1111-0000-0000-000000000002',
-    '00000000-0000-0000-0000-000000000010',
-    v_member_ids[1],
-    15000, 'XAF', 'orange_money', 'auto',
-    '55555555-0000-0000-0000-000000000011'
-  )
-  ON CONFLICT (id) DO NOTHING;
-
-  RAISE NOTICE 'Finance seed: recorded payments for members %', v_member_ids[1:2];
-END $$;
-
--------------------------------------------------------------------------------
--- 6.4 Public donations to the General Fund
--------------------------------------------------------------------------------
-
-INSERT INTO finance.payments
-  (id, charge_id, scope_id, payer_member_id,
-   amount, currency, method, source, recorded_by, metadata)
-VALUES
-  ('77777777-3333-0000-0000-000000000010',
-   '77777777-1111-0000-0000-000000000003',
-   '00000000-0000-0000-0000-000000000010',
-   NULL,
-   5000, 'XAF', 'mtn_momo', 'auto', NULL,
-   jsonb_build_object(
-     'public_donation', TRUE,
-     'donor_name', 'Jane Adjani',
-     'donor_email', 'jane.adjani@example.com',
-     'note', 'From the website'
-   )),
-  ('77777777-3333-0000-0000-000000000011',
-   '77777777-1111-0000-0000-000000000003',
-   '00000000-0000-0000-0000-000000000010',
-   NULL,
-   2500, 'XAF', 'orange_money', 'auto', NULL,
-   jsonb_build_object(
-     'public_donation', TRUE,
-     'donor_name', NULL,
-     'donor_email', NULL,
-     'note', 'Anonymous gift'
-   ))
-ON CONFLICT (id) DO NOTHING;
-
--------------------------------------------------------------------------------
--- 6.4B Additional charge scenarios — report-differentiation walkthrough
--------------------------------------------------------------------------------
--- The obligation generator (M2B) only handles target_party_type='member'
--- without target_filter narrowing. Scope-as-a-body charges and audience
--- filters aren't automated yet (M3 + M8 in the roadmap). To give the
--- charge-detail drill-down real data across every scenario admins
--- actually run, this section seeds the missing use cases by inserting
--- obligations directly. Each block is idempotent via hand-picked UUIDs.
---
--- Scenarios covered here (with example rows in exco/finance-view/charges):
---   A) Branch admin → subset of members via target_filter
---        Charge : 77777777-1111-…-0000-000000000010
---        Buea admin's 2018-Batch-only levy. Manual obligations for four
---        2018-batch members (mix of paid / partial / open). Exercises
---        the member-matrix view + reports on a narrow audience.
---
---   B) Global admin → chapter as a body
---        Charge : 77777777-1111-…-0000-000000000020
---        Mainstream levy on Buea University Chapter (autonomous). One
---        obligation per period against party_type='branch',
---        party_id=chapter_id. Renders as a single-row scope-body row.
---
---   C) Global admin → batch as a body
---        Charge : 77777777-1111-…-0000-000000000030
---        Mainstream contribution owed by the 2015 Batch collectively.
---        One obligation against the batch scope. Also scope-body shape.
---
---   D) Global admin → every member (cross-branch fan-out)
---        Charge : 77777777-1111-…-0000-000000000040
---        Mainstream-wide member levy. Because the generator walks
---        memberships at the charge's scope (and members belong to
---        branches, not Mainstream), we seed obligations manually for
---        six members spread across Buea, Douala, and DC. Enough to
---        surface the cross-branch reporting angle.
-
--------------------------------------------------------------------------------
--- 6.4B — Scenario A: Buea admin's 2021 Batch subset levy
--------------------------------------------------------------------------------
-
--- The 2021 batch's UUID isn't known statically (seeded by generate_series),
--- so we look it up inline and stash it via a temp binding on the charge's
--- target_filter. That gives us a documented pointer without a schema change.
-DO $$
-DECLARE
-  v_batch_2018_id UUID;
-BEGIN
-  SELECT id INTO v_batch_2018_id
-    FROM core.scopes
-    WHERE scope_type = 'batch' AND slug = 'batch-2018';
-
-  IF v_batch_2018_id IS NULL THEN
-    RAISE NOTICE 'Finance seed A: 2018 batch missing, skipping subset charge';
-    RETURN;
-  END IF;
-
-  INSERT INTO finance.charges
-    (id, scope_id, shape, name, description, base_amount, currency, recurrence,
-     recurrence_interval, activation_date, issue_date, status, target_filter,
-     target_party_type, created_by, created_at, updated_at)
-  VALUES
-    ('77777777-1111-0000-0000-000000000010',
-     '00000000-0000-0000-0000-000000000010',
-     'charge', 'Class of 2018 Reunion Fund',
-     '2018-batch-only quarterly contribution toward the class reunion at Shesa Buea.',
-     15000, 'XAF', 'quarterly', 1,
-     '2027-01-01T00:00:00Z', '2027-01-01T00:00:00Z',
-     'active',
-     jsonb_build_object('batch_scope_ids', jsonb_build_array(v_batch_2018_id)),
-     'member',
-     '55555555-0000-0000-0000-000000000002',
-     NOW(), NOW())
-  ON CONFLICT (id) DO NOTHING;
-END $$;
-
--- Manual obligations for four 2021-batch Buea members (member_nums 1–4).
--- Idempotent via UNIQUE(charge_id, party_type, party_id, period_start).
-DO $$
-DECLARE
-  v_member_ids UUID[] := ARRAY[
-    '88888888-2018-0001-0000-000000000000'::uuid,
-    '88888888-2018-0002-0000-000000000000'::uuid,
-    '88888888-2018-0003-0000-000000000000'::uuid,
-    '88888888-2018-0004-0000-000000000000'::uuid
-  ];
-  v_id UUID;
-BEGIN
-  FOREACH v_id IN ARRAY v_member_ids LOOP
-    -- Skip if the member wasn't seeded (defensive — memberships live
-    -- at Buea for member_num 1–10 so 2021's 1–4 exist under the loop).
-    IF NOT EXISTS (SELECT 1 FROM core.members WHERE id = v_id) THEN
-      CONTINUE;
-    END IF;
-    INSERT INTO finance.obligations
-      (id, charge_id, scope_id, party_type, party_id,
-       amount, currency, status, period_start, period_end)
-    VALUES
-      (gen_random_uuid(),
-       '77777777-1111-0000-0000-000000000010',
-       '00000000-0000-0000-0000-000000000010',
-       'member', v_id,
-       15000, 'XAF', 'open',
-       '2027-01-01', '2027-04-01')
-    ON CONFLICT (charge_id, party_type, party_id, period_start) DO NOTHING;
-  END LOOP;
-END $$;
-
--- Payments across the four members: paid / partial / partial / open.
--- Payment amount recompute trigger flips the obligation status.
-DO $$
-DECLARE
-  v_ob_1 UUID;
-  v_ob_2 UUID;
-  v_ob_3 UUID;
-BEGIN
-  SELECT id INTO v_ob_1 FROM finance.obligations
-    WHERE charge_id = '77777777-1111-0000-0000-000000000010'
-      AND party_id = '88888888-2018-0001-0000-000000000000'
-      AND period_start = '2027-01-01';
-  SELECT id INTO v_ob_2 FROM finance.obligations
-    WHERE charge_id = '77777777-1111-0000-0000-000000000010'
-      AND party_id = '88888888-2018-0002-0000-000000000000'
-      AND period_start = '2027-01-01';
-  SELECT id INTO v_ob_3 FROM finance.obligations
-    WHERE charge_id = '77777777-1111-0000-0000-000000000010'
-      AND party_id = '88888888-2018-0003-0000-000000000000'
-      AND period_start = '2027-01-01';
-
-  IF v_ob_1 IS NOT NULL THEN
-    INSERT INTO finance.payments
-      (id, obligation_id, charge_id, scope_id, payer_member_id,
-       amount, currency, method, source, recorded_by)
-    VALUES
-      ('77777777-3333-0000-0000-000000000020',
-       v_ob_1,
-       '77777777-1111-0000-0000-000000000010',
-       '00000000-0000-0000-0000-000000000010',
-       '88888888-2018-0001-0000-000000000000',
-       15000, 'XAF', 'mtn_momo', 'auto',
-       '55555555-0000-0000-0000-000000000011')
-    ON CONFLICT (id) DO NOTHING;
-  END IF;
-
-  IF v_ob_2 IS NOT NULL THEN
-    INSERT INTO finance.payments
-      (id, obligation_id, charge_id, scope_id, payer_member_id,
-       amount, currency, method, source, recorded_by)
-    VALUES
-      ('77777777-3333-0000-0000-000000000021',
-       v_ob_2,
-       '77777777-1111-0000-0000-000000000010',
-       '00000000-0000-0000-0000-000000000010',
-       '88888888-2018-0002-0000-000000000000',
-       8000, 'XAF', 'cash', 'manual',
-       '55555555-0000-0000-0000-000000000011')
-    ON CONFLICT (id) DO NOTHING;
-  END IF;
-
-  IF v_ob_3 IS NOT NULL THEN
-    INSERT INTO finance.payments
-      (id, obligation_id, charge_id, scope_id, payer_member_id,
-       amount, currency, method, source, recorded_by)
-    VALUES
-      ('77777777-3333-0000-0000-000000000022',
-       v_ob_3,
-       '77777777-1111-0000-0000-000000000010',
-       '00000000-0000-0000-0000-000000000010',
-       '88888888-2018-0003-0000-000000000000',
-       5000, 'XAF', 'orange_money', 'auto',
-       '55555555-0000-0000-0000-000000000011')
-    ON CONFLICT (id) DO NOTHING;
-  END IF;
-END $$;
-
--------------------------------------------------------------------------------
--- 6.4B — Scenario B: Global levy on Buea University Chapter (scope-body)
--------------------------------------------------------------------------------
-
-INSERT INTO finance.charges
-  (id, scope_id, shape, name, description, base_amount, currency, recurrence,
-   recurrence_interval, activation_date, status, target_filter, target_party_type,
-   created_by, created_at, updated_at)
-VALUES
-  ('77777777-1111-0000-0000-000000000020',
-   '00000000-0000-0000-0000-000000000001',
-   'charge', 'Global Yearly Levy on Buea Uni Chapter',
-   'Annual national levy owed by the Buea University Chapter as an autonomous body.',
-   150000, 'XAF', 'yearly', 1,
-   '2027-01-01T00:00:00Z',
-   'active',
-   jsonb_build_object('target_scope_ids',
-     jsonb_build_array('00000000-0000-0000-0000-000000000020')),
-   'branch',
-   '55555555-0000-0000-0000-000000000002',
-   NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO finance.obligations
-  (id, charge_id, scope_id, party_type, party_id,
-   amount, currency, status, period_start, period_end)
-VALUES
-  ('77777777-2222-0000-0000-000000000020',
-   '77777777-1111-0000-0000-000000000020',
-   '00000000-0000-0000-0000-000000000020',
-   'branch', '00000000-0000-0000-0000-000000000020',
-   150000, 'XAF', 'open',
-   '2027-01-01', '2028-01-01')
-ON CONFLICT (charge_id, party_type, party_id, period_start) DO NOTHING;
-
--- Chapter pays a chunk (60%) via bank transfer — partial state.
-INSERT INTO finance.payments
-  (id, obligation_id, charge_id, scope_id, payer_member_id,
-   amount, currency, method, source, recorded_by)
-VALUES
-  ('77777777-3333-0000-0000-000000000030',
-   '77777777-2222-0000-0000-000000000020',
-   '77777777-1111-0000-0000-000000000020',
-   '00000000-0000-0000-0000-000000000020',
-   NULL,
-   90000, 'XAF', 'bank_transfer', 'manual',
-   '55555555-0000-0000-0000-000000000002')
-ON CONFLICT (id) DO NOTHING;
-
--------------------------------------------------------------------------------
--- 6.4B — Scenario C: Global contribution from the 2015 Batch (scope-body)
--------------------------------------------------------------------------------
-
-DO $$
-DECLARE
-  v_batch_2015_id UUID;
-BEGIN
-  SELECT id INTO v_batch_2015_id
-    FROM core.scopes
-    WHERE scope_type = 'batch' AND slug = 'batch-2015';
-
-  IF v_batch_2015_id IS NULL THEN
-    RAISE NOTICE 'Finance seed C: 2015 batch missing, skipping';
-    RETURN;
-  END IF;
-
-  INSERT INTO finance.charges
-    (id, scope_id, shape, name, description, base_amount, currency, recurrence,
-     recurrence_interval, activation_date, status, target_filter, target_party_type,
-     created_by, created_at, updated_at)
-  VALUES
-    ('77777777-1111-0000-0000-000000000030',
-     '00000000-0000-0000-0000-000000000001',
-     'charge', 'Class-of-2015 Endowment Pledge',
-     'One-time endowment pledge owed by the 2015 Batch as a body.',
-     500000, 'XAF', 'one_time', 1,
-     '2027-01-01T00:00:00Z',
-     'active',
-     jsonb_build_object('target_scope_ids', jsonb_build_array(v_batch_2015_id)),
-     'branch',
-     '55555555-0000-0000-0000-000000000002',
-     NOW(), NOW())
-  ON CONFLICT (id) DO NOTHING;
-
-  INSERT INTO finance.obligations
-    (id, charge_id, scope_id, party_type, party_id,
-     amount, currency, status, period_start, period_end)
-  VALUES
-    ('77777777-2222-0000-0000-000000000030',
-     '77777777-1111-0000-0000-000000000030',
-     v_batch_2015_id,
-     'branch', v_batch_2015_id,
-     500000, 'XAF', 'open',
-     NULL, NULL)
-  ON CONFLICT (charge_id, party_type, party_id, period_start) DO NOTHING;
-
-  -- Batch has not paid yet — leaves the obligation open, useful for
-  -- surfacing the "0 collected" empty state in reports.
-END $$;
-
--------------------------------------------------------------------------------
--- 6.4B — Scenario D: Global levy on every member (cross-branch fan-out)
--------------------------------------------------------------------------------
-
-INSERT INTO finance.charges
-  (id, scope_id, shape, name, description, base_amount, currency, recurrence,
-   recurrence_interval, activation_date, issue_date, status, target_filter,
-   target_party_type, created_by, created_at, updated_at)
-VALUES
-  ('77777777-1111-0000-0000-000000000040',
-   '00000000-0000-0000-0000-000000000001',
-   'charge', 'Global Alumni Assessment 2027',
-   'Yearly member-level assessment across every branch. Reports here show ' ||
-     'the cross-branch angle: a fan-out across Buea, Douala, and DC.',
-   10000, 'XAF', 'yearly', 1,
-   '2027-01-01T00:00:00Z', '2027-01-01T00:00:00Z',
-   'active', '{}'::jsonb, 'member',
-   '55555555-0000-0000-0000-000000000002',
-   NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
-
--- Manually fan out to six members across three branches (Buea 1–2,
--- Douala 11–12, DC 14–15). Uses the 2019 batch — the newest year the
--- membership loop actually seeds members for.
-DO $$
-DECLARE
-  v_targets TEXT[] := ARRAY[
-    -- (member_id, branch_scope_id, membership_status_source_num)
-    '88888888-2019-0001-0000-000000000000|00000000-0000-0000-0000-000000000010',
-    '88888888-2019-0002-0000-000000000000|00000000-0000-0000-0000-000000000010',
-    '88888888-2019-0011-0000-000000000000|00000000-0000-0000-0000-000000000011',
-    '88888888-2019-0012-0000-000000000000|00000000-0000-0000-0000-000000000011',
-    '88888888-2019-0014-0000-000000000000|00000000-0000-0000-0000-000000000012',
-    '88888888-2019-0015-0000-000000000000|00000000-0000-0000-0000-000000000012'
-  ];
-  v_pair TEXT;
-  v_member UUID;
-  v_scope UUID;
-BEGIN
-  FOREACH v_pair IN ARRAY v_targets LOOP
-    v_member := split_part(v_pair, '|', 1)::uuid;
-    v_scope  := split_part(v_pair, '|', 2)::uuid;
-    IF NOT EXISTS (SELECT 1 FROM core.members WHERE id = v_member) THEN
-      CONTINUE;
-    END IF;
-    INSERT INTO finance.obligations
-      (id, charge_id, scope_id, party_type, party_id,
-       amount, currency, status, period_start, period_end)
-    VALUES
-      (gen_random_uuid(),
-       '77777777-1111-0000-0000-000000000040',
-       v_scope,
-       'member', v_member,
-       10000, 'XAF', 'open',
-       '2027-01-01', '2028-01-01')
-    ON CONFLICT (charge_id, party_type, party_id, period_start) DO NOTHING;
-  END LOOP;
-END $$;
-
--- Two of the six members pay in full so the "cross-branch top payers"
--- panel has real content.
-DO $$
-DECLARE
-  v_ob UUID;
-BEGIN
-  SELECT id INTO v_ob FROM finance.obligations
-   WHERE charge_id = '77777777-1111-0000-0000-000000000040'
-     AND party_id = '88888888-2019-0001-0000-000000000000';
-  IF v_ob IS NOT NULL THEN
-    INSERT INTO finance.payments
-      (id, obligation_id, charge_id, scope_id, payer_member_id,
-       amount, currency, method, source, recorded_by)
-    VALUES
-      ('77777777-3333-0000-0000-000000000040',
-       v_ob,
-       '77777777-1111-0000-0000-000000000040',
-       '00000000-0000-0000-0000-000000000010',
-       '88888888-2019-0001-0000-000000000000',
-       10000, 'XAF', 'mtn_momo', 'auto',
-       '55555555-0000-0000-0000-000000000011')
-    ON CONFLICT (id) DO NOTHING;
-  END IF;
-
-  SELECT id INTO v_ob FROM finance.obligations
-   WHERE charge_id = '77777777-1111-0000-0000-000000000040'
-     AND party_id = '88888888-2019-0014-0000-000000000000';
-  IF v_ob IS NOT NULL THEN
-    INSERT INTO finance.payments
-      (id, obligation_id, charge_id, scope_id, payer_member_id,
-       amount, currency, method, source, recorded_by)
-    VALUES
-      ('77777777-3333-0000-0000-000000000041',
-       v_ob,
-       '77777777-1111-0000-0000-000000000040',
-       '00000000-0000-0000-0000-000000000012',
-       '88888888-2019-0014-0000-000000000000',
-       10000, 'XAF', 'bank_transfer', 'manual',
-       '55555555-0000-0000-0000-000000000002')
-    ON CONFLICT (id) DO NOTHING;
-  END IF;
-END $$;
-
--------------------------------------------------------------------------------
--- 6.4C — Scenario E: Mainstream monthly dues fanned across every branch
--- and autonomous chapter (branch-body obligations, 7-month history)
--------------------------------------------------------------------------------
--- A single Mainstream-issued monthly charge with target_party_type='branch'.
--- One obligation per body per month for the last 6 closed months + the
--- current (still-open) month. Payments are seeded deterministically so a
--- branch admin lands on a realistic mix: fully paid history that fades
--- into partial + missed periods as the current month approaches.
---
--- Bodies covered (XAF only — the charge is XAF, so Shesa DC / USD is
--- excluded to sidestep FX in the demo):
---   * Shesa Buea               00…0010
---   * Shesa Douala             00…0011
---   * Buea University Chapter  00…0020
---
--- Idempotent: charge id + obligation UNIQUE (charge, party, period) +
--- payments guarded by a `seed_marker='branch-monthly-dues'` metadata key.
-
-INSERT INTO finance.charges
-  (id, scope_id, shape, name, description, base_amount, currency, recurrence,
-   recurrence_interval, activation_date, status, target_filter, target_party_type,
-   created_by, created_at, updated_at)
-VALUES
-  ('77777777-1111-0000-0000-000000000050',
-   '00000000-0000-0000-0000-000000000001',
-   'charge',
-   'Mainstream Monthly Dues',
-   'Monthly membership dues owed by every branch and autonomous chapter to the Mainstream.',
-   100000, 'XAF', 'monthly', 1,
-   date_trunc('month', NOW() - INTERVAL '6 months'),
-   'active',
-   jsonb_build_object('target_scope_ids', jsonb_build_array(
-     '00000000-0000-0000-0000-000000000010',
-     '00000000-0000-0000-0000-000000000011',
-     '00000000-0000-0000-0000-000000000020'
-   )),
-   'branch',
-   '55555555-0000-0000-0000-000000000001',
-   NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
-
--- Fan out 7 monthly obligations per body (t-6 .. t-0).
-DO $$
-DECLARE
-  v_charge_id UUID := '77777777-1111-0000-0000-000000000050';
-  v_bodies    UUID[] := ARRAY[
-    '00000000-0000-0000-0000-000000000010',
-    '00000000-0000-0000-0000-000000000011',
-    '00000000-0000-0000-0000-000000000020'
-  ];
-  v_body      UUID;
-  v_offset    INTEGER;
-  v_period    DATE;
-BEGIN
-  FOREACH v_body IN ARRAY v_bodies LOOP
-    FOR v_offset IN 0..6 LOOP
-      v_period := (date_trunc('month', NOW()) - (v_offset || ' months')::interval)::date;
-      INSERT INTO finance.obligations
-        (id, charge_id, scope_id, party_type, party_id,
-         amount, currency, status, period_start, period_end,
-         created_at, updated_at)
-      VALUES (
-        gen_random_uuid(),
-        v_charge_id,
-        v_body,
-        'branch', v_body,
-        100000, 'XAF', 'open',
-        v_period,
-        (v_period + INTERVAL '1 month' - INTERVAL '1 day')::date,
-        v_period::timestamptz,
-        NOW()
-      )
-      ON CONFLICT (charge_id, party_type, party_id, period_start) DO NOTHING;
-    END LOOP;
-  END LOOP;
-END $$;
-
--- Seed payments: older periods lean paid, recent ones lean unpaid.
--- Deterministic per (body, period) via hashtext so `db:reset` is stable.
 DO $$
 DECLARE
   v_ob         finance.obligations%ROWTYPE;
-  v_bucket     INTEGER;   -- 0..99 stable hash
-  v_kind       INTEGER;   -- 0 = full pay, 1 = partial, 2 = unpaid
+  v_period     DATE;
+  v_methods    finance.payment_method[] := ARRAY[
+    'mtn_momo'::finance.payment_method,
+    'orange_money'::finance.payment_method,
+    'cash'::finance.payment_method,
+    'bank_transfer'::finance.payment_method
+  ];
+  v_method     finance.payment_method;
   v_amount     NUMERIC;
-  v_paid_at    TIMESTAMPTZ;
+  v_paid_ratio NUMERIC;
+  v_bucket     INTEGER;
+  v_total      INTEGER := 0;
 BEGIN
   FOR v_ob IN
     SELECT * FROM finance.obligations
-     WHERE charge_id = '77777777-1111-0000-0000-000000000050'
+     WHERE charge_id = '77777777-1111-0000-0000-000000000004'
      ORDER BY period_start, party_id
   LOOP
-    -- Skip future / current-still-mid-cycle periods for the SECOND
-    -- payment pass; we still seed a small chance of partial payment on
-    -- the current month below.
-    IF v_ob.period_start IS NULL THEN CONTINUE; END IF;
+    v_period := v_ob.period_start;
+    IF v_period IS NULL OR v_period > CURRENT_DATE THEN
+      CONTINUE;
+    END IF;
 
-    -- Skip if we already seeded a payment for this obligation.
-    IF EXISTS (
-      SELECT 1 FROM finance.payments
-        WHERE obligation_id = v_ob.id
-          AND metadata->>'seed_marker' = 'branch-monthly-dues'
-    ) THEN CONTINUE; END IF;
-
-    v_bucket := abs(hashtext(v_ob.party_id::text || v_ob.period_start::text)) % 100;
-
-    v_kind := CASE
-      -- >= 5 months old: almost everyone paid in full.
-      WHEN v_ob.period_start <= (CURRENT_DATE - INTERVAL '5 months')::date THEN
-        CASE WHEN v_bucket < 85 THEN 0 WHEN v_bucket < 95 THEN 1 ELSE 2 END
-      -- 3–4 months old: still mostly paid, more partials sneak in.
-      WHEN v_ob.period_start <= (CURRENT_DATE - INTERVAL '3 months')::date THEN
-        CASE WHEN v_bucket < 60 THEN 0 WHEN v_bucket < 85 THEN 1 ELSE 2 END
-      -- 1–2 months old: mix of everything.
-      WHEN v_ob.period_start <= (CURRENT_DATE - INTERVAL '1 month')::date THEN
-        CASE WHEN v_bucket < 35 THEN 0 WHEN v_bucket < 70 THEN 1 ELSE 2 END
-      -- current month: mostly still open; a couple paid partial early.
-      ELSE
-        CASE WHEN v_bucket < 15 THEN 0 WHEN v_bucket < 40 THEN 1 ELSE 2 END
+    v_paid_ratio := CASE
+      WHEN v_period <= CURRENT_DATE - INTERVAL '6 months' THEN 0.92
+      WHEN v_period <= CURRENT_DATE - INTERVAL '3 months' THEN 0.80
+      WHEN v_period <= CURRENT_DATE - INTERVAL '1 month'  THEN 0.60
+      ELSE 0.45
     END;
 
-    IF v_kind = 2 THEN CONTINUE; END IF;
+    v_bucket := abs(hashtext(v_ob.party_id::text || v_period::text)) % 100;
+    IF v_bucket >= (v_paid_ratio * 100) THEN
+      CONTINUE;
+    END IF;
 
-    v_amount := CASE WHEN v_kind = 0 THEN v_ob.amount ELSE v_ob.amount / 2 END;
-    -- Post the payment mid-period so the timeline looks realistic.
-    v_paid_at := v_ob.period_start::timestamptz + INTERVAL '18 days';
+    v_method := v_methods[1 + (v_bucket % 4)];
+    -- ~40% of remittances are partial (half amount) to make the matrix
+    -- show mixed states.
+    IF v_bucket % 10 < 4 THEN
+      v_amount := v_ob.amount / 2;
+    ELSE
+      v_amount := v_ob.amount;
+    END IF;
 
     INSERT INTO finance.payments
       (id, obligation_id, charge_id, scope_id, payer_member_id,
        amount, currency, method, source, recorded_by, created_at, metadata)
     VALUES (
       gen_random_uuid(),
-      v_ob.id, v_ob.charge_id, v_ob.scope_id,
+      v_ob.id,
+      v_ob.charge_id,
+      v_ob.party_id,     -- payment scope = the target branch/chapter
       NULL,
-      v_amount, v_ob.currency,
-      (ARRAY['mtn_momo', 'orange_money', 'bank_transfer', 'cash']
-        ::finance.payment_method[])[1 + (v_bucket % 4)],
-      'manual',
-      '55555555-0000-0000-0000-000000000001',
-      v_paid_at,
-      jsonb_build_object('seed_marker', 'branch-monthly-dues')
+      v_amount, v_ob.currency, v_method, 'auto',
+      '55555555-0000-0000-0000-000000000011',
+      (v_period + INTERVAL '15 days')::timestamptz,
+      jsonb_build_object('seed_marker', 'group-contribution-history')
     );
+    v_total := v_total + 1;
   END LOOP;
+
+  RAISE NOTICE 'Finance seed: sprinkled % branch payments across group contribution periods', v_total;
 END $$;
-
--------------------------------------------------------------------------------
--- 6.5 Expense settings + a couple of expenses at Buea
--------------------------------------------------------------------------------
--- Threshold set at 20000 XAF so both under- and over-threshold flows are
--- visible: venue rental (12k) hits the ledger directly; honorarium (30k)
--- waits in pending_approval for the admin's sign-off.
-
-INSERT INTO finance.expense_settings
-  (scope_id, approval_threshold_amount, approval_threshold_currency, updated_by)
-VALUES (
-  '00000000-0000-0000-0000-000000000010',
-  20000, 'XAF',
-  '55555555-0000-0000-0000-000000000010'
-)
-ON CONFLICT (scope_id) DO NOTHING;
-
-INSERT INTO finance.expenses
-  (id, scope_id, category_id, payee, amount, currency, description, status,
-   recorded_by, incurred_at, created_at)
-VALUES
-  ('77777777-4444-0000-0000-000000000001',
-   '00000000-0000-0000-0000-000000000010',
-   (SELECT id FROM finance.expense_categories WHERE key = 'venue'),
-   'Buea Community Hall',
-   12000, 'XAF', 'January meeting venue.',
-   'recorded',
-   '55555555-0000-0000-0000-000000000011',
-   NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days'),
-  ('77777777-4444-0000-0000-000000000002',
-   '00000000-0000-0000-0000-000000000010',
-   (SELECT id FROM finance.expense_categories WHERE key = 'honorarium'),
-   'Guest speaker',
-   30000, 'XAF', 'AGM keynote honorarium — awaits admin approval.',
-   'pending_approval',
-   '55555555-0000-0000-0000-000000000011',
-   NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days')
-ON CONFLICT (id) DO NOTHING;
-
 -- =====================================================================
 -- 7. Exco announcements + events
 -- =====================================================================
@@ -2079,4 +1487,160 @@ VALUES
    'published', NOW() - INTERVAL '3 days',
    '55555555-0000-0000-0000-000000000010',
    NOW() - INTERVAL '6 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================================
+-- Section 8. AGM 2026 event group + charges — 2026-07-22
+-- =============================================================================
+--
+-- Seeds the flagship event group (AGM 2026) that drives the public
+-- /agm-2026 page. Every finance surface (Dashboard, Transactions,
+-- Donations, Expenses, Reports) inside the group's shell filters on
+-- `group_id = <this>` — the same rows still show in the mainstream
+-- ledger, so the group is a lens, not a silo.
+--
+-- Charges seeded under the group:
+--   • Default AGM 2026 donation campaign (same name as the group).
+--   • Ticket (ticketed, 20 000 XAF).
+--   • Attire (ticketed, 50 000 XAF).
+--   • Funding tiers: Bronze / Silver / Gold / Platinum donation
+--     campaigns with per-tier suggested minimums.
+--
+-- Idempotent via hand-picked UUIDs + ON CONFLICT.
+
+-------------------------------------------------------------------------------
+-- 8.1 The group
+-------------------------------------------------------------------------------
+
+INSERT INTO finance.groups
+  (id, slug, name, description, starts_on, ends_on, status, show_in_sidebar,
+   scope_id, created_by, created_at, updated_at)
+VALUES
+  ('88888888-2026-0000-0000-000000000001',
+   'agm-2026',
+   'AGM 2026',
+   'Annual General Meeting 2026 — tickets, attire orders, and funding tiers all roll up here.',
+   (date_trunc('year', NOW()) + INTERVAL '6 months')::date,
+   (date_trunc('year', NOW()) + INTERVAL '7 months')::date,
+   'active', TRUE,
+   '00000000-0000-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-------------------------------------------------------------------------------
+-- 8.2 Charges — default donation + Ticket + Attire + 4 Funding tiers
+-------------------------------------------------------------------------------
+
+-- Default same-named donation campaign. The catch-all bucket for
+-- "donate to the AGM" without picking a tier; the four tiered
+-- campaigns below sit alongside it for the tier-driven ask.
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, currency, target_filter,
+   lifecycle, open_date, close_date, status, group_id,
+   created_by, created_at, updated_at)
+VALUES
+  ('88888888-2026-1111-0000-000000000001',
+   '00000000-0000-0000-0000-000000000001',
+   'donation', 'AGM 2026',
+   'Default AGM 2026 donation campaign. Any amount, any tier.',
+   'XAF', '{}'::jsonb,
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '9 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- Ticket (ticketed, 20 000 XAF). The flat entry price for the AGM.
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, base_amount, currency,
+   target_filter, target_party_type, lifecycle, open_date, close_date,
+   status, group_id, created_by, created_at, updated_at)
+VALUES
+  ('88888888-2026-1111-0000-000000000002',
+   '00000000-0000-0000-0000-000000000001',
+   'ticketed', 'Ticket',
+   'AGM 2026 entry ticket — 20 000 XAF per head.',
+   20000, 'XAF', '{}'::jsonb, 'member',
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '7 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- Attire (ticketed, 50 000 XAF). Custom-tailored piece; buyer supplies
+-- measurements in payments.metadata.
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, base_amount, currency,
+   target_filter, target_party_type, lifecycle, open_date, close_date,
+   status, group_id, created_by, created_at, updated_at)
+VALUES
+  ('88888888-2026-1111-0000-000000000003',
+   '00000000-0000-0000-0000-000000000001',
+   'ticketed', 'Attire',
+   'AGM 2026 attire order — 50 000 XAF. Measurements captured at purchase.',
+   50000, 'XAF', '{}'::jsonb, 'member',
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '6 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- Funding tiers — donation-shape charges keyed by suggested minimum.
+-- Public site collects the tier + payer identity in payments.metadata.
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, currency, min_amount,
+   target_filter, lifecycle, open_date, close_date, status, group_id,
+   created_by, created_at, updated_at)
+VALUES
+  ('88888888-2026-1111-0000-000000000010',
+   '00000000-0000-0000-0000-000000000001',
+   'donation', 'Bronze Funding',
+   'AGM 2026 funding tier — Bronze. Suggested 50 000 XAF.',
+   'XAF', 50000, '{}'::jsonb,
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '9 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW()),
+  ('88888888-2026-1111-0000-000000000011',
+   '00000000-0000-0000-0000-000000000001',
+   'donation', 'Silver Funding',
+   'AGM 2026 funding tier — Silver. Suggested 250 000 XAF.',
+   'XAF', 250000, '{}'::jsonb,
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '9 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW()),
+  ('88888888-2026-1111-0000-000000000012',
+   '00000000-0000-0000-0000-000000000001',
+   'donation', 'Gold Funding',
+   'AGM 2026 funding tier — Gold. Suggested 1 000 000 XAF.',
+   'XAF', 1000000, '{}'::jsonb,
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '9 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW()),
+  ('88888888-2026-1111-0000-000000000013',
+   '00000000-0000-0000-0000-000000000001',
+   'donation', 'Platinum Funding',
+   'AGM 2026 funding tier — Platinum. Suggested 5 000 000 XAF.',
+   'XAF', 5000000, '{}'::jsonb,
+   'open',
+   (date_trunc('year', NOW()))::timestamptz,
+   (date_trunc('year', NOW()) + INTERVAL '9 months')::timestamptz,
+   'active', '88888888-2026-0000-0000-000000000001',
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;

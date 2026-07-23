@@ -4,36 +4,34 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
-import { PAYMENT_OPTIONS, type PaymentOption } from './data';
+import { AGM_TICKET_UNIT_PRICE_XAF, PAYMENT_OPTIONS, type PaymentOption } from './data';
 import { registerForAgm } from './register-action';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 interface Props {
-  readonly amountXaf: number;
-  readonly onAmountChange: (n: number) => void;
   readonly initialError?: string;
 }
 
 /**
- * Client-side wrapper around `registerForAgm`. We drive it from React
- * state rather than a plain <form action> because we want to keep the
- * tier picker in the same page — clicking a tier card just updates
- * `amountXaf` here without touching the DB.
- *
- * No money is moved: the "Pay" button just records the registration
- * and forwards the user to their receipt. Finance flips `status` to
- * `paid` later when they reconcile the actual payment.
+ * AGM 2026 ticket form. The event uses a single flat unit price
+ * (`AGM_TICKET_UNIT_PRICE_XAF`); the visitor picks a quantity, and
+ * the total renders alongside the button. Submission calls
+ * `record_public_ticket_purchase` server-side; on success we forward
+ * the visitor to their receipt using the returned verification token.
  */
-export function RegistrationForm({ amountXaf, onAmountChange, initialError }: Props) {
+export function RegistrationForm({ initialError }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [quantity, setQuantity] = useState(1);
   const [paymentOption, setPaymentOption] = useState<PaymentOption>('mtn-momo');
   const [error, setError] = useState(initialError ?? '');
+
+  const total = AGM_TICKET_UNIT_PRICE_XAF * Math.max(1, quantity);
 
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -43,8 +41,8 @@ export function RegistrationForm({ amountXaf, onAmountChange, initialError }: Pr
       setError('Please enter your full name.');
       return;
     }
-    if (!Number.isFinite(amountXaf) || amountXaf < 0) {
-      setError('Amount must be a positive number.');
+    if (!Number.isFinite(quantity) || quantity < 1) {
+      setError('Quantity must be at least 1.');
       return;
     }
 
@@ -53,14 +51,14 @@ export function RegistrationForm({ amountXaf, onAmountChange, initialError }: Pr
         fullName,
         email,
         phone,
-        amountXaf,
+        quantity,
         paymentOption,
       });
       if (!res.ok) {
         setError(res.message);
         return;
       }
-      router.push(`/agm-2026/receipt/${res.code}`);
+      router.push(`/agm-2026/receipt/${res.receiptToken}`);
     });
   };
 
@@ -85,8 +83,8 @@ export function RegistrationForm({ amountXaf, onAmountChange, initialError }: Pr
           Fill it in. Get your ticket.
         </h3>
         <p className="mt-3 max-w-lg text-[14.5px] leading-[1.7] text-black/60">
-          You'll get a printable receipt with a QR code on the next page. Money isn't collected here
-          — pay by your preferred method and the AGM team will reconcile before check-in.
+          Tickets are a flat {AGM_TICKET_UNIT_PRICE_XAF.toLocaleString()} XAF per head. You'll get a
+          printable receipt with a QR code on the next page — bring it to the check-in desk.
         </p>
       </div>
 
@@ -133,15 +131,14 @@ export function RegistrationForm({ amountXaf, onAmountChange, initialError }: Pr
 
       <label className="flex flex-col gap-1.5">
         <span className="font-heading text-[11px] font-medium uppercase tracking-[0.22em] text-black/60">
-          Amount (XAF)
+          Tickets
         </span>
         <input
-          value={amountXaf === 0 ? '' : amountXaf}
-          onChange={(e) => onAmountChange(Number.parseInt(e.target.value, 10) || 0)}
+          value={quantity}
+          onChange={(e) => setQuantity(Math.max(1, Number.parseInt(e.target.value, 10) || 1))}
           type="number"
-          min="0"
-          step="1000"
-          placeholder="25000"
+          min="1"
+          step="1"
           className="rounded-xs border border-black/12 bg-white px-4 py-3 text-[15px] text-black focus:border-primary focus:outline-none"
         />
       </label>
@@ -171,8 +168,7 @@ export function RegistrationForm({ amountXaf, onAmountChange, initialError }: Pr
 
       <div className="flex flex-col gap-3 md:col-span-2 md:flex-row md:items-center md:justify-between">
         <p className="text-[12.5px] text-black/50">
-          By registering you agree to be listed on the AGM 2026 attendee roster used by the check-in
-          desk.
+          Total due: <span className="font-heading text-black">{total.toLocaleString()} XAF</span>
         </p>
         <button
           type="submit"
