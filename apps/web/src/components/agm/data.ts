@@ -152,6 +152,15 @@ export const AGM_TICKET_UNIT_PRICE_XAF = 20_000;
 export const AGM_ATTIRE_UNIT_PRICE_XAF = 50_000;
 
 /**
+ * Attire sizes offered. Lives here (not in the server-action file)
+ * because Next's 'use server' rule strips non-async-function exports
+ * — importing an array from a 'use server' module gives you a
+ * proxy object without .map at runtime.
+ */
+export const ATTIRE_SIZES = ['S', 'M', 'L', 'XL', 'XXL'] as const;
+export type AttireSize = (typeof ATTIRE_SIZES)[number];
+
+/**
  * Funding tiers for AGM 2026. Suggested minimums; the public form
  * lets the donor bump above the tier's minimum. The tier label lands
  * in payment metadata so Finance can roll up by tier in the group's

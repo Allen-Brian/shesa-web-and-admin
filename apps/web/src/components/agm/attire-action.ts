@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { PaymentOption } from './data';
+import { ATTIRE_SIZES, type AttireSize, type PaymentOption } from './data';
 
 /**
  * Web-form → RPC method mapping. The public form's friendly labels
@@ -18,9 +18,6 @@ const PAYMENT_METHOD_MAP: Record<PaymentOption, string> = {
   'bank-transfer': 'bank_transfer',
   'cash-on-site': 'cash',
 };
-
-export const ATTIRE_SIZES = ['S', 'M', 'L', 'XL', 'XXL'] as const;
-export type AttireSize = (typeof ATTIRE_SIZES)[number];
 
 export interface AttireOrderInput {
   readonly fullName: string;
