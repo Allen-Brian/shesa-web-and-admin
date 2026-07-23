@@ -20,7 +20,6 @@ import {
 import { ReportBarChartPanel } from './report-bar-chart-panel';
 import { ReportDonutPanel } from './report-donut-panel';
 import type { RunResult } from './reports-types';
-import { formatMoney } from './reports-formatters';
 
 /**
  * KPI strip + chart card cluster shown above the results DataTable.
