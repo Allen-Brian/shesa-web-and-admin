@@ -65,7 +65,7 @@ export async function registerForAgm(input: RegisterInput): Promise<RegisterResu
     return { ok: false, message: 'AGM 2026 ticket sales are not open yet.' };
   }
 
-  const { data, error } = await supabase.rpc(
+  const { data, error } = await supabase.schema('finance' as never).rpc(
     'record_public_ticket_purchase' as never,
     {
       p_charge_id: charge.id,

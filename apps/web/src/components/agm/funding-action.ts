@@ -85,7 +85,7 @@ export async function donateForAgmFunding(input: FundingInput): Promise<FundingR
   const tierNote = input.tier ? `[${input.tier.toUpperCase()}] ` : '';
   const combinedNote = `${tierNote}${noteBase}`.slice(0, 500).trim() || null;
 
-  const { data, error } = await supabase.rpc(
+  const { data, error } = await supabase.schema('finance' as never).rpc(
     'record_public_donation' as never,
     {
       p_charge_id: charge.id,

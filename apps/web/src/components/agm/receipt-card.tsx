@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 
+import { Logo } from '@shesa/ui';
+
 import { AGM_META } from './data';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -201,7 +203,7 @@ export function ReceiptCard({ receipt, qrSvg }: Props) {
           </div>
         </div>
 
-        <footer className="border-t border-black/10 bg-black/[0.02] px-8 py-6 md:px-12">
+        <footer className="border-t border-black/10 bg-black/2 px-8 py-6 md:px-12">
           <div className="flex flex-wrap items-baseline justify-between gap-4 text-[12px] text-black/55">
             <p>
               {AGM_META.dates} · {AGM_META.venue}
@@ -253,13 +255,8 @@ function AttireSize({ metadata }: { readonly metadata: Record<string, unknown> }
 
 function ShesaMark() {
   return (
-    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-white/40 bg-white/10 backdrop-blur-sm">
-      <span
-        className="font-heading font-thin text-white"
-        style={{ fontSize: '1.15rem', letterSpacing: '0.05em' }}
-      >
-        SH
-      </span>
+    <span className="grid h-24 w-24 shrink-0 place-items-center rounded-full border border-white/40 bg-white/10 backdrop-blur-sm">
+      <Logo size={81} />
     </span>
   );
 }
