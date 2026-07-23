@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import { activeFinanceScope } from '@/lib/finance/active-scope';
 import { getServerClient } from '@/lib/supabase-server';
 
 import { ContributionsView } from './widgets/contributions-view';
@@ -201,5 +202,21 @@ export default async function ContributionsPage() {
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  return <ContributionsView contributions={contributions} scopeOptions={scopeOptions} />;
+  // Auto-pick the owner scope so the create dialog never has to ask.
+  // Mainstream operators default to the mainstream scope; branch-scoped
+  // finance users default to their branch.
+  const active = await activeFinanceScope(user.id);
+  const mainstreamOption = scopeOptions.find((s) => {
+    const raw = scopesData.find((r) => r.id === s.id);
+    return raw?.scope_type === 'mainstream';
+  });
+  const defaultScopeId = active?.scopeIds[0] ?? mainstreamOption?.id ?? scopeOptions[0]?.id ?? '';
+
+  return (
+    <ContributionsView
+      contributions={contributions}
+      scopeOptions={scopeOptions}
+      defaultScopeId={defaultScopeId}
+    />
+  );
 }

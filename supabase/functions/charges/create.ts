@@ -79,6 +79,12 @@ const inputSchema = z
       .optional(),
 
     eventId: z.string().uuid().nullable().optional(),
+    // Event group this charge belongs to. Optional; set when creating
+    // a contribution from inside a group's shell so the row shows up
+    // in that group's Contributions tab. Enforced elsewhere as
+    // mainstream-only via the finance.groups trigger on group_id
+    // consistency.
+    groupId: z.string().uuid().nullable().optional(),
     openDate: z.string().datetime().nullable().optional(),
     closeDate: z.string().datetime().nullable().optional(),
     goalAmount: z.number().positive().nullable().optional(),
@@ -244,6 +250,7 @@ export async function createCharge(req: Request): Promise<Response> {
       target_filter: input.targetFilter,
       target_party_type: input.targetPartyType ?? null,
       event_id: input.eventId ?? null,
+      group_id: input.groupId ?? null,
       open_date: input.openDate ?? null,
       close_date: input.closeDate ?? null,
       goal_amount: input.goalAmount ?? null,

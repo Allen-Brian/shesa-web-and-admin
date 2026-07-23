@@ -30,6 +30,12 @@ import { useContributionsActions } from './use-contributions-actions';
 interface ContributionsViewProps {
   readonly contributions: readonly ContributionRow[];
   readonly scopeOptions: readonly ScopeOption[];
+  /**
+   * Owner scope preselected on the new-contribution form — the
+   * operator's active finance scope. Hidden from the form UI so the
+   * dialog stays lean.
+   */
+  readonly defaultScopeId: string;
 }
 
 /**
@@ -41,7 +47,11 @@ interface ContributionsViewProps {
  * Row-click routes to the charge-detail page — under the hood a
  * contribution IS a charge.
  */
-export function ContributionsView({ contributions, scopeOptions }: ContributionsViewProps) {
+export function ContributionsView({
+  contributions,
+  scopeOptions,
+  defaultScopeId,
+}: ContributionsViewProps) {
   const router = useRouter();
   const actions = useContributionsActions({ scopeOptions });
   const { pending } = actions;
@@ -50,7 +60,7 @@ export function ContributionsView({ contributions, scopeOptions }: Contributions
   const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilter>('all');
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState<CreateForm>(() => initialCreate(scopeOptions));
+  const [createForm, setCreateForm] = useState<CreateForm>(() => initialCreate(defaultScopeId));
   const [extendTarget, setExtendTarget] = useState<ContributionRow | null>(null);
   const [extendDate, setExtendDate] = useState('');
   const [extendReason, setExtendReason] = useState('');
@@ -120,7 +130,7 @@ export function ContributionsView({ contributions, scopeOptions }: Contributions
         canCreate={scopeOptions.length > 0}
         createLabel="New contribution"
         onCreate={() => {
-          setCreateForm(initialCreate(scopeOptions));
+          setCreateForm(initialCreate(defaultScopeId));
           setCreateOpen(true);
         }}
         filters={

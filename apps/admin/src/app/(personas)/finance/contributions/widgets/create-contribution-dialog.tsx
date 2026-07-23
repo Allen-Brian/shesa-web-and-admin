@@ -81,21 +81,7 @@ export function CreateContributionDialog({
               {SHAPES.find((s) => s.value === form.shape)?.help}
             </span>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="scope">Scope</Label>
-            <Select value={form.scopeId} onValueChange={(v) => onFormChange({ scopeId: v })}>
-              <SelectTrigger id="scope">
-                <SelectValue placeholder="Pick a scope" />
-              </SelectTrigger>
-              <SelectContent>
-                {scopeOptions.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name} · {s.currency}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <ScopeChip form={form} scopeOptions={scopeOptions} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">Name</Label>
             <Input
@@ -178,5 +164,23 @@ export function CreateContributionDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ScopeChip({
+  form,
+  scopeOptions,
+}: {
+  readonly form: CreateForm;
+  readonly scopeOptions: readonly ScopeOption[];
+}) {
+  const scope = scopeOptions.find((s) => s.id === form.scopeId);
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+      <span>Landing at</span>
+      <span className="font-medium text-foreground">{scope?.name ?? 'your scope'}</span>
+      <span>· currency</span>
+      <span className="font-medium text-foreground">{scope?.currency ?? 'XAF'}</span>
+    </div>
   );
 }
