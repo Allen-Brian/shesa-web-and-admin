@@ -299,7 +299,11 @@ ON CONFLICT DO NOTHING;
 -- Clusters, executed by branch or mainstream admins.
 
 -- Finance: money movement + visibility, plus audit (every payment/charge
--- creates audit entries — Finance needs to read them).
+-- creates audit entries — Finance needs to read them). The fine-grained
+-- Phase 3 keys (charge.*, payment.*, etc.) also live here because the
+-- catalog migration that ships those keys runs BEFORE this seed creates
+-- the finance role — its own role-bundle block matches zero rows if
+-- kept there. Same story for the M4 group/reconciliation keys.
 INSERT INTO core.role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM core.roles r
@@ -307,7 +311,18 @@ INNER JOIN core.permissions p ON p.key IN (
   'scope.read',
   'member.read',
   'finance.read', 'finance.write',
-  'audit.read'
+  'audit.read',
+  -- Phase 3 M1 (finance_permissions migration)
+  'charge.create', 'charge.update', 'charge.archive',
+  'contribution.approve', 'contribution.extend', 'donation.record',
+  'payment.record', 'payment.record_on_behalf', 'payment.reverse',
+  'obligation.cancel',
+  'exception.create',
+  'expense.record', 'expense.reverse',
+  'treasury.read', 'finance.report', 'finance.export',
+  'receipt.generate', 'exchange_rate.set', 'ticket.purchase',
+  -- Module 4 (finance_groups_targets_reconciliations migration)
+  'group.manage', 'reconciliation.record'
 )
 WHERE r.key = 'finance'
 ON CONFLICT DO NOTHING;

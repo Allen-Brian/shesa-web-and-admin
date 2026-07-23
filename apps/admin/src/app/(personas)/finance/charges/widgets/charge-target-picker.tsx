@@ -3,15 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Building2, Check, ChevronsUpDown, GraduationCap, Search, X } from 'lucide-react';
 
-import {
-  Badge,
-  Button,
-  Input,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  ScrollArea,
-} from '@shesa/ui';
+import { Badge, Button, Popover, PopoverContent, PopoverTrigger, ScrollArea } from '@shesa/ui';
 
 import type { TargetScopeOption } from './charges-types';
 
@@ -95,12 +87,13 @@ export function ChargeTargetPicker({
             <PopoverContent className="w-80 p-0" align="end">
               <div className="flex items-center gap-2 border-b px-3 py-2">
                 <Search className="h-3.5 w-3.5 text-muted-foreground" />
-                <Input
+                <input
                   autoFocus
+                  type="text"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Filter branches + batches"
-                  className="h-7 border-0 p-0 text-xs shadow-none focus-visible:ring-0"
+                  className="h-7 flex-1 border-0 bg-transparent p-0 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
                 />
               </div>
               <ScrollArea className="max-h-72">

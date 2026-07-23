@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import { activeFinanceScope } from '@/lib/finance/active-scope';
 import { getServerClient } from '@/lib/supabase-server';
 
 import { ChargesView } from './widgets/charges-view';
@@ -273,11 +274,24 @@ export default async function ChargesPage() {
       return a.name.localeCompare(b.name);
     });
 
+  // Auto-derive the owner scope so the create dialog never has to ask.
+  // Group charges always live at Mainstream (they only make sense at
+  // the top of the tree); Individual charges default to whatever scope
+  // the operator can actually create a charge at — mainstream for a
+  // global finance user, their own branch otherwise.
+  const active = await activeFinanceScope(user.id);
+  const mainstreamOption = scopeOptions.find((s) => s.scopeType === 'mainstream') ?? null;
+  const defaultIndividualScopeId =
+    active?.scopeIds[0] ?? mainstreamOption?.id ?? scopeOptions[0]?.id ?? '';
+  const mainstreamScopeId = mainstreamOption?.id ?? defaultIndividualScopeId;
+
   return (
     <ChargesView
       charges={charges}
       scopeOptions={scopeOptions}
       targetScopeOptions={targetScopeOptions}
+      defaultIndividualScopeId={defaultIndividualScopeId}
+      mainstreamScopeId={mainstreamScopeId}
     />
   );
 }

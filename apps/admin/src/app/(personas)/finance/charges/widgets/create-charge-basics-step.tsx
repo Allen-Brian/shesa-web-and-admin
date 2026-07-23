@@ -1,9 +1,9 @@
 'use client';
 
 import {
+  DatePicker,
   Input,
   Label,
-  NativeDateInput,
   Select,
   SelectContent,
   SelectItem,
@@ -22,12 +22,14 @@ interface CreateChargeBasicsStepProps {
 }
 
 /**
- * Wizard step 2 — the always-required fields laid out in a two-column
- * grid to make the wider dialog feel intentional. Left column carries
- * the identity fields (scope, name, description); right column carries
- * the money + timing (amount, recurrence, activation). Base amount
- * reads as "default amount" on Group charges — it seeds the per-target
- * table on step 3 unless the operator overrides it.
+ * Wizard step 2 — the always-required fields. The owner scope isn't
+ * asked for (auto-derived by the parent from the operator's active
+ * finance scope); we just surface which scope the charge will land at
+ * for confirmation. Name, amount, recurrence, activation date live in
+ * a two-column grid; description spans the full row so a longer
+ * paragraph has room to breathe. Base amount reads as "default
+ * amount" on Group charges — it seeds the per-target table on
+ * step 3 unless the operator overrides it.
  */
 export function CreateChargeBasicsStep({
   form,
@@ -35,28 +37,18 @@ export function CreateChargeBasicsStep({
   onChange,
 }: CreateChargeBasicsStepProps) {
   const amountLabel = amountLabelFor(form.targetPartyType);
-  return (
-    <div className="grid gap-6 sm:grid-cols-2">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="scope">Owner scope</Label>
-          <Select value={form.scopeId} onValueChange={(v) => onChange({ scopeId: v })}>
-            <SelectTrigger id="scope">
-              <SelectValue placeholder="Pick a scope" />
-            </SelectTrigger>
-            <SelectContent>
-              {scopeOptions.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name} · {s.currency}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-muted-foreground">
-            Where money lands. Currency inherits from this scope.
-          </span>
-        </div>
+  const ownerScope = scopeOptions.find((s) => s.id === form.scopeId);
 
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        <span>Landing at</span>
+        <span className="font-medium text-foreground">{ownerScope?.name ?? 'your scope'}</span>
+        <span>· currency</span>
+        <span className="font-medium text-foreground">{ownerScope?.currency ?? 'XAF'}</span>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="name">Name</Label>
           <Input
@@ -71,20 +63,6 @@ export function CreateChargeBasicsStep({
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="description">Description (optional)</Label>
-          <Textarea
-            id="description"
-            rows={3}
-            value={form.description}
-            onChange={(e) => onChange({ description: e.target.value })}
-            placeholder="What this charge is for."
-            maxLength={2000}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
           <Label htmlFor="amount">{amountLabel}</Label>
           <Input
             id="amount"
@@ -97,7 +75,7 @@ export function CreateChargeBasicsStep({
           />
           {form.targetPartyType === 'branch' && (
             <span className="text-xs text-muted-foreground">
-              Used to pre-fill each row on the next step. You can override per target.
+              Used to pre-fill each row on the next step. Override per target.
             </span>
           )}
         </div>
@@ -123,15 +101,28 @@ export function CreateChargeBasicsStep({
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="activation">Activation date</Label>
-          <NativeDateInput
+          <DatePicker
             id="activation"
             value={form.activationDate}
             onChange={(v) => onChange({ activationDate: v })}
+            placeholder="Pick a date"
           />
           <span className="text-xs text-muted-foreground">
-            The instant arrears begin. Obligations for the current period generate from here.
+            The instant arrears begin. Obligations generate from here on activation.
           </span>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="description">Description (optional)</Label>
+        <Textarea
+          id="description"
+          rows={3}
+          value={form.description}
+          onChange={(e) => onChange({ description: e.target.value })}
+          placeholder="What this charge is for."
+          maxLength={2000}
+        />
       </div>
     </div>
   );

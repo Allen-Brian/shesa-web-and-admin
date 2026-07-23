@@ -35,6 +35,18 @@ interface ChargesViewProps {
   readonly charges: readonly ChargeRow[];
   readonly scopeOptions: readonly ScopeOption[];
   readonly targetScopeOptions: readonly TargetScopeOption[];
+  /**
+   * Owner scope preselected for Individual charges — the operator's
+   * active finance scope (mainstream for a global finance user, own
+   * branch otherwise). Set server-side; the form never asks.
+   */
+  readonly defaultIndividualScopeId: string;
+  /**
+   * Owner scope preselected for Group charges — always the mainstream
+   * scope, since a Group charge only makes sense at the top of the
+   * tree.
+   */
+  readonly mainstreamScopeId: string;
 }
 
 /**
@@ -43,7 +55,13 @@ interface ChargesViewProps {
  * the charge-detail drill-down; every rendered chunk delegates to a
  * sibling widget so this file stays under the 200-line cap.
  */
-export function ChargesView({ charges, scopeOptions, targetScopeOptions }: ChargesViewProps) {
+export function ChargesView({
+  charges,
+  scopeOptions,
+  targetScopeOptions,
+  defaultIndividualScopeId,
+  mainstreamScopeId,
+}: ChargesViewProps) {
   const router = useRouter();
   const actions = useChargesActions({ scopeOptions });
   const { pending } = actions;
@@ -53,7 +71,9 @@ export function ChargesView({ charges, scopeOptions, targetScopeOptions }: Charg
   const [search, setSearch] = useState('');
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState<CreateForm>(() => initialCreate(scopeOptions));
+  const [createForm, setCreateForm] = useState<CreateForm>(() =>
+    initialCreate(defaultIndividualScopeId),
+  );
   const [editing, setEditing] = useState<EditForm | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<ChargeRow | null>(null);
@@ -91,8 +111,23 @@ export function ChargesView({ charges, scopeOptions, targetScopeOptions }: Charg
   );
 
   const openCreate = () => {
-    setCreateForm(initialCreate(scopeOptions));
+    setCreateForm(initialCreate(defaultIndividualScopeId));
     setCreateOpen(true);
+  };
+
+  // Type flips between Individual and Group flip the owner scope in
+  // lockstep: Group charges always land on mainstream, Individual
+  // charges on the operator's default. The dialog itself doesn't
+  // surface the field.
+  const handleFormChange = (patch: Partial<CreateForm>) => {
+    setCreateForm((f) => {
+      const next = { ...f, ...patch };
+      if (patch.targetPartyType && patch.targetPartyType !== f.targetPartyType) {
+        next.scopeId =
+          patch.targetPartyType === 'branch' ? mainstreamScopeId : defaultIndividualScopeId;
+      }
+      return next;
+    });
   };
 
   return (
@@ -154,7 +189,7 @@ export function ChargesView({ charges, scopeOptions, targetScopeOptions }: Charg
         open={createOpen}
         onOpenChange={setCreateOpen}
         form={createForm}
-        onFormChange={(patch) => setCreateForm((f) => ({ ...f, ...patch }))}
+        onFormChange={handleFormChange}
         scopeOptions={scopeOptions}
         targetScopeOptions={targetScopeOptions}
         onSubmit={() => actions.runCreate(createForm, () => setCreateOpen(false))}

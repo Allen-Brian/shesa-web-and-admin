@@ -1,10 +1,14 @@
-import type { ChargeRow, CreateForm, EditForm, ScopeOption } from './charges-types';
+import type { ChargeRow, CreateForm, EditForm } from './charges-types';
 
-/** Fresh state for the "new charge" dialog — first scope preselected. */
-export function initialCreate(scopeOptions: readonly ScopeOption[]): CreateForm {
+/**
+ * Fresh state for the "new charge" dialog. Owner scope isn't asked
+ * for anymore — the parent view auto-derives it (mainstream for
+ * Group charges; the operator's active scope for Individual ones).
+ */
+export function initialCreate(defaultScopeId: string): CreateForm {
   return {
     targetPartyType: 'member',
-    scopeId: scopeOptions[0]?.id ?? '',
+    scopeId: defaultScopeId,
     name: '',
     description: '',
     baseAmount: '',
