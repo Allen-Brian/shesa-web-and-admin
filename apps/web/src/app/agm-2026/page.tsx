@@ -29,10 +29,10 @@ export default async function Agm2026Page({
       <AgmHero />
       <AgmAbout />
       <AgmProgramme />
-      <AgmVenue />
-      <RegistrationSection initialError={error} />
-      <AttireSection initialError={error} />
       <FundingSection initialError={error} />
+      <AttireSection initialError={error} />
+      <RegistrationSection initialError={error} />
+      <AgmVenue />
     </>
   );
 }

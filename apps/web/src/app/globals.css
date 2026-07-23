@@ -3,27 +3,34 @@
  * layers on web-app-only bits: display + script fonts, forced light
  * mode (public site is light-only per product decision), and Lenis
  * html/scrollbar treatment.
+ *
+ * Fonts are self-hosted from public/fonts (see fonts.css) rather than
+ * loaded via next/font/google — Google Fonts fetch failures at build
+ * time were silently dropping Anton + Caveat, so the site fell back
+ * to system fonts. Self-hosting removes the network dependency and
+ * makes the font layer offline-reproducible.
  */
 
 @import '@shesa/ui/styles/tokens.css';
+@import './fonts.css';
 
 @theme {
   /* Body + Headings share the Montserrat family — headings run at
    * weight 100 (`font-thin`) for the sleek editorial look, body runs
    * lighter (300) by default so paragraphs feel airy but readable. */
   --font-sans:
-    var(--font-montserrat), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-heading:
-    var(--font-montserrat), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   /* Extra-small radius (2px). Buttons + cards across the site use
    * `rounded-xs` for a sharp, editorial silhouette. */
   --radius-xs: 0.125rem;
   /* Display — Anton. Reserved for the hero backdrop wordmark + site
    * wordmark. Bold, condensed, unmistakable. */
-  --font-display: var(--font-anton), 'Impact', 'Arial Narrow Bold', sans-serif;
+  --font-display: 'Anton', 'Impact', 'Arial Narrow Bold', sans-serif;
   /* Script — reserved for occasional accent (hero overlay, callouts). */
-  --font-script: var(--font-caveat), 'Comic Sans MS', cursive;
+  --font-script: 'Caveat', 'Comic Sans MS', cursive;
 }
 
 html {

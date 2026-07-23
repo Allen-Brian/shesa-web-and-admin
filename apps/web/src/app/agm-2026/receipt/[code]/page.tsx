@@ -2,12 +2,13 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import QRCode from 'qrcode';
 
+import { createServiceRoleClient } from '@shesa/supabase/service-role';
+
 import {
   ReceiptCard,
   type AgmReceiptData,
   type AgmReceiptKind,
 } from '@/components/agm/receipt-card';
-import { getServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,9 +42,14 @@ interface RawCharge {
  * short code the visitor sees on the URL; it maps to a specific
  * payment via `finance.receipt_verifications`, which then joins its
  * parent charge to switch the receipt renderer by shape.
+ *
+ * Uses the service-role client because the receipt page is public
+ * (anyone with the token can view) and finance.payments' RLS gates
+ * reads to `authenticated`. The route is server-only + gated by the
+ * token in the URL, so the elevated read is safe.
  */
 async function loadReceipt(token: string): Promise<AgmReceiptData | null> {
-  const supabase = await getServerClient();
+  const supabase = createServiceRoleClient();
 
   const { data: verification } = await supabase
     .schema('finance' as never)
