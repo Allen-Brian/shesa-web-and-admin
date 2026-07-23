@@ -108,10 +108,10 @@ export function FundingForm({ initialError }: Props) {
           >
             {tier
               ? `You picked ${tier.charAt(0).toUpperCase() + tier.slice(1)}. Change it any time.`
-              : 'Pick a tier — or just enter any amount.'}
+              : 'Pick a tier or just enter any amount.'}
           </h3>
           <p className="mt-3 max-w-lg text-[14.5px] leading-[1.7] text-black/60">
-            Tier amounts are suggestions — feel free to give more. Untied donations land on the
+            Tier amounts are suggestions, feel free to give more. Untied donations land on the
             default AGM 2026 campaign.
           </p>
         </div>

@@ -48,8 +48,8 @@ export const AGM_SCHEDULE: readonly AgmScheduleItem[] = [
     ],
   },
   {
-    day: 'Saturday',
-    date: '14 November · Assembly Day · Palais des Congrès · Dress: new SHESA uniform',
+    day: 'Saturday · Ceremony',
+    date: '14 November · Palais des Congrès · Dress: new SHESA uniform',
     sessions: [
       { time: '08:30', title: 'Mass', detail: 'Opening service at Palais des Congrès.' },
       { time: '09:30', title: 'March past', detail: 'Branches and batches parade in formation.' },
@@ -61,11 +61,7 @@ export const AGM_SCHEDULE: readonly AgmScheduleItem[] = [
           'Diplomatic missions, ministers, the Governor of the Centre Region, and special invitees.',
       },
       { time: '11:00', title: 'Anthems', detail: 'National Anthem followed by the SHESA Anthem.' },
-      {
-        time: '11:10',
-        title: 'Welcome remarks',
-        detail: 'By the President General.',
-      },
+      { time: '11:10', title: 'Welcome remarks', detail: 'By the President General.' },
       { time: '11:20', title: 'Remarks by the Arch-Bishop', detail: '' },
       {
         time: '11:25',
@@ -81,6 +77,12 @@ export const AGM_SCHEDULE: readonly AgmScheduleItem[] = [
       },
       { time: '11:55', title: 'Group photos + exhibition', detail: '' },
       { time: '12:20', title: 'Departure of dignitaries', detail: '' },
+    ],
+  },
+  {
+    day: 'Saturday · AGM',
+    date: '14 November · Business session',
+    sessions: [
       {
         time: '12:20',
         title: 'AGM — opening',
@@ -104,6 +106,12 @@ export const AGM_SCHEDULE: readonly AgmScheduleItem[] = [
         title: 'Resolutions + closing remarks',
         detail: 'By the President General.',
       },
+    ],
+  },
+  {
+    day: 'Saturday · Gala',
+    date: '14 November · Evening',
+    sessions: [
       {
         time: '19:00',
         title: 'Gala · arrival of guests',
