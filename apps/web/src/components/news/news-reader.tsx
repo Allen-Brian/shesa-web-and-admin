@@ -22,7 +22,7 @@ interface Props {
 }
 
 /**
- * News reader — single paginated list on the left, the currently
+ * News reader, single paginated list on the left, the currently
  * selected article on the right. No Latest/Popular tabs; every article
  * is just "news". The Featured carousel above uses `?id=…` to feed
  * into the selection here, so clicking a featured card behaves the
@@ -54,7 +54,7 @@ export function NewsReader({
     return (
       <section className="relative bg-white pb-24 md:pb-32">
         <div className="mx-auto max-w-350 px-5 md:px-8 lg:px-12 text-center text-sm text-black/50">
-          No news yet — check back soon.
+          No news yet, check back soon.
         </div>
       </section>
     );

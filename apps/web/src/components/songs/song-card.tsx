@@ -122,7 +122,7 @@ export function SongCard({ song, index }: Props) {
               {song.title}
             </h3>
             <p className="mt-1 truncate text-[11.5px] font-medium uppercase tracking-[0.24em] text-white/75">
-              {song.performer ?? '—'}
+              {song.performer ?? '-'}
             </p>
           </div>
 

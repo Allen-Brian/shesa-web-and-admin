@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Songs · SHESA',
   description:
-    'The SHESA songbook — every anthem, every chapter song, every cultural piece. Play, search, download.',
+    'The SHESA songbook, every anthem, every chapter song, every cultural piece. Play, search, download.',
 };
 
 interface RawGroup {
@@ -53,7 +53,7 @@ function toSong(r: RawSong): PublicSong {
 /**
  * Public Songs page. Wraps the hero + browser + docked player in a
  * shared `<PlayerProvider>` so a single audio element survives the
- * whole page — a card click starts the same track the dock is showing.
+ * whole page, a card click starts the same track the dock is showing.
  */
 export default async function SongsPage() {
   const supabase = await getServerClient();

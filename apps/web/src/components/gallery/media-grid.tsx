@@ -28,7 +28,7 @@ interface MediaGridProps {
  * A masonry grid of album media using CSS `column-count`.
  *
  * Performance:
- *  - Every thumbnail is a Next.js `<Image>` with `quality={45}` — good
+ *  - Every thumbnail is a Next.js `<Image>` with `quality={45}`, good
  *    enough for a browse view, tiny bytes over the wire.
  *  - The first 6 items get `loading="eager"` (browser hint) so the top
  *    of the grid paints immediately; the rest are default `loading="lazy"`.

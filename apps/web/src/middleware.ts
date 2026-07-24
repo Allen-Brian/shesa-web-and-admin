@@ -4,10 +4,10 @@
  * Refreshes the session on every request via `supabase.auth.getUser()`
  * so expired access tokens get silently rotated using the refresh token
  * in the apex-scoped cookie. If a user is signed in on admin, that
- * session flows here transparently — future Phase 5 CMS surfaces will
+ * session flows here transparently, future Phase 5 CMS surfaces will
  * be able to read it without any additional plumbing.
  *
- * Post-pivot (ADR-0040): web is FULLY PUBLIC — no auth-gated routes.
+ * Post-pivot (ADR-0040): web is FULLY PUBLIC, no auth-gated routes.
  * Authoring lives on apps/admin under the Editor persona; web only
  * renders the published output (SSG/ISR). No redirect-when-no-session
  * here on purpose.

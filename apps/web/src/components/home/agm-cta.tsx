@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
-// AGM 2026 — Assembly Day is Saturday 14 November 2026 at Palais des
+// AGM 2026, Assembly Day is Saturday 14 November 2026 at Palais des
 // Congrès, Yaoundé. Countdown anchors to the start of that day in
 // Yaoundé local time (WAT, UTC+1). Friday 13 hosts the regional
 // football tournament + batch meetings; Sunday 15 closes with the
@@ -108,7 +108,7 @@ function saveToCalendar() {
     .replace(/\.\d{3}/, '');
 
   // Anchored to Yaoundé local time (WAT, UTC+1). Friday tournament
-  // kick-off through Sunday's thanksgiving mass — a single calendar
+  // kick-off through Sunday's thanksgiving mass, a single calendar
   // block so add-to-calendar reserves the whole weekend.
   const ics = [
     'BEGIN:VCALENDAR',
@@ -121,9 +121,9 @@ function saveToCalendar() {
     `DTSTAMP:${stamp}`,
     'DTSTART;TZID=Africa/Douala:20261113T150000',
     'DTEND;TZID=Africa/Douala:20261115T130000',
-    'SUMMARY:SHESA AGM 2026 — Yaoundé',
+    'SUMMARY:SHESA AGM 2026, Yaoundé',
     'LOCATION:Palais des Congrès\\, Yaoundé\\, Cameroon',
-    'DESCRIPTION:Fri 13 Nov — Regional football tournament + batch meetings. Sat 14 Nov — Assembly Day at Palais des Congrès (opening ceremony\\, AGM\\, gala night). Sun 15 Nov — Thanksgiving mass. https://shesaconnect.com/agm-2026',
+    'DESCRIPTION:Fri 13 Nov, Regional football tournament + batch meetings. Sat 14 Nov, Assembly Day at Palais des Congrès (opening ceremony\\, AGM\\, gala night). Sun 15 Nov, Thanksgiving mass. https://shesaconnect.com/agm-2026',
     'URL:https://shesaconnect.com/agm-2026',
     'END:VEVENT',
     'END:VCALENDAR',
@@ -248,7 +248,7 @@ export function AgmCta() {
             className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-white/70 md:text-base"
           >
             <span className="font-heading font-medium tracking-[0.14em] text-white">
-              13 — 15 · 11 · 2026
+              13 - 15 · 11 · 2026
             </span>
             <span className="h-1 w-1 rounded-full bg-white/40" />
             <span className="font-heading font-light tracking-[0.14em]">Yaoundé · Cameroon</span>

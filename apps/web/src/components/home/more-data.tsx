@@ -37,13 +37,13 @@ const data: readonly Datum[] = [
     figure: '45',
     suffix: '',
     label: 'Community Projects',
-    body: 'From rural clinics to computer labs, we build the things our communities said they needed — then hand them over.',
+    body: 'From rural clinics to computer labs, we build the things our communities said they needed, then hand them over.',
   },
   {
     figure: '320',
     suffix: '+',
     label: 'Careers Launched',
-    body: 'The mentorship pipeline that turns bright graduates into industry stalwarts — and industry stalwarts into mentors.',
+    body: 'The mentorship pipeline that turns bright graduates into industry stalwarts, and industry stalwarts into mentors.',
   },
 ];
 
@@ -91,7 +91,7 @@ export function MoreData() {
             custom={2}
             className="mt-6 max-w-xl text-[15px] leading-[1.7] text-black/60 md:text-base"
           >
-            Impact isn't a slogan — it's a ledger. Here's a peek at the ledger since we started
+            Impact isn't a slogan, it's a ledger. Here's a peek at the ledger since we started
             keeping it.
           </motion.p>
         </div>

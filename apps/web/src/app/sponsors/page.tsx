@@ -8,7 +8,7 @@ import { TiersSection } from '@/components/sponsors/tiers-section';
 export const metadata: Metadata = {
   title: 'Sponsors · SHESA',
   description:
-    'The institutions, chapters, and businesses who carry the SHESA year — from Platinum partners to community backers.',
+    'The institutions, chapters, and businesses who carry the SHESA year, from Platinum partners to community backers.',
 };
 
 export default function SponsorsPage() {

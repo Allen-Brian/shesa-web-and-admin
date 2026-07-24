@@ -744,7 +744,7 @@ function FlyersSection({
               <div className="relative aspect-[3/4] overflow-hidden">
                 <Image
                   src={flyer}
-                  alt={`${title} — flyer ${i + 1}`}
+                  alt={`${title}, flyer ${i + 1}`}
                   fill
                   sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                   quality={75}

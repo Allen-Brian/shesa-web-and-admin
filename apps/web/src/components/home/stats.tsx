@@ -41,7 +41,7 @@ const stats: readonly Stat[] = [
     target: 45,
     suffix: '+',
     label: 'Countries',
-    caption: 'A brotherhood with no borders — literally.',
+    caption: 'A brotherhood with no borders, literally.',
     icon: <GlobeIcon />,
   },
   {
@@ -129,7 +129,7 @@ export function Stats() {
             variants={fadeUp}
             className="max-w-md text-[15px] leading-[1.7] text-black/60 md:col-span-5"
           >
-            A brotherhood spanning continents, generations, and disciplines — organised into working
+            A brotherhood spanning continents, generations, and disciplines, organised into working
             organs, active chapters, and countless unwritten friendships.
           </motion.p>
         </div>

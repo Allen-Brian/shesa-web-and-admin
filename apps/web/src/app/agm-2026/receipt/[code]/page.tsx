@@ -87,7 +87,7 @@ async function loadReceipt(token: string): Promise<AgmReceiptData | null> {
 
   return {
     kind: kindFor(charge),
-    chargeName: charge?.name ?? '—',
+    chargeName: charge?.name ?? '-',
     receiptNumber: v.receipt_number,
     payerName,
     email:

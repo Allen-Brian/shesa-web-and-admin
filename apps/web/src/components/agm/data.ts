@@ -8,7 +8,7 @@ export const AGM_META = {
   edition: '2026',
   themeLine: 'The Yaoundé Assembly',
   tagline: 'Three days. One tournament, one assembly, one grand celebration.',
-  dates: 'Fri 13 — Sun 15 November 2026',
+  dates: 'Fri 13, Sun 15 November 2026',
   city: 'Yaoundé, Cameroon',
   venue: 'Palais des Congrès · Yaoundé',
   registrationOpens: 'Registration is open',
@@ -43,7 +43,7 @@ export const AGM_SCHEDULE: readonly AgmScheduleItem[] = [
       {
         time: '18:30',
         title: 'Batch meetings',
-        detail: 'Each batch gathers for its annual convocation — venues shared on-site.',
+        detail: 'Each batch gathers for its annual convocation, venues shared on-site.',
       },
     ],
   },
@@ -85,7 +85,7 @@ export const AGM_SCHEDULE: readonly AgmScheduleItem[] = [
     sessions: [
       {
         time: '12:20',
-        title: 'AGM — opening',
+        title: 'AGM, opening',
         detail: 'Opening remarks by the President General.',
       },
       {
@@ -154,7 +154,7 @@ export const AGM_SCHEDULE: readonly AgmScheduleItem[] = [
 export const AGM_TICKET_UNIT_PRICE_XAF = 20_000;
 
 /**
- * Attire package price — a custom-tailored piece the buyer specifies
+ * Attire package price, a custom-tailored piece the buyer specifies
  * measurements for at purchase time. Also flat.
  */
 export const AGM_ATTIRE_UNIT_PRICE_XAF = 50_000;
@@ -162,7 +162,7 @@ export const AGM_ATTIRE_UNIT_PRICE_XAF = 50_000;
 /**
  * Attire sizes offered. Lives here (not in the server-action file)
  * because Next's 'use server' rule strips non-async-function exports
- * — importing an array from a 'use server' module gives you a
+ *, importing an array from a 'use server' module gives you a
  * proxy object without .map at runtime.
  */
 export const ATTIRE_SIZES = ['S', 'M', 'L', 'XL', 'XXL'] as const;

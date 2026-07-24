@@ -3,7 +3,7 @@
  *
  * Same-origin files can rely on the browser's `download` attribute. For
  * cross-origin files (like external CDN videos) we have to fetch the
- * bytes ourselves and hand a Blob to the anchor — otherwise the browser
+ * bytes ourselves and hand a Blob to the anchor, otherwise the browser
  * navigates instead of saving. Both paths funnel through `downloadUrl`.
  */
 
@@ -56,7 +56,7 @@ export async function downloadUrl(url: string, suggestedName?: string) {
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   } catch {
-    // CORS block or offline — open in a new tab as a last resort so the
+    // CORS block or offline, open in a new tab as a last resort so the
     // user can still Save-As from the browser context menu.
     window.open(url, '_blank', 'noopener,noreferrer');
   }

@@ -84,7 +84,7 @@ export function RegistrationForm({ initialError }: Props) {
         </h3>
         <p className="mt-3 max-w-lg text-[14.5px] leading-[1.7] text-black/60">
           Tickets are a flat {AGM_TICKET_UNIT_PRICE_XAF.toLocaleString()} XAF per head. You'll get a
-          printable receipt with a QR code on the next page — bring it to the check-in desk.
+          printable receipt with a QR code on the next page, bring it to the check-in desk.
         </p>
       </div>
 

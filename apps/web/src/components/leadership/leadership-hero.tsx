@@ -95,7 +95,7 @@ export function LeadershipHero() {
           custom={7}
           className="mt-8 max-w-2xl text-[15px] leading-[1.8] text-white/70 md:text-base"
         >
-          From the national executive to the branch chairs to the batch presidents — the men and
+          From the national executive to the branch chairs to the batch presidents, the men and
           women who carry the movement forward, keep the flame lit, and hand it on.
         </motion.p>
       </div>

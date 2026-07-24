@@ -120,7 +120,7 @@ export function ContactHero() {
           className="mt-8 max-w-2xl text-[15px] leading-[1.8] text-white/70 md:text-base"
         >
           Whether you're a Shesan reconnecting, a partner exploring a collaboration, or a journalist
-          chasing a story — this is where the conversation starts.
+          chasing a story, this is where the conversation starts.
         </motion.p>
       </div>
     </section>

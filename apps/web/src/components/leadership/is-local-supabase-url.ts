@@ -7,7 +7,7 @@
  * `http://127.0.0.1:54321/…`, the container's own `127.0.0.1` refuses
  * the connection (the Supabase container lives on the host, not inside
  * shesa-web). Passing `unoptimized` for these URLs lets the browser
- * fetch the bytes directly — the browser IS on the host and resolves
+ * fetch the bytes directly, the browser IS on the host and resolves
  * the loopback correctly.
  *
  * Production URLs (`<project>.supabase.co`) stay optimized because the

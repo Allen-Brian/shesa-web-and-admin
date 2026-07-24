@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Gallery · SHESA',
   description:
-    'The unfiltered SHESA archive — reunions, ceremonies, community drives, and the moments in between.',
+    'The unfiltered SHESA archive, reunions, ceremonies, community drives, and the moments in between.',
 };
 
 interface RawCategory {

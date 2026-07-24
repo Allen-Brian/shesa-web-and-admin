@@ -72,7 +72,7 @@ export function Lightbox({ items, index, onClose, onIndexChange, albumTitle }: L
                 </p>
               )}
               <p className="mt-0.5 truncate font-heading text-sm font-light text-white/90">
-                {current.alt} — {(index ?? 0) + 1} / {items.length}
+                {current.alt}, {(index ?? 0) + 1} / {items.length}
               </p>
             </div>
             <div className="flex items-center gap-2">

@@ -116,7 +116,7 @@ export function SponsorsHero() {
           custom={7}
           className="mt-8 max-w-2xl text-[15px] leading-[1.8] text-white/70 md:text-base"
         >
-          Every AGM, every scholarship, every community drive — carried by partners who chose to
+          Every AGM, every scholarship, every community drive, carried by partners who chose to
           build alongside us. These are their names.
         </motion.p>
       </div>

@@ -23,7 +23,7 @@ interface RawMap {
 
 /**
  * Fetch every project + join through categories in one round-trip.
- * Used by both metadata generation and the page renderer — the
+ * Used by both metadata generation and the page renderer, the
  * per-request cost is small (10-50 rows), and returning the full set
  * lets us compute related projects locally.
  */

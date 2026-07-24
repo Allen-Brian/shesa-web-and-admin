@@ -200,8 +200,8 @@ function AmbientGlow() {
 }
 
 /**
- * Two very subtle floating badges above the crest and below the CTA —
- * they orbit slowly on Y with a long duration so the page feels
+ * Two very subtle floating badges above the crest and below the CTA.
+ * They orbit slowly on Y with a long duration so the page feels
  * "alive" without stealing focus.
  */
 function FloatingBadges() {

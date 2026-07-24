@@ -1,7 +1,7 @@
 /**
  * Public-site project shape. Sourced from `cms.projects` +
  * `cms.project_categories` at read time by the server page. The web
- * components accept these as props — no static data lives here.
+ * components accept these as props, no static data lives here.
  */
 
 export type ProjectStatus = 'Active' | 'Ongoing' | 'Planning' | 'Fundraising' | 'Completed';
@@ -22,7 +22,7 @@ export type Project = {
   readonly id: string;
   readonly slug: string;
   readonly title: string;
-  /** First joined category name — displayed as the primary tag. */
+  /** First joined category name, displayed as the primary tag. */
   readonly category: string;
   /** All joined category names for filter chips + related lookups. */
   readonly categories: readonly string[];

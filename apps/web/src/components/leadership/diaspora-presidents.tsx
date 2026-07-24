@@ -72,7 +72,7 @@ export function DiasporaPresidents({ presidents }: DiasporaPresidentsProps) {
             custom={2}
             className="max-w-md text-[15px] leading-[1.7] text-black/60 md:col-span-4 md:pb-3"
           >
-            The presidents of every SHESA chapter beyond Cameroon's borders — keeping the ties tight
+            The presidents of every SHESA chapter beyond Cameroon's borders, keeping the ties tight
             across time zones, continents, and passports.
           </motion.p>
         </div>

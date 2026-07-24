@@ -9,7 +9,7 @@ import type { Article } from './data';
 
 /**
  * Right-panel article body. Author strip, headline, banner, and the
- * rich content rendered from the stored HTML (trusted — every author
+ * rich content rendered from the stored HTML (trusted, every author
  * of a `cms.articles` row holds `cms.edit` at Mainstream, so the
  * content is not user-generated in the untrusted sense).
  */

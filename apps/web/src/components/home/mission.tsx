@@ -16,11 +16,11 @@ const fadeUp: Variants = {
 const pillars = [
   {
     title: 'Connect',
-    body: 'Weave graduates from every era into one active, living network — across chapters, borders, and generations.',
+    body: 'Weave graduates from every era into one active, living network, across chapters, borders, and generations.',
   },
   {
     title: 'Celebrate',
-    body: 'Honour the milestones, achievements, and stories of our people. The wins, the losses, the memories — all of it.',
+    body: 'Honour the milestones, achievements, and stories of our people. The wins, the losses, the memories, all of it.',
   },
   {
     title: 'Give Back',
@@ -67,7 +67,7 @@ export function Mission() {
               className="mt-6 max-w-md text-[18px] leading-[1.7] text-black/65"
             >
               SHESA exists to preserve, celebrate, and expand the bond that began in the corridors
-              of school — stewarding the legacy of{' '}
+              of school, stewarding the legacy of{' '}
               <em className="not-italic text-black">Viriliter Age</em> for those still to come.
             </motion.p>
           </div>

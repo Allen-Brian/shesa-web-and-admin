@@ -81,7 +81,7 @@ function toProgram(v: unknown): ProgramItem[] {
  * from `starts_at` and the `upcoming` flag from now-vs-starts.
  *
  * The description_html is split into paragraphs so the detail page
- * keeps its per-paragraph fade-in — the shortened intro sits in
+ * keeps its per-paragraph fade-in, the shortened intro sits in
  * `description`, the rest in `extendedDescription`.
  */
 export function formatEvent(raw: RawSiteEvent, categoryNames: readonly string[]): SiteEvent {

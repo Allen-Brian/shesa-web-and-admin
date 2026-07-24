@@ -8,7 +8,7 @@ interface Props {
 
 /**
  * Pagination controls under the reader's left list. Prev + numbered
- * pages + Next; disabled endpoints go dim. Kept simple — the list is
+ * pages + Next; disabled endpoints go dim. Kept simple, the list is
  * short enough that showing every page number is friendlier than
  * ellipses for the SHESA site's scale.
  */

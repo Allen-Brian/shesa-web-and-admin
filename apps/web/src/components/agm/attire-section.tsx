@@ -28,7 +28,7 @@ export function AttireSection({ initialError }: Props) {
             Wear the new SHESA colours.
           </h2>
           <p className="text-[14.5px] leading-[1.7] text-black/60">
-            The Assembly Day dress code is the new SHESA uniform. Order yours now — one flat price,
+            The Assembly Day dress code is the new SHESA uniform. Order yours now, one flat price,
             one flat size decision. Pick-up on Saturday at Palais des Congrès.
           </p>
         </div>

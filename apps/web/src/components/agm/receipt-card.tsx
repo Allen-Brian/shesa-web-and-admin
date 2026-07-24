@@ -129,7 +129,7 @@ export function ReceiptCard({ receipt, qrSvg }: Props) {
                   className="mt-1 font-heading font-thin leading-tight text-white"
                   style={{ fontSize: '1.75rem', letterSpacing: '-0.02em' }}
                 >
-                  AGM {AGM_META.edition} — {heading}
+                  AGM {AGM_META.edition}, {heading}
                 </p>
               </div>
             </div>
@@ -214,7 +214,7 @@ export function ReceiptCard({ receipt, qrSvg }: Props) {
       </motion.article>
 
       <p className="text-center text-[12.5px] text-black/50 print:hidden">
-        Keep this receipt handy — bring it to the check-in desk (screen or paper is fine).
+        Keep this receipt handy, bring it to the check-in desk (screen or paper is fine).
       </p>
     </div>
   );

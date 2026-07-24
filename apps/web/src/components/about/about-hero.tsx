@@ -97,7 +97,7 @@ export function AboutHero() {
         >
           From a hillside in Mankon in 1962, Sacred Heart College has forged a brotherhood that
           outlasts every graduation. This is who we are, where we came from, and where we're heading
-          — together.
+          , together.
         </motion.p>
 
         <motion.p

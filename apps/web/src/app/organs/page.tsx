@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Organs · SHESA',
   description:
-    'Every SHESA organ — the National body, the sectors, and the branches. From Yaoundé to Berlin to Washington.',
+    'Every SHESA organ, the National body, the sectors, and the branches. From Yaoundé to Berlin to Washington.',
 };
 
 interface RawSector {

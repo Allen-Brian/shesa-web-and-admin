@@ -25,7 +25,7 @@ interface Props {
 }
 
 /**
- * Public News page hero — headline + description on the left,
+ * Public News page hero, headline + description on the left,
  * horizontal Featured carousel on the right. Each card is a Link
  * back to `/news?id={article.id}` so clicking sets the reader's
  * active article without a full navigation cycle in the reader.

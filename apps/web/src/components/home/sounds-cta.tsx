@@ -80,7 +80,7 @@ export function SoundsCta() {
             custom={3}
             className="mt-6 max-w-2xl text-[15px] leading-[1.7] text-white/70 md:text-base"
           >
-            Every alma mater has an anthem. We have a whole songbook — the hymns, the parade chants,
+            Every alma mater has an anthem. We have a whole songbook, the hymns, the parade chants,
             the halftime choruses, the sundown melodies we still hum without thinking. Reconnect
             with the sound of home.
           </motion.p>

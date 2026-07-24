@@ -1,6 +1,6 @@
 /**
  * Wraps `@shesa/supabase/server` with Next.js's `cookies()` store.
- * Mirror of apps/auth/src/lib/supabase-server.ts — kept per-app so any
+ * Mirror of apps/auth/src/lib/supabase-server.ts, kept per-app so any
  * web-specific cookie behavior (e.g. CMS preview-mode handoff) has one
  * place to land later.
  */

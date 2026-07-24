@@ -21,7 +21,7 @@ const BAR_COUNT = 56;
  *    and a boosted peak; when paused, bars settle to baseline.
  *  - The played portion (bars left of `progress`) is coloured primary,
  *    the un-played portion is a subtle black/20.
- *  - Clicking anywhere on the strip seeks — the ratio of click-X to
+ *  - Clicking anywhere on the strip seeks, the ratio of click-X to
  *    strip-width becomes the new progress.
  */
 export function PlayerWaveform({ progress, isPlaying, onSeek }: Props) {

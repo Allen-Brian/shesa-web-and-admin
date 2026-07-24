@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Events · SHESA',
-  description: 'Reunions, ceremonies, community drives, and cultural nights — the SHESA calendar.',
+  description: 'Reunions, ceremonies, community drives, and cultural nights, the SHESA calendar.',
 };
 
 interface RawCategory {

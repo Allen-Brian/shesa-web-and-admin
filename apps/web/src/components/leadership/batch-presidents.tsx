@@ -97,7 +97,7 @@ export function BatchPresidents({ presidents }: BatchPresidentsProps) {
             custom={2}
             className="max-w-md text-[15px] leading-[1.7] text-black/60 md:col-span-4 md:pb-3"
           >
-            One class president per graduating batch — {batches.length} unbroken batches from{' '}
+            One class president per graduating batch, {batches.length} unbroken batches from{' '}
             {batches[batches.length - 1]?.batch} to {batches[0]?.batch}.
           </motion.p>
         </div>

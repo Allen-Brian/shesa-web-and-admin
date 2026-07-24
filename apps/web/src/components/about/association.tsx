@@ -16,15 +16,15 @@ const fadeUp: Variants = {
 const pillars = [
   {
     title: 'Reconnect',
-    body: 'Chapter meetings, class reunions, homecomings — the mechanics of keeping the brotherhood alive.',
+    body: 'Chapter meetings, class reunions, homecomings, the mechanics of keeping the brotherhood alive.',
   },
   {
     title: 'Celebrate',
-    body: 'Weddings, ordinations, promotions, book launches — showing up for each other, always.',
+    body: 'Weddings, ordinations, promotions, book launches, showing up for each other, always.',
   },
   {
     title: 'Serve',
-    body: 'Scholarships, infrastructure, healthcare — pouring back into the school and the wider community.',
+    body: 'Scholarships, infrastructure, healthcare, pouring back into the school and the wider community.',
   },
   {
     title: 'Steward',
@@ -72,8 +72,8 @@ export function Association() {
             custom={2}
             className="max-w-md text-[15px] leading-[1.7] text-black/60 md:col-span-5"
           >
-            The Sacred Heart Ex-Students' Association — SHESA — is what happens when a school
-            produces enough men who refuse to forget each other.
+            The Sacred Heart Ex-Students' Association, SHESA, is what happens when a school produces
+            enough men who refuse to forget each other.
           </motion.p>
         </div>
 
@@ -87,14 +87,14 @@ export function Association() {
           <div className="md:col-span-7">
             <p className="text-[15.5px] leading-[1.8] text-black/70 md:text-base">
               Constituted formally as an alumni body, SHESA is the living network of every man who
-              has walked through the college gates — from the founding class of the sixties to the
+              has walked through the college gates, from the founding class of the sixties to the
               leavers of last term. We count our members in the tens of thousands, our chapters in
               the hundreds, and our countries in the dozens.
             </p>
             <p className="mt-4 text-[15.5px] leading-[1.8] text-black/70 md:text-base">
               We are organised into governing organs at national and regional level, coordinated by
               an elected executive and served by working committees. But the real work is not the
-              governance — it is the four things we do relentlessly, in that order.
+              governance, it is the four things we do relentlessly, in that order.
             </p>
           </div>
 
@@ -110,7 +110,7 @@ export function Association() {
                   letterSpacing: '-0.01em',
                 }}
               >
-                To reconnect, celebrate, serve, and steward — for as long as there are Shesans, and
+                To reconnect, celebrate, serve, and steward, for as long as there are Shesans, and
                 for those who come after.
               </p>
               <div aria-hidden className="mt-6 flex items-center gap-3">

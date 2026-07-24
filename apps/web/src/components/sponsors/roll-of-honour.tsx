@@ -16,7 +16,7 @@ const fadeUp: Variants = {
 };
 
 /**
- * Roll-of-honour list — sponsors grouped by tier. Feels like the
+ * Roll-of-honour list, sponsors grouped by tier. Feels like the
  * printed brochure back-cover. Each name is a plain text line (no
  * links) because the source-of-truth is the printed programme.
  */

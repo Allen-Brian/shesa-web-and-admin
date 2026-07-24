@@ -82,7 +82,7 @@ export function PastEvents({ past }: Props) {
             custom={2}
             className="max-w-md text-[15px] leading-[1.7] text-black/60 md:col-span-4"
           >
-            A running record of the reunions, drives, and ceremonies behind us — organised by year,
+            A running record of the reunions, drives, and ceremonies behind us, organised by year,
             four at a time.
           </motion.p>
         </div>

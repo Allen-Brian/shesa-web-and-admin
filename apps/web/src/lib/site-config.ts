@@ -1,5 +1,5 @@
 /**
- * Site-wide constants for the public web app — nav structure, brand copy,
+ * Site-wide constants for the public web app, nav structure, brand copy,
  * and the AGM call-to-action target. Kept in one place so every page/nav
  * consumer stays in sync.
  */
@@ -13,7 +13,7 @@ export const siteConfig = {
   name: 'SHESA',
   tagline: 'Alumni. United. Forever.',
   description:
-    'The official home of the SHESA alumni community — reconnect, celebrate legacy, and shape what comes next.',
+    'The official home of the SHESA alumni community, reconnect, celebrate legacy, and shape what comes next.',
 } as const;
 
 export const navItems: readonly NavItem[] = [

@@ -1,6 +1,6 @@
 /**
  * Types shared across the public gallery components. All data now flows
- * from `cms.gallery_*` at request time — see `format-album.ts` for the
+ * from `cms.gallery_*` at request time, see `format-album.ts` for the
  * normaliser that maps DB rows into these shapes.
  */
 
@@ -9,7 +9,7 @@ export type MediaItem = {
   readonly type: 'photo' | 'video';
   /** Full-resolution source (image URL, or video URL). */
   readonly src: string;
-  /** Optional smaller thumbnail — falls back to `src` when omitted. */
+  /** Optional smaller thumbnail, falls back to `src` when omitted. */
   readonly thumbnail?: string;
   /** Poster still for videos. */
   readonly poster?: string;

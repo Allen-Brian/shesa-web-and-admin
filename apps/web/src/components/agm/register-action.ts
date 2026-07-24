@@ -9,7 +9,7 @@ import type { PaymentOption } from './data';
 /**
  * Public.tsx signal: web forms drive `finance.record_public_ticket_purchase`
  * for the AGM ticket. Payment methods on this page are labels for the
- * downstream MoMo/Orange/bank rail — the RPC records `'auto'` source
+ * downstream MoMo/Orange/bank rail, the RPC records `'auto'` source
  * so Finance can reconcile against the eventual bank statement.
  */
 const PAYMENT_METHOD_MAP: Record<PaymentOption, string> = {

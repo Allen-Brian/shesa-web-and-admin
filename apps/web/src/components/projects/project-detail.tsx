@@ -32,7 +32,7 @@ const revealLine: Variants = {
 interface Props {
   readonly project: Project;
   /**
-   * Optional related-project list — the server page pre-picks up to
+   * Optional related-project list, the server page pre-picks up to
    * three same-category siblings so this component doesn't have to
    * hold a reference to the full CMS.
    */

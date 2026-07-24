@@ -109,7 +109,7 @@ export function EventsHero({ upcomingCount, pastCount }: Props) {
           custom={7}
           className="mt-8 max-w-2xl text-[15px] leading-[1.8] text-white/70 md:text-base"
         >
-          Reunions, ceremonies, community drives, and cultural nights — the full calendar of the
+          Reunions, ceremonies, community drives, and cultural nights, the full calendar of the
           movement. Filter, browse, and save the ones you won't want to miss.
         </motion.p>
 

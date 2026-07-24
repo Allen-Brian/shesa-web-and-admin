@@ -107,8 +107,8 @@ export function OrgansHero({ sectorCount, organCount, memberCount }: OrgansHeroP
           custom={7}
           className="mt-8 max-w-2xl text-[15px] leading-[1.8] text-white/70 md:text-base"
         >
-          From the national body in Yaoundé to the chapters in Berlin, London, and Washington —
-          every SHESA organ, in one place.
+          From the national body in Yaoundé to the chapters in Berlin, London, and Washington, every
+          SHESA organ, in one place.
         </motion.p>
 
         <motion.div

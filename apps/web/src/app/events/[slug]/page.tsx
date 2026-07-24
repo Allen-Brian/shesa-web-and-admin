@@ -23,7 +23,7 @@ interface RawMap {
 
 /**
  * Load every event + its category names into an in-memory array.
- * Used for both metadata generation and the page renderer — the per
+ * Used for both metadata generation and the page renderer, the per
  * request cost is small (10-50 rows), and returning the full set
  * lets us compute related events locally.
  */

@@ -27,7 +27,7 @@ function daysUntil(dateStr: string): number | null {
 }
 
 interface Props {
-  /** Currently featured event (or the next upcoming) — omit to hide this section. */
+  /** Currently featured event (or the next upcoming), omit to hide this section. */
   readonly featuredEvent?: SiteEvent | null;
 }
 

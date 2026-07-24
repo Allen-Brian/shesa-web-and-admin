@@ -1,5 +1,5 @@
 /**
- * Static sponsor content. Kept in-repo (not CMS) — sponsors are
+ * Static sponsor content. Kept in-repo (not CMS), sponsors are
  * curated by hand and change rarely.
  */
 
@@ -78,7 +78,7 @@ export const sponsorTiers: readonly SponsorTier[] = [
 
 /**
  * Illustrative roll of sponsors. Replace names / edit list ahead of
- * every AGM — this file is the source of truth for the printed
+ * every AGM, this file is the source of truth for the printed
  * brochure and the Sponsors page alike.
  */
 export const sponsors: readonly Sponsor[] = [

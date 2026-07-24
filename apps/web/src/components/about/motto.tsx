@@ -107,7 +107,7 @@ export function Motto() {
           >
             Two words. A lifelong assignment. Since 1962, every Shesan has walked out of the college
             gates carrying this compass. It calls for bravery in the face of difficulty, honesty in
-            every dealing, discipline in every pursuit, and gentleness in every relationship — the
+            every dealing, discipline in every pursuit, and gentleness in every relationship, the
             through-line that connects the boy in the classroom to the man in the boardroom, the
             field, the courtroom, the pulpit.
           </motion.p>

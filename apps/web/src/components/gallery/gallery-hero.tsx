@@ -107,7 +107,7 @@ export function GalleryHero({ albumCount, photoCount, videoCount }: GalleryHeroP
           custom={7}
           className="mt-8 max-w-2xl text-[15px] leading-[1.8] text-white/70 md:text-base"
         >
-          Every reunion, every drive, every cultural night — the unfiltered archive of the moments
+          Every reunion, every drive, every cultural night, the unfiltered archive of the moments
           that made us who we are.
         </motion.p>
 

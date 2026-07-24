@@ -110,7 +110,7 @@ export function DockedPlayer() {
             />
 
             <div className="relative flex flex-col gap-3 p-3 md:flex-row md:items-center md:gap-4 md:p-4">
-              {/* Left — cover + meta */}
+              {/* Left, cover + meta */}
               <div className="flex items-center gap-3 md:min-w-[220px] md:max-w-[280px]">
                 <motion.div
                   key={song.id}
@@ -154,7 +154,7 @@ export function DockedPlayer() {
                 </div>
               </div>
 
-              {/* Middle — transport + waveform */}
+              {/* Middle, transport + waveform */}
               <div className="flex flex-1 flex-col gap-1">
                 <div className="flex items-center justify-center gap-2">
                   <ControlButton onClick={player.prev} label="Previous">
@@ -190,7 +190,7 @@ export function DockedPlayer() {
                 </div>
               </div>
 
-              {/* Right — download + close */}
+              {/* Right, download + close */}
               <div className="flex shrink-0 items-center gap-1 md:min-w-[100px] md:justify-end">
                 <a
                   href={song.audioUrl}

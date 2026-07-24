@@ -6,7 +6,7 @@ interface Props {
 
 /**
  * Registration section for AGM 2026. Only the ticket form lives here
- * — the tier picker went away when tickets became a flat unit price
+ *, the tier picker went away when tickets became a flat unit price
  * (Attire + Funding tiers get their own dedicated sections when
  * their flavour lands).
  */

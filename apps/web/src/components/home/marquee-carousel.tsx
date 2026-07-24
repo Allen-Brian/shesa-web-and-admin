@@ -15,7 +15,7 @@ interface MarqueeCarouselProps<T> {
 /**
  * Horizontal auto-scrolling marquee. Content is duplicated once so the
  * CSS `-50%` translate loops seamlessly. Pauses on hover / focus-within
- * and respects `prefers-reduced-motion` — handled in globals.css.
+ * and respects `prefers-reduced-motion`, handled in globals.css.
  *
  * The viewport uses a symmetrical mask so items fade in on the left and
  * out on the right (no hard edge).

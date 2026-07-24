@@ -44,7 +44,7 @@ interface MainOrganProps {
   /**
    * The mainstream executive slate, grouped into hierarchical tiers.
    * Supplied by the server page from the `cms` schema. When empty the
-   * whole section short-circuits — an empty CMS renders nothing.
+   * whole section short-circuits, an empty CMS renders nothing.
    */
   readonly tiers: readonly Tier[];
 }

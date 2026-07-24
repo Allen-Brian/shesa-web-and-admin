@@ -19,7 +19,7 @@ type Milestone = {
   readonly body: string;
 };
 
-// Placeholder milestones — the founding year (1962) is on the record;
+// Placeholder milestones, the founding year (1962) is on the record;
 // the rest are illustrative and should be verified against SHESA's
 // own history before publication.
 const milestones: readonly Milestone[] = [
@@ -61,7 +61,7 @@ const milestones: readonly Milestone[] = [
   {
     year: '2026',
     title: 'All roads lead to Yaoundé.',
-    body: 'The next chapter of the movement — an AGM like no other, at Palais des Congrès, Yaoundé.',
+    body: 'The next chapter of the movement, an AGM like no other, at Palais des Congrès, Yaoundé.',
   },
 ];
 

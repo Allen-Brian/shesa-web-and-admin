@@ -40,7 +40,7 @@ const events: readonly Event[] = [
     slug: 'agm-2026',
   },
   {
-    title: 'Health Outreach — Bamenda',
+    title: 'Health Outreach, Bamenda',
     day: '15',
     month: 'Dec',
     year: '2026',
@@ -80,7 +80,7 @@ const events: readonly Event[] = [
     slug: 'scholarship-gala-2027',
   },
   {
-    title: 'Regional Summit — West Africa',
+    title: 'Regional Summit, West Africa',
     day: '05',
     month: 'Apr',
     year: '2027',

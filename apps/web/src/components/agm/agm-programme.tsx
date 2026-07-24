@@ -16,7 +16,7 @@ const fadeUp: Variants = {
 };
 
 /**
- * Programme — three compact day cards laid out side-by-side. Sessions
+ * Programme, three compact day cards laid out side-by-side. Sessions
  * inside each card render as a tight time+title list; long detail
  * lines truncate on hover so the card height stays bounded even for
  * dense days. Same visual density as the original design, but with a

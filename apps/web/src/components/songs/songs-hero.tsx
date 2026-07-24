@@ -104,7 +104,7 @@ export function SongsHero({ songCount, groupCount }: SongsHeroProps) {
           custom={7}
           className="mt-8 max-w-2xl text-[15px] leading-[1.8] text-white/70 md:text-base"
         >
-          The anthems, the chapter songs, the cultural pieces — every song we carry, in one place.
+          The anthems, the chapter songs, the cultural pieces, every song we carry, in one place.
           Press play and it stays with you as you scroll.
         </motion.p>
 

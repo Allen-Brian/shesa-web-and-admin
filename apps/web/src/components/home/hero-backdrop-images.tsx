@@ -24,14 +24,14 @@ const VISIBLE_OPACITY = 0.1;
  *     the 1MB source JPGs ship as ~200kb tuned to viewport width.
  *   - Only the first image is `priority` (LCP-friendly); the rest lazy-
  *     load naturally in the background before the rotation reaches them.
- *   - `quality={45}` — safe because the visible layer sits at ~22%
+ *   - `quality={45}`, safe because the visible layer sits at ~22%
  *     opacity under a dark gradient. Compression is invisible.
  *
  * Motion:
  *   - Cross-fade every 7s. Paused when the tab is hidden (Page
  *     Visibility API) so mobile users don't burn battery/data
  *     rotating a backdrop they can't see.
- *   - Respects `prefers-reduced-motion` — sticks on the first image.
+ *   - Respects `prefers-reduced-motion`, sticks on the first image.
  */
 export function HeroBackdropImages() {
   const reduce = useReducedMotion();

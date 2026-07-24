@@ -91,8 +91,8 @@ export function AttireForm({ initialError }: Props) {
           Order the new SHESA uniform.
         </h3>
         <p className="mt-3 max-w-lg text-[14.5px] leading-[1.7] text-black/60">
-          A flat {AGM_ATTIRE_UNIT_PRICE_XAF.toLocaleString()} XAF per piece. Pick your size — we
-          take it from there. Pick-up on Assembly Day; your receipt is your proof of order.
+          A flat {AGM_ATTIRE_UNIT_PRICE_XAF.toLocaleString()} XAF per piece. Pick your size, we take
+          it from there. Pick-up on Assembly Day; your receipt is your proof of order.
         </p>
       </div>
 

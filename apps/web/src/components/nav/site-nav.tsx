@@ -34,7 +34,7 @@ export function SiteNav() {
     if (typeof window === 'undefined') return;
 
     // On route change the browser scrolls to top, but that scroll
-    // event may fire after our effects run — so seed `scrolled` from
+    // event may fire after our effects run, so seed `scrolled` from
     // the actual scrollY and reset onDark until the observer fires.
     setScrolled(window.scrollY > 8);
     setOnDark(false);

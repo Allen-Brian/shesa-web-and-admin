@@ -49,7 +49,7 @@ interface RawBatch {
 const PLACEHOLDER_PHOTO = '/president_one.jpg';
 
 /**
- * Public Leadership page — reads all four CMS strips (mainstream slate
+ * Public Leadership page, reads all four CMS strips (mainstream slate
  * + branches + diaspora + batches) in one Promise.all and hands each
  * bundle to its rendering component. Every rendering component keeps
  * its client-side animation shell; the server just supplies data.

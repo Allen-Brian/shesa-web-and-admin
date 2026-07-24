@@ -100,7 +100,7 @@ export function Origin() {
               On a hillside in Mankon, in Cameroon's Northwest highlands, the{' '}
               <em className="not-italic font-medium text-black">Mill Hill Missionaries</em> opened
               the doors of Sacred Heart College in 1962. For six decades and counting, the college
-              has shaped young men into scholars, priests, professionals, and leaders — with rigour,
+              has shaped young men into scholars, priests, professionals, and leaders, with rigour,
               discipline, and an unmistakable Catholic ethos.
             </motion.p>
 
@@ -113,7 +113,7 @@ export function Origin() {
               className="mt-4 max-w-xl text-[15.5px] leading-[1.75] text-black/70 md:text-base"
             >
               What began as a modest boys' school in the highlands has grown into one of Cameroon's
-              most storied institutions — a place where the sons of teachers, farmers, doctors, and
+              most storied institutions, a place where the sons of teachers, farmers, doctors, and
               public servants have sat side-by-side and become brothers for life.
             </motion.p>
 

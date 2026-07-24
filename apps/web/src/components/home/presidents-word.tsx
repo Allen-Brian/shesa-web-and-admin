@@ -105,7 +105,7 @@ export function PresidentsWord() {
                 &ldquo;
               </span>
               <p className="text-[17px] leading-[1.75] text-black/75 md:text-[19px]">
-                We inherited more than a brotherhood — we inherited a promise. The Shesa we want is
+                We inherited more than a brotherhood, we inherited a promise. The Shesa we want is
                 not a memory of what was, but a living force: one that lifts every graduate,
                 strengthens every school, and answers every call our community makes on us. Our
                 task, in this era, is to make the promise louder than the memory.

@@ -57,7 +57,7 @@ export function TiersSection() {
             custom={2}
             className="max-w-md text-[15px] leading-[1.7] text-black/60 md:col-span-4"
           >
-            Every tier comes with the whole family. What changes is how loud your name gets to be —
+            Every tier comes with the whole family. What changes is how loud your name gets to be,
             and how many chairs you get at the table.
           </motion.p>
         </div>

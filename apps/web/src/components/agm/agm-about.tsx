@@ -17,7 +17,7 @@ const PILLARS = [
   {
     number: '01',
     title: 'The Assembly',
-    body: 'Every branch, every sector, every chapter — under one roof to elect, resolve, and set the year ahead.',
+    body: 'Every branch, every sector, every chapter, under one roof to elect, resolve, and set the year ahead.',
   },
   {
     number: '02',
@@ -27,7 +27,7 @@ const PILLARS = [
   {
     number: '03',
     title: 'The Handover',
-    body: 'From Yaoundé to the next host city — the AGM 2027 committee lifts the torch on the last day.',
+    body: 'From Yaoundé to the next host city, the AGM 2027 committee lifts the torch on the last day.',
   },
 ];
 

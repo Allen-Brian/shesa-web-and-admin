@@ -133,7 +133,7 @@ function ContactForm() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setStatus('sending');
-    // Placeholder — real backend integration comes later.
+    // Placeholder, real backend integration comes later.
     await new Promise((r) => setTimeout(r, 900));
     setStatus('sent');
     e.currentTarget.reset();
@@ -261,7 +261,7 @@ function ContactForm() {
               className="inline-flex items-center gap-2 rounded-xs border border-success/40 bg-success/10 px-3 py-2 text-[12.5px] font-medium tracking-wide text-success"
             >
               <CheckIcon />
-              Message received — we'll be in touch shortly.
+              Message received, we'll be in touch shortly.
             </motion.p>
           )}
           {status === 'error' && (

@@ -76,7 +76,7 @@ export function BranchPresidents({ presidents }: BranchPresidentsProps) {
             custom={2}
             className="max-w-md text-[15px] leading-[1.7] text-black/60 md:col-span-4 md:pb-3"
           >
-            The presidents of each branch across Cameroon — running homecomings, hosting reunions,
+            The presidents of each branch across Cameroon, running homecomings, hosting reunions,
             and keeping the movement alive on the ground.
           </motion.p>
         </div>

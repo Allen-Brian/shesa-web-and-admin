@@ -17,11 +17,11 @@ interface CrestBadgeProps {
 /**
  * The SHESA crest, presented with cinematic treatment:
  *   - Burgundy radial glow behind it (pulses on the beat)
- *   - Heartbeat scale animation — only while the pointer is hovering
+ *   - Heartbeat scale animation, only while the pointer is hovering
  *     the crest. At rest the composition is completely still to keep
  *     the hero calm.
  *   - 3D tilt that follows the pointer inside the badge
- *   - A cloud of drifting embers rising past it (always on — subtle,
+ *   - A cloud of drifting embers rising past it (always on, subtle,
  *     ambient)
  *
  * The heartbeat is the classic lub-dub keyframe pattern (S1 systole,
@@ -153,7 +153,7 @@ export function CrestBadge({ className, beating = false }: CrestBadgeProps) {
       >
         <Image
           src="/shesa.png"
-          alt="SHESA — Viriliter Age"
+          alt="SHESA, Viriliter Age"
           width={1200}
           height={1200}
           priority

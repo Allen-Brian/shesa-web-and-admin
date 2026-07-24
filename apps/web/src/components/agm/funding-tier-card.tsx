@@ -15,7 +15,7 @@ interface Props {
 
 /**
  * Per-tier visual language. Each metal gets its own gradient face + a
- * tinted border so a row of cards reads immediately as a hierarchy —
+ * tinted border so a row of cards reads immediately as a hierarchy:
  * cool bronze at the low end, warm platinum at the top. The colours
  * stay muted enough on the base state that a page of five cards
  * doesn't overwhelm; the active state saturates and adds a lifted

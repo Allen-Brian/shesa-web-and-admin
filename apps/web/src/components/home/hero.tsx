@@ -65,7 +65,7 @@ export function Hero() {
                 AGM 2026
               </p>
               <p className="mt-2 text-sm leading-relaxed text-white/75">
-                Save the date. Our largest gathering yet — reunions, honours, and what comes next.
+                Save the date. Our largest gathering yet, reunions, honours, and what comes next.
               </p>
               <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-white">
                 See details

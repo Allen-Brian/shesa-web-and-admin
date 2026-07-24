@@ -1,7 +1,7 @@
 /**
  * Public-site event shape. Sourced from `cms.site_events` +
  * `cms.site_event_categories` at read time by the server page. Web
- * components accept these as props — no static data lives here.
+ * components accept these as props, no static data lives here.
  */
 
 export type ProgramItem = {
@@ -14,17 +14,17 @@ export type SiteEvent = {
   readonly id: string;
   readonly slug: string;
   readonly title: string;
-  /** Derived display components — day of month, "Feb", "2026". */
+  /** Derived display components, day of month, "Feb", "2026". */
   readonly day: string;
   readonly month: string;
   readonly year: string;
-  /** ISO date string (yyyy-MM-dd) — used by the countdown + related-event filter. */
+  /** ISO date string (yyyy-MM-dd), used by the countdown + related-event filter. */
   readonly fullDate: string;
   readonly location: string;
   readonly city: string;
   readonly image: string;
   readonly description: string;
-  /** First joined category name — displayed as the primary tag. */
+  /** First joined category name, displayed as the primary tag. */
   readonly category: string;
   /** All joined category names. */
   readonly categories: readonly string[];
@@ -41,7 +41,7 @@ export type SiteEvent = {
    * derived from `description_html` by splitting on `</p>`.
    */
   readonly extendedDescription?: readonly string[];
-  /** Ticketing — opt-in triple. */
+  /** Ticketing, opt-in triple. */
   readonly ticketUrl?: string;
   readonly ticketPrice?: number;
   readonly ticketCurrency?: string;

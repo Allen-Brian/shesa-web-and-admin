@@ -38,7 +38,7 @@ const albums: readonly Album[] = [
     title: 'International Summit',
     date: 'May 2023',
     photos: 78,
-    description: 'A brotherhood without borders — chapters from three continents.',
+    description: 'A brotherhood without borders, chapters from three continents.',
     cover: '/hero_three.jpg',
     slug: 'international-summit-2023',
   },
@@ -78,7 +78,7 @@ const albums: readonly Album[] = [
     title: 'AGM 2024',
     date: 'November 2024',
     photos: 147,
-    description: 'The biggest gathering in a decade — and just the warm-up for 2026.',
+    description: 'The biggest gathering in a decade, and just the warm-up for 2026.',
     cover: '/hero_three.jpg',
     slug: 'agm-2024',
   },
@@ -122,8 +122,8 @@ export function Gallery() {
             custom={2}
             className="mt-6 max-w-xl text-[15px] leading-[1.7] text-black/60 md:text-base"
           >
-            An unfiltered archive of the moments — big, small, and every kind of unforgettable —
-            that made us who we are. Reunions, ceremonies, camps, quiet Sundays. All of it.
+            An unfiltered archive of the moments, big, small, and every kind of unforgettable, that
+            made us who we are. Reunions, ceremonies, camps, quiet Sundays. All of it.
           </motion.p>
 
           <motion.div
@@ -263,7 +263,7 @@ function CarouselControls({
   );
 }
 
-// Bulge outward ("arch/hill") — center pops FORWARD and is largest, sides
+// Bulge outward ("arch/hill"), center pops FORWARD and is largest, sides
 // recede in Z and shrink slightly. Rotation is deliberately gentle so
 // outer albums remain readable.
 function positionFor(offset: number) {

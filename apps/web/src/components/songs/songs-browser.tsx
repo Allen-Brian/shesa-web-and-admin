@@ -115,7 +115,7 @@ export function SongsBrowser({ songs, groups }: Props) {
             custom={2}
             className="max-w-md text-[15px] leading-[1.7] text-black/60 md:col-span-4"
           >
-            Search by title, performer, or chapter — press play and it stays with you as you scroll.
+            Search by title, performer, or chapter, press play and it stays with you as you scroll.
           </motion.p>
         </div>
 
