@@ -19,6 +19,7 @@ const fadeUp: Variants = {
 
 const exploreLinks = [
   { label: 'About', href: '/about' },
+  { label: 'Strategic Plan', href: '/strategic-plan' },
   { label: 'Leadership', href: '/leadership' },
   { label: 'Organs', href: '/organs' },
   { label: 'Gallery', href: '/gallery' },
@@ -103,8 +104,8 @@ export function SiteFooter() {
             </p>
 
             <p className="mt-6 max-w-md text-[14.5px] leading-[1.7] text-white/60">
-              A living network of graduates — reconnecting, celebrating, and shaping what comes
-              next. One family. Every era.
+              A living network of graduates, reconnecting, celebrating, and shaping what comes next.
+              One family. Every era.
             </p>
 
             <ul className="mt-8 flex items-center gap-3">

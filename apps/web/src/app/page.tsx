@@ -1,7 +1,7 @@
 /**
  * Public home page.
  *
- * Sections are composed here — each section lives in its own file under
+ * Sections are composed here, each section lives in its own file under
  * `src/components/home/*` so this file stays a thin index.
  */
 
@@ -16,6 +16,7 @@ import { PresidentsWord } from '@/components/home/presidents-word';
 import { Projects } from '@/components/home/projects';
 import { SoundsCta } from '@/components/home/sounds-cta';
 import { Stats } from '@/components/home/stats';
+import { StrategicPlanCta } from '@/components/home/strategic-plan-cta';
 
 export default function HomePage() {
   return (
@@ -24,6 +25,7 @@ export default function HomePage() {
       <Mission />
       <Stats />
       <PresidentsWord />
+      <StrategicPlanCta />
       <AgmCta />
       <Events />
       <Projects />
