@@ -7,11 +7,12 @@ import { AgmVenue } from '@/components/agm/agm-venue';
 import { AttireSection } from '@/components/agm/attire-section';
 import { FundingSection } from '@/components/agm/funding-section';
 import { RegistrationSection } from '@/components/agm/registration-section';
+import { SponsorBridge } from '@/components/agm/sponsor-bridge';
 
 export const metadata: Metadata = {
-  title: 'AGM 2026 — The Yaoundé Assembly · SHESA',
+  title: 'AGM 2026 · The Yaoundé Assembly · SHESA',
   description:
-    'The Sacred Heart Alumni AGM 2026 comes to Yaoundé — three days of assembly, ceremony, and handover. Register now.',
+    'The Sacred Heart Alumni AGM 2026 comes to Yaoundé, three days of assembly, ceremony, and handover. Register now.',
 };
 
 interface Search {
@@ -30,6 +31,7 @@ export default async function Agm2026Page({
       <AgmAbout />
       <AgmProgramme />
       <FundingSection initialError={error} />
+      <SponsorBridge />
       <RegistrationSection initialError={error} />
       <AttireSection initialError={error} />
       <AgmVenue />

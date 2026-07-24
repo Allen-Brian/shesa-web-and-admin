@@ -20,7 +20,7 @@ export function FundingSection({ initialError }: Props) {
       <div className="mx-auto max-w-350 px-5 md:px-8 lg:px-12">
         <div className="mb-10 flex flex-col gap-2 md:mb-14 md:max-w-4xl">
           <p className="font-heading text-[11px] font-medium uppercase tracking-[0.28em] text-primary">
-            Funding
+            Alumni funding
           </p>
           <h2
             className="font-heading font-thin leading-[1.1] text-black"
@@ -29,8 +29,14 @@ export function FundingSection({ initialError }: Props) {
             Back the Assembly. <span className="text-primary">Any amount.</span>
           </h2>
           <p className="text-[14.5px] leading-[1.7] text-black/60 md:max-w-xl">
-            Every AGM comes together on the strength of alumni who chip in. Pick a tier that fits,
-            or write in any amount — every gift is credited to AGM 2026.
+            The alumni contribution path. Pick a tier that fits, or write in any amount, every gift
+            is credited to AGM 2026.{' '}
+            <a
+              href="/agm-2026/sponsor"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Representing an organisation? See partnership options.
+            </a>
           </p>
         </div>
         <FundingForm initialError={initialError} />
