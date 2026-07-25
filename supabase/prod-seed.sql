@@ -585,10 +585,16 @@ VALUES
    NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
--- Funding tiers — donation-shape charges with suggested minima.
--- The public site collects the tier tag + payer identity into
--- payments.metadata; Finance rolls up by tier in the group's
--- Donations tab.
+-- Funding tiers — donation-shape charges. The public site derives the
+-- tier from the donor's amount (see `tierForAmount()` in
+-- apps/web/src/components/agm/data.ts): Bronze catches 1 – 50 000,
+-- Silver 50 001 – 250 000, Gold 250 001 – 1 000 000, Platinum
+-- 1 000 001 and above (5 000 000 is the suggested Platinum headline
+-- but the tier is unbounded).
+--
+-- `min_amount` on each charge mirrors the tier's LOWER BOUND, not its
+-- headline amount — anything below that floor is a different tier's
+-- gift and lands on that tier's campaign instead.
 INSERT INTO finance.charges
   (id, scope_id, shape, name, description, currency, min_amount,
    target_filter, lifecycle, open_date, close_date, status, group_id,
@@ -597,8 +603,8 @@ VALUES
   ('88888888-2026-1111-0000-000000000010',
    '00000000-0000-0000-0000-000000000001',
    'donation', 'Bronze Funding',
-   'AGM 2026 funding tier — Bronze. Suggested 50 000 XAF.',
-   'XAF', 50000, '{}'::jsonb,
+   'AGM 2026 funding tier — Bronze. Range 1 – 50 000 XAF.',
+   'XAF', 1, '{}'::jsonb,
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
    TIMESTAMPTZ '2026-11-30 23:59:59+00',
@@ -608,8 +614,8 @@ VALUES
   ('88888888-2026-1111-0000-000000000011',
    '00000000-0000-0000-0000-000000000001',
    'donation', 'Silver Funding',
-   'AGM 2026 funding tier — Silver. Suggested 250 000 XAF.',
-   'XAF', 250000, '{}'::jsonb,
+   'AGM 2026 funding tier — Silver. Range 50 001 – 250 000 XAF.',
+   'XAF', 50001, '{}'::jsonb,
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
    TIMESTAMPTZ '2026-11-30 23:59:59+00',
@@ -619,8 +625,8 @@ VALUES
   ('88888888-2026-1111-0000-000000000012',
    '00000000-0000-0000-0000-000000000001',
    'donation', 'Gold Funding',
-   'AGM 2026 funding tier — Gold. Suggested 1 000 000 XAF.',
-   'XAF', 1000000, '{}'::jsonb,
+   'AGM 2026 funding tier — Gold. Range 250 001 – 1 000 000 XAF.',
+   'XAF', 250001, '{}'::jsonb,
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
    TIMESTAMPTZ '2026-11-30 23:59:59+00',
@@ -630,8 +636,8 @@ VALUES
   ('88888888-2026-1111-0000-000000000013',
    '00000000-0000-0000-0000-000000000001',
    'donation', 'Platinum Funding',
-   'AGM 2026 funding tier — Platinum. Suggested 5 000 000 XAF.',
-   'XAF', 5000000, '{}'::jsonb,
+   'AGM 2026 funding tier — Platinum. Range 1 000 001 XAF and above (suggested headline 5 000 000 XAF).',
+   'XAF', 1000001, '{}'::jsonb,
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
    TIMESTAMPTZ '2026-11-30 23:59:59+00',
