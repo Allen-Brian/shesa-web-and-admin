@@ -21,7 +21,7 @@ export function ChargeSeasonalLine({
   readonly data: readonly { readonly label: string; readonly coverage: number }[];
 }) {
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height={320}>
       <LineChart
         data={data as { label: string; coverage: number }[]}
         margin={{ top: 8, right: 8, bottom: 0, left: 0 }}

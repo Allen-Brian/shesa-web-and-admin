@@ -1,26 +1,43 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowDownRight, ArrowUpRight, BadgeCheck, Download } from 'lucide-react';
 
-import { Badge, Button, DataTable, Input, type ColDef, type ICellRendererParams } from '@shesa/ui';
+import {
+  Badge,
+  Button,
+  DataTable,
+  Input,
+  toast,
+  type ColDef,
+  type GridApi,
+  type ICellRendererParams,
+  type MassActions,
+} from '@shesa/ui';
 
+import { formatShortDay, formatTime24 } from '@/lib/format/date-time';
+
+import { markReconciled, undoReconciliation } from '../../../transactions/actions';
+import { ChargePoolPaymentSheet } from './charge-pool-payment-sheet';
 import type { ChargeDetailPoolProps, PoolRow } from './charge-detail-types';
 import { downloadCsv, formatMethod, getInitials, slugify } from './shared-formatters';
 
 /**
- * Flat payments table for pool-shape charges (goal / open / ticketed
- * / donation flavours). Visual parity with the mainstream
- * Transactions view minus the Reason column — every row here belongs
- * to the contribution the operator is already browsing, so a "For"
- * cell would just repeat the header.
+ * Flat payments table for pool-shape charges. Column layout matches
+ * the mainstream Transactions view: Date (day + time on two lines),
+ * Payer, Amount, Method, Status, Reconciled. Rows are selectable so
+ * operators can bulk-reconcile from the mass-actions bar.
  *
- * Search filters on payer label; CSV export writes the raw log.
- * Actions (reverse, reconcile, receipt) live on the mainstream
- * Transactions page — this view is read-only for now.
+ * The Reconciled column shows a "Pending" chip instead of a dash so
+ * the operator can tell at a glance which payments still need work.
  */
 export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps) {
+  const router = useRouter();
   const [search, setSearch] = useState('');
+  const [gridApi, setGridApi] = useState<GridApi<PoolRow> | null>(null);
+  const [detail, setDetail] = useState<PoolRow | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const filtered = useMemo<readonly PoolRow[]>(() => {
     const q = search.trim().toLowerCase();
@@ -29,7 +46,44 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
       .map((p, i) => ({ ...p, serial: i + 1 }));
   }, [poolPayments, search]);
 
+  const runReconcile = (ids: readonly string[], onDone: () => void) => {
+    if (ids.length === 0) return;
+    startTransition(async () => {
+      const result = await markReconciled(ids, null, null);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success(
+        result.data && result.data.count > 0
+          ? `${result.data.count} payment(s) reconciled.`
+          : 'Nothing new to reconcile.',
+      );
+      onDone();
+      router.refresh();
+    });
+  };
+
+  const runUndo = (ids: readonly string[], onDone: () => void) => {
+    if (ids.length === 0) return;
+    startTransition(async () => {
+      const result = await undoReconciliation(ids);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success(
+        result.data && result.data.count > 0
+          ? `${result.data.count} reconciliation(s) undone.`
+          : 'Nothing to undo.',
+      );
+      onDone();
+      router.refresh();
+    });
+  };
+
   const columnDefs = useMemo<ColDef<PoolRow>[]>(
+    // No manual checkbox column — `selectable` adds the pinned one.
     () => [
       {
         headerName: 'S/N',
@@ -43,8 +97,19 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
       {
         headerName: 'Date',
         field: 'createdAt',
-        width: 170,
-        valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleString() : '—'),
+        width: 180,
+        autoHeight: true,
+        cellRenderer: (p: ICellRendererParams<PoolRow, string>) => {
+          if (!p.value) return <span className="text-xs text-muted-foreground">-</span>;
+          return (
+            <div className="flex flex-col justify-center py-1 leading-tight">
+              <span className="text-sm text-foreground">{formatShortDay(p.value)}</span>
+              <span className="text-[11px] tabular-nums text-muted-foreground">
+                {formatTime24(p.value)}
+              </span>
+            </div>
+          );
+        },
       },
       {
         headerName: 'Payer',
@@ -105,7 +170,7 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
       {
         headerName: 'Status',
         colId: 'status',
-        width: 140,
+        width: 130,
         cellRenderer: (p: ICellRendererParams<PoolRow>) => {
           if (!p.data) return null;
           if (p.data.isReversal) {
@@ -153,14 +218,49 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
               Reconciled
             </Badge>
           ) : (
-            <Badge variant="outline" className="border-border text-muted-foreground">
-              —
+            <Badge
+              variant="outline"
+              className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+            >
+              Pending
             </Badge>
           );
         },
       },
     ],
     [],
+  );
+
+  const massActions = useMemo<MassActions<PoolRow>>(
+    () => ({
+      itemName: 'payment',
+      pluralItemName: 'payments',
+      custom: [
+        {
+          label: 'Mark reconciled',
+          onClick: (selected) => {
+            const ids = selected.filter((r) => !r.reconciled).map((r) => r.id);
+            if (ids.length === 0) {
+              toast.info('Every selected payment is already reconciled.');
+              return;
+            }
+            runReconcile(ids, () => gridApi?.deselectAll());
+          },
+        },
+        {
+          label: 'Undo reconciliation',
+          onClick: (selected) => {
+            const ids = selected.filter((r) => r.reconciled).map((r) => r.id);
+            if (ids.length === 0) {
+              toast.info('None of the selected payments is reconciled.');
+              return;
+            }
+            runUndo(ids, () => gridApi?.deselectAll());
+          },
+        },
+      ],
+    }),
+    [gridApi],
   );
 
   const exportCsv = () => {
@@ -212,8 +312,21 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
         rowData={filtered as PoolRow[]}
         columnDefs={columnDefs}
         getRowId={(p) => p.data.id}
+        onGridReady={(e) => setGridApi(e.api)}
+        onRowClicked={(e) => e.data && setDetail(e.data)}
         showColumnPicker={false}
-        selectable={false}
+        selectable
+        massActions={massActions}
+      />
+
+      <ChargePoolPaymentSheet
+        open={detail !== null}
+        onClose={() => setDetail(null)}
+        summary={summary}
+        payment={detail}
+        pending={isPending}
+        onReconcile={(id) => runReconcile([id], () => setDetail(null))}
+        onUndo={(id) => runUndo([id], () => setDetail(null))}
       />
     </div>
   );

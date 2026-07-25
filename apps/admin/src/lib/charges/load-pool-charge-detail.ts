@@ -15,6 +15,13 @@ import {
 import type { RawPayment } from './charge-detail-raw-types';
 import type { PoolChargeDetail } from './charge-detail-types';
 
+interface ReconRow {
+  readonly payment_id: string;
+  readonly reconciled_at: string | null;
+  readonly matched_ref: string | null;
+  readonly notes: string | null;
+}
+
 /**
  * Load the pool branch of a charge — payments hit the charge
  * directly (goal / open / ticketed / donation flavours) rather than
@@ -38,7 +45,7 @@ export async function loadPoolChargeDetail(
     .schema('finance' as never)
     .from('payments' as never)
     .select(
-      'id, obligation_id, charge_id, payer_member_id, amount, currency, method, source, reverses_payment_id, metadata, created_at',
+      'id, obligation_id, charge_id, payer_member_id, amount, currency, method, source, reverses_payment_id, external_ref, metadata, created_at',
     )
     .eq('charge_id', chargeId)
     .order('created_at', { ascending: false });
@@ -66,9 +73,9 @@ export async function loadPoolChargeDetail(
       ? supabase
           .schema('finance' as never)
           .from('reconciliations' as never)
-          .select('payment_id')
+          .select('payment_id, reconciled_at, matched_ref, notes')
           .in('payment_id', paymentIds)
-      : Promise.resolve({ data: [] as Array<{ payment_id: string }> }),
+      : Promise.resolve({ data: [] as ReconRow[] }),
   ]);
 
   const memberById = new Map(
@@ -82,9 +89,7 @@ export async function loadPoolChargeDetail(
       (receiptRows ?? []) as Array<{ token: string; payment_id: string; receipt_number: string }>
     ).map((r) => [r.payment_id, r]),
   );
-  const reconciledIds = new Set(
-    ((reconRows ?? []) as Array<{ payment_id: string }>).map((r) => r.payment_id),
-  );
+  const reconByPayment = new Map(((reconRows ?? []) as ReconRow[]).map((r) => [r.payment_id, r]));
   const reversedOriginalIds = new Set(
     payments.map((p) => p.reverses_payment_id).filter((x): x is string => !!x),
   );
@@ -99,6 +104,12 @@ export async function loadPoolChargeDetail(
     const meta = (p.metadata ?? {}) as {
       donor_name?: string;
       payer_name?: string;
+      donor_email?: string;
+      payer_email?: string;
+      payer_phone?: string;
+      payer_location?: string;
+      note?: string;
+      quantity?: number;
       public_donation?: boolean;
       public_ticket_purchase?: boolean;
     };
@@ -115,6 +126,8 @@ export async function loadPoolChargeDetail(
           ? 'Anonymous buyer'
           : null);
     const receipt = receiptByPayment.get(p.id);
+    const recon = reconByPayment.get(p.id);
+    const isMember = !!p.payer_member_id;
     return {
       id: p.id,
       payerLabel:
@@ -127,8 +140,18 @@ export async function loadPoolChargeDetail(
       createdAt: p.created_at,
       receiptToken: receipt?.token ?? null,
       receiptNumber: receipt?.receipt_number ?? null,
-      reconciled: reconciledIds.has(p.id),
+      reconciled: !!recon,
       isReversedOriginal: reversedOriginalIds.has(p.id),
+      payerEmail: meta.donor_email ?? meta.payer_email ?? null,
+      payerPhone: meta.payer_phone ?? null,
+      payerLocation: meta.payer_location ?? null,
+      isAnonymous: !isMember && !!(meta.public_donation || meta.public_ticket_purchase || anonName),
+      memo: meta.note ?? null,
+      externalRef: p.external_ref ?? null,
+      reconciledAt: recon?.reconciled_at ?? null,
+      reconciliationMatchedRef: recon?.matched_ref ?? null,
+      reconciliationNotes: recon?.notes ?? null,
+      quantity: typeof meta.quantity === 'number' ? meta.quantity : null,
     };
   });
 

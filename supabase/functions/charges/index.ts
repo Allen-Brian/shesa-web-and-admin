@@ -14,6 +14,9 @@
  *   create               — draft insert; shape-specific rules enforced up front
  *   update               — patch a draft/paused row + status transitions
  *   archive              — soft-remove (status='archived'); related obligations stay
+ *   forgive-obligation   — waive a single obligation (status='forgiven').
+ *                          Sensitive tier (obligation.forgive). Surfaces
+ *                          as forgone income in reports, never collected.
  *   generate-obligations — manual fire of obligation generation for one
  *                          charge (per-charge auth) or the whole sweep
  *                          (mainstream-admin only). The scheduled path is
@@ -36,7 +39,9 @@ import { closeContribution } from './close.ts';
 import { createCharge } from './create.ts';
 import { deleteCharge } from './delete.ts';
 import { extendContribution } from './extend.ts';
+import { forgiveObligation } from './forgive-obligation.ts';
 import { generateObligations } from './generate-obligations.ts';
+import { createException, deleteException, updateException } from './manage-exceptions.ts';
 import { updateCharge } from './update.ts';
 
 Deno.serve(
@@ -46,6 +51,10 @@ Deno.serve(
     archive: archiveCharge,
     delete: deleteCharge,
     'generate-obligations': generateObligations,
+    'forgive-obligation': forgiveObligation,
+    'create-exception': createException,
+    'update-exception': updateException,
+    'delete-exception': deleteException,
     approve: approveContribution,
     close: closeContribution,
     extend: extendContribution,

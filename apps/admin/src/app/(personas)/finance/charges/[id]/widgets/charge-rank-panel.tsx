@@ -1,13 +1,16 @@
+'use client';
+
 import type { TrendingUp } from 'lucide-react';
 
-import { GradientPanel } from '@shesa/ui';
+import { DataTable, GradientPanel, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
 import type { RankPanelRow } from './charge-detail-types';
 
 /**
  * Top-N leaderboard card — "Top payers", "Most behind", "Largest
  * payments", "Most recent". Icon + tinted colour framing on the
- * header row, then numbered list of label + value.
+ * header row, then a compact DataTable of rank · label · value so it
+ * matches the rest of the admin tables (sort, consistent chrome).
  */
 export function ChargeRankPanel({
   title,
@@ -22,6 +25,38 @@ export function ChargeRankPanel({
   readonly rows: readonly RankPanelRow[];
   readonly empty: string;
 }) {
+  const columnDefs: ColDef<RankPanelRow>[] = [
+    {
+      headerName: '#',
+      colId: 'rank',
+      width: 52,
+      maxWidth: 52,
+      sortable: false,
+      filter: false,
+      suppressMovable: true,
+      cellClass: 'text-xs text-muted-foreground',
+      valueGetter: (p) => (p.node?.rowIndex ?? 0) + 1,
+    },
+    {
+      headerName: 'Name',
+      field: 'label',
+      flex: 1,
+      minWidth: 140,
+      cellRenderer: (p: ICellRendererParams<RankPanelRow>) => (
+        <span className="truncate text-sm text-foreground">{p.data?.label}</span>
+      ),
+    },
+    {
+      headerName: 'Amount',
+      field: 'value',
+      width: 140,
+      type: 'rightAligned',
+      cellRenderer: (p: ICellRendererParams<RankPanelRow>) => (
+        <span className="text-xs font-medium text-foreground tabular-nums">{p.data?.value}</span>
+      ),
+    },
+  ];
+
   return (
     <GradientPanel className="flex flex-col gap-3 p-5">
       <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -31,21 +66,18 @@ export function ChargeRankPanel({
       {rows.length === 0 ? (
         <p className="text-xs italic text-muted-foreground">{empty}</p>
       ) : (
-        <ul className="flex flex-col gap-1.5">
-          {rows.map((r, i) => (
-            <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
-                  {i + 1}
-                </span>
-                <span className="truncate text-foreground">{r.label}</span>
-              </span>
-              <span className="shrink-0 text-xs font-medium text-foreground tabular-nums">
-                {r.value}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <DataTable<RankPanelRow>
+          rowData={rows as RankPanelRow[]}
+          columnDefs={columnDefs}
+          getRowId={(p) => p.data.id}
+          autoHeight
+          variant="border"
+          selectable={false}
+          showColumnPicker={false}
+          pagination={false}
+          rowHeight={44}
+          headerHeight={38}
+        />
       )}
     </GradientPanel>
   );

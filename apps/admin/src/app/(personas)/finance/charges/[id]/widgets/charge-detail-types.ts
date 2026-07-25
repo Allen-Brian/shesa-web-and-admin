@@ -9,6 +9,8 @@ export interface ChargeSummary {
   readonly id: string;
   readonly name: string;
   readonly description: string | null;
+  /** The creating body's scope id — used for permission checks on the detail page. */
+  readonly scopeId: string;
   readonly scopeName: string;
   readonly scopeSlug: string;
   readonly shape: string;
@@ -94,6 +96,18 @@ export interface PoolPayment {
   readonly reconciled?: boolean;
   /** True when another payment carries `reverses_payment_id = this.id`. */
   readonly isReversedOriginal?: boolean;
+  // Extended detail — surfaced in the payment sheet, not the table.
+  readonly payerEmail?: string | null;
+  readonly payerPhone?: string | null;
+  readonly payerLocation?: string | null;
+  readonly isAnonymous?: boolean;
+  readonly memo?: string | null;
+  readonly externalRef?: string | null;
+  readonly reconciledAt?: string | null;
+  readonly reconciliationMatchedRef?: string | null;
+  readonly reconciliationNotes?: string | null;
+  /** Units bought — ticketed/attire purchases carry this in metadata. */
+  readonly quantity?: number | null;
 }
 
 export interface PaymentMethodStat {
@@ -155,10 +169,56 @@ export interface ChargeTargetPlanRow {
   readonly currency: string;
 }
 
+/**
+ * Which mutating actions the current viewer may take from the cell
+ * side sheet. Only the Finance persona's detail page sets these; the
+ * Exco read-only mirror and the group lens leave it undefined, so the
+ * sheet renders view-only (details, no record/waive buttons).
+ */
+export interface ChargeDetailActions {
+  readonly canRecordPayment: boolean;
+  readonly canForgive: boolean;
+}
+
+export type RuleForm = 'fixed' | 'relative' | 'senior' | 'individual';
+
+/** One member rule (exception) on an individual charge, display-ready. */
+export interface RuleRow {
+  readonly id: string;
+  readonly form: RuleForm;
+  readonly replacementAmount: number;
+  /** Human-readable summary built server-side (names already resolved). */
+  readonly description: string;
+}
+
+/** A pickable target for the rule form — a batch scope or a member. */
+export interface RuleOption {
+  readonly id: string;
+  readonly name: string;
+}
+
+/**
+ * Rules (exceptions) management data for an individual charge. Only the
+ * Finance persona's detail page populates it, and only when the viewer
+ * holds exception.create; otherwise the panel is hidden.
+ */
+export interface ChargeRulesData {
+  readonly canManage: boolean;
+  readonly canManageIndividual: boolean;
+  readonly currency: string;
+  readonly rules: readonly RuleRow[];
+  readonly batchOptions: readonly RuleOption[];
+  readonly memberOptions: readonly RuleOption[];
+}
+
 export interface CommonChargeDetailProps {
   readonly summary: ChargeSummary;
   /** Where the "Back to charges" link points. Different per persona. */
   readonly backLinkHref: string;
+  /** Mutating-action gate for the cell sheet; undefined ⇒ read-only. */
+  readonly actions?: ChargeDetailActions;
+  /** Member-rule management data; only set for the Finance individual view. */
+  readonly rules?: ChargeRulesData;
   /**
    * Only populated for Group charges. Empty/undefined on Individual
    * charges; the target-plan card is hidden in that case.

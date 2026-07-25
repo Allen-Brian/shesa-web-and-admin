@@ -220,6 +220,7 @@ export function DataTable<T>({
                   ? {
                       width: 50,
                       maxWidth: 50,
+                      pinned: 'left',
                       suppressHeaderMenuButton: true,
                       headerComponent: undefined,
                     }

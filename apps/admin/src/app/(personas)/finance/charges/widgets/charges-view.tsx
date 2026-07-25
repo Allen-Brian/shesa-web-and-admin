@@ -4,7 +4,14 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreditCard } from 'lucide-react';
 
-import { ConfirmDialog, DataTable, EntityTablePanel, type GridApi } from '@shesa/ui';
+import {
+  ConfirmDialog,
+  DataTable,
+  EntityTablePanel,
+  toast,
+  type GridApi,
+  type MassActions,
+} from '@shesa/ui';
 
 import { FilterChips } from '@/components/filters/filter-chips';
 import { FilterDropdown } from '@/components/filters/filter-dropdown';
@@ -47,6 +54,12 @@ interface ChargesViewProps {
    * tree.
    */
   readonly mainstreamScopeId: string;
+  /**
+   * The charge kind this operator may create — fixed, never chosen.
+   * Mainstream Finance → 'group' (levies on bodies); a branch/chapter
+   * Finance → 'individual' (its own members).
+   */
+  readonly chargeKind: 'group' | 'individual';
 }
 
 /**
@@ -61,10 +74,16 @@ export function ChargesView({
   targetScopeOptions,
   defaultIndividualScopeId,
   mainstreamScopeId,
+  chargeKind,
 }: ChargesViewProps) {
   const router = useRouter();
   const actions = useChargesActions({ scopeOptions });
   const { pending } = actions;
+
+  // The kind is fixed by the operator's role — a Mainstream user only
+  // ever bills bodies, a branch/chapter user only ever bills members.
+  const createPartyType = chargeKind === 'group' ? 'branch' : 'member';
+  const createScopeId = chargeKind === 'group' ? mainstreamScopeId : defaultIndividualScopeId;
 
   const filterState = useFilterState<ChargesFilterDim>(CHARGES_FILTER_DIMENSIONS);
 
@@ -72,12 +91,13 @@ export function ChargesView({
   const [gridApi, setGridApi] = useState<GridApi<SerialRow> | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateForm>(() =>
-    initialCreate(defaultIndividualScopeId),
+    initialCreate(createScopeId, createPartyType),
   );
   const [editing, setEditing] = useState<EditForm | null>(null);
   const [publishing, setPublishing] = useState<ChargeRow | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<ChargeRow | null>(null);
+  const [bulkArchiving, setBulkArchiving] = useState<readonly string[] | null>(null);
 
   const kpis = useMemo(() => buildChargeKpis(charges), [charges]);
 
@@ -112,24 +132,58 @@ export function ChargesView({
     [pending],
   );
 
+  // Selection-bar bulk actions. Archive routes through a confirm (it
+  // stops generation); the status flips are non-destructive and apply
+  // immediately, each filtered to rows in a valid source state so a
+  // mixed selection only touches the ones the transition is legal for.
+  const massActions = useMemo<MassActions<SerialRow>>(
+    () => ({
+      itemName: 'charge',
+      pluralItemName: 'charges',
+      onArchive: (selected) => {
+        const ids = selected.filter((r) => r.status !== 'archived').map((r) => r.id);
+        if (ids.length === 0) return toast.info('Every selected charge is already archived.');
+        setBulkArchiving(ids);
+      },
+      custom: [
+        {
+          label: 'Publish (activate drafts)',
+          onClick: (selected) => {
+            const ids = selected.filter((r) => r.status === 'draft').map((r) => r.id);
+            if (ids.length === 0) return toast.info('No selected charge is a draft.');
+            actions.runBulkStatus(ids, 'active', () => gridApi?.deselectAll());
+          },
+        },
+        {
+          label: 'Pause active',
+          onClick: (selected) => {
+            const ids = selected.filter((r) => r.status === 'active').map((r) => r.id);
+            if (ids.length === 0) return toast.info('No selected charge is active.');
+            actions.runBulkStatus(ids, 'paused', () => gridApi?.deselectAll());
+          },
+        },
+        {
+          label: 'Resume paused',
+          onClick: (selected) => {
+            const ids = selected.filter((r) => r.status === 'paused').map((r) => r.id);
+            if (ids.length === 0) return toast.info('No selected charge is paused.');
+            actions.runBulkStatus(ids, 'active', () => gridApi?.deselectAll());
+          },
+        },
+      ],
+    }),
+    [actions, gridApi],
+  );
+
   const openCreate = () => {
-    setCreateForm(initialCreate(defaultIndividualScopeId));
+    setCreateForm(initialCreate(createScopeId, createPartyType));
     setCreateOpen(true);
   };
 
-  // Type flips between Individual and Group flip the owner scope in
-  // lockstep: Group charges always land on mainstream, Individual
-  // charges on the operator's default. The dialog itself doesn't
-  // surface the field.
+  // The charge kind + owner scope are fixed at open time, so a form
+  // change is just a shallow merge — the operator can never flip Type.
   const handleFormChange = (patch: Partial<CreateForm>) => {
-    setCreateForm((f) => {
-      const next = { ...f, ...patch };
-      if (patch.targetPartyType && patch.targetPartyType !== f.targetPartyType) {
-        next.scopeId =
-          patch.targetPartyType === 'branch' ? mainstreamScopeId : defaultIndividualScopeId;
-      }
-      return next;
-    });
+    setCreateForm((f) => ({ ...f, ...patch }));
   };
 
   return (
@@ -143,8 +197,9 @@ export function ChargesView({
           Charges
         </h1>
         <p className="text-sm text-muted-foreground">
-          Dues + levies at scopes you can see. Individual charges fan out to members; Group charges
-          land one obligation per branch/batch with per-target amounts.
+          {chargeKind === 'group'
+            ? 'Levies on branches, chapters, and batches — each owes as a body, with a per-target amount.'
+            : 'Dues for your members. Add rules so different members pay different amounts.'}
         </p>
       </div>
 
@@ -184,7 +239,8 @@ export function ChargesView({
         onGridReady={(e) => setGridApi(e.api)}
         onRowClicked={(e) => e.data && router.push(`/finance/charges/${e.data.id}`)}
         showColumnPicker={false}
-        selectable={false}
+        selectable
+        massActions={massActions}
       />
 
       <CreateChargeDialog
@@ -231,6 +287,22 @@ export function ChargesView({
           setArchivingId(null);
         }}
         onCancel={() => setArchivingId(null)}
+      />
+
+      <ConfirmDialog
+        open={!!bulkArchiving}
+        title={
+          bulkArchiving
+            ? `Archive ${bulkArchiving.length} charge${bulkArchiving.length === 1 ? '' : 's'}?`
+            : 'Archive selected charges?'
+        }
+        description="Related obligations stay put — archiving just stops new obligation generation on each selected charge."
+        confirmLabel="Archive"
+        onConfirm={() => {
+          if (bulkArchiving) actions.runBulkArchive(bulkArchiving, () => gridApi?.deselectAll());
+          setBulkArchiving(null);
+        }}
+        onCancel={() => setBulkArchiving(null)}
       />
 
       <ConfirmDialog

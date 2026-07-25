@@ -22,6 +22,8 @@ import {
   toast,
 } from '@shesa/ui';
 
+import { formatShortDay, formatTime24 } from '@/lib/format/date-time';
+
 import { formatMethod } from './transactions-helpers';
 import type { TransactionRow } from './transactions-types';
 
@@ -61,7 +63,7 @@ export function TransactionDetailSheet({
       await navigator.clipboard.writeText(target.externalRef);
       toast.success('External ref copied.');
     } catch {
-      toast.error('Could not copy — copy manually from the field.');
+      toast.error('Could not copy. Copy manually from the field.');
     }
   };
 
@@ -70,40 +72,41 @@ export function TransactionDetailSheet({
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
         {target && (
           <>
-            <SheetHeader className="border-b border-border bg-muted/30 px-6 py-5">
-              <div className="flex items-center justify-between gap-3">
-                <SheetTitle className="flex flex-col items-start gap-1 text-left">
-                  <span className="text-2xl font-semibold tabular-nums text-foreground">
-                    {new Intl.NumberFormat().format(target.amount)}{' '}
-                    <span className="text-sm text-muted-foreground">{target.currency}</span>
-                  </span>
-                  <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                    {formatMethod(target.method)} · {target.source === 'auto' ? 'Auto' : 'Manual'}
-                  </span>
-                </SheetTitle>
-                <div className="flex flex-col items-end gap-1">
-                  <ReconciledPill reconciled={target.reconciled} />
-                  {target.reversesPaymentId && (
-                    <Badge
-                      variant="outline"
-                      className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                    >
-                      Reversal
-                    </Badge>
-                  )}
-                  {alreadyReversed && !target.reversesPaymentId && (
-                    <Badge
-                      variant="outline"
-                      className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                    >
-                      Reversed
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              <SheetDescription className="mt-2 text-left text-xs text-muted-foreground">
-                {new Date(target.createdAt).toLocaleString()}
+            <SheetHeader className="border-b border-border bg-muted/30 px-6 py-5 pr-14">
+              <SheetTitle className="flex flex-col items-start gap-1 text-left">
+                <span className="text-2xl font-semibold tabular-nums text-foreground">
+                  {new Intl.NumberFormat().format(target.amount)}{' '}
+                  <span className="text-sm text-muted-foreground">{target.currency}</span>
+                </span>
+                <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  {formatMethod(target.method)} · {target.source === 'auto' ? 'Auto' : 'Manual'}
+                </span>
+              </SheetTitle>
+              <SheetDescription className="mt-2 flex flex-col items-start gap-0.5 text-left text-xs text-muted-foreground">
+                <span>{formatShortDay(target.createdAt) ?? '-'}</span>
+                <span className="text-sm tabular-nums text-foreground">
+                  {formatTime24(target.createdAt) ?? '-'}
+                </span>
               </SheetDescription>
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <ReconciledPill reconciled={target.reconciled} />
+                {target.reversesPaymentId && (
+                  <Badge
+                    variant="outline"
+                    className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                  >
+                    Reversal
+                  </Badge>
+                )}
+                {alreadyReversed && !target.reversesPaymentId && (
+                  <Badge
+                    variant="outline"
+                    className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                  >
+                    Reversed
+                  </Badge>
+                )}
+              </div>
             </SheetHeader>
 
             <div className="flex-1 overflow-y-auto px-6 py-5">
@@ -197,7 +200,8 @@ export function TransactionDetailSheet({
                   <div className="flex flex-col gap-1 text-xs">
                     {target.reconciledAt && (
                       <span className="text-muted-foreground">
-                        Reconciled {new Date(target.reconciledAt).toLocaleString()}
+                        Reconciled {formatShortDay(target.reconciledAt)} ·{' '}
+                        {formatTime24(target.reconciledAt)}
                       </span>
                     )}
                     {target.reconciliationMatchedRef && (

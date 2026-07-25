@@ -90,6 +90,7 @@ export async function recordManualPayment(req: Request): Promise<Response> {
   let currency: string;
   let chargeId: string | null = null;
   let derivedPayer: string | null = input.payerMemberId ?? null;
+  let settledObligation: ObligationRow | null = null;
 
   if (input.obligationId) {
     const { data: obligationRow, error: obErr } = await serviceClient
@@ -126,6 +127,7 @@ export async function recordManualPayment(req: Request): Promise<Response> {
     scopeId = obligation.scope_id;
     currency = obligation.currency;
     chargeId = obligation.charge_id;
+    settledObligation = obligation;
     if (!derivedPayer && obligation.party_type === 'member') {
       derivedPayer = obligation.party_id;
     }
@@ -225,5 +227,112 @@ export async function recordManualPayment(req: Request): Promise<Response> {
     },
   });
 
+  // Levy settlement mirror — when this payment settles an obligation a
+  // body OWES (party_type='branch': a Global levy on a branch/chapter),
+  // record the same amount as an EXPENSE in the paying body's treasury
+  // so the outflow shows in its own books (spec Part IX/X: "a levy is
+  // one expense settled from the branch"). The money itself is raised
+  // outside the app — this is the bookkeeping mirror. Non-fatal: a
+  // failure here never rolls back the payment, which is the primary
+  // record. Skipped when the payer scope has no treasury (batches /
+  // non-autonomous chapters) or its currency differs (cross-currency
+  // conversion is deferred with the rest of the FX work).
+  if (settledObligation && settledObligation.party_type === 'branch') {
+    await mirrorLevyAsExpense(serviceClient, ctx, {
+      payerScopeId: settledObligation.party_id,
+      amount: input.amount,
+      currency: input.currency,
+      chargeId,
+      obligationId: settledObligation.id,
+      paymentId: id,
+    });
+  }
+
   return withCors(req, success({ id, traceId: ctx.traceId }, 201));
+}
+
+interface MirrorArgs {
+  readonly payerScopeId: string;
+  readonly amount: number;
+  readonly currency: string;
+  readonly chargeId: string | null;
+  readonly obligationId: string;
+  readonly paymentId: string;
+}
+
+/**
+ * Best-effort mirror of a settled levy into the payer body's treasury
+ * as a recorded expense. Guards on the payer having a treasury in the
+ * matching currency; logs and returns quietly otherwise.
+ */
+async function mirrorLevyAsExpense(
+  serviceClient: ReturnType<typeof createServiceRoleClient>,
+  ctx: ReturnType<typeof buildContext>,
+  args: MirrorArgs,
+): Promise<void> {
+  const { data: treasury } = await serviceClient
+    .schema('finance' as never)
+    .from('treasury_balances' as never)
+    .select('scope_id, currency')
+    .eq('scope_id', args.payerScopeId)
+    .maybeSingle();
+  const treasuryCurrency = (treasury as { currency: string } | null)?.currency;
+  if (!treasury || treasuryCurrency !== args.currency) return;
+
+  let payee = 'Levy settlement';
+  if (args.chargeId) {
+    const { data: charge } = await serviceClient
+      .schema('finance' as never)
+      .from('charges' as never)
+      .select('name')
+      .eq('id', args.chargeId)
+      .maybeSingle();
+    const name = (charge as { name: string } | null)?.name;
+    if (name) payee = name;
+  }
+
+  const { error: expErr } = await serviceClient
+    .schema('finance' as never)
+    .from('expenses' as never)
+    .insert({
+      scope_id: args.payerScopeId,
+      category_id: null,
+      payee,
+      amount: args.amount,
+      currency: args.currency,
+      // No metadata column on finance.expenses — the linkage lives in
+      // the description + the audit event below.
+      description: `Auto-recorded settlement of a levy owed upward (payment ${args.paymentId}).`,
+      status: 'recorded',
+      recorded_by: ctx.userId,
+      incurred_at: new Date().toISOString(),
+    } as never);
+
+  if (expErr) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        traceId: ctx.traceId,
+        message: 'payments/record-manual: levy expense mirror failed (non-fatal)',
+        code: expErr.code,
+        error: expErr.message,
+      }),
+    );
+    return;
+  }
+
+  await logEvent(serviceClient, ctx, {
+    action: 'expense.recorded',
+    entitySchema: 'finance',
+    entityTable: 'expenses',
+    entityId: null,
+    scopeId: args.payerScopeId,
+    metadata: {
+      autoLevySettlement: true,
+      amount: args.amount,
+      currency: args.currency,
+      obligationId: args.obligationId,
+      sourcePaymentId: args.paymentId,
+    },
+  });
 }

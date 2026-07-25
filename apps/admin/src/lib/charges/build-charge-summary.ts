@@ -17,6 +17,7 @@ export function buildChargeSummary(charge: RawCharge, scopeRow: ScopeRow | null)
     id: charge.id,
     name: charge.name,
     description: charge.description,
+    scopeId: charge.scope_id,
     scopeName: scopeRow?.name ?? '—',
     scopeSlug: scopeRow?.slug ?? '',
     shape: charge.shape,

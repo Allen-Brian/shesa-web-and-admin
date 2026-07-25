@@ -48,17 +48,19 @@ export interface ScopeOption {
   readonly scopeType: string;
 }
 
+export type TargetScopeType = 'branch' | 'chapter' | 'batch';
+
 /**
- * Target scope options for Group charges — branches + batches the
- * caller can see. Currency stays inherited from the mainstream owner
- * scope (a Group charge is created once and its per-target amounts
- * are all in the owner-scope currency).
+ * Target scope options for Group charges — branches + chapters +
+ * batches the caller can see, each owing as a body. Currency stays
+ * inherited from the mainstream owner scope (a Group charge is created
+ * once and its per-target amounts are all in the owner-scope currency).
  */
 export interface TargetScopeOption {
   readonly id: string;
   readonly name: string;
   readonly slug: string;
-  readonly scopeType: 'branch' | 'batch';
+  readonly scopeType: TargetScopeType;
   readonly parentName: string | null;
 }
 
@@ -88,6 +90,13 @@ export interface CreateForm {
   recurrence: Recurrence;
   activationDate: string;
   chargeTargets: readonly ChargeTargetDraft[];
+  /**
+   * Per-scope-type default amount for Group charges. Each target step
+   * (Branches / Chapters / Batches) sets its own default that pre-fills
+   * newly-selected rows of that type; a blank type-default falls back to
+   * the overall `baseAmount` from Basics. Ignored for Individual charges.
+   */
+  targetDefaults: Record<TargetScopeType, string>;
 }
 
 export interface EditForm {

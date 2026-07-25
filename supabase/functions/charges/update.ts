@@ -2,11 +2,15 @@
  * Action: charges/update
  *
  * PATCH-style update for a charge. Every field is optional; unspecified
- * fields stay unchanged. Financial-shape edits (base_amount, currency,
- * shape, goal_amount, capacity) are frozen at insert time — they are
- * NOT reachable through this endpoint. That's a deliberate constraint:
- * once a charge exists, its economic terms are stable so any obligations
- * generated against it stay explainable.
+ * fields stay unchanged. Currency / shape / goal_amount / capacity are
+ * frozen at insert time — not reachable here.
+ *
+ * Amount edits (base_amount, per-target amounts) behave differently by
+ * status: on a DRAFT they mutate the founding row directly; on an
+ * ACTIVE/PAUSED charge they are SCHEDULED as effective-dated changes
+ * (finance.charge_amount_versions) that take effect from the NEXT
+ * period, so already-generated obligations stay frozen and explainable.
+ * Recurrence stays draft-only (period math can't shift mid-life).
  *
  * Status transitions allowed by this endpoint:
  *   draft   → active | archived
@@ -69,6 +73,7 @@ interface ChargeRow {
   readonly scope_id: string;
   readonly status: 'draft' | 'active' | 'paused' | 'archived';
   readonly shape: string;
+  readonly recurrence: string;
   readonly open_date: string | null;
   readonly close_date: string | null;
   readonly activation_date: string | null;
@@ -77,6 +82,8 @@ interface ChargeRow {
 interface SuccessBody {
   readonly id: string;
   readonly traceId: string;
+  /** Set when an amount edit was scheduled — the date it takes effect. */
+  readonly scheduledEffective?: string;
 }
 
 export async function updateCharge(req: Request): Promise<Response> {
@@ -92,7 +99,7 @@ export async function updateCharge(req: Request): Promise<Response> {
   const { data: existing, error: loadErr } = await serviceClient
     .schema('finance' as never)
     .from('charges' as never)
-    .select('id, scope_id, status, shape, open_date, close_date, activation_date')
+    .select('id, scope_id, status, shape, recurrence, open_date, close_date, activation_date')
     .eq('id', input.id)
     .maybeSingle();
 
@@ -157,29 +164,44 @@ export async function updateCharge(req: Request): Promise<Response> {
     }
   }
 
-  // 5b) Draft-only edits — baseAmount / recurrence / chargeTargets
-  //     change the economics of the charge. Once activated, obligations
-  //     already exist against these terms and must stay explainable,
-  //     so we reject the edit outright rather than silently ignoring.
-  const draftOnlyKeys: string[] = [];
-  if (input.baseAmount !== undefined) draftOnlyKeys.push('baseAmount');
-  if (input.recurrence !== undefined) draftOnlyKeys.push('recurrence');
-  if (input.chargeTargets !== undefined) draftOnlyKeys.push('chargeTargets');
-  if (draftOnlyKeys.length > 0 && row.status !== 'draft') {
+  const isDraft = row.status === 'draft';
+
+  // 5b) Cadence is frozen once activated — changing the recurrence
+  //     mid-life would break every obligation's period math.
+  if (input.recurrence !== undefined && !isDraft) {
     return withCors(
       req,
       conflict(
-        'DRAFT_ONLY_EDIT',
-        `Cannot change ${draftOnlyKeys.join(', ')} once the charge has been activated — archive and recreate instead.`,
+        'RECURRENCE_LOCKED',
+        'Cannot change cadence once the charge is activated — archive and recreate instead.',
         ctx.traceId,
       ),
     );
   }
 
-  // 6) Build the patch.
+  // 5c) Amount edits on an ACTIVE/PAUSED charge don't rewrite history —
+  //     they schedule a forward-dated change (effective next period) so
+  //     the current + past frozen obligations stay put. A one-time
+  //     charge has no "next period", so its amount stays draft-only.
+  const scheduling =
+    !isDraft && (input.baseAmount !== undefined || input.chargeTargets !== undefined);
+  if (scheduling && row.recurrence === 'one_time') {
+    return withCors(
+      req,
+      conflict(
+        'ONE_TIME_LOCKED',
+        'A one-time charge has no next period — archive and recreate to change its amount.',
+        ctx.traceId,
+      ),
+    );
+  }
+
+  // 6) Build the patch. base_amount / recurrence only mutate the row
+  //    directly while it is still a draft; on an active charge they are
+  //    scheduled as versions below, never written onto the founding row.
   const patch: Record<string, unknown> = {};
-  if (input.baseAmount !== undefined) patch.base_amount = input.baseAmount;
-  if (input.recurrence !== undefined) patch.recurrence = input.recurrence;
+  if (input.baseAmount !== undefined && isDraft) patch.base_amount = input.baseAmount;
+  if (input.recurrence !== undefined && isDraft) patch.recurrence = input.recurrence;
   if (input.name !== undefined) patch.name = input.name;
   if (input.description !== undefined) patch.description = input.description ?? null;
   if (input.categoryId !== undefined) patch.category_id = input.categoryId ?? null;
@@ -191,37 +213,42 @@ export async function updateCharge(req: Request): Promise<Response> {
   if (input.status !== undefined) patch.status = input.status;
   patch.updated_at = new Date().toISOString();
 
-  if (Object.keys(patch).length === 1) {
-    // Only updated_at — no-op. Return success without touching the row.
+  const patchIsNoop = Object.keys(patch).length === 1;
+  const hasWork = !patchIsNoop || scheduling || input.chargeTargets !== undefined;
+  if (!hasWork) {
+    // Nothing to change — return success without touching anything.
     return withCors(req, success({ id: row.id, traceId: ctx.traceId }));
   }
 
-  const { error: updateErr } = await serviceClient
-    .schema('finance' as never)
-    .from('charges' as never)
-    .update(patch as never)
-    .eq('id', row.id);
+  if (!patchIsNoop) {
+    const { error: updateErr } = await serviceClient
+      .schema('finance' as never)
+      .from('charges' as never)
+      .update(patch as never)
+      .eq('id', row.id);
 
-  if (updateErr) {
-    console.error(
-      JSON.stringify({
-        level: 'error',
-        traceId: ctx.traceId,
-        message: 'charges/update: update failed',
-        code: updateErr.code,
-        error: updateErr.message,
-      }),
-    );
-    return withCors(req, internalError(ctx.traceId));
+    if (updateErr) {
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          traceId: ctx.traceId,
+          message: 'charges/update: update failed',
+          code: updateErr.code,
+          error: updateErr.message,
+        }),
+      );
+      return withCors(req, internalError(ctx.traceId));
+    }
   }
 
-  // 6b) Replace charge_targets for Group draft charges. Delete-then-
+  // 6b) Replace charge_targets for Group DRAFT charges. Delete-then-
   //     insert stays inside the same request so a caller can update
   //     the target list wholesale without threading per-row diffs.
   //     Only meaningful for target_party_type='branch' charges, but
   //     we accept the payload for any draft and let the DB trigger
-  //     surface the mismatch if the shape is wrong.
-  if (input.chargeTargets !== undefined) {
+  //     surface the mismatch if the shape is wrong. On an ACTIVE charge
+  //     the targets aren't rewritten — their amounts are scheduled (6c).
+  if (input.chargeTargets !== undefined && isDraft) {
     const { error: delErr } = await serviceClient
       .schema('finance' as never)
       .from('charge_targets' as never)
@@ -275,16 +302,55 @@ export async function updateCharge(req: Request): Promise<Response> {
     }
   }
 
+  // 6c) Schedule forward-dated amount changes for an ACTIVE/PAUSED
+  //     charge. Each becomes a finance.charge_amount_versions row
+  //     effective from next period start (via schedule_amount_change),
+  //     so current + past obligations stay frozen and the new amount
+  //     lands automatically when the next period generates.
+  let scheduledEffective: string | null = null;
+  if (scheduling) {
+    const changes: { target: string | null; amount: number }[] = [];
+    if (input.baseAmount !== undefined) changes.push({ target: null, amount: input.baseAmount });
+    if (input.chargeTargets !== undefined) {
+      for (const t of input.chargeTargets)
+        changes.push({ target: t.targetScopeId, amount: t.amount });
+    }
+    for (const change of changes) {
+      const { data: effData, error: schedErr } = await serviceClient.schema('finance' as never).rpc(
+        'schedule_amount_change' as never,
+        {
+          p_charge_id: row.id,
+          p_target_scope_id: change.target,
+          p_amount: change.amount,
+          p_actor: ctx.userId,
+        } as never,
+      );
+      if (schedErr) {
+        console.error(
+          JSON.stringify({
+            level: 'error',
+            traceId: ctx.traceId,
+            message: 'charges/update: schedule_amount_change failed',
+            code: schedErr.code,
+            error: schedErr.message,
+          }),
+        );
+        return withCors(req, internalError(ctx.traceId));
+      }
+      if (typeof effData === 'string') scheduledEffective = effData;
+    }
+  }
+
   // 7) Auto-generate obligations on activation. Draft → active is the
   //    moment the operator commits the charge; the generator gets
-  //    called once per month across a rolling window (activation, or
-  //    12 months back, whichever is later) → today + 12 months. Every
-  //    eligible member/target lands in the matrix with a real
-  //    obligation row so the operator sees the roster right away
-  //    instead of an empty table. The generator is idempotent (UNIQUE
-  //    on charge_id/party_type/party_id/period_start), so calling it
-  //    for months that resolve to the same quarter/year is a no-op
-  //    after the first and the hourly sweep can't double-fire either.
+  //    called once per month from the activation date (capped one year
+  //    back) up to the CURRENT period only — future periods are NOT
+  //    pre-generated, so a later scheduled amount change can still take
+  //    effect (each future month is materialised by the hourly sweep at
+  //    the then-effective amount). Every eligible member/target lands in
+  //    the matrix immediately for the periods that are actually due. The
+  //    generator is idempotent (UNIQUE on charge_id/party_type/party_id/
+  //    period_start), so repeated months are a no-op.
   let generated = 0;
   if (input.status === 'active' && row.status !== 'active') {
     const anchorMs = row.activation_date ? new Date(row.activation_date).getTime() : Date.now();
@@ -292,7 +358,6 @@ export async function updateCharge(req: Request): Promise<Response> {
     const start = new Date(windowStart);
     const cursor = new Date(start.getFullYear(), start.getMonth(), 15);
     const end = new Date();
-    end.setMonth(end.getMonth() + 12);
     for (let i = 0; i < 30 && cursor <= end; i++) {
       const { data: genData, error: genErr } = await serviceClient.schema('finance' as never).rpc(
         'generate_obligations_for_charge' as never,
@@ -325,10 +390,18 @@ export async function updateCharge(req: Request): Promise<Response> {
     entityTable: 'charges',
     entityId: row.id,
     scopeId: row.scope_id,
-    metadata: { patch: Object.keys(patch), autoGeneratedObligations: generated },
+    metadata: {
+      patch: Object.keys(patch),
+      autoGeneratedObligations: generated,
+      scheduledEffective,
+    },
   });
 
-  const body: SuccessBody = { id: row.id, traceId: ctx.traceId };
+  const body: SuccessBody = {
+    id: row.id,
+    traceId: ctx.traceId,
+    ...(scheduledEffective ? { scheduledEffective } : {}),
+  };
   return withCors(req, success(body));
 }
 

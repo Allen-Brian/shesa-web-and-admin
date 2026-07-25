@@ -1,20 +1,23 @@
-import type { ChargeRow, CreateForm, EditForm } from './charges-types';
+import type { ChargeRow, CreateForm, EditForm, TargetPartyType } from './charges-types';
 
 /**
- * Fresh state for the "new charge" dialog. Owner scope isn't asked
- * for anymore — the parent view auto-derives it (mainstream for
- * Group charges; the operator's active scope for Individual ones).
+ * Fresh state for the "new charge" dialog. Neither the owner scope nor
+ * the charge KIND is asked for — both are fixed by who the operator is
+ * (Mainstream → group levies; a branch/chapter → individual member
+ * charges). The parent view passes the already-decided `targetPartyType`
+ * + its matching owner scope.
  */
-export function initialCreate(defaultScopeId: string): CreateForm {
+export function initialCreate(scopeId: string, targetPartyType: TargetPartyType): CreateForm {
   return {
-    targetPartyType: 'member',
-    scopeId: defaultScopeId,
+    targetPartyType,
+    scopeId,
     name: '',
     description: '',
     baseAmount: '',
     recurrence: 'monthly',
     activationDate: new Date().toISOString().slice(0, 10),
     chargeTargets: [],
+    targetDefaults: { branch: '', chapter: '', batch: '' },
   };
 }
 

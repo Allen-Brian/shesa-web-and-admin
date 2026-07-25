@@ -11,6 +11,7 @@ import { ChargeMatrixReports } from './charge-matrix-reports';
 import { ChargeMatrixTable } from './charge-matrix-table';
 import { ChargePoolReports } from './charge-pool-reports';
 import { ChargePoolTable } from './charge-pool-table';
+import { ChargeRulesPanel } from './charge-rules-panel';
 
 /**
  * ChargeDetailView — the "who has paid" drill-down for a single
@@ -69,6 +70,9 @@ export function ChargeDetailView(props: ChargeDetailProps) {
           value="table"
           className="flex min-h-0 flex-1 flex-col gap-4 focus-visible:outline-none"
         >
+          {props.mode === 'matrix' && props.variant === 'members' && props.rules?.canManage && (
+            <ChargeRulesPanel chargeId={props.summary.id} data={props.rules} />
+          )}
           {props.mode === 'matrix' ? (
             <ChargeMatrixTable {...props} />
           ) : (

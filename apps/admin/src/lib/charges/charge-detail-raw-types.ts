@@ -46,6 +46,7 @@ export interface RawPayment {
   readonly method: string;
   readonly source: string;
   readonly reverses_payment_id: string | null;
+  readonly external_ref?: string | null;
   readonly metadata: Record<string, unknown> | null;
   readonly created_at: string;
 }

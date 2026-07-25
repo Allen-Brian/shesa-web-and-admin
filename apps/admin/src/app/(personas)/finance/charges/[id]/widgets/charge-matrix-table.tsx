@@ -3,10 +3,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Clock, Download } from 'lucide-react';
 
-import { Button, DataTable, Input, type GridApi } from '@shesa/ui';
+import { Button, DataTable, Input, type CellClickedEvent, type GridApi } from '@shesa/ui';
 
-import type { ChargeDetailMatrixProps, MatrixRow } from './charge-detail-types';
+import type {
+  ChargeDetailMatrixProps,
+  MatrixCell,
+  MatrixPeriod,
+  MatrixRow,
+} from './charge-detail-types';
 import { buildChargeMatrixColumnDefs } from './charge-matrix-columns';
+import { ChargeMatrixCellSheet } from './charge-matrix-cell-sheet';
 import { exportChargeMatrixCsv } from './charge-matrix-csv';
 import { ChargeMatrixFilterChipRow } from './charge-matrix-filter-chip-row';
 import { ChargeMatrixLegend } from './charge-matrix-legend';
@@ -17,6 +23,13 @@ import {
   pickCurrentPeriodKey,
 } from './charge-matrix-totals';
 import type { MemberFilter } from './charge-detail-types';
+import { formatPeriodHeader } from './shared-formatters';
+
+interface SelectedCell {
+  readonly member: MatrixRow;
+  readonly period: MatrixPeriod;
+  readonly cell: MatrixCell;
+}
 
 /**
  * Member × period collection matrix. Pinned Member / Coverage columns
@@ -25,12 +38,39 @@ import type { MemberFilter } from './charge-detail-types';
  * narrow the visible rows; the "Today" button re-centres the current
  * period after manual scrolling.
  */
-export function ChargeMatrixTable({ summary, periods, members }: ChargeDetailMatrixProps) {
+export function ChargeMatrixTable({
+  summary,
+  periods,
+  members,
+  paymentLog,
+  actions,
+}: ChargeDetailMatrixProps) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<MemberFilter>('all');
   const [gridApi, setGridApi] = useState<GridApi<MatrixRow> | null>(null);
+  const [selected, setSelected] = useState<SelectedCell | null>(null);
 
   const currentPeriodKey = useMemo(() => pickCurrentPeriodKey(periods), [periods]);
+
+  // Clicking a period cell opens the detail sheet. Only real (non-
+  // upcoming) obligations are clickable — an upcoming placeholder or an
+  // N/A cell has no obligation to show.
+  const onCellClicked = (e: CellClickedEvent<MatrixRow>) => {
+    const colId = e.column?.getColId();
+    if (!colId || !colId.startsWith('period_') || !e.data) return;
+    const key = colId.slice('period_'.length);
+    const idx = periods.findIndex((p) => p.key === key);
+    const period = idx >= 0 ? periods[idx] : undefined;
+    if (!period) return;
+    const cell = e.data.cells[idx];
+    if (period.isUpcoming || !cell) return;
+    setSelected({ member: e.data, period, cell });
+  };
+
+  const selectedPayments = useMemo(
+    () => (selected ? paymentLog.filter((p) => p.obligationId === selected.cell.obligationId) : []),
+    [selected, paymentLog],
+  );
 
   // On grid ready or when the current-period key shifts, centre the
   // current-period column so the operator sees ~3 past + 3 future
@@ -111,8 +151,21 @@ export function ChargeMatrixTable({ summary, periods, members }: ChargeDetailMat
         columnDefs={columnDefs}
         getRowId={(p) => p.data.memberId}
         onGridReady={(e) => setGridApi(e.api)}
+        onCellClicked={onCellClicked}
         showColumnPicker={false}
         selectable={false}
+      />
+
+      <ChargeMatrixCellSheet
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        chargeName={summary.name}
+        memberName={selected?.member.fullName ?? ''}
+        isScopeBody={selected?.member.isScopeBody ?? false}
+        periodLabel={selected ? formatPeriodHeader(selected.period) : ''}
+        cell={selected?.cell ?? null}
+        payments={selectedPayments}
+        actions={actions}
       />
     </div>
   );

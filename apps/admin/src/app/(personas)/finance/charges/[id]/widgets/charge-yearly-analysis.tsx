@@ -111,22 +111,20 @@ export function ChargeYearlyAnalysis({
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ChargeChartCard title="Yearly totals" subtitle="Collected vs expected per year">
-          <ChargeYearlyTotalsBar
-            data={stats.map((y) => ({
-              year: String(y.year),
-              Collected: Math.round(y.paid),
-              Outstanding: Math.round(Math.max(0, y.owed - y.paid)),
-            }))}
-            currency={currency}
-          />
-        </ChargeChartCard>
+      <ChargeChartCard title="Yearly totals" subtitle="Collected vs expected per year">
+        <ChargeYearlyTotalsBar
+          data={stats.map((y) => ({
+            year: String(y.year),
+            Collected: Math.round(y.paid),
+            Outstanding: Math.round(Math.max(0, y.owed - y.paid)),
+          }))}
+          currency={currency}
+        />
+      </ChargeChartCard>
 
-        <ChargeChartCard title="Seasonal coverage" subtitle="Avg coverage by calendar month">
-          <ChargeSeasonalLine data={seasonal} />
-        </ChargeChartCard>
-      </div>
+      <ChargeChartCard title="Seasonal coverage" subtitle="Avg coverage by calendar month">
+        <ChargeSeasonalLine data={seasonal} />
+      </ChargeChartCard>
 
       <ChargeChartCard title="Monthly heatmap" subtitle="Rows = years · columns = Jan → Dec">
         <ChargeMonthlyHeatmap stats={stats} currency={currency} />

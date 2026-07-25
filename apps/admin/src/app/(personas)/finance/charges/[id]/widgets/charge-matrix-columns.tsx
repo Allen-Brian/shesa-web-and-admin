@@ -74,7 +74,11 @@ export function buildChargeMatrixColumnDefs({
         : isCurrent
           ? 'ag-header-current'
           : undefined,
-      cellClass: isCurrent ? '!bg-primary/5' : period.isUpcoming ? '!bg-muted/20' : undefined,
+      cellClass: period.isUpcoming
+        ? '!bg-muted/20'
+        : isCurrent
+          ? '!bg-primary/5 cursor-pointer'
+          : 'cursor-pointer',
       cellRenderer: (p: ICellRendererParams<MatrixRow>) => {
         if (!p.data) return null;
         if (period.isUpcoming) return <ChargeMatrixUpcomingChip />;

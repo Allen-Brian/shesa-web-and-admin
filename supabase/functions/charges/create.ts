@@ -166,6 +166,34 @@ export async function createCharge(req: Request): Promise<Response> {
     );
   }
 
+  // Charge-kind ↔ scope invariant (spec Part III). The kind is fixed by
+  // who creates it, and the UI never lets it drift — but enforce it here
+  // too so a direct API call can't:
+  //   • Group charges (targetPartyType='branch') are levies on other
+  //     bodies — only Mainstream may create them.
+  //   • Individual charges (targetPartyType='member') bill a body's own
+  //     members — Mainstream has none of its own to charge.
+  if (input.targetPartyType === 'branch' && scope.scope_type !== 'mainstream') {
+    return withCors(
+      req,
+      validationError(
+        'Only Mainstream can create group (levy) charges on branches, chapters, or batches.',
+        ctx.traceId,
+        { scope_type: scope.scope_type },
+      ),
+    );
+  }
+  if (input.targetPartyType === 'member' && scope.scope_type === 'mainstream') {
+    return withCors(
+      req,
+      validationError(
+        'Mainstream cannot charge individuals — create a group levy on branches/chapters/batches instead.',
+        ctx.traceId,
+        { scope_type: scope.scope_type },
+      ),
+    );
+  }
+
   if (scope.currency_code !== input.currency) {
     return withCors(
       req,

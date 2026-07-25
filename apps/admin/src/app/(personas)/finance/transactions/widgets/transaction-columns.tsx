@@ -2,6 +2,8 @@ import { ArrowDownRight, ArrowUpRight, BadgeCheck } from 'lucide-react';
 
 import { Badge, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
+import { formatShortDay, formatTime24 } from '@/lib/format/date-time';
+
 import { ChargeCell } from './charge-cell';
 import { PayerCell } from './payer-cell';
 import { TransactionRowActions } from './transaction-row-actions';
@@ -50,8 +52,19 @@ export function buildTransactionColumns(actions: TransactionColumnActions): ColD
     {
       headerName: 'Date',
       field: 'createdAt',
-      width: 170,
-      valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleString() : '—'),
+      width: 180,
+      autoHeight: true,
+      cellRenderer: (p: ICellRendererParams<SerialRow, string>) => {
+        if (!p.value) return <span className="text-xs text-muted-foreground">-</span>;
+        return (
+          <div className="flex flex-col justify-center py-1 leading-tight">
+            <span className="text-sm text-foreground">{formatShortDay(p.value)}</span>
+            <span className="text-[11px] tabular-nums text-muted-foreground">
+              {formatTime24(p.value)}
+            </span>
+          </div>
+        );
+      },
     },
     {
       headerName: 'Payer',

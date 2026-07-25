@@ -1,10 +1,11 @@
 import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
+import { formatShortDay } from '@/lib/format/date-time';
+
 import { ContributionNameCell } from './contribution-name-cell';
 import { ContributionProgressCell } from './contribution-progress-cell';
 import { ContributionRowActions } from './contribution-row-actions';
 import type { ContributionRow, SerialRow } from './contributions-types';
-import { LifecycleBadge } from './lifecycle-badge';
 
 interface ContributionColumnActions {
   readonly pending: boolean;
@@ -15,12 +16,14 @@ interface ContributionColumnActions {
 }
 
 /**
- * Column defs for the contributions DataTable. Layout: S/N · Name ·
- * Progress · Contributors · Closes · Lifecycle · Actions. Row-click
- * routes to the underlying charge-detail drill-down (wired at the
- * DataTable level).
+ * Column defs for the contributions DataTable. Layout matches the
+ * spec on the mainstream admin: S/N, Name, Event Group, Target,
+ * Progress, Contributors, Open date, Close date, Actions. Rows are
+ * selectable so operators can run mass actions from the header.
  */
 export function buildContributionColumns(actions: ContributionColumnActions): ColDef<SerialRow>[] {
+  // No manual checkbox column — the DataTable's `selectable` prop adds
+  // the (pinned) selection column. A hand-rolled one duplicated it.
   return [
     {
       headerName: 'S/N',
@@ -40,6 +43,36 @@ export function buildContributionColumns(actions: ContributionColumnActions): Co
         p.data ? <ContributionNameCell row={p.data} /> : null,
     },
     {
+      headerName: 'Event Group',
+      field: 'groupName',
+      width: 160,
+      valueGetter: (p) => p.data?.groupName ?? null,
+      cellRenderer: (p: ICellRendererParams<SerialRow>) => {
+        if (!p.data) return null;
+        if (p.data.groupName) {
+          return <span className="text-sm text-foreground">{p.data.groupName}</span>;
+        }
+        return <span className="text-xs italic text-muted-foreground">N/A</span>;
+      },
+    },
+    {
+      headerName: 'Target',
+      colId: 'target',
+      width: 150,
+      cellRenderer: (p: ICellRendererParams<SerialRow>) => {
+        if (!p.data) return null;
+        const target = p.data.goalAmount;
+        if (target == null || target <= 0) {
+          return <span className="text-xs italic text-muted-foreground">No target</span>;
+        }
+        return (
+          <span className="text-sm tabular-nums text-foreground">
+            {new Intl.NumberFormat().format(target)} {p.data.currency}
+          </span>
+        );
+      },
+    },
+    {
       headerName: 'Progress',
       field: 'raised',
       flex: 1.5,
@@ -48,24 +81,22 @@ export function buildContributionColumns(actions: ContributionColumnActions): Co
         p.data ? <ContributionProgressCell row={p.data} /> : null,
     },
     {
-      headerName: 'Contributors',
+      headerName: 'Payers',
       field: 'contributorCount',
-      width: 130,
+      width: 100,
       valueFormatter: (p) => (p.value != null ? String(p.value) : '0'),
     },
     {
-      headerName: 'Closes',
-      field: 'closeDate',
-      width: 140,
-      valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleDateString() : '—'),
+      headerName: 'Open date',
+      field: 'openDate',
+      width: 160,
+      valueFormatter: (p) => formatShortDay(p.value as string | null) ?? '-',
     },
     {
-      headerName: 'Lifecycle',
-      field: 'lifecycle',
-      width: 130,
-      cellRenderer: (p: ICellRendererParams<SerialRow, string>) => (
-        <LifecycleBadge value={p.value ?? null} />
-      ),
+      headerName: 'Close date',
+      field: 'closeDate',
+      width: 160,
+      valueFormatter: (p) => formatShortDay(p.value as string | null) ?? '-',
     },
     {
       headerName: 'Actions',

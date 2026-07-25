@@ -70,19 +70,27 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
   const runEdit = (editing: EditForm, onDone: () => void) => {
     if (!editing.name.trim()) return toast.error('Name is required.');
     const isDraft = editing.status === 'draft';
-    const amount = editing.baseAmount ? parseFloat(editing.baseAmount) : NaN;
-    if (isDraft && (!Number.isFinite(amount) || amount <= 0))
-      return toast.error('Enter a positive base amount.');
+    const isOneTime = editing.recurrence === 'one_time';
     const isGroup = editing.targetPartyType === 'branch';
-    const targets = isGroup
-      ? editing.chargeTargets.map((t) => ({
-          targetScopeId: t.targetScopeId,
-          amount: parseFloat(t.amount),
-        }))
-      : undefined;
-    if (isDraft && isGroup && (!targets || targets.length === 0))
+    // Amount edits are allowed on a draft, or on a live recurring
+    // charge (scheduled for next period). One-time live charges freeze.
+    const amountEditable = isDraft || !isOneTime;
+    const amount = editing.baseAmount ? parseFloat(editing.baseAmount) : NaN;
+    const targets = editing.chargeTargets.map((t) => ({
+      targetScopeId: t.targetScopeId,
+      amount: parseFloat(t.amount),
+    }));
+
+    // Individual charges carry a base amount; group charges carry
+    // per-target amounts. Send only what applies + is editable.
+    const sendBaseAmount = !isGroup && amountEditable ? amount : undefined;
+    const sendTargets = isGroup && amountEditable ? targets : undefined;
+
+    if (sendBaseAmount !== undefined && (!Number.isFinite(sendBaseAmount) || sendBaseAmount <= 0))
+      return toast.error('Enter a positive base amount.');
+    if (isDraft && isGroup && targets.length === 0)
       return toast.error('Group charges need at least one target.');
-    if (isDraft && targets && targets.some((t) => !Number.isFinite(t.amount) || t.amount <= 0))
+    if (sendTargets && sendTargets.some((t) => !Number.isFinite(t.amount) || t.amount <= 0))
       return toast.error('Every target needs a positive amount.');
 
     startTransition(async () => {
@@ -92,20 +100,22 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
         description: editing.description.trim() || null,
         activationDate: new Date(editing.activationDate).toISOString(),
         status: editing.status,
-        // Only send draft-only fields when the row is still a draft;
-        // the edge fn rejects them outright on active/paused charges.
-        baseAmount: isDraft ? amount : undefined,
+        baseAmount: sendBaseAmount,
+        // Recurrence + the target SET are draft-only.
         recurrence: isDraft ? editing.recurrence : undefined,
-        chargeTargets: isDraft && isGroup ? targets : undefined,
+        chargeTargets: sendTargets,
       });
       if (!result.ok) {
         toast.error(result.message);
         return;
       }
+      const effective = result.data?.scheduledEffective;
       toast.success(
-        editing.status === 'active'
-          ? 'Charge saved — obligations will populate shortly.'
-          : 'Charge updated.',
+        effective
+          ? `Change scheduled — takes effect ${new Date(effective).toLocaleDateString()}.`
+          : editing.status === 'active'
+            ? 'Charge saved — obligations will populate shortly.'
+            : 'Charge updated.',
       );
       onDone();
       router.refresh();
@@ -148,5 +158,51 @@ export function useChargesActions({ scopeOptions }: UseChargesActionsInput) {
     });
   };
 
-  return { pending, runCreate, runEdit, runPublish, runArchive, runDelete };
+  // Bulk helpers loop the single-id edge calls (there is no batch edge
+  // fn). Failures are counted, not fatal — a mixed selection where some
+  // rows can't take the transition still applies to the ones that can.
+  const runBulk = (
+    ids: readonly string[],
+    apply: (id: string) => Promise<{ ok: boolean; message?: string }>,
+    verb: string,
+    onDone?: () => void,
+  ) => {
+    if (ids.length === 0) return;
+    startTransition(async () => {
+      const results = await Promise.all(ids.map(apply));
+      const failed = results.filter((r) => !r.ok).length;
+      const ok = results.length - failed;
+      if (ok > 0) toast.success(`${ok} charge${ok === 1 ? '' : 's'} ${verb}.`);
+      if (failed > 0)
+        toast.error(`${failed} charge${failed === 1 ? '' : 's'} could not be ${verb}.`);
+      onDone?.();
+      router.refresh();
+    });
+  };
+
+  const runBulkArchive = (ids: readonly string[], onDone?: () => void) =>
+    runBulk(ids, (id) => archiveCharge(id), 'archived', onDone);
+
+  const runBulkStatus = (
+    ids: readonly string[],
+    status: 'active' | 'paused',
+    onDone?: () => void,
+  ) =>
+    runBulk(
+      ids,
+      (id) => updateCharge({ id, status }),
+      status === 'active' ? 'activated' : 'paused',
+      onDone,
+    );
+
+  return {
+    pending,
+    runCreate,
+    runEdit,
+    runPublish,
+    runArchive,
+    runDelete,
+    runBulkArchive,
+    runBulkStatus,
+  };
 }

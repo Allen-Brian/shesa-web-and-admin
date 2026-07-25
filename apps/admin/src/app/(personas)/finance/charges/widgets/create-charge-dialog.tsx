@@ -15,8 +15,7 @@ import {
 
 import { CreateChargeBasicsStep } from './create-charge-basics-step';
 import { CreateChargeReviewStep } from './create-charge-review-step';
-import { CreateChargeTargetsStep } from './create-charge-targets-step';
-import { CreateChargeTypeStep } from './create-charge-type-step';
+import { CreateChargeScopeTargetsStep } from './create-charge-scope-targets-step';
 import type { CreateForm, ScopeOption, TargetScopeOption } from './charges-types';
 
 interface CreateChargeDialogProps {
@@ -30,7 +29,7 @@ interface CreateChargeDialogProps {
   readonly pending: boolean;
 }
 
-type StepKey = 'type' | 'basics' | 'targets' | 'review';
+type StepKey = 'basics' | 'branches' | 'chapters' | 'batches' | 'review';
 
 interface StepMeta {
   readonly key: StepKey;
@@ -38,18 +37,27 @@ interface StepMeta {
   readonly caption: string;
 }
 
+// The charge KIND is fixed by the operator's role (Mainstream → group
+// levies; a branch/chapter → individual member charges), so there's no
+// "Type" step — the parent view seeds targetPartyType before opening.
 const INDIVIDUAL_STEPS: readonly StepMeta[] = [
-  { key: 'type', title: 'Type', caption: 'Pick who owes' },
   { key: 'basics', title: 'Basics', caption: 'Name, amount, cadence' },
   { key: 'review', title: 'Review', caption: 'Confirm and create' },
 ];
 
 const GROUP_STEPS: readonly StepMeta[] = [
-  { key: 'type', title: 'Type', caption: 'Pick who owes' },
-  { key: 'basics', title: 'Basics', caption: 'Name, amount, cadence' },
-  { key: 'targets', title: 'Targets', caption: 'Branches + per-target amount' },
+  { key: 'basics', title: 'Basics', caption: 'Name, default, cadence' },
+  { key: 'branches', title: 'Branches', caption: 'Which branches pay' },
+  { key: 'chapters', title: 'Chapters', caption: 'Which chapters pay' },
+  { key: 'batches', title: 'Batches', caption: 'Which batches pay' },
   { key: 'review', title: 'Review', caption: 'Confirm and create' },
 ];
+
+const SCOPE_STEP: Record<'branches' | 'chapters' | 'batches', 'branch' | 'chapter' | 'batch'> = {
+  branches: 'branch',
+  chapters: 'chapter',
+  batches: 'batch',
+};
 
 /**
  * "New charge" wizard — a wide dialog with a vertical step rail on
@@ -70,7 +78,7 @@ export function CreateChargeDialog({
 }: CreateChargeDialogProps) {
   const steps = form.targetPartyType === 'branch' ? GROUP_STEPS : INDIVIDUAL_STEPS;
   const [stepIndex, setStepIndex] = useState(0);
-  const step = steps[stepIndex]?.key ?? 'type';
+  const step = steps[stepIndex]?.key ?? 'basics';
 
   useEffect(() => {
     if (open) setStepIndex(0);
@@ -109,12 +117,6 @@ export function CreateChargeDialog({
             </DialogHeader>
 
             <div className="flex flex-1 flex-col gap-4">
-              {step === 'type' && (
-                <CreateChargeTypeStep
-                  value={form.targetPartyType}
-                  onChange={(v) => onFormChange({ targetPartyType: v, chargeTargets: [] })}
-                />
-              )}
               {step === 'basics' && (
                 <CreateChargeBasicsStep
                   form={form}
@@ -122,8 +124,10 @@ export function CreateChargeDialog({
                   onChange={onFormChange}
                 />
               )}
-              {step === 'targets' && (
-                <CreateChargeTargetsStep
+              {(step === 'branches' || step === 'chapters' || step === 'batches') && (
+                <CreateChargeScopeTargetsStep
+                  scopeType={SCOPE_STEP[step]}
+                  label={steps[stepIndex]?.title ?? ''}
                   form={form}
                   targetScopeOptions={targetScopeOptions}
                   currency={ownerScope?.currency ?? 'XAF'}
@@ -190,35 +194,47 @@ export function CreateChargeDialog({
   );
 }
 
+function allTargetAmountsValid(form: CreateForm): boolean {
+  return form.chargeTargets.every((t) => {
+    const n = parseFloat(t.amount);
+    return Number.isFinite(n) && n > 0;
+  });
+}
+
 function validateStep(step: StepKey, form: CreateForm): boolean {
-  if (step === 'type') return true;
   if (step === 'basics') {
     if (!form.scopeId || !form.name.trim()) return false;
     const amt = parseFloat(form.baseAmount);
     if (!Number.isFinite(amt) || amt <= 0) return false;
     return !!form.activationDate;
   }
-  if (step === 'targets') {
-    if (form.chargeTargets.length === 0) return false;
-    return form.chargeTargets.every((t) => {
-      const n = parseFloat(t.amount);
-      return Number.isFinite(n) && n > 0;
-    });
+  // Each scope-type step may leave its own type empty (a charge can
+  // cover branches only), but every amount already entered must be
+  // positive before advancing.
+  if (step === 'branches' || step === 'chapters' || step === 'batches') {
+    return allTargetAmountsValid(form);
+  }
+  // Review: a Group charge needs at least one target overall.
+  if (step === 'review' && form.targetPartyType === 'branch') {
+    return form.chargeTargets.length > 0 && allTargetAmountsValid(form);
   }
   return true;
 }
 
 function stepDescriptionFor(step: StepKey, isGroup: boolean): string {
-  if (step === 'type') {
-    return 'Individual charges bill each member. Group charges bill branches or batches with a per-target amount.';
-  }
   if (step === 'basics') {
     return isGroup
-      ? 'Give the charge a name, pick the owner scope, and set the default per-target amount + cadence.'
+      ? 'Give the charge a name, set the overall default amount + cadence. Each group step can override that default.'
       : 'Give the charge a name, pick the owner scope, and set the per-member amount + cadence.';
   }
-  if (step === 'targets') {
-    return 'Pick every branch or batch the charge covers, then set what each one owes per period.';
+  if (step === 'branches') {
+    return 'Set a default for branches, then pick which branches this charge bills. Override any branch individually.';
+  }
+  if (step === 'chapters') {
+    return 'Set a default for chapters, then pick which chapters this charge bills. Override any chapter individually.';
+  }
+  if (step === 'batches') {
+    return 'Set a default for batches, then pick which batches this charge bills. Override any batch individually.';
   }
   return 'Everything checks out? Create the draft — activation is a separate step.';
 }

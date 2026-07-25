@@ -140,6 +140,7 @@ export {
   type DataTableVariant,
 } from './components/data-table/data-table';
 export type {
+  CellClickedEvent,
   ColDef,
   GridApi,
   GridReadyEvent,

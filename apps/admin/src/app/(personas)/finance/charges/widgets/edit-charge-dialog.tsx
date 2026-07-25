@@ -59,7 +59,13 @@ export function EditChargeDialog({
 }: EditChargeDialogProps) {
   const isDraft = editing?.status === 'draft';
   const isGroup = editing?.targetPartyType === 'branch';
-  const draftLock = !isDraft;
+  const isOneTime = editing?.recurrence === 'one_time';
+  // Amounts are editable on a draft, or on any live RECURRING charge
+  // (the change is scheduled for next period). A one-time charge has no
+  // next period, so its amount stays frozen once activated. Recurrence
+  // and the target SET (add/remove) are always draft-only.
+  const amountEditable = !!isDraft || !isOneTime;
+  const structureLock = !isDraft;
 
   const targetLookup = useMemo(
     () => new Map(targetScopeOptions.map((t) => [t.id, t])),
@@ -73,7 +79,7 @@ export function EditChargeDialog({
   if (!editing) return null;
 
   const toggleTarget = (id: string, next: boolean) => {
-    if (draftLock) return;
+    if (structureLock) return;
     if (next) {
       if (editing.chargeTargets.some((t) => t.targetScopeId === id)) return;
       const nextTargets: ChargeTargetDraft[] = [
@@ -89,6 +95,7 @@ export function EditChargeDialog({
   };
 
   const setTargetAmount = (id: string, amount: string) => {
+    if (!amountEditable) return;
     onChange({
       chargeTargets: editing.chargeTargets.map((t) =>
         t.targetScopeId === id ? { ...t, amount } : t,
@@ -114,8 +121,10 @@ export function EditChargeDialog({
             </DialogTitle>
             <DialogDescription>
               {isDraft
-                ? 'Everything is editable while the charge is a draft. Once you publish, amount, recurrence, and targets freeze.'
-                : 'Metadata + status are editable. Amount, recurrence, and targets are frozen so any obligations already generated stay explainable.'}
+                ? 'Everything is editable while the charge is a draft. Once you publish, cadence and the target list freeze.'
+                : isOneTime
+                  ? 'Metadata + status are editable. A one-time charge freezes its amount once activated — archive and recreate to change it.'
+                  : 'Metadata + status are editable. Amount changes are scheduled for the next period; the current and past periods stay as billed.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -149,7 +158,8 @@ export function EditChargeDialog({
             <div className="flex flex-col gap-2">
               <Label htmlFor="edit-amount">
                 {isGroup ? 'Default amount' : 'Base amount'}
-                {draftLock && <LockedHint />}
+                {!amountEditable && <LockedHint />}
+                {amountEditable && !isDraft && <ScheduledHint />}
               </Label>
               <Input
                 id="edit-amount"
@@ -158,19 +168,19 @@ export function EditChargeDialog({
                 step="1"
                 value={editing.baseAmount}
                 onChange={(e) => onChange({ baseAmount: e.target.value })}
-                disabled={draftLock}
+                disabled={!amountEditable}
               />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="edit-recurrence">
                 Recurrence
-                {draftLock && <LockedHint />}
+                {!isDraft && <LockedHint />}
               </Label>
               <Select
                 value={editing.recurrence}
                 onValueChange={(v) => onChange({ recurrence: v as Recurrence })}
-                disabled={draftLock}
+                disabled={!isDraft}
               >
                 <SelectTrigger id="edit-recurrence">
                   <SelectValue />
@@ -232,12 +242,19 @@ export function EditChargeDialog({
             <div className="flex flex-col gap-3 rounded-md border border-border/60 p-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold">Targets & amounts</span>
-                {draftLock && (
+                {structureLock && (
                   <Badge variant="outline" className="gap-1">
-                    <Lock className="h-3 w-3" /> locked after activation
+                    <Lock className="h-3 w-3" />
+                    {amountEditable ? 'target list locked' : 'locked'}
                   </Badge>
                 )}
               </div>
+              {structureLock && amountEditable && (
+                <p className="text-xs text-muted-foreground">
+                  The target list is fixed once activated, but you can still adjust amounts — each
+                  change takes effect next period.
+                </p>
+              )}
               {isDraft ? (
                 <ChargeTargetPicker
                   targetScopeOptions={targetScopeOptions}
@@ -263,7 +280,9 @@ export function EditChargeDialog({
           <div className="text-xs text-muted-foreground">
             {isDraft
               ? 'Draft — nothing has been billed yet.'
-              : 'Live — some fields are locked to protect existing obligations.'}
+              : isOneTime
+                ? 'Live one-time charge — amount is frozen.'
+                : 'Live — amount changes are scheduled for next period.'}
           </div>
           <div className="flex items-center gap-2">
             <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={pending}>
@@ -296,4 +315,10 @@ export function EditChargeDialog({
 
 function LockedHint() {
   return <span className="ml-1 text-[10px] font-normal text-muted-foreground">· frozen</span>;
+}
+
+function ScheduledHint() {
+  return (
+    <span className="ml-1 text-[10px] font-normal text-primary">· takes effect next period</span>
+  );
 }

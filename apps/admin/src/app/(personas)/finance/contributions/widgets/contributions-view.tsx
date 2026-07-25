@@ -12,7 +12,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  toast,
   type GridApi,
+  type MassActions,
 } from '@shesa/ui';
 
 import { buildContributionColumns } from './contribution-columns';
@@ -105,6 +107,52 @@ export function ContributionsView({
     [pending],
   );
 
+  const massActions = useMemo<MassActions<SerialRow>>(
+    () => ({
+      itemName: 'contribution',
+      pluralItemName: 'contributions',
+      custom: [
+        {
+          label: 'Approve drafts',
+          onClick: (selected) => {
+            const drafts = selected.filter((r) => r.lifecycle === 'draft');
+            if (drafts.length === 0) {
+              toast.info('None of the selected contributions is a draft.');
+              return;
+            }
+            drafts.forEach((d) => actions.runApprove(d.id));
+            gridApi?.deselectAll();
+          },
+        },
+        {
+          label: 'Close open',
+          onClick: (selected) => {
+            const openRows = selected.filter((r) => r.lifecycle === 'open');
+            if (openRows.length === 0) {
+              toast.info('None of the selected contributions is currently open.');
+              return;
+            }
+            openRows.forEach((r) => actions.runClose(r.id));
+            gridApi?.deselectAll();
+          },
+        },
+        {
+          label: 'Archive',
+          onClick: (selected) => {
+            const archivable = selected.filter((r) => r.lifecycle !== 'archived');
+            if (archivable.length === 0) {
+              toast.info('The selected contributions are already archived.');
+              return;
+            }
+            archivable.forEach((r) => actions.runArchive(r.id));
+            gridApi?.deselectAll();
+          },
+        },
+      ],
+    }),
+    [actions, gridApi],
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
       <div className="flex flex-col gap-1">
@@ -159,7 +207,8 @@ export function ContributionsView({
         onGridReady={(e) => setGridApi(e.api)}
         onRowClicked={(e) => e.data && router.push(`/finance/charges/${e.data.id}`)}
         showColumnPicker={false}
-        selectable={false}
+        selectable
+        massActions={massActions}
       />
 
       <ContributionsDialogs

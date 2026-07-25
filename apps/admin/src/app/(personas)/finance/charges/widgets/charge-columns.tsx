@@ -4,7 +4,6 @@ import { ChargeNameCell } from './charge-name-cell';
 import { ChargeProgressCell } from './charge-progress-cell';
 import { ChargeRowActionsMenu } from './charge-row-actions-menu';
 import { ChargeStatusBadge } from './charge-status-badge';
-import { ChargeTypeCell } from './charge-type-cell';
 import type { ChargeRow, SerialRow } from './charges-types';
 
 interface ChargeColumnActions {
@@ -16,13 +15,13 @@ interface ChargeColumnActions {
 }
 
 /**
- * Column defs for the charges DataTable — S/N · Name · Type · Amount ·
+ * Column defs for the charges DataTable — S/N · Name · Amount ·
  * Progress · Status · Activates · Actions. Row-click on any main cell
  * opens the charge-detail page (wired at the DataTable level); the
  * trailing Actions column carries the overflow menu (Edit / Archive
- * / Delete). Activation is a status flip inside Edit and obligations
- * generate automatically on that transition — neither has its own
- * row action.
+ * / Delete). Bulk archive / status changes live on the selection bar.
+ * Activation is a status flip inside Edit and obligations generate
+ * automatically on that transition — neither has its own row action.
  */
 export function buildChargeColumns(actions: ChargeColumnActions): ColDef<SerialRow>[] {
   const { pending, onEdit, onPublish, onArchive, onDelete } = actions;
@@ -44,14 +43,6 @@ export function buildChargeColumns(actions: ChargeColumnActions): ColDef<SerialR
       minWidth: 260,
       cellRenderer: (p: ICellRendererParams<SerialRow>) =>
         p.data ? <ChargeNameCell row={p.data} /> : null,
-    },
-    {
-      headerName: 'Type',
-      colId: 'type',
-      field: 'targetPartyType',
-      width: 170,
-      cellRenderer: (p: ICellRendererParams<SerialRow>) =>
-        p.data ? <ChargeTypeCell row={p.data} /> : null,
     },
     {
       headerName: 'Amount',

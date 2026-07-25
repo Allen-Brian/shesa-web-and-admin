@@ -1644,3 +1644,49 @@ VALUES
    '55555555-0000-0000-0000-000000000002',
    NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================================
+-- Section 9. Sample mainstream contributions (2026-07-25)
+-- =============================================================================
+--
+-- Two examples of standalone contributions (no event group). One has
+-- a target goal, one is open-ended. Both anchor to the mainstream
+-- scope so the mainstream Contributions list has something to render
+-- on a fresh reset.
+
+INSERT INTO finance.charges
+  (id, scope_id, shape, name, description, currency,
+   goal_amount, min_amount, base_amount,
+   target_filter, target_party_type,
+   lifecycle, open_date, close_date, status, group_id,
+   created_by, created_at, updated_at)
+VALUES
+  -- With target: goal-shape contribution, 5M XAF target.
+  ('99999999-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000001',
+   'goal', 'Scholarship Fund 2026',
+   'End-of-year scholarship drive for SAHECO students. 5 000 000 XAF target.',
+   'XAF',
+   5000000, NULL, NULL,
+   '{}'::jsonb, 'member',
+   'open',
+   (NOW() - INTERVAL '30 days'),
+   (NOW() + INTERVAL '150 days'),
+   'active', NULL,
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW()),
+  -- Without target: open-shape contribution, any amount.
+  ('99999999-0000-0000-0000-000000000002',
+   '00000000-0000-0000-0000-000000000001',
+   'open', 'Chapel Renovation Drive',
+   'Open collection for the SAHECO chapel renovation project. No target, any amount.',
+   'XAF',
+   NULL, NULL, NULL,
+   '{}'::jsonb, 'member',
+   'open',
+   (NOW() - INTERVAL '15 days'),
+   (NOW() + INTERVAL '180 days'),
+   'active', NULL,
+   '55555555-0000-0000-0000-000000000002',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;

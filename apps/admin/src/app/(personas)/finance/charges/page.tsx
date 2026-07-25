@@ -249,17 +249,17 @@ export default async function ChargesPage() {
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  // Target scopes for Group charges — every visible Branch + Batch.
-  // Batches are global (no parent scope), branches carry their own
-  // name; the extra parentName field surfaces "Batch · Class of 2019"
-  // vs "Branch · Shesa Buea" grouping in the picker.
+  // Target scopes for Group charges — every visible Branch + Chapter +
+  // Batch, each able to owe as a body. Batches are global (no parent
+  // scope); branches/chapters carry their own name; the extra
+  // parentName field surfaces "Chapter · Shesa Buea" grouping.
   const targetScopeSet = new Set<string>();
   {
     const { data: rawTargetScopes } = await supabase
       .schema('core')
       .from('scopes')
       .select('id, name, slug, scope_type, chapter_kind, currency_code, parent_scope_id')
-      .in('scope_type', ['branch', 'batch']);
+      .in('scope_type', ['branch', 'chapter', 'batch']);
     for (const s of (rawTargetScopes ?? []) as RawScopeRow[]) {
       targetScopeSet.add(s.id);
       scopeById.set(s.id, s);
@@ -273,7 +273,7 @@ export default async function ChargesPage() {
       id: s.id,
       name: s.name,
       slug: s.slug,
-      scopeType: s.scope_type as 'branch' | 'batch',
+      scopeType: s.scope_type as 'branch' | 'chapter' | 'batch',
       parentName: s.parent_scope_id ? (scopeById.get(s.parent_scope_id)?.name ?? null) : null,
     }))
     .sort((a, b) => {
@@ -292,6 +292,13 @@ export default async function ChargesPage() {
     active?.scopeIds[0] ?? mainstreamOption?.id ?? scopeOptions[0]?.id ?? '';
   const mainstreamScopeId = mainstreamOption?.id ?? defaultIndividualScopeId;
 
+  // The charge KIND is fixed by who the operator is — never a choice:
+  //   • Mainstream Finance charges other bodies (group levies), never
+  //     individuals.
+  //   • Branch / Chapter Finance charges its own members, never groups.
+  // (Spec Part III.) A user with no finance grant can't create at all.
+  const chargeKind: 'group' | 'individual' = active?.kind === 'mainstream' ? 'group' : 'individual';
+
   return (
     <ChargesView
       charges={charges}
@@ -299,6 +306,7 @@ export default async function ChargesPage() {
       targetScopeOptions={targetScopeOptions}
       defaultIndividualScopeId={defaultIndividualScopeId}
       mainstreamScopeId={mainstreamScopeId}
+      chargeKind={chargeKind}
     />
   );
 }

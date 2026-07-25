@@ -78,10 +78,12 @@ interface UpdateChargeInput {
   readonly chargeTargets?: readonly CreateChargeTargetInput[];
 }
 
-export async function updateCharge(input: UpdateChargeInput): Promise<ActionResult> {
+export async function updateCharge(
+  input: UpdateChargeInput,
+): Promise<ActionResult<{ scheduledEffective?: string }>> {
   const supabase = await getServerClient();
 
-  const { error } = await supabase.functions.invoke('charges/update', {
+  const { data, error } = await supabase.functions.invoke('charges/update', {
     body: input,
   });
 
@@ -90,8 +92,9 @@ export async function updateCharge(input: UpdateChargeInput): Promise<ActionResu
   }
 
   revalidatePath('/finance/charges');
+  revalidatePath('/finance/charges/[id]', 'page');
   revalidatePath('/finance', 'layout');
-  return { ok: true };
+  return { ok: true, data: (data ?? {}) as { scheduledEffective?: string } };
 }
 
 export async function archiveCharge(id: string, reason?: string): Promise<ActionResult> {
