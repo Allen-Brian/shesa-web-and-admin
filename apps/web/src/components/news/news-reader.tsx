@@ -2,6 +2,9 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
+import { Newspaper } from 'lucide-react';
+
+import { EmptyState } from '@/components/ui/empty-state';
 
 import { ArticlePreview } from './article-preview';
 import { ArticleView } from './article-view';
@@ -53,8 +56,13 @@ export function NewsReader({
   if (!selected) {
     return (
       <section className="relative bg-white pb-24 md:pb-32">
-        <div className="mx-auto max-w-350 px-5 md:px-8 lg:px-12 text-center text-sm text-black/50">
-          No news yet, check back soon.
+        <div className="mx-auto max-w-3xl px-5 md:px-8 lg:px-12">
+          <EmptyState
+            icon={Newspaper}
+            heading="No news yet"
+            body="Dispatches, briefs, and community milestones will land here as they're published."
+            cta={{ label: 'Back to home', href: '/' }}
+          />
         </div>
       </section>
     );

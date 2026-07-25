@@ -4,6 +4,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
+import { CalendarClock } from 'lucide-react';
+
+import { EmptyState } from '@/components/ui/empty-state';
 
 import type { SiteEvent } from './data';
 
@@ -35,6 +38,27 @@ interface Props {
 export function EventsList({ upcoming, categories: categoryOptions }: Props) {
   const [filter, setFilter] = useState<string>('All');
   const [page, setPage] = useState(0);
+
+  if (upcoming.length === 0) {
+    return (
+      <section
+        className="relative overflow-hidden py-24 text-black md:py-28"
+        style={{
+          background:
+            'linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 3%, white) 0%, color-mix(in srgb, var(--color-primary) 5%, white) 100%)',
+        }}
+      >
+        <div className="mx-auto max-w-3xl px-5 md:px-8 lg:px-12">
+          <EmptyState
+            icon={CalendarClock}
+            heading="No upcoming events on the calendar"
+            body="We are between events at the moment. When the next reunion, ceremony, or summit is confirmed it will show up right here."
+            cta={{ label: 'See past events', href: '#past-events' }}
+          />
+        </div>
+      </section>
+    );
+  }
 
   const categories = useMemo<readonly string[]>(
     () => ['All', ...categoryOptions],

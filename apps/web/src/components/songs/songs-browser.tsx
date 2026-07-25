@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
+import { Music4 } from 'lucide-react';
+
+import { EmptyState } from '@/components/ui/empty-state';
 
 import type { PublicSong, PublicSongGroup } from './data';
 import { usePlayer } from './player-context';
@@ -52,6 +55,21 @@ export function SongsBrowser({ songs, groups }: Props) {
   const player = usePlayer();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<string>(ALL);
+
+  if (songs.length === 0) {
+    return (
+      <section className="relative overflow-hidden py-24 text-black md:py-28">
+        <div className="mx-auto max-w-3xl px-5 md:px-8 lg:px-12">
+          <EmptyState
+            icon={Music4}
+            heading="The songbook is empty for now"
+            body="Anthems, chapter songs, and cultural pieces will show up here as they're added to the SHESA archive."
+            cta={{ label: 'Back to home', href: '/' }}
+          />
+        </div>
+      </section>
+    );
+  }
 
   const filters = useMemo(() => [ALL, ...groups.map((g) => g.name)], [groups]);
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);

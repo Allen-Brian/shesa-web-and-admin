@@ -4,6 +4,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { useMemo, useState } from 'react';
+import { Sprout } from 'lucide-react';
+
+import { EmptyState } from '@/components/ui/empty-state';
 
 import { isLocalSupabaseUrl } from '../leadership/is-local-supabase-url';
 import type { Project, ProjectStatus } from './data';
@@ -45,6 +48,27 @@ export function ProjectsList({ projects, categories }: Props) {
     () => (filter === 'All' ? projects : projects.filter((p) => p.categories.includes(filter))),
     [projects, filter],
   );
+
+  if (projects.length === 0) {
+    return (
+      <section
+        className="relative overflow-hidden py-24 text-black md:py-28"
+        style={{
+          background:
+            'linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 3%, white) 0%, color-mix(in srgb, var(--color-primary) 5%, white) 100%)',
+        }}
+      >
+        <div className="mx-auto max-w-3xl px-5 md:px-8 lg:px-12">
+          <EmptyState
+            icon={Sprout}
+            heading="No projects to show yet"
+            body="The next round of alumni projects is being staged. Cards will populate here as soon as each one is live in the CMS."
+            cta={{ label: 'See the strategic plan', href: '/strategic-plan' }}
+          />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section

@@ -4,6 +4,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { useMemo, useState } from 'react';
+import { Images } from 'lucide-react';
+
+import { EmptyState } from '@/components/ui/empty-state';
 
 import type { Album } from './data';
 import { ALL_CATEGORY } from './data';
@@ -33,6 +36,27 @@ export function AlbumGrid({ albums, categories }: AlbumGridProps) {
     () => (filter === ALL_CATEGORY ? albums : albums.filter((a) => a.category === filter)),
     [albums, filter],
   );
+
+  if (albums.length === 0) {
+    return (
+      <section
+        className="relative overflow-hidden py-24 text-black md:py-28"
+        style={{
+          background:
+            'linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 3%, white) 0%, color-mix(in srgb, var(--color-primary) 5%, white) 100%)',
+        }}
+      >
+        <div className="mx-auto max-w-3xl px-5 md:px-8 lg:px-12">
+          <EmptyState
+            icon={Images}
+            heading="No albums in the archive yet"
+            body="Photos from reunions, ceremonies, and community drives will land here once the first album is uploaded."
+            cta={{ label: 'Back to home', href: '/' }}
+          />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
