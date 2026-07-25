@@ -10,16 +10,14 @@ interface Props {
   readonly tier: AgmFundingTier;
   readonly active: boolean;
   readonly index: number;
-  readonly onSelect: (key: AgmFundingTier['key']) => void;
 }
 
 /**
  * Per-tier visual language. Each metal gets its own gradient face + a
  * tinted border so a row of cards reads immediately as a hierarchy:
- * cool bronze at the low end, warm platinum at the top. The colours
- * stay muted enough on the base state that a page of five cards
- * doesn't overwhelm; the active state saturates and adds a lifted
- * shadow so the operator's pick is unmissable.
+ * cool bronze at the low end, warm platinum at the top. Cards are
+ * display-only now — the tier is derived from the donor's amount so
+ * whichever card matches the current amount lights up automatically.
  */
 const TIER_PALETTE: Record<AgmFundingTier['key'], TierPalette> = {
   bronze: {
@@ -61,26 +59,24 @@ interface TierPalette {
 }
 
 /**
- * One tier card in the funding tier picker. Renders a stacked layout
- * (label / amount / caption) with a metallic gradient bar on top and
- * a subtle full-card wash on the active state.
+ * One tier card. Renders a stacked layout (label / headline amount /
+ * range subtitle / caption) with a metallic gradient bar on top and a
+ * subtle full-card wash when the current donation amount falls inside
+ * the tier's range.
  */
-export function FundingTierCard({ tier, active, index, onSelect }: Props) {
+export function FundingTierCard({ tier, active, index }: Props) {
   const palette = TIER_PALETTE[tier.key];
+  const rangeLabel = formatRange(tier);
   return (
-    <motion.button
-      type="button"
-      onClick={() => onSelect(tier.key)}
-      aria-pressed={active}
+    <motion.div
+      aria-current={active}
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.4 }}
       transition={{ duration: 0.7, delay: index * 0.08, ease }}
       className={
         'group relative flex flex-col items-start gap-3 overflow-hidden rounded-xs border p-6 text-left transition-all duration-500 ' +
-        (active
-          ? 'shadow-[0_22px_60px_-25px_rgba(0,0,0,0.35)]'
-          : 'border-black/10 bg-white hover:-translate-y-0.5')
+        (active ? 'shadow-[0_22px_60px_-25px_rgba(0,0,0,0.35)]' : 'border-black/10 bg-white')
       }
       style={
         active
@@ -119,18 +115,29 @@ export function FundingTierCard({ tier, active, index, onSelect }: Props) {
         <span className="mt-1 text-[11px] uppercase tracking-[0.24em] text-black/50">XAF</span>
       </div>
 
+      <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-black/55">
+        {rangeLabel}
+      </p>
+
       <p className="text-[13px] leading-[1.65] text-black/65">{tier.caption}</p>
 
       <span
         className={
           'mt-2 inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.2em] transition-colors ' +
-          (active ? '' : 'text-black/40 group-hover:text-black/70')
+          (active ? '' : 'text-black/35')
         }
         style={active ? { color: palette.accent } : undefined}
       >
-        {active ? 'Selected' : 'Choose'}
-        <span aria-hidden>→</span>
+        {active ? 'Your tier' : 'In range'}
+        {active && <span aria-hidden>·</span>}
       </span>
-    </motion.button>
+    </motion.div>
   );
+}
+
+function formatRange(tier: AgmFundingTier): string {
+  const fmt = (n: number) => n.toLocaleString();
+  if (tier.unbounded) return `${fmt(tier.minAmountXaf)} XAF and above`;
+  if (tier.minAmountXaf <= 1) return `Up to ${fmt(tier.amountXaf)} XAF`;
+  return `${fmt(tier.minAmountXaf)} - ${fmt(tier.amountXaf)} XAF`;
 }

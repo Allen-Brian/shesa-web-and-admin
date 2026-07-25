@@ -169,15 +169,27 @@ export const ATTIRE_SIZES = ['S', 'M', 'L', 'XL', 'XXL'] as const;
 export type AttireSize = (typeof ATTIRE_SIZES)[number];
 
 /**
- * Funding tiers for AGM 2026. Suggested minimums; the public form
- * lets the donor bump above the tier's minimum. The tier label lands
- * in payment metadata so Finance can roll up by tier in the group's
- * Donations tab.
+ * Funding tiers for AGM 2026. Each tier is a RANGE, not a fixed
+ * amount: `minAmountXaf` is the lower bound and `amountXaf` is the
+ * upper bound of the tier's slice. Whatever the donor gives lands in
+ * whichever slice contains their number; the receipt + finance
+ * campaign are chosen from that. The top tier (Platinum) is
+ * unbounded, so any amount at or above its floor still counts as
+ * Platinum.
  */
 export interface AgmFundingTier {
   readonly key: 'bronze' | 'silver' | 'gold' | 'platinum';
   readonly label: string;
+  /** Lower bound of the tier's range in XAF (inclusive). */
+  readonly minAmountXaf: number;
+  /**
+   * Upper bound of the tier's range in XAF (inclusive). Also the
+   * "headline" number shown large on the card. For the unbounded
+   * top tier this doubles as the suggested contribution ceiling.
+   */
   readonly amountXaf: number;
+  /** True for the top tier — amounts above `amountXaf` still count as this tier. */
+  readonly unbounded?: boolean;
   readonly caption: string;
 }
 
@@ -185,28 +197,49 @@ export const AGM_FUNDING_TIERS: readonly AgmFundingTier[] = [
   {
     key: 'bronze',
     label: 'Bronze',
+    minAmountXaf: 1,
     amountXaf: 50_000,
     caption: 'For every alumnus who wants a seat at the table.',
   },
   {
     key: 'silver',
     label: 'Silver',
+    minAmountXaf: 50_001,
     amountXaf: 250_000,
     caption: 'For those who back the association behind the scenes.',
   },
   {
     key: 'gold',
     label: 'Gold',
+    minAmountXaf: 250_001,
     amountXaf: 1_000_000,
     caption: 'For patrons who move the needle.',
   },
   {
     key: 'platinum',
     label: 'Platinum',
+    minAmountXaf: 1_000_001,
     amountXaf: 5_000_000,
+    unbounded: true,
     caption: 'For benefactors who leave a mark.',
   },
 ];
+
+/**
+ * Map a donation amount (XAF) to the tier that owns it. Bronze
+ * catches 1-50,000; Silver 50,001-250,000; Gold 250,001-1,000,000;
+ * Platinum everything above. Amounts of zero or less fall to Bronze
+ * so the form never has an undefined tier state — validation on the
+ * server still rejects zero-amount submissions.
+ */
+export function tierForAmount(amountXaf: number): AgmFundingTier['key'] {
+  if (!Number.isFinite(amountXaf) || amountXaf <= 0) return 'bronze';
+  for (const t of AGM_FUNDING_TIERS) {
+    if (t.unbounded) return t.key;
+    if (amountXaf <= t.amountXaf) return t.key;
+  }
+  return 'platinum';
+}
 
 export const PAYMENT_OPTIONS = [
   { value: 'mtn-momo', label: 'MTN Mobile Money' },

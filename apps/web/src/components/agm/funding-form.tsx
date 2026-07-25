@@ -1,15 +1,10 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
-import {
-  AGM_FUNDING_TIERS,
-  PAYMENT_OPTIONS,
-  type AgmFundingTier,
-  type PaymentOption,
-} from './data';
+import { AGM_FUNDING_TIERS, PAYMENT_OPTIONS, tierForAmount, type PaymentOption } from './data';
 import { donateForAgmFunding } from './funding-action';
 import { FundingTierCard } from './funding-tier-card';
 
@@ -20,17 +15,15 @@ interface Props {
 }
 
 /**
- * Funding tier picker + donation form. The donor picks a tier, which
- * pre-fills the amount (they can bump above the tier's suggested
- * minimum); if they pick no tier the flow lands on the default AGM
- * 2026 campaign. Submission calls `record_public_donation` against
- * the selected campaign.
+ * Donation form. The donor enters an amount; the matching tier card
+ * highlights automatically (Bronze / Silver / Gold / Platinum) and
+ * that tier is what the server routes the payment to. There is no
+ * tier picker — the tier is a function of the amount.
  */
 export function FundingForm({ initialError }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const [tier, setTier] = useState<AgmFundingTier['key'] | null>(null);
   const [amountXaf, setAmountXaf] = useState<number>(0);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -39,11 +32,7 @@ export function FundingForm({ initialError }: Props) {
   const [paymentOption, setPaymentOption] = useState<PaymentOption>('mtn-momo');
   const [error, setError] = useState(initialError ?? '');
 
-  useEffect(() => {
-    if (!tier) return;
-    const chosen = AGM_FUNDING_TIERS.find((t) => t.key === tier);
-    if (chosen) setAmountXaf(chosen.amountXaf);
-  }, [tier]);
+  const derivedTier = useMemo(() => (amountXaf > 0 ? tierForAmount(amountXaf) : null), [amountXaf]);
 
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -62,7 +51,7 @@ export function FundingForm({ initialError }: Props) {
         fullName,
         email,
         phone,
-        tier,
+        tier: derivedTier,
         amountXaf,
         paymentOption,
         note,
@@ -79,13 +68,7 @@ export function FundingForm({ initialError }: Props) {
     <div className="flex flex-col gap-8">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {AGM_FUNDING_TIERS.map((t, i) => (
-          <FundingTierCard
-            key={t.key}
-            tier={t}
-            active={tier === t.key}
-            index={i}
-            onSelect={(next) => setTier((prev) => (prev === next ? null : next))}
-          />
+          <FundingTierCard key={t.key} tier={t} active={derivedTier === t.key} index={i} />
         ))}
       </div>
 
@@ -106,13 +89,13 @@ export function FundingForm({ initialError }: Props) {
             className="mt-4 font-heading font-thin leading-[1.1] text-black"
             style={{ fontSize: 'clamp(1.75rem, 3.4vw, 2.75rem)', letterSpacing: '-0.02em' }}
           >
-            {tier
-              ? `You picked ${tier.charAt(0).toUpperCase() + tier.slice(1)}. Change it any time.`
-              : 'Pick a tier or just enter any amount.'}
+            {derivedTier
+              ? `Your gift lands in ${derivedTier.charAt(0).toUpperCase() + derivedTier.slice(1)}.`
+              : 'Enter any amount to give.'}
           </h3>
           <p className="mt-3 max-w-lg text-[14.5px] leading-[1.7] text-black/60">
-            Tier amounts are suggestions, feel free to give more. Untied donations land on the
-            default AGM 2026 campaign.
+            The tier is chosen from the amount you give. Bronze covers up to 50,000 XAF, and each
+            step up captures the next range. Anything above 1,000,000 XAF counts as Platinum.
           </p>
         </div>
 

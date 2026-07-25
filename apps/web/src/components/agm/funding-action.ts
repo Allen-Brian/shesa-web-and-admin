@@ -4,8 +4,7 @@ import { redirect } from 'next/navigation';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { AgmFundingTier } from './data';
-import type { PaymentOption } from './data';
+import { tierForAmount, type AgmFundingTier, type PaymentOption } from './data';
 
 /**
  * Web-form → RPC method mapping. The public form's friendly labels
@@ -49,11 +48,12 @@ export type FundingResult =
   | { readonly ok: false; readonly message: string };
 
 /**
- * Record an AGM 2026 funding donation. Resolves the tier's campaign
- * inside the AGM 2026 group; if the donor didn't pick a tier the
- * flow lands on the default same-named campaign so no donation ever
- * goes unhomed. `record_public_donation` writes the payment and
- * receipt verification atomically.
+ * Record an AGM 2026 funding donation. The tier is a function of
+ * the amount (Bronze <= 50k, Silver <= 250k, Gold <= 1M, Platinum
+ * above that). We re-derive the tier server-side from the amount to
+ * ignore whatever the client sent, so a tampered form can't route
+ * a small gift into the Platinum campaign. `record_public_donation`
+ * writes the payment and receipt verification atomically.
  */
 export async function donateForAgmFunding(input: FundingInput): Promise<FundingResult> {
   const fullName = input.fullName.trim();
@@ -66,7 +66,8 @@ export async function donateForAgmFunding(input: FundingInput): Promise<FundingR
 
   const supabase = await getServerClient();
 
-  const campaignName = input.tier ? TIER_CAMPAIGN_NAME[input.tier] : 'AGM 2026';
+  const resolvedTier: AgmFundingTier['key'] = tierForAmount(input.amountXaf);
+  const campaignName = TIER_CAMPAIGN_NAME[resolvedTier];
   const { data: chargeRow } = await supabase
     .schema('finance' as never)
     .from('charges' as never)
@@ -82,7 +83,7 @@ export async function donateForAgmFunding(input: FundingInput): Promise<FundingR
   }
 
   const noteBase = input.note?.trim() || '';
-  const tierNote = input.tier ? `[${input.tier.toUpperCase()}] ` : '';
+  const tierNote = `[${resolvedTier.toUpperCase()}] `;
   const combinedNote = `${tierNote}${noteBase}`.slice(0, 500).trim() || null;
 
   const { data, error } = await supabase.schema('finance' as never).rpc(
