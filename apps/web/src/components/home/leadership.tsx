@@ -3,6 +3,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
+import { Users } from 'lucide-react';
+
+import { EmptyState } from '@/components/ui/empty-state';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -23,38 +26,11 @@ type Leader = {
   readonly slug: string;
 };
 
-const leaders: readonly Leader[] = [
-  {
-    name: 'Dr. Etonge Ambe',
-    role: 'National President',
-    location: 'Yaoundé · Cameroon',
-    photo: '/president_one.jpg',
-    slug: 'etonge-ambe',
-  },
-  {
-    name: 'Barr. Achu Nkeng',
-    role: 'Vice President',
-    location: 'Buea · Cameroon',
-    photo: '/president_two.jpg',
-    slug: 'achu-nkeng',
-  },
-  {
-    name: 'Eng. Ndifon Nkweta',
-    role: 'Secretary General',
-    location: 'Douala · Cameroon',
-    photo: '/president_one.jpg',
-    slug: 'ndifon-nkweta',
-  },
-  {
-    name: 'Mrs. Tanyi Bih',
-    role: 'Treasurer',
-    location: 'Bamenda · Cameroon',
-    photo: '/president_two.jpg',
-    slug: 'tanyi-bih',
-  },
-];
+interface LeadershipProps {
+  readonly leaders: readonly Leader[];
+}
 
-export function Leadership() {
+export function Leadership({ leaders }: LeadershipProps) {
   return (
     <section className="relative overflow-hidden bg-white py-20 text-black md:py-24">
       <div className="mx-auto max-w-350 px-5 md:px-8 lg:px-12">
@@ -98,19 +74,30 @@ export function Leadership() {
           </motion.div>
         </div>
 
-        <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 md:mt-16 md:gap-8 lg:grid-cols-4">
-          {leaders.map((leader, i) => (
-            <motion.div
-              key={leader.slug}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.35 }}
-              transition={{ duration: 0.75, delay: 0.15 + i * 0.1, ease }}
-            >
-              <LeaderCard leader={leader} />
-            </motion.div>
-          ))}
-        </div>
+        {leaders.length === 0 ? (
+          <div className="mx-auto mt-12 max-w-3xl md:mt-16">
+            <EmptyState
+              icon={Users}
+              heading="Leadership roster coming soon"
+              body="The National Executive and branch presidents will appear here once the CMS has been populated."
+              cta={{ label: 'How we are structured', href: '/organs' }}
+            />
+          </div>
+        ) : (
+          <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 md:mt-16 md:gap-8 lg:grid-cols-4">
+            {leaders.map((leader, i) => (
+              <motion.div
+                key={leader.slug}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.35 }}
+                transition={{ duration: 0.75, delay: 0.15 + i * 0.1, ease }}
+              >
+                <LeaderCard leader={leader} />
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

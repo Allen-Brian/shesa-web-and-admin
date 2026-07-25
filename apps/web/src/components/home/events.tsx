@@ -3,6 +3,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
+import { CalendarClock } from 'lucide-react';
+
+import { EmptyState } from '@/components/ui/empty-state';
 
 import { MarqueeCarousel } from './marquee-carousel';
 
@@ -28,70 +31,11 @@ type Event = {
   readonly slug: string;
 };
 
-const events: readonly Event[] = [
-  {
-    title: 'Annual General Meeting',
-    day: '21',
-    month: 'Nov',
-    year: '2026',
-    location: 'Palais des Congrès',
-    city: 'Yaoundé, Cameroon',
-    image: '/hero_one.jpg',
-    slug: 'agm-2026',
-  },
-  {
-    title: 'Health Outreach, Bamenda',
-    day: '15',
-    month: 'Dec',
-    year: '2026',
-    location: 'Regional Hospital',
-    city: 'Bamenda, Cameroon',
-    image: '/hero_two.jpg',
-    slug: 'health-outreach-bamenda',
-  },
-  {
-    title: 'Homecoming Weekend',
-    day: '10',
-    month: 'Jan',
-    year: '2027',
-    location: 'SHESA Campus',
-    city: 'Buea, Cameroon',
-    image: '/hero_three.jpg',
-    slug: 'homecoming-2027',
-  },
-  {
-    title: 'Career Mentorship Fair',
-    day: '20',
-    month: 'Feb',
-    year: '2027',
-    location: 'La Falaise Hotel',
-    city: 'Douala, Cameroon',
-    image: '/hero_four.jpg',
-    slug: 'mentorship-fair-2027',
-  },
-  {
-    title: 'Scholarship Awards Gala',
-    day: '15',
-    month: 'Mar',
-    year: '2027',
-    location: 'Hilton Yaoundé',
-    city: 'Yaoundé, Cameroon',
-    image: '/hero_five.jpg',
-    slug: 'scholarship-gala-2027',
-  },
-  {
-    title: 'Regional Summit, West Africa',
-    day: '05',
-    month: 'Apr',
-    year: '2027',
-    location: 'Eko Convention Centre',
-    city: 'Lagos, Nigeria',
-    image: '/hero_one.jpg',
-    slug: 'regional-summit-wa-2027',
-  },
-];
+interface EventsProps {
+  readonly events: readonly Event[];
+}
 
-export function Events() {
+export function Events({ events }: EventsProps) {
   return (
     <section className="relative overflow-hidden bg-white py-20 text-black md:py-24">
       <div className="mx-auto max-w-350 px-5 md:px-8 lg:px-12">
@@ -143,12 +87,23 @@ export function Events() {
         transition={{ duration: 0.9, delay: 0.3, ease }}
         className="mt-12 md:mt-16"
       >
-        <MarqueeCarousel
-          items={events}
-          duration={50}
-          ariaLabel="Upcoming events"
-          renderItem={(event) => <EventCard event={event} />}
-        />
+        {events.length === 0 ? (
+          <div className="mx-auto max-w-3xl px-5 md:px-8">
+            <EmptyState
+              icon={CalendarClock}
+              heading="No upcoming events yet"
+              body="Reunions, ceremonies, and summits will land here as soon as they're on the calendar. Check back or reach out if you'd like an invite."
+              cta={{ label: 'Contact us', href: '/contact' }}
+            />
+          </div>
+        ) : (
+          <MarqueeCarousel
+            items={events}
+            duration={50}
+            ariaLabel="Upcoming events"
+            renderItem={(event) => <EventCard event={event} />}
+          />
+        )}
       </motion.div>
     </section>
   );

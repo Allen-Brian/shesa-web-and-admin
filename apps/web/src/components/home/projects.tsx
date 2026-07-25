@@ -3,6 +3,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
+import { Sprout } from 'lucide-react';
+
+import { EmptyState } from '@/components/ui/empty-state';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -23,38 +26,11 @@ type Project = {
   readonly slug: string;
 };
 
-const projects: readonly Project[] = [
-  {
-    title: 'SHESA Endowment Fund',
-    category: 'Finance',
-    body: 'Building a permanent capital base to fund the missions of the alumni in perpetuity.',
-    image: '/hero_two.jpg',
-    slug: 'endowment-fund',
-  },
-  {
-    title: 'Alumni Scholarship Programme',
-    category: 'Education',
-    body: 'Sending the brightest students to school on the shoulders of alumni who came before.',
-    image: '/hero_three.jpg',
-    slug: 'scholarship-programme',
-  },
-  {
-    title: 'School Infrastructure Renewal',
-    category: 'Infrastructure',
-    body: 'Restoring the halls, labs, and libraries that shaped generations of SHESA scholars.',
-    image: '/hero_four.jpg',
-    slug: 'infrastructure-renewal',
-  },
-  {
-    title: 'Community Health Outreach',
-    category: 'Health',
-    body: 'Free consultations, screenings, and specialist care in underserved communities.',
-    image: '/hero_five.jpg',
-    slug: 'health-outreach',
-  },
-];
+interface ProjectsProps {
+  readonly projects: readonly Project[];
+}
 
-export function Projects() {
+export function Projects({ projects }: ProjectsProps) {
   return (
     <section className="relative overflow-hidden py-20 text-black md:py-24 bg-black/5">
       <div className="mx-auto max-w-350 px-5 md:px-8 lg:px-12">
@@ -98,19 +74,30 @@ export function Projects() {
           </motion.div>
         </div>
 
-        <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 md:mt-16 md:gap-6 lg:grid-cols-4">
-          {projects.map((project, i) => (
-            <motion.div
-              key={project.slug}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.35 }}
-              transition={{ duration: 0.75, delay: 0.15 + i * 0.1, ease }}
-            >
-              <ProjectCard project={project} />
-            </motion.div>
-          ))}
-        </div>
+        {projects.length === 0 ? (
+          <div className="mx-auto mt-12 max-w-3xl md:mt-16">
+            <EmptyState
+              icon={Sprout}
+              heading="No live projects to show"
+              body="We're staging the next round of missions. As soon as the first project is live the cards will populate here."
+              cta={{ label: 'See the strategic plan', href: '/strategic-plan' }}
+            />
+          </div>
+        ) : (
+          <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 md:mt-16 md:gap-6 lg:grid-cols-4">
+            {projects.map((project, i) => (
+              <motion.div
+                key={project.slug}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.35 }}
+                transition={{ duration: 0.75, delay: 0.15 + i * 0.1, ease }}
+              >
+                <ProjectCard project={project} />
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

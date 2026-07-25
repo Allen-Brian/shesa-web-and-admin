@@ -4,6 +4,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion, type Variants } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
+import { Images } from 'lucide-react';
+
+import { EmptyState } from '@/components/ui/empty-state';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -25,66 +28,11 @@ type Album = {
   readonly slug: string;
 };
 
-const albums: readonly Album[] = [
-  {
-    title: 'Foundation Day 2023',
-    date: 'February 2023',
-    photos: 45,
-    description: 'The day we honour the roots that hold us all together.',
-    cover: '/hero_two.jpg',
-    slug: 'foundation-day-2023',
-  },
-  {
-    title: 'International Summit',
-    date: 'May 2023',
-    photos: 78,
-    description: 'A brotherhood without borders, chapters from three continents.',
-    cover: '/hero_three.jpg',
-    slug: 'international-summit-2023',
-  },
-  {
-    title: 'Youth Camp',
-    date: 'July 2023',
-    photos: 124,
-    description: 'Where friendships begin and traditions are handed down.',
-    cover: '/hero_four.jpg',
-    slug: 'youth-camp-2023',
-  },
-  {
-    title: 'Homecoming Weekend',
-    date: 'August 2024',
-    photos: 89,
-    description: 'Two decades of memories, one long, unforgettable weekend.',
-    cover: '/hero_one.jpg',
-    slug: 'homecoming-2024',
-  },
-  {
-    title: 'Scholarship Gala',
-    date: 'December 2023',
-    photos: 56,
-    description: 'Honouring the next generation of Shesa scholars.',
-    cover: '/hero_five.jpg',
-    slug: 'scholarship-gala-2023',
-  },
-  {
-    title: 'Health Outreach',
-    date: 'March 2024',
-    photos: 32,
-    description: 'Serving the communities that shaped who we are.',
-    cover: '/hero_two.jpg',
-    slug: 'health-outreach-2024',
-  },
-  {
-    title: 'AGM 2024',
-    date: 'November 2024',
-    photos: 147,
-    description: 'The biggest gathering in a decade, and just the warm-up for 2026.',
-    cover: '/hero_three.jpg',
-    slug: 'agm-2024',
-  },
-];
+interface GalleryProps {
+  readonly albums: readonly Album[];
+}
 
-export function Gallery() {
+export function Gallery({ albums }: GalleryProps) {
   return (
     <section className="relative overflow-hidden bg-white py-20 text-black md:py-28">
       <div className="mx-auto max-w-350 px-5 md:px-8 lg:px-12">
@@ -157,8 +105,21 @@ export function Gallery() {
         transition={{ duration: 1, delay: 0.4, ease }}
         className="mt-6 md:mt-10"
       >
-        <AlbumFan albums={albums} />
-        <MobileAlbumScroll albums={albums} />
+        {albums.length === 0 ? (
+          <div className="mx-auto max-w-3xl px-5 md:px-8">
+            <EmptyState
+              icon={Images}
+              heading="No albums yet"
+              body="Photos from reunions, ceremonies, and community drives will show up here as they're uploaded to the archive."
+              cta={{ label: 'Visit the gallery', href: '/gallery' }}
+            />
+          </div>
+        ) : (
+          <>
+            <AlbumFan albums={albums} />
+            <MobileAlbumScroll albums={albums} />
+          </>
+        )}
       </motion.div>
     </section>
   );
