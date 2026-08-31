@@ -69,7 +69,7 @@ export function CrestBadge({ className, beating = false }: CrestBadgeProps) {
 
   const embers = useMemo(
     () =>
-      Array.from({ length: 14 }).map((_, i) => ({
+      Array.from({ length: 24 }).map((_, i) => ({
         left: `${(i * 137.5) % 100}%`,
         size: 2 + ((i * 7) % 4),
         delay: (i * 0.6) % 6,
@@ -113,7 +113,7 @@ export function CrestBadge({ className, beating = false }: CrestBadgeProps) {
         transition={beating ? beatTransition : restTransition}
       />
 
-      <div aria-hidden className="pointer-events-none absolute inset-[-30%] overflow-hidden">
+      <div aria-hidden className="pointer-events-none absolute inset-[-35%] overflow-hidden">
         {embers.map((e, i) => (
           <motion.span
             key={i}

@@ -118,7 +118,7 @@ export function Stats() {
                 letterSpacing: '-0.02em',
               }}
             >
-              Numbers that speak <span className="italic text-primary">for us.</span>
+              Unleashing <span className="italic text-primary">our Potential.</span>
             </motion.h2>
           </div>
 

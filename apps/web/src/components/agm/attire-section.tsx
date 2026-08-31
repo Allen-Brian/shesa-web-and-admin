@@ -14,7 +14,7 @@ export function AttireSection({ initialError }: Props) {
   return (
     <section
       id="attire"
-      className="relative border-t border-black/10 bg-black/[0.02] pb-24 pt-16 md:pb-32 md:pt-24"
+      className="relative scroll-mt-20 border-t border-black/10 bg-black/[0.02] pb-24 pt-16 md:pb-32 md:pt-24"
     >
       <div className="mx-auto max-w-350 px-5 md:px-8 lg:px-12">
         <div className="mb-10 flex flex-col gap-2 md:mb-14 md:max-w-2xl">

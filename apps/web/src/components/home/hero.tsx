@@ -2,12 +2,49 @@
 
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
+import { HandHeart, Shirt, Ticket, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import { CrestBadge } from './crest-badge';
 import { HeroBackdropImages } from './hero-backdrop-images';
 
 const ease = [0.22, 1, 0.36, 1] as const;
+
+interface HeroAction {
+  readonly icon: LucideIcon;
+  readonly kicker: string;
+  readonly label: string;
+  readonly body: string;
+  /** Deep link into the matching form on the AGM 2026 page. */
+  readonly href: string;
+  /** The one card carrying the beam — ticket sales lead everything else. */
+  readonly primary?: boolean;
+}
+
+const heroActions: readonly HeroAction[] = [
+  {
+    icon: Ticket,
+    kicker: 'AGM 2026',
+    label: 'Get your ticket',
+    body: 'Register and pay for your seat in Yaoundé.',
+    href: '/agm-2026#register',
+    primary: true,
+  },
+  {
+    icon: Shirt,
+    kicker: 'Uniform',
+    label: 'Order SHESA attire',
+    body: 'The new colours, sized and paid for online.',
+    href: '/agm-2026#attire',
+  },
+  {
+    icon: HandHeart,
+    kicker: 'Give',
+    label: 'Sponsor or support',
+    body: 'Back the assembly at the tier that suits you.',
+    href: '/agm-2026#funding',
+  },
+] as const;
 
 export function Hero() {
   const reduce = useReducedMotion();
@@ -40,49 +77,100 @@ export function Hero() {
           >
             <CrestBadge
               beating={beating}
-              className="aspect-square w-60 sm:w-80 md:w-100 lg:w-120 xl:w-135"
+              className="aspect-square w-60 sm:w-80 md:w-100 lg:w-120 xl:w-135 mb-8"
             />
           </motion.div>
         </div>
 
-        <div className="relative z-20 mt-10 grid gap-4 md:mt-0 md:grid-cols-2 md:items-end md:gap-6">
-          <motion.aside {...rise(0.55)} className="md:max-w-[320px]">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white">
-              Viriliter Age
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-white/70 md:text-[15px]">
-              A living network of graduates, carrying the spirit forward, chapter after chapter,
-              across every era.
-            </p>
-          </motion.aside>
-
-          <motion.aside
-            {...rise(0.7)}
-            className="group relative overflow-hidden rounded-xs border border-white/15 bg-white/4 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors hover:border-primary md:ml-auto md:max-w-75"
-          >
-            <Link href="/agm-2026" className="block">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
-                AGM 2026
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-white/75">
-                Save the date. Our largest gathering yet, reunions, honours, and what comes next.
-              </p>
-              <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-white">
-                See details
-                <span
-                  aria-hidden
-                  className="grid h-6 w-6 place-items-center rounded-xs border border-white/30 transition-transform duration-300 group-hover:translate-x-1 group-hover:border-primary group-hover:text-primary"
-                >
-                  →
-                </span>
-              </span>
-            </Link>
-          </motion.aside>
+        <div className="relative z-20 mt-8 grid gap-3 md:mt-0 md:grid-cols-3 md:items-stretch md:gap-4">
+          {heroActions.map((action, i) => (
+            <motion.div key={action.href} {...rise(0.55 + i * 0.12)}>
+              <ActionCard action={action} />
+            </motion.div>
+          ))}
         </div>
       </div>
 
       <ScrollHint />
     </section>
+  );
+}
+
+/**
+ * Hero call-to-action card. Each one deep-links to a form section on
+ * the AGM 2026 page (`#register`, `#attire`, `#funding`) so the hero
+ * lands people inside the flow rather than at the top of the page.
+ *
+ * The primary card carries the rotating beam + halo used by the AGM
+ * support button, so the ticket action reads as the loudest thing on
+ * the screen; the other two are glass cards that light up on hover.
+ */
+function ActionCard({ action }: { readonly action: HeroAction }) {
+  const { icon: Icon, primary } = action;
+
+  return (
+    <div className={`relative h-full rounded-xs ${primary ? '' : 'isolate'}`}>
+      {primary ? <span className="border-beam-halo" aria-hidden /> : null}
+      <Link
+        href={action.href}
+        className={`group relative flex h-full flex-col gap-3 overflow-hidden rounded-xs px-4 py-4 transition-all duration-500 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary md:px-5 md:py-5 ${
+          primary
+            ? 'bg-primary text-primary-foreground shadow-[0_20px_60px_-15px_rgba(139,21,51,0.6)] hover:-translate-y-0.5'
+            : 'border border-white/15 bg-white/6 text-white shadow-[0_8px_30px_rgba(0,0,0,0.35)] backdrop-blur-md hover:-translate-y-0.5 hover:border-primary hover:bg-white/10'
+        }`}
+      >
+        {primary ? <span className="border-beam" aria-hidden /> : null}
+        <span
+          aria-hidden
+          className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/25 to-transparent transition-transform duration-1000 group-hover:translate-x-full"
+        />
+
+        <span className="relative flex items-center gap-3">
+          <span
+            aria-hidden
+            className={`grid h-11 w-11 shrink-0 place-items-center rounded-xs ${
+              primary ? 'bg-white/20 text-white' : 'bg-primary/15 text-primary'
+            }`}
+          >
+            <Icon className="h-5 w-5" />
+          </span>
+
+          <span className="flex min-w-0 flex-col">
+            <span
+              className={`text-[10px] font-semibold uppercase tracking-[0.22em] ${
+                primary ? 'text-white/75' : 'text-primary'
+              }`}
+            >
+              {action.kicker}
+            </span>
+            <span className="mt-0.5 text-[15px] font-medium leading-tight md:text-base">
+              {action.label}
+            </span>
+          </span>
+        </span>
+
+        <span className="relative mt-auto flex items-center justify-between gap-3">
+          <span
+            className={`text-[12.5px] leading-normal md:text-[13px] ${
+              primary ? 'text-white/80' : 'text-white/65'
+            }`}
+          >
+            {action.body}
+          </span>
+
+          <span
+            aria-hidden
+            className={`grid h-7 w-7 shrink-0 place-items-center rounded-xs transition-transform duration-500 group-hover:translate-x-1 ${
+              primary
+                ? 'bg-white/20 text-white'
+                : 'border border-white/30 text-white group-hover:border-primary group-hover:text-primary'
+            }`}
+          >
+            →
+          </span>
+        </span>
+      </Link>
+    </div>
   );
 }
 
@@ -120,7 +208,7 @@ function BackdropWord() {
         initial={{ opacity: 0, x: -60 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 1.2, ease }}
-        className="font-display leading-none text-white/10"
+        className="font-display leading-none text-white/25"
         style={{ fontSize: 'clamp(4rem, 18vw, 20rem)', letterSpacing: '-0.04em' }}
       >
         SHESA
@@ -129,7 +217,7 @@ function BackdropWord() {
         initial={{ opacity: 0, x: 60 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 1.2, ease }}
-        className="font-display leading-none text-white/10"
+        className="font-display leading-none text-white/25"
         style={{ fontSize: 'clamp(4rem, 18vw, 20rem)', letterSpacing: '-0.04em' }}
       >
         ALUMNI
@@ -138,46 +226,40 @@ function BackdropWord() {
   );
 }
 
+/**
+ * The tagline flanking the crest, split across it — "One SHESA" left,
+ * "One Dream" right. Both sit in the crest's lower third so they stay
+ * clear of the oversized SHESA / ALUMNI backdrop word above, and the
+ * crest carries nothing beneath it.
+ */
 function ScriptOverlay() {
+  const scriptStyle = {
+    fontSize: 'clamp(1.75rem, 5.5vw, 5rem)',
+    lineHeight: 1,
+    textShadow: '0 4px 30px rgba(139,21,51,0.55)',
+  } as const;
+
   return (
     <>
       <motion.span
         aria-hidden
-        initial={{ opacity: 0, y: 20, rotate: -6 }}
-        animate={{ opacity: 1, y: 0, rotate: -6 }}
+        initial={{ opacity: 0, y: 20, rotate: -3 }}
+        animate={{ opacity: 1, y: 0, rotate: -3 }}
         transition={{ duration: 1, delay: 0.35, ease }}
-        className="pointer-events-none absolute left-[2%] top-[34%] z-20 font-script text-primary md:left-[6%] md:top-[36%]"
-        style={{
-          fontSize: 'clamp(2.5rem, 8vw, 7rem)',
-          lineHeight: 1,
-          textShadow: '0 4px 30px rgba(139,21,51,0.55)',
-        }}
+        className="pointer-events-none absolute left-0 top-[52%] z-20 whitespace-nowrap font-script text-primary md:left-[3%] md:top-[64%]"
+        style={scriptStyle}
       >
-        United
+        One SHESA
       </motion.span>
       <motion.span
         aria-hidden
-        initial={{ opacity: 0, y: 20, rotate: 4 }}
-        animate={{ opacity: 1, y: 0, rotate: 4 }}
+        initial={{ opacity: 0, y: 20, rotate: 3 }}
+        animate={{ opacity: 1, y: 0, rotate: 3 }}
         transition={{ duration: 1, delay: 0.5, ease }}
-        className="pointer-events-none absolute right-[2%] top-[34%] z-20 font-script text-primary md:right-[6%] md:top-[36%]"
-        style={{
-          fontSize: 'clamp(2.5rem, 8vw, 7rem)',
-          lineHeight: 1,
-          textShadow: '0 4px 30px rgba(139,21,51,0.55)',
-        }}
+        className="pointer-events-none absolute right-0 top-[62%] z-20 whitespace-nowrap font-script text-primary md:right-[3%] md:top-[64%]"
+        style={scriptStyle}
       >
-        Always
-      </motion.span>
-      <motion.span
-        aria-hidden
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.9, delay: 0.85, ease }}
-        className="pointer-events-none absolute inset-x-0 top-full z-20 text-center font-script text-white"
-        style={{ fontSize: 'clamp(1.25rem, 2.6vw, 2.25rem)', lineHeight: 1 }}
-      >
-        One family. Every era.
+        One Dream
       </motion.span>
     </>
   );

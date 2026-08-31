@@ -15,6 +15,7 @@ import { Hero } from '@/components/home/hero';
 import { Leadership } from '@/components/home/leadership';
 import { Mission } from '@/components/home/mission';
 import { MoreData } from '@/components/home/more-data';
+import { PartnersStrip } from '@/components/home/partners-strip';
 import { PartnershipCta } from '@/components/home/partnership-cta';
 import { PresidentsWord } from '@/components/home/presidents-word';
 import { Projects } from '@/components/home/projects';
@@ -37,10 +38,11 @@ export default async function HomePage() {
       <Hero />
       <Mission />
       <Stats />
+      <AgmCta />
+      <PartnersStrip />
+      <PartnershipCta />
       <PresidentsWord />
       <StrategicPlanCta />
-      <AgmCta />
-      <PartnershipCta />
       <Events events={events} />
       <Projects projects={projects} />
       <Gallery albums={albums} />
