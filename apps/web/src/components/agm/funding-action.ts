@@ -2,15 +2,11 @@
 
 import { redirect } from 'next/navigation';
 
+import { handOffToFapshi } from '@/lib/fapshi-checkout';
 import { getServerClient } from '@/lib/supabase-server';
 
 import { tierForAmount, type AgmFundingTier, type PaymentOption } from './data';
 
-/**
- * Web-form → RPC method mapping. The public form's friendly labels
- * (MTN MoMo, Orange Money, etc.) collapse to the enum values the
- * finance schema uses.
- */
 const PAYMENT_METHOD_MAP: Record<PaymentOption, string> = {
   'mtn-momo': 'mtn_momo',
   'orange-money': 'orange_money',
@@ -19,12 +15,17 @@ const PAYMENT_METHOD_MAP: Record<PaymentOption, string> = {
   'cash-on-site': 'cash',
 };
 
+const FAPSHI_METHODS: ReadonlySet<PaymentOption> = new Set<PaymentOption>([
+  'mtn-momo',
+  'orange-money',
+  'card',
+  'bank-transfer',
+]);
+
 /**
  * Per-tier funding-campaign names. Each tier is seeded as its own
  * donation-shape charge inside the AGM 2026 group; the donation flows
  * to the matching campaign so Finance can tell tiers apart in reports.
- * When the tier is unset the flow lands on the default AGM 2026
- * campaign instead.
  */
 const TIER_CAMPAIGN_NAME: Record<AgmFundingTier['key'], string> = {
   bronze: 'Bronze Funding',
@@ -44,16 +45,14 @@ export interface FundingInput {
 }
 
 export type FundingResult =
-  | { readonly ok: true; readonly receiptToken: string }
+  | { readonly ok: true; readonly redirectTo: string }
   | { readonly ok: false; readonly message: string };
 
 /**
- * Record an AGM 2026 funding donation. The tier is a function of
- * the amount (Bronze <= 50k, Silver <= 250k, Gold <= 1M, Platinum
- * above that). We re-derive the tier server-side from the amount to
- * ignore whatever the client sent, so a tampered form can't route
- * a small gift into the Platinum campaign. `record_public_donation`
- * writes the payment and receipt verification atomically.
+ * Record (or start collecting) an AGM 2026 funding donation. Tier is
+ * re-derived server-side from the amount to defeat form tampering. Two
+ * paths mirroring register/attire: cash → direct RPC; else → Fapshi
+ * intent + hosted checkout.
  */
 export async function donateForAgmFunding(input: FundingInput): Promise<FundingResult> {
   const fullName = input.fullName.trim();
@@ -85,6 +84,53 @@ export async function donateForAgmFunding(input: FundingInput): Promise<FundingR
   const noteBase = input.note?.trim() || '';
   const tierNote = `[${resolvedTier.toUpperCase()}] `;
   const combinedNote = `${tierNote}${noteBase}`.slice(0, 500).trim() || null;
+  const method = PAYMENT_METHOD_MAP[input.paymentOption];
+  const email = input.email.trim() || null;
+  const phone = input.phone.trim() || null;
+
+  if (FAPSHI_METHODS.has(input.paymentOption)) {
+    const { data: intentData, error: intentErr } = await supabase.schema('finance' as never).rpc(
+      'initiate_public_donation_intent' as never,
+      {
+        p_charge_id: charge.id,
+        p_amount: input.amountXaf,
+        p_currency: charge.currency,
+        p_method: method,
+        p_donor_name: fullName,
+        p_donor_email: email,
+        p_donor_phone: phone,
+        p_note: combinedNote,
+      } as never,
+    );
+    if (intentErr) {
+      return { ok: false, message: intentErr.message };
+    }
+    const rows = intentData as Array<{
+      intent_id: string;
+      amount: number;
+      currency: string;
+    }> | null;
+    const first = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+    if (!first) {
+      return { ok: false, message: 'Could not create a donation intent.' };
+    }
+    try {
+      const { hostedLink } = await handOffToFapshi({
+        intentId: first.intent_id,
+        amount: Number(first.amount),
+        currency: first.currency,
+        payerEmail: email,
+        payerName: fullName,
+        displayMessage: `AGM 2026 ${resolvedTier} donation`,
+      });
+      return { ok: true, redirectTo: hostedLink };
+    } catch (err) {
+      return {
+        ok: false,
+        message: err instanceof Error ? err.message : 'Failed to reach the payment gateway.',
+      };
+    }
+  }
 
   const { data, error } = await supabase.schema('finance' as never).rpc(
     'record_public_donation' as never,
@@ -92,9 +138,9 @@ export async function donateForAgmFunding(input: FundingInput): Promise<FundingR
       p_charge_id: charge.id,
       p_amount: input.amountXaf,
       p_currency: charge.currency,
-      p_method: PAYMENT_METHOD_MAP[input.paymentOption],
+      p_method: method,
       p_donor_name: fullName,
-      p_donor_email: input.email.trim() || null,
+      p_donor_email: email,
       p_note: combinedNote,
     } as never,
   );
@@ -106,12 +152,9 @@ export async function donateForAgmFunding(input: FundingInput): Promise<FundingR
   if (!first?.receipt_token) {
     return { ok: false, message: 'Donation recorded but no receipt was issued.' };
   }
-  return { ok: true, receiptToken: first.receipt_token };
+  return { ok: true, redirectTo: `/agm-2026/receipt/${first.receipt_token}` };
 }
 
-/**
- * Form-action variant for the plain `<form action={…}>` submission.
- */
 export async function donateForAgmFundingForm(formData: FormData): Promise<void> {
   const tierRaw = String(formData.get('tier') ?? '');
   const validTiers: readonly AgmFundingTier['key'][] = ['bronze', 'silver', 'gold', 'platinum'];
@@ -128,7 +171,7 @@ export async function donateForAgmFundingForm(formData: FormData): Promise<void>
     note: String(formData.get('note') ?? ''),
   });
   if (res.ok) {
-    redirect(`/agm-2026/receipt/${res.receiptToken}`);
+    redirect(res.redirectTo);
   }
   redirect(`/agm-2026?error=${encodeURIComponent(res.message)}`);
 }

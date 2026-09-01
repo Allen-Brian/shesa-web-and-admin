@@ -391,6 +391,13 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Fapshi group: webhook + status are public (no JWT); the reconcile
+# action inside gates on its own x-reconcile-secret header. Setting
+# verify_jwt=false on the whole group is safe because each action
+# does its own auth check.
+[functions.fapshi]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

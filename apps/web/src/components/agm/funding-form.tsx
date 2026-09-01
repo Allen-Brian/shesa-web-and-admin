@@ -60,7 +60,11 @@ export function FundingForm({ initialError }: Props) {
         setError(res.message);
         return;
       }
-      router.push(`/agm-2026/receipt/${res.receiptToken}`);
+      if (res.redirectTo.startsWith('http')) {
+        window.location.href = res.redirectTo;
+      } else {
+        router.push(res.redirectTo);
+      }
     });
   };
 

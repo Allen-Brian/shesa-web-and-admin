@@ -2,15 +2,13 @@
 
 import { redirect } from 'next/navigation';
 
+import { handOffToFapshi } from '@/lib/fapshi-checkout';
 import { getServerClient } from '@/lib/supabase-server';
 
 import type { PaymentOption } from './data';
 
 /**
- * Public.tsx signal: web forms drive `finance.record_public_ticket_purchase`
- * for the AGM ticket. Payment methods on this page are labels for the
- * downstream MoMo/Orange/bank rail, the RPC records `'auto'` source
- * so Finance can reconcile against the eventual bank statement.
+ * Web-form → DB payment_method enum mapping.
  */
 const PAYMENT_METHOD_MAP: Record<PaymentOption, string> = {
   'mtn-momo': 'mtn_momo',
@@ -19,6 +17,18 @@ const PAYMENT_METHOD_MAP: Record<PaymentOption, string> = {
   'bank-transfer': 'bank_transfer',
   'cash-on-site': 'cash',
 };
+
+/**
+ * Methods that MUST route through Fapshi (real money must move). Cash
+ * stays on the direct path — it's a promise to pay at the venue, not a
+ * gateway charge.
+ */
+const FAPSHI_METHODS: ReadonlySet<PaymentOption> = new Set<PaymentOption>([
+  'mtn-momo',
+  'orange-money',
+  'card',
+  'bank-transfer',
+]);
 
 export interface RegisterInput {
   readonly fullName: string;
@@ -29,15 +39,21 @@ export interface RegisterInput {
 }
 
 export type RegisterResult =
-  | { readonly ok: true; readonly receiptToken: string }
+  | { readonly ok: true; readonly redirectTo: string }
   | { readonly ok: false; readonly message: string };
 
 /**
- * Record an AGM 2026 ticket purchase. Resolves the ticket charge by
- * looking up the "Ticket" charge inside the AGM 2026 event group so
- * the seeded UUID doesn't have to leak into the client bundle. The
- * `record_public_ticket_purchase` RPC (M1 hardening) writes the
- * payment, ticket row, and receipt verification atomically.
+ * Record (or start collecting) an AGM 2026 ticket purchase. Two paths:
+ *
+ *   * cash-on-site → direct RPC `record_public_ticket_purchase` creates
+ *     the payment + receipt immediately; caller is redirected to
+ *     /agm-2026/receipt/{token}.
+ *   * everything else → creates a pending Fapshi intent via
+ *     `initiate_public_ticket_intent`, hands off to Fapshi's Initiate
+ *     Pay to get a hosted-checkout URL, redirects the payer there.
+ *     Fapshi calls us back via /functions/v1/fapshi/webhook on the
+ *     terminal transition; the payer lands on /agm-2026/pending/{intentId}
+ *     which polls until the webhook (or reconcile cron) lands the intent.
  */
 export async function registerForAgm(input: RegisterInput): Promise<RegisterResult> {
   const fullName = input.fullName.trim();
@@ -65,15 +81,64 @@ export async function registerForAgm(input: RegisterInput): Promise<RegisterResu
     return { ok: false, message: 'AGM 2026 ticket sales are not open yet.' };
   }
 
+  const method = PAYMENT_METHOD_MAP[input.paymentOption];
+  const email = input.email.trim() || null;
+  const phone = input.phone.trim() || null;
+
+  if (FAPSHI_METHODS.has(input.paymentOption)) {
+    const { data: intentData, error: intentErr } = await supabase.schema('finance' as never).rpc(
+      'initiate_public_ticket_intent' as never,
+      {
+        p_charge_id: charge.id,
+        p_quantity: quantity,
+        p_method: method,
+        p_payer_name: fullName,
+        p_payer_email: email,
+        p_payer_phone: phone,
+        p_payer_location: null,
+        p_metadata: {},
+      } as never,
+    );
+    if (intentErr) {
+      return { ok: false, message: intentErr.message };
+    }
+    const rows = intentData as Array<{
+      intent_id: string;
+      amount: number;
+      currency: string;
+    }> | null;
+    const first = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+    if (!first) {
+      return { ok: false, message: 'Could not create a payment intent.' };
+    }
+    try {
+      const { hostedLink } = await handOffToFapshi({
+        intentId: first.intent_id,
+        amount: Number(first.amount),
+        currency: first.currency,
+        payerEmail: email,
+        payerName: fullName,
+        displayMessage: `AGM 2026 Ticket × ${quantity}`,
+      });
+      return { ok: true, redirectTo: hostedLink };
+    } catch (err) {
+      return {
+        ok: false,
+        message: err instanceof Error ? err.message : 'Failed to reach the payment gateway.',
+      };
+    }
+  }
+
+  // Cash path — direct RPC, immediate receipt.
   const { data, error } = await supabase.schema('finance' as never).rpc(
     'record_public_ticket_purchase' as never,
     {
       p_charge_id: charge.id,
       p_quantity: quantity,
-      p_method: PAYMENT_METHOD_MAP[input.paymentOption],
+      p_method: method,
       p_payer_name: fullName,
-      p_payer_email: input.email.trim() || null,
-      p_payer_phone: input.phone.trim() || null,
+      p_payer_email: email,
+      p_payer_phone: phone,
       p_payer_location: null,
       p_metadata: {},
     } as never,
@@ -86,13 +151,13 @@ export async function registerForAgm(input: RegisterInput): Promise<RegisterResu
   if (!first?.receipt_token) {
     return { ok: false, message: 'Ticket recorded but no receipt was issued.' };
   }
-  return { ok: true, receiptToken: first.receipt_token };
+  return { ok: true, redirectTo: `/agm-2026/receipt/${first.receipt_token}` };
 }
 
 /**
- * Form-action variant used by the plain `<form action={…}>`
- * submission. Extracts fields from FormData and redirects to the
- * receipt page on success.
+ * Form-action variant for plain `<form action={…}>` submissions.
+ * Redirects to Fapshi's hosted checkout OR the receipt page depending
+ * on the resolved path.
  */
 export async function registerForAgmForm(formData: FormData): Promise<void> {
   const res = await registerForAgm({
@@ -103,7 +168,7 @@ export async function registerForAgmForm(formData: FormData): Promise<void> {
     paymentOption: String(formData.get('paymentOption') ?? 'cash-on-site') as PaymentOption,
   });
   if (res.ok) {
-    redirect(`/agm-2026/receipt/${res.receiptToken}`);
+    redirect(res.redirectTo);
   }
   redirect(`/agm-2026?error=${encodeURIComponent(res.message)}`);
 }

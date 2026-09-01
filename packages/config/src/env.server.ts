@@ -44,6 +44,27 @@ const serverEnvSchema = z.object({
 
   /** SMS provider mode — Phase 0 uses the stub log adapter. */
   SMS_PROVIDER_MODE: z.enum(['stub', 'live']).default('stub'),
+
+  /* ── Fapshi (Cameroon MoMo/card gateway) ──────────────────────────
+   * Optional on purpose. Only the public AGM payment flows in apps/web
+   * touch Fapshi, but this schema is loaded by every app through
+   * packages/supabase — making these required would fail admin's boot
+   * over credentials it has no use for. The payment path asserts them
+   * at point of use instead (see apps/web/src/lib/fapshi.ts).
+   * ---------------------------------------------------------------- */
+
+  /** `https://sandbox.fapshi.com` or `https://live.fapshi.com`. */
+  FAPSHI_BASE_URL: z.string().url().optional(),
+
+  /** Service `apiuser` from the Fapshi dashboard. */
+  FAPSHI_API_USER: z.string().min(1).optional(),
+
+  /** Service `apikey` from the Fapshi dashboard. Secret. */
+  FAPSHI_API_KEY: z.string().min(1).optional(),
+
+  /** Public HTTPS origin Fapshi returns the payer to after checkout.
+   *  Falls back to `NEXT_PUBLIC_WEB_APP_URL` when unset. */
+  FAPSHI_RETURN_URL_BASE: z.string().url().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
@@ -64,4 +85,8 @@ export const serverEnv: ServerEnv = serverEnvSchema.parse({
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   EMAIL_FROM: process.env.EMAIL_FROM,
   SMS_PROVIDER_MODE: process.env.SMS_PROVIDER_MODE,
+  FAPSHI_BASE_URL: process.env.FAPSHI_BASE_URL,
+  FAPSHI_API_USER: process.env.FAPSHI_API_USER,
+  FAPSHI_API_KEY: process.env.FAPSHI_API_KEY,
+  FAPSHI_RETURN_URL_BASE: process.env.FAPSHI_RETURN_URL_BASE,
 });

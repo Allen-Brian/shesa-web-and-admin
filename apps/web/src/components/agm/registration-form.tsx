@@ -58,7 +58,14 @@ export function RegistrationForm({ initialError }: Props) {
         setError(res.message);
         return;
       }
-      router.push(`/agm-2026/receipt/${res.receiptToken}`);
+      // redirectTo is either an internal receipt path (cash) or the
+      // Fapshi hosted-checkout URL (MoMo/card/bank). Externals need a
+      // full navigation, not router.push.
+      if (res.redirectTo.startsWith('http')) {
+        window.location.href = res.redirectTo;
+      } else {
+        router.push(res.redirectTo);
+      }
     });
   };
 
