@@ -63,5 +63,16 @@ BEGIN
   );
 END $$;
 
-COMMENT ON EXTENSION pg_cron IS
-  'Scheduled jobs. See job `fapshi-reconcile-every-2min` (finance) + `finance-generate-obligations-hourly` (finance).';
+-- Guarded like the schedule above: COMMENT ON EXTENSION is not a
+-- no-op when the extension is absent, it errors (42704) and takes the
+-- whole migration down with it — which is exactly what happened on a
+-- project where pg_cron had not been enabled yet.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    EXECUTE $c$
+      COMMENT ON EXTENSION pg_cron IS
+        'Scheduled jobs. See job `fapshi-reconcile-every-2min` (finance) + `finance-generate-obligations-hourly` (finance).'
+    $c$;
+  END IF;
+END $$;
