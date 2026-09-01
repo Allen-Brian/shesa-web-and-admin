@@ -12,55 +12,17 @@ import { ACTIVE_PROMO } from './promo-config';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
-const storageKey = (id: string) => `shesa:promo:${id}`;
-
-interface PromoState {
-  /** How many times this visitor has been shown the flyer. */
-  readonly count: number;
-  /** When the last showing opened, so the gap survives a reload. */
-  readonly lastShownAt: number;
-}
-
-const EMPTY: PromoState = { count: 0, lastShownAt: 0 };
-
-function readState(): PromoState {
-  try {
-    const raw = window.localStorage.getItem(storageKey(ACTIVE_PROMO.id));
-    if (raw === null) return EMPTY;
-
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed === 'object' && parsed !== null && 'count' in parsed) {
-      return parsed as PromoState;
-    }
-    // Earlier builds stored a bare dismissal timestamp — treat that
-    // visitor as having seen the flyer once.
-    if (typeof parsed === 'number') return { count: 1, lastShownAt: parsed };
-    return EMPTY;
-  } catch {
-    /* Private mode / storage disabled / corrupt value. */
-    return EMPTY;
-  }
-}
-
-function writeState(state: PromoState) {
-  try {
-    window.localStorage.setItem(storageKey(ACTIVE_PROMO.id), JSON.stringify(state));
-  } catch {
-    /* Storage unavailable: the flyer just falls back to showing again. */
-  }
-}
-
 /**
- * Event flyer, shown a fixed number of times per visitor per campaign
- * (`maxShows`): once shortly after the site opens, then again after
- * `repeatAfterMs`, then never. The tally lives in localStorage under
- * the campaign id, so bumping that id in promo-config restarts the
- * whole run for everyone.
+ * Event flyer. The run restarts every time the site is opened: the
+ * first showing lands `delayMs` after the page loads, and each later
+ * one `repeatAfterMs` after the previous was dismissed, up to
+ * `maxShows` per visit.
  *
- * The tally is what stops it: once `count` reaches `maxShows` the
- * scheduler never arms again, on this visit or any later one. The gap
- * before a pending showing is counted as time spent on the site, so
- * returning days later never opens the flyer on page load.
+ * The tally is deliberately in-memory rather than in localStorage —
+ * the campaign is meant to greet every arrival, so a fresh load starts
+ * a fresh run. Client-side navigation keeps this component mounted, so
+ * browsing between pages continues the same run instead of restarting
+ * it.
  *
  * Built as a ticket stub rather than a dialog box — a full poster half
  * on the left, the details torn off along a perforation on the right.
@@ -72,40 +34,29 @@ export function PromoFlyer() {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Bumped on dismissal so the scheduler below re-runs and queues the
-  // next showing (if this campaign still has one left).
-  const [cycle, setCycle] = useState(0);
+  /** Showings used so far this visit. */
+  const [shown, setShown] = useState(0);
 
-  const dismiss = useCallback(() => {
-    setOpen(false);
-    setCycle((c) => c + 1);
-  }, []);
+  const dismiss = useCallback(() => setOpen(false), []);
 
-  // Queue the next showing. The first lands `delayMs` after arrival;
-  // every later one waits the full `repeatAfterMs` from *this* mount.
-  //
-  // Counting down from the previous showing's timestamp instead would
-  // mean a visitor who left after the first flyer and came back an
-  // hour later gets the second one thrown at them the instant the page
-  // loads — the gap having quietly elapsed while they were away. The
-  // wait is time spent on the site, not wall-clock since last time.
+  // Queue the next showing: the first `delayMs` after the page loads,
+  // each later one `repeatAfterMs` after the previous was dismissed.
+  // Bailing out while `open` is what makes the gap count from the
+  // dismissal — the timer for showing N+1 only starts once showing N
+  // is off the screen, so time spent reading the flyer is not counted.
   useEffect(() => {
-    if (!ACTIVE_PROMO.active) return;
+    if (!ACTIVE_PROMO.active || open) return;
+    if (shown >= ACTIVE_PROMO.maxShows) return;
 
-    const state = readState();
-    if (state.count >= ACTIVE_PROMO.maxShows) return;
-
-    const wait = state.count === 0 ? ACTIVE_PROMO.delayMs : ACTIVE_PROMO.repeatAfterMs;
+    const wait = shown === 0 ? ACTIVE_PROMO.delayMs : ACTIVE_PROMO.repeatAfterMs;
 
     const id = window.setTimeout(() => {
-      // Count it as the flyer opens, not as it closes, so a reload
-      // mid-showing cannot earn the visitor an extra one.
-      writeState({ count: state.count + 1, lastShownAt: Date.now() });
+      setShown((n) => n + 1);
       setOpen(true);
     }, wait);
 
     return () => window.clearTimeout(id);
-  }, [cycle]);
+  }, [open, shown]);
 
   // Freeze the page, take focus, and listen for Escape while open.
   useEffect(() => {

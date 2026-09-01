@@ -1,10 +1,9 @@
 /**
- * The one campaign the first-visit flyer advertises.
+ * The one campaign the popup flyer advertises.
  *
- * To run a different event later, edit this object and bump `id` — the
- * id is the localStorage key, so a new id means everyone sees the new
- * flyer once, including people who dismissed the old one. Set
- * `active: false` to take the flyer down entirely.
+ * To run a different event later, edit this object — `id` labels the
+ * campaign for anyone reading the code. Set `active: false` to take
+ * the flyer down entirely.
  */
 
 export interface PromoHighlight {
@@ -37,9 +36,9 @@ export interface PromoCampaign {
   readonly secondary?: { readonly label: string; readonly href: string };
   /** Delay before the flyer first appears, so the page paints first. */
   readonly delayMs: number;
-  /** How many times one visitor sees it, in total, for this campaign. */
+  /** How many times the flyer appears per visit to the site. */
   readonly maxShows: number;
-  /** Gap between showings, measured from when the previous one opened. */
+  /** Gap between showings, measured from when the previous was closed. */
   readonly repeatAfterMs: number;
 }
 
@@ -81,5 +80,5 @@ export const ACTIVE_PROMO: PromoCampaign = {
   secondary: { label: 'See the full programme', href: '/agm-2026' },
   delayMs: 1200,
   maxShows: 2,
-  repeatAfterMs: 5 * 60 * 1000,
+  repeatAfterMs: 60 * 1000,
 };
