@@ -6,6 +6,7 @@ import { CommercialTiers } from '@/components/agm-sponsor/commercial-tiers';
 import { PartnerCategories } from '@/components/agm-sponsor/partner-categories';
 import { SponsorRequestDeck } from '@/components/agm-sponsor/sponsor-request-deck';
 import { TargetSectors } from '@/components/agm-sponsor/target-sectors';
+import { PartnersStadium } from '@/components/home/partners-stadium';
 
 export const metadata: Metadata = {
   title: 'AGM 2026 Partnerships · SHESA',
@@ -22,6 +23,8 @@ export default function AgmSponsorPage() {
       <CommercialTiers />
       <TargetSectors />
       <SponsorRequestDeck />
+      {/* Partner boards always sit last, immediately above the footer. */}
+      <PartnersStadium />
     </>
   );
 }

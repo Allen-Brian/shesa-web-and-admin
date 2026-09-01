@@ -8,6 +8,7 @@ import { AttireSection } from '@/components/agm/attire-section';
 import { FundingSection } from '@/components/agm/funding-section';
 import { RegistrationSection } from '@/components/agm/registration-section';
 import { SponsorBridge } from '@/components/agm/sponsor-bridge';
+import { PartnersBillboard } from '@/components/home/partners-billboard';
 
 export const metadata: Metadata = {
   title: 'AGM 2026 · The Yaoundé Assembly · SHESA',
@@ -35,6 +36,8 @@ export default async function Agm2026Page({
       <RegistrationSection initialError={error} />
       <AttireSection initialError={error} />
       <AgmVenue />
+      {/* Partner boards always sit last, immediately above the footer. */}
+      <PartnersBillboard />
     </>
   );
 }

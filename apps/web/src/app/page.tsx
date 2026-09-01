@@ -15,7 +15,7 @@ import { Hero } from '@/components/home/hero';
 import { Leadership } from '@/components/home/leadership';
 import { Mission } from '@/components/home/mission';
 import { MoreData } from '@/components/home/more-data';
-import { PartnersStrip } from '@/components/home/partners-strip';
+import { PartnersStadium } from '@/components/home/partners-stadium';
 import { PartnershipCta } from '@/components/home/partnership-cta';
 import { PresidentsWord } from '@/components/home/presidents-word';
 import { Projects } from '@/components/home/projects';
@@ -39,7 +39,6 @@ export default async function HomePage() {
       <Mission />
       <Stats />
       <AgmCta />
-      <PartnersStrip />
       <PartnershipCta />
       <PresidentsWord />
       <StrategicPlanCta />
@@ -48,6 +47,8 @@ export default async function HomePage() {
       <Gallery albums={albums} />
       <Leadership leaders={leaders} />
       <MoreData />
+      {/* Partner boards always sit last, immediately above the footer. */}
+      <PartnersStadium />
       <SoundsCta />
     </>
   );

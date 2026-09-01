@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { PartnersTicker } from '@/components/home/partners-ticker';
 import type { Project } from '@/components/projects/data';
 import { formatProject, type RawProject } from '@/components/projects/format-project';
 import { ProjectsHero } from '@/components/projects/projects-hero';
@@ -70,6 +71,8 @@ export default async function ProjectsPage() {
     <>
       <ProjectsHero projects={projects} />
       <ProjectsList projects={projects} categories={categories} />
+      {/* Partner boards always sit last, immediately above the footer. */}
+      <PartnersTicker />
     </>
   );
 }

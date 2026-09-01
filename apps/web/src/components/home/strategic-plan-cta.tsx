@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 
+import { GOALS } from '@/components/strategic-plan/data';
+
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 const fadeUp: Variants = {
@@ -14,12 +16,12 @@ const fadeUp: Variants = {
   }),
 };
 
-const pillars = [
-  { key: 'I', title: 'Governance', body: 'A federated, harmonised institutional model.' },
-  { key: 'II', title: 'Engagement', body: 'A modern, digitally enabled alumni ecosystem.' },
-  { key: 'III', title: 'Sustainability', body: 'Diversified revenue and a Trust Fund.' },
-  { key: 'IV', title: 'Impact', body: 'Structured partnerships for society at large.' },
-] as const;
+/**
+ * The four goals, straight from the plan's own data, so the home page
+ * can never drift from `/strategic-plan`. Each card deep-links to that
+ * goal's block on the full document.
+ */
+const goalHref = (index: number) => `/strategic-plan#goal-${index}`;
 
 /**
  * Home-page hook to the SHESA Strategic Plan 2026–2030. Slots between
@@ -30,7 +32,7 @@ const pillars = [
  */
 export function StrategicPlanCta() {
   return (
-    <section className="relative overflow-hidden py-24 text-black md:py-28">
+    <section className="relative overflow-hidden py-16 text-black md:py-20">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -73,7 +75,7 @@ export function StrategicPlanCta() {
               className="mt-6 max-w-lg text-[15px] leading-[1.8] text-black/65"
             >
               A five-year pathway to institutional unity, member value, financial resilience, and
-              societal impact, anchored on four pillars, delivered in three phases.
+              societal impact, set out in four goals, delivered in three phases.
             </motion.p>
 
             <motion.div
@@ -107,29 +109,43 @@ export function StrategicPlanCta() {
             custom={4}
             className="grid grid-cols-2 gap-4 md:col-span-6 md:gap-5"
           >
-            {pillars.map((p, i) => (
+            {GOALS.map((g, i) => (
               <motion.li
-                key={p.key}
+                key={g.index}
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.4 }}
                 transition={{ duration: 0.75, delay: 0.1 + i * 0.08, ease }}
-                className="relative overflow-hidden rounded-xs border border-black/10 bg-white p-5 md:p-6"
               >
-                <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-primary/80" />
-                <p
-                  className="font-heading text-2xl font-thin text-primary md:text-3xl"
-                  style={{ letterSpacing: '-0.02em' }}
+                <Link
+                  href={goalHref(g.index)}
+                  className="group relative flex h-full flex-col overflow-hidden rounded-xs border border-black/10 bg-white p-5 transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_18px_40px_-18px_rgba(139,21,51,0.25)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary md:p-6"
                 >
-                  {p.key}
-                </p>
-                <p
-                  className="mt-3 font-heading text-[15px] font-medium text-black"
-                  style={{ letterSpacing: '-0.005em' }}
-                >
-                  {p.title}
-                </p>
-                <p className="mt-1.5 text-[12.5px] leading-[1.6] text-black/60">{p.body}</p>
+                  <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-primary/80" />
+                  <p
+                    className="font-heading text-2xl font-thin text-primary md:text-3xl"
+                    style={{ letterSpacing: '-0.02em' }}
+                  >
+                    {String(g.index).padStart(2, '0')}
+                  </p>
+                  <p
+                    className="mt-3 font-heading text-[15px] font-medium text-black"
+                    style={{ letterSpacing: '-0.005em' }}
+                  >
+                    {g.title}
+                  </p>
+                  <p className="mt-1.5 text-[12.5px] leading-[1.6] text-black/60">{g.subtitle}</p>
+
+                  <span className="mt-4 inline-flex items-center gap-2 text-[12px] font-medium text-primary">
+                    <span className="underline-offset-4 group-hover:underline">See the goal</span>
+                    <span
+                      aria-hidden
+                      className="transition-transform duration-500 group-hover:translate-x-1"
+                    >
+                      →
+                    </span>
+                  </span>
+                </Link>
               </motion.li>
             ))}
           </motion.ul>

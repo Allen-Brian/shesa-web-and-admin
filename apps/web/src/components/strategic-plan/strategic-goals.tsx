@@ -21,11 +21,13 @@ export function StrategicGoals() {
         {GOALS.map((g, i) => (
           <motion.article
             key={g.index}
+            /* Anchor target for the home-page goal cards. */
+            id={`goal-${g.index}`}
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.25 }}
             transition={{ duration: 0.85, delay: i * 0.06, ease }}
-            className="relative overflow-hidden rounded-xs border border-black/10 bg-white p-6 md:p-8"
+            className="relative scroll-mt-28 overflow-hidden rounded-xs border border-black/10 bg-white p-6 md:p-8"
           >
             <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-primary/80" />
             <div className="grid gap-8 md:grid-cols-12 md:gap-10">

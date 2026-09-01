@@ -162,6 +162,11 @@ html.lenis body {
   animation: marquee var(--marquee-duration, 45s) linear infinite;
 }
 
+/* Right-travelling rail, used when two rails run against each other. */
+.marquee-track-reverse {
+  animation-direction: reverse;
+}
+
 .marquee-viewport:hover .marquee-track,
 .marquee-viewport:focus-within .marquee-track {
   animation-play-state: paused;

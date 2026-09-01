@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { SiteFooter } from '@/components/footer/site-footer';
 import { LenisProvider } from '@/components/lenis-provider';
 import { SiteNav } from '@/components/nav/site-nav';
+import { PromoFlyer } from '@/components/promo/promo-flyer';
 import { siteConfig } from '@/lib/site-config';
 
 import './globals.css';
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           <SiteNav />
           <main>{children}</main>
           <SiteFooter />
+          <PromoFlyer />
         </LenisProvider>
       </body>
     </html>

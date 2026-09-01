@@ -138,7 +138,7 @@ export function PartnershipCta() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.4 }}
                 transition={{ duration: 0.75, delay: 0.15 + i * 0.08, ease }}
-                className="relative overflow-hidden rounded-xs border border-white/10 bg-white/[0.03] p-5 md:p-6"
+                className="relative overflow-hidden rounded-xs border border-white/10 bg-white/3 p-5 md:p-6"
               >
                 <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 bg-primary/70" />
                 <div className="flex items-start gap-4">

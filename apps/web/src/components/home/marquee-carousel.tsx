@@ -10,6 +10,12 @@ interface MarqueeCarouselProps<T> {
    */
   readonly duration?: number;
   readonly ariaLabel?: string;
+  /** Travel right instead of left. */
+  readonly reverse?: boolean;
+  /** Override the edge fade, e.g. to remove it entirely. */
+  readonly maskImage?: string;
+  /** Extra classes on the track, e.g. tighter gaps. */
+  readonly trackClassName?: string;
 }
 
 /**
@@ -25,21 +31,21 @@ export function MarqueeCarousel<T>({
   renderItem,
   duration = 45,
   ariaLabel,
+  reverse = false,
+  maskImage = 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
+  trackClassName = 'gap-5 md:gap-6',
 }: MarqueeCarouselProps<T>) {
   const doubled = useMemo(() => [...items, ...items], [items]);
 
   return (
     <div
       className="marquee-viewport relative w-full overflow-hidden"
-      style={{
-        WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
-        maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
-      }}
+      style={{ WebkitMaskImage: maskImage, maskImage }}
       aria-label={ariaLabel}
       role="region"
     >
       <ul
-        className="marquee-track flex w-max gap-5 md:gap-6"
+        className={`marquee-track flex w-max ${reverse ? 'marquee-track-reverse' : ''} ${trackClassName}`}
         style={{ ['--marquee-duration' as string]: `${duration}s` }}
       >
         {doubled.map((item, i) => (
