@@ -24,15 +24,10 @@
 -- not be corrected without a new migration. It is real SHESA content, so it
 -- belongs in the production bootstrap — but as seed data, not as schema.
 --
--- ── NOT seeded, by decision ─────────────────────────────────────────────────
--- Chapters and networks are created through the Admin portal instead.
+--   8. The four launch networks: Legal, Santé, Tech, Education.
 --
---   ⚠ One consequence to plan around: the member spreadsheet import treats
---     `network` as a REQUIRED column and rejects any row whose value does not
---     match a seeded network (packages/domain/src/imports/validation.ts and
---     its Deno mirror). Until someone creates the networks in the portal,
---     every member import will fail every row. Make that the first
---     post-reset admin task.
+-- ── NOT seeded, by decision ─────────────────────────────────────────────────
+-- Chapters are created through the Admin portal.
 --
 -- Members, memberships, payments, expenses, obligations, transfers,
 -- announcements and events are all left empty — the apps populate those.
@@ -839,6 +834,50 @@ VALUES
   ('00000000-0000-0000-0000-00000000b005', 'CM', 'North-West', 'Bamenda', TRUE, 5000.00, 'XAF', 'bamenda@shesaconnect.com', NOW(), NOW())
 ON CONFLICT (scope_id) DO NOTHING;
 
+-- ── Networks ────────────────────────────────────────────────────────────────
+-- The four professional networks that go live with production. A network is a
+-- mainstream-parented scope, like a batch or a house — a membership dimension,
+-- not a place.
+--
+-- These are seeded rather than left to the portal because
+-- `core.members.network_scope_id` is REQUIRED: a trigger rejects any member
+-- row without one. A database with no networks cannot hold a single member,
+-- by any route — not the admin form, not the spreadsheet import. Seeding them
+-- is what makes the system usable from first login.
+--
+-- Shesa Gov exists too but is not part of the initial four; it is in
+-- seed-demo.sql, and an admin can create it in the portal when wanted.
+
+INSERT INTO core.scopes (
+  id, name, slug, scope_type, parent_scope_id, currency_code
+) VALUES
+  ('44444444-0000-0000-0000-000000000001', 'Shesa Legal',     'shesa-legal',
+   'network', '00000000-0000-0000-0000-000000000001', 'XAF'),
+  ('44444444-0000-0000-0000-000000000002', 'Shesa Santé',     'shesa-sante',
+   'network', '00000000-0000-0000-0000-000000000001', 'XAF'),
+  ('44444444-0000-0000-0000-000000000003', 'Shesa Tech',      'shesa-tech',
+   'network', '00000000-0000-0000-0000-000000000001', 'XAF'),
+  ('44444444-0000-0000-0000-000000000005', 'Shesa Education', 'shesa-education',
+   'network', '00000000-0000-0000-0000-000000000001', 'XAF')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO core.networks (
+  scope_id, short_name, description, icon, color_hex, sort_order
+) VALUES
+  ('44444444-0000-0000-0000-000000000001', 'Legal',
+   'Barristers, solicitors, magistrates and legal scholars.',
+   'Scale',         '#7C3AED', 1),
+  ('44444444-0000-0000-0000-000000000002', 'Santé',
+   'Doctors, nurses, pharmacists and health workers.',
+   'Stethoscope',   '#E11D48', 2),
+  ('44444444-0000-0000-0000-000000000003', 'Tech',
+   'Engineers, developers, designers and IT professionals.',
+   'Cpu',           '#0284C7', 3),
+  ('44444444-0000-0000-0000-000000000005', 'Education',
+   'Teachers, lecturers, researchers and academic staff.',
+   'GraduationCap', '#D97706', 5)
+ON CONFLICT (scope_id) DO NOTHING;
+
 -- Capabilities. A branch with none of these flags is inert — it cannot hold
 -- members, run a treasury or levy dues, and the UI hides its sections. All
 -- five open with the full set; a Mainstream admin narrows them per branch
@@ -1116,9 +1155,9 @@ INSERT INTO cms.songs VALUES ('aaab2222-0000-0000-0000-000000000004', 'aaab1111-
 --   • 74 batches (1953 → 2026) + 4 houses
 --   • 3 human users with auth rows, identities, profiles and global grants
 --   • 1 finance group (AGM 2026) + 7 charges
---   • 5 founding branches
+--   • 5 founding branches + 4 networks
 --   • Public-website content across 22 cms tables
 --
--- Deliberately empty: chapters, networks, members, memberships, payments,
--- expenses, obligations, transfers, announcements, events.
+-- Deliberately empty: chapters, members, memberships, payments, expenses,
+-- obligations, transfers, announcements, events.
 -- Run supabase/seed-demo.sql on top for a populated local environment.

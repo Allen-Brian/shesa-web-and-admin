@@ -108,14 +108,46 @@ This guarantees B applies after A everywhere — local, staging, prod. The CLI w
 
 **Safety net — CI runs every PR against a fresh DB.** The `db-test.yml` workflow (lands in E13) starts from empty, applies every migration in order, runs `pnpm db:test`. If two devs' migrations are incompatible, CI fails the second PR's status check; merge stays blocked until the rebase + fix.
 
+## Choosing a target
+
+Every database command names the database it is about to touch:
+
+```bash
+pnpm db <command> [--target local|production]
+```
+
+The target resolves in this order: the `--target` flag, then the
+`SHESA_DB_TARGET` environment variable, then **`local`**. Local is the default
+on purpose — the safe target should be the one you get when you have not
+thought about it.
+
+```bash
+pnpm db reset                              # local
+pnpm db diff --target production           # production
+SHESA_DB_TARGET=production pnpm db diff    # production, for a whole shell
+```
+
+The wrapper exists because the Supabase CLI decides what it is talking to from
+remembered state — whichever project you last ran `supabase link` against.
+Nothing in a bare CLI command tells you which database it will hit, and nothing
+stops `db reset` (which **drops everything**) from landing on production
+because you linked it an hour ago and forgot. `scripts/db.mjs` prints the
+target before acting, re-links to match, and classifies each command:
+read-only, writes-to-target, or local-only.
+
+Production credentials come from `.env.production`, never `.env.local`.
+
 ### Things you actually run
 
-| Situation                                                     | Command                                                    |
-| ------------------------------------------------------------- | ---------------------------------------------------------- |
-| See if your branch has migrations that diverge from `develop` | `git diff develop -- supabase/migrations/`                 |
-| Compare your local schema with what staging actually has      | `pnpm db:link --env staging && pnpm db:diff:remote`        |
-| Manually apply pending migrations to staging (breakglass)     | `pnpm db:push` — branch + production safety rails built in |
-| Sync schema **from** staging back to local (drift recovery)   | `pnpm db:pull`                                             |
+| Situation                                                      | Command                                      |
+| -------------------------------------------------------------- | -------------------------------------------- |
+| See if your branch has migrations that diverge from `develop`  | `git diff develop -- supabase/migrations/`   |
+| Rebuild your local database from scratch                       | `pnpm db reset`                              |
+| Run the pgTAP suite                                            | `pnpm db test`                               |
+| Regenerate TypeScript types after a schema change              | `pnpm db types`                              |
+| Compare your migrations against what production actually has   | `pnpm db diff --target production`           |
+| Apply pending migrations to production (breakglass)            | `pnpm db push --target production --confirm` |
+| Sync schema **from** production back to local (drift recovery) | `pnpm db:pull`                               |
 
 ### One-line rules to internalize
 
@@ -125,24 +157,24 @@ This guarantees B applies after A everywhere — local, staging, prod. The CLI w
 
 ## Adding test fixtures (shared dev data)
 
-`seed.sql` is the contract for test data every dev (and staging) sees. When you need a fixture another phase will rely on (e.g. an Exco-created Member that Connect needs for forum testing), add an `INSERT` to `seed.sql` using a **stable UUID** and `ON CONFLICT DO NOTHING`. Commit. Every dev's `pnpm db:reset` and staging's next deploy will pick it up.
+`seed-demo.sql` is the contract for test data every dev sees. (`seed.sql` is the production bootstrap — put fixtures in the demo file, not there.) When you need a fixture another phase will rely on (e.g. an Exco-created Member that Connect needs for forum testing), add an `INSERT` to `seed.sql` using a **stable UUID** and `ON CONFLICT DO NOTHING`. Commit. Every dev's `pnpm db:reset` and staging's next deploy will pick it up.
 
-Never put real PII in `seed.sql` — it's committed to the repo and applied to every env except prod.
+Never put real PII in either seed file — both are committed to the repo.
 
 ## Manual cloud commands (breakglass)
 
 Day-to-day you don't need these — CI handles staging/prod deploys. They exist for debugging or emergency interventions.
 
 ```bash
-pnpm db:link --env staging         # link the CLI to the staging cloud project
-pnpm db:link --env production      # link to prod (read-only intent — pushes need --confirm)
-pnpm db:diff:remote                # diff local schema against the linked project
-pnpm db:push                       # apply local migrations to the linked project (with safety rails)
-pnpm db:pull                       # pull schema from the linked project (drift recovery)
-pnpm db:types:remote               # regenerate TS types from the linked project's schema
+pnpm db:link --env production                 # link the CLI to the production project
+pnpm db diff  --target production             # what has drifted?
+pnpm db types --target production             # regenerate TS types from production's schema
+pnpm db push  --target production --confirm   # apply pending migrations
+pnpm db seed  --target production --confirm   # apply the bootstrap seed
+pnpm db:pull                                  # pull schema from the linked project (drift recovery)
 ```
 
-`pnpm db:push` won't run from a feature branch by default (only from `develop` or `main`). Production pushes additionally require `--confirm` and a typed `PRODUCTION` prompt — see `scripts/db-push.mjs`.
+Writes to production require `--confirm` **and** typing the project ref at a prompt. Typing the ref rather than "yes" is deliberate — it makes you look at which project you are about to change. `pnpm db reset` and `pnpm db seed-demo` refuse to target production at all; a production rebuild goes through [`docs/runbooks/prod-database-reset.md`](../docs/runbooks/prod-database-reset.md).
 
 ## Why two layers (Docker local + Cloud staging/prod)
 

@@ -14,23 +14,19 @@
 -- docs/runbooks/prod-database-reset.md.
 --
 -- Contents:
---   1. Networks — the five professional networks.
+--   1. Shesa Gov — the fifth network, the four others being in the bootstrap.
 --   2. Sample chapters under Shesa Buea (one autonomous, one grouping).
 --   3. Dev logins (@shesa.test) with global and branch-scoped grants.
 --   4. Members, memberships, positions, transfers.
 --   5. A year of finance activity — charges, obligations, payments.
 --   6. Exco announcements and events.
 --
--- ── Why networks are here and not in the bootstrap ──────────────────────────
--- The org chart is created through the Admin portal by decision, so the
--- bootstrap seeds no networks. But `core.members.network_scope_id` is
--- REQUIRED — a trigger rejects any member row without one. So a database with
--- no networks cannot hold a single member, and 16 of the pgTAP files could not
--- run. They live here so local and CI work.
---
---   ⚠ The same constraint applies in production: until someone creates
---     networks through the portal, no member can be created or imported.
---     Make it the first post-reset admin task.
+-- ── Networks ────────────────────────────────────────────────────────────────
+-- The bootstrap seeds four (Legal, Santé, Tech, Education), because
+-- `core.members.network_scope_id` is REQUIRED — a trigger rejects any member
+-- row without one, so a database with no networks cannot hold a member at all.
+-- This file re-states all five; the four already present conflict-skip, so the
+-- only one it actually adds is Shesa Gov.
 
 -- =============================================================================
 -- Section 0. Sample diaspora branch — Shesa DC
