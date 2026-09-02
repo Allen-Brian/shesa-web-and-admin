@@ -100,15 +100,39 @@ function readEnv(): FapshiEnv {
 async function fapshiFetch<T>(path: string, init: RequestInit): Promise<T> {
   const env = readEnv();
   const url = `${env.baseUrl}${path}`;
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      'content-type': 'application/json',
-      apiuser: env.apiUser,
-      apikey: env.apiKey,
-      ...(init.headers ?? {}),
-    },
-  });
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...init,
+      headers: {
+        'content-type': 'application/json',
+        apiuser: env.apiUser,
+        apikey: env.apiKey,
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch (err) {
+    // undici reports every transport-level failure as a bare "fetch
+    // failed" — DNS, TLS, timeout, blocked egress all look identical.
+    // Name the host we tried so a typo in FAPSHI_BASE_URL (the usual
+    // culprit) is obvious from the message alone.
+    const cause = err instanceof Error ? (err.cause ?? err.message) : String(err);
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        message: 'fapshi: request never reached the gateway',
+        url,
+        cause: String(cause),
+      }),
+    );
+    throw new FapshiError(
+      0,
+      null,
+      `Could not reach the payment gateway at ${env.baseUrl}. Check FAPSHI_BASE_URL.`,
+    );
+  }
+
   const text = await res.text();
   const body = text ? safeJson(text) : null;
   if (!res.ok) {
