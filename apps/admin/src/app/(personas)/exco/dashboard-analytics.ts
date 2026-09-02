@@ -95,7 +95,7 @@ export function computeDashboardAnalytics(args: {
       if (p.reverses_payment_id) continue;
       if (!p.charge_id || !contributionShapeChargeIds.has(p.charge_id)) continue;
       const t = new Date(p.created_at).getTime();
-      if (t >= b.start && t < b.end) raised += parseFloat(p.amount);
+      if (t >= b.start && t < b.end) raised += p.amount;
     }
     return { month: b.label, raised: Math.round(raised) };
   });
@@ -114,7 +114,7 @@ export function computeDashboardAnalytics(args: {
       if (!o.period_start) continue;
       const t = new Date(o.period_start).getTime();
       if (t < b.start || t >= b.end) continue;
-      expected += parseFloat(o.amount);
+      expected += o.amount;
     }
     for (const p of scopedPayments) {
       if (!p.obligation_id) continue;
@@ -122,7 +122,7 @@ export function computeDashboardAnalytics(args: {
       if (t < b.start || t >= b.end) continue;
       const oblig = scopedObligations.find((o) => o.id === p.obligation_id);
       if (!oblig || !chargeShapeChargeIds.has(oblig.charge_id)) continue;
-      const amt = parseFloat(p.amount);
+      const amt = p.amount;
       paid += p.reverses_payment_id ? -amt : amt;
     }
     return { month: b.label, expected: Math.round(expected), paid: Math.round(paid) };

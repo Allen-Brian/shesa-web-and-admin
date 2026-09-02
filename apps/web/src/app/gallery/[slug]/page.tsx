@@ -24,8 +24,8 @@ async function loadAlbum(slug: string) {
   const supabase = await getServerClient();
 
   const { data: albumRaw } = await supabase
-    .schema('cms' as never)
-    .from('gallery_albums' as never)
+    .schema('cms')
+    .from('gallery_albums')
     .select(
       'id, slug, title, date_label, location, description, cover_url, photographer, linked_event_id',
     )
@@ -36,20 +36,20 @@ async function loadAlbum(slug: string) {
 
   const [{ data: mediaRaw }, { data: mapRaw }, linkedEventRes] = await Promise.all([
     supabase
-      .schema('cms' as never)
-      .from('gallery_media' as never)
+      .schema('cms')
+      .from('gallery_media')
       .select('id, album_id, kind, src, thumbnail_url, poster_url, alt, aspect, sort_order')
       .eq('album_id', album.id)
       .order('sort_order'),
     supabase
-      .schema('cms' as never)
-      .from('gallery_album_categories_map' as never)
+      .schema('cms')
+      .from('gallery_album_categories_map')
       .select('category_id, gallery_album_categories(id, name)')
       .eq('album_id', album.id),
     album.linked_event_id
       ? supabase
-          .schema('cms' as never)
-          .from('site_events' as never)
+          .schema('cms')
+          .from('site_events')
           .select('slug')
           .eq('id', album.linked_event_id)
           .maybeSingle()

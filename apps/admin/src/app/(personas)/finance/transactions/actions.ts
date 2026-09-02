@@ -120,8 +120,8 @@ export async function markReconciled(
   }));
 
   const { error } = await supabase
-    .schema('finance' as never)
-    .from('reconciliations' as never)
+    .schema('finance')
+    .from('reconciliations')
     .upsert(rows as never, { onConflict: 'payment_id', ignoreDuplicates: true });
 
   if (error) return { ok: false, message: error.message };
@@ -139,8 +139,8 @@ export async function undoReconciliation(
   const supabase = await getServerClient();
 
   const { error } = await supabase
-    .schema('finance' as never)
-    .from('reconciliations' as never)
+    .schema('finance')
+    .from('reconciliations')
     .delete()
     .in('payment_id', paymentIds);
 

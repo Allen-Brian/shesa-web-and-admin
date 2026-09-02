@@ -10,8 +10,8 @@ import type { ActionResult, SectorInput } from './types';
 export async function createOrganSector(input: SectorInput): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('organ_sectors' as never)
+    .schema('cms')
+    .from('organ_sectors')
     .insert({
       name: input.name.trim(),
       slug: input.slug.trim(),
@@ -40,8 +40,8 @@ export async function updateOrganSector(
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('organ_sectors' as never)
+    .schema('cms')
+    .from('organ_sectors')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -52,11 +52,7 @@ export async function updateOrganSector(
 
 export async function deleteOrganSector(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('organ_sectors' as never)
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.schema('cms').from('organ_sectors').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/organs');
   revalidatePath('/organs');

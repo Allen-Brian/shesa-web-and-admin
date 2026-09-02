@@ -29,7 +29,7 @@ export function aggregateByMethod(payments: readonly RawPayment[]): readonly Pay
     const key = p.method;
     const cur = agg.get(key) ?? { count: 0, amount: 0 };
     cur.count += 1;
-    cur.amount += parseFloat(p.amount);
+    cur.amount += p.amount;
     agg.set(key, cur);
   }
   return Array.from(agg.entries())
@@ -44,7 +44,7 @@ export function aggregateBySource(payments: readonly RawPayment[]): readonly Pay
     const key = p.source;
     const cur = agg.get(key) ?? { count: 0, amount: 0 };
     cur.count += 1;
-    cur.amount += parseFloat(p.amount);
+    cur.amount += p.amount;
     agg.set(key, cur);
   }
   return Array.from(agg.entries())
@@ -62,7 +62,7 @@ export function computeTimingStats(payments: readonly RawPayment[]): PaymentTimi
   if (settled.length === 0) {
     return { count: 0, avgAmount: 0, medianAmount: 0, lastPaymentAt: null };
   }
-  const amounts = settled.map((p) => parseFloat(p.amount)).sort((a, b) => a - b);
+  const amounts = settled.map((p) => p.amount).sort((a, b) => a - b);
   const sum = amounts.reduce((a, b) => a + b, 0);
   const mid = Math.floor(amounts.length / 2);
   const median =
@@ -92,7 +92,7 @@ export function buildCumulativeSeries(payments: readonly RawPayment[]): readonly
   const perDay = new Map<string, number>();
   for (const p of payments) {
     const day = p.created_at.slice(0, 10);
-    const amt = parseFloat(p.amount);
+    const amt = p.amount;
     const signed = p.reverses_payment_id ? -amt : amt;
     perDay.set(day, (perDay.get(day) ?? 0) + signed);
   }

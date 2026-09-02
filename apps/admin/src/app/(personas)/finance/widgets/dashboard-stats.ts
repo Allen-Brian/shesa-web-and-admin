@@ -33,7 +33,7 @@ export function buildDashboardKpis(
   let expensesSum = 0;
   const currencies = new Set<string>();
   for (const e of ledger) {
-    const amt = parseFloat(e.amount);
+    const amt = e.amount;
     currencies.add(e.currency);
     if (e.direction === 'income') income += amt;
     else if (e.direction === 'expense') expensesSum += amt;
@@ -54,7 +54,7 @@ export function buildPendingSummary(
 ): PendingApprovalSummary {
   const totalByCurrency = new Map<string, number>();
   for (const e of pendingExpenses) {
-    totalByCurrency.set(e.currency, (totalByCurrency.get(e.currency) ?? 0) + parseFloat(e.amount));
+    totalByCurrency.set(e.currency, (totalByCurrency.get(e.currency) ?? 0) + e.amount);
   }
   return { count: pendingExpenses.length, totalByCurrency };
 }
@@ -121,7 +121,7 @@ export function buildActivity({
         when: l.created_at,
         kind,
         direction: l.direction === 'expense' ? 'expense' : 'income',
-        amount: parseFloat(l.amount),
+        amount: l.amount,
         currency: l.currency,
         counterparty,
         scopeName: scope?.name ?? '—',

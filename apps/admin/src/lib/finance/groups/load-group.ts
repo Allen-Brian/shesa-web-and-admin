@@ -50,8 +50,8 @@ interface RawContribution {
 export async function loadGroupBySlug(slug: string): Promise<GroupDetail | null> {
   const supabase = await getServerClient();
   const { data } = await supabase
-    .schema('finance' as never)
-    .from('groups' as never)
+    .schema('finance')
+    .from('groups')
     .select(
       'id, slug, name, description, status, show_in_sidebar, starts_on, ends_on, scope_id, created_at',
     )
@@ -81,8 +81,8 @@ export async function loadGroupBySlug(slug: string): Promise<GroupDetail | null>
 export async function loadGroupContributions(groupId: string): Promise<readonly GroupSubNavItem[]> {
   const supabase = await getServerClient();
   const { data } = await supabase
-    .schema('finance' as never)
-    .from('charges' as never)
+    .schema('finance')
+    .from('charges')
     .select('id, name, shape')
     .eq('group_id', groupId)
     .in('shape', ['ticketed', 'fixed'])

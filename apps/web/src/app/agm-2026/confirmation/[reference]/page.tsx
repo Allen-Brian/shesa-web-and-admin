@@ -50,8 +50,8 @@ const METHOD_LABEL: Record<string, string> = {
 async function loadRegistration(reference: string): Promise<Registration | null> {
   const supabase = createServiceRoleClient();
   const { data } = await supabase
-    .schema('cms' as never)
-    .from('agm_registrations' as never)
+    .schema('cms')
+    .from('agm_registrations')
     .select(
       'reference, kind, full_name, phone, quantity, amount_xaf, attire_size, payment_method, created_at',
     )

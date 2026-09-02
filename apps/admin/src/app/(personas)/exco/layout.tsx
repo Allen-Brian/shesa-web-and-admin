@@ -164,20 +164,14 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
   // brittle nested PostgREST filter and stays cheap on the same
   // request.
   const [{ data: allowedTreasury }, { data: allowedFinance }] = await Promise.all([
-    supabase.schema('core').rpc(
-      'has_permission_at_any_scope' as never,
-      {
-        p_user_id: user.id,
-        p_key: 'treasury.read',
-      } as never,
-    ),
-    supabase.schema('core').rpc(
-      'has_permission_at_any_scope' as never,
-      {
-        p_user_id: user.id,
-        p_key: 'finance.read',
-      } as never,
-    ),
+    supabase.schema('core').rpc('has_permission_at_any_scope', {
+      p_user_id: user.id,
+      p_key: 'treasury.read',
+    } as never),
+    supabase.schema('core').rpc('has_permission_at_any_scope', {
+      p_user_id: user.id,
+      p_key: 'finance.read',
+    } as never),
   ]);
   const canReadFinance = allowedTreasury === true || allowedFinance === true;
 

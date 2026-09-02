@@ -23,7 +23,7 @@ interface RawVerification {
 }
 
 interface RawPayment {
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly method: string;
   readonly metadata: Record<string, unknown> | null;
@@ -52,8 +52,8 @@ async function loadReceipt(token: string): Promise<AgmReceiptData | null> {
   const supabase = createServiceRoleClient();
 
   const { data: verification } = await supabase
-    .schema('finance' as never)
-    .from('receipt_verifications' as never)
+    .schema('finance')
+    .from('receipt_verifications')
     .select('token, receipt_number, payment_id')
     .eq('token', token)
     .maybeSingle();
@@ -61,8 +61,8 @@ async function loadReceipt(token: string): Promise<AgmReceiptData | null> {
   if (!v) return null;
 
   const { data: paymentRaw } = await supabase
-    .schema('finance' as never)
-    .from('payments' as never)
+    .schema('finance')
+    .from('payments')
     .select('amount, currency, method, metadata, created_at, charge_id')
     .eq('id', v.payment_id)
     .maybeSingle();
@@ -71,8 +71,8 @@ async function loadReceipt(token: string): Promise<AgmReceiptData | null> {
 
   const { data: chargeRaw } = payment.charge_id
     ? await supabase
-        .schema('finance' as never)
-        .from('charges' as never)
+        .schema('finance')
+        .from('charges')
         .select('id, name, shape')
         .eq('id', payment.charge_id)
         .maybeSingle()
@@ -95,7 +95,9 @@ async function loadReceipt(token: string): Promise<AgmReceiptData | null> {
       (metadata.donor_email as string | undefined) ??
       null,
     phone: (metadata.payer_phone as string | undefined) ?? null,
-    amount: Number.parseFloat(payment.amount),
+    // PostgREST serialises NUMERIC as a JSON number, so this is already
+    // numeric. The parseFloat worked only because JS coerces on the way in.
+    amount: payment.amount,
     currency: payment.currency,
     method: payment.method,
     createdAt: payment.created_at,

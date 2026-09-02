@@ -42,8 +42,8 @@ export async function loadPoolChargeDetail(
   const supabase = await getServerClient();
 
   const { data: paymentsRaw } = await supabase
-    .schema('finance' as never)
-    .from('payments' as never)
+    .schema('finance')
+    .from('payments')
     .select(
       'id, obligation_id, charge_id, payer_member_id, amount, currency, method, source, reverses_payment_id, external_ref, metadata, created_at',
     )
@@ -62,8 +62,8 @@ export async function loadPoolChargeDetail(
       : Promise.resolve({ data: [] as Array<{ id: string; full_name: string }> }),
     paymentIds.length
       ? supabase
-          .schema('finance' as never)
-          .from('receipt_verifications' as never)
+          .schema('finance')
+          .from('receipt_verifications')
           .select('token, payment_id, receipt_number')
           .in('payment_id', paymentIds)
       : Promise.resolve({
@@ -71,8 +71,8 @@ export async function loadPoolChargeDetail(
         }),
     paymentIds.length
       ? supabase
-          .schema('finance' as never)
-          .from('reconciliations' as never)
+          .schema('finance')
+          .from('reconciliations')
           .select('payment_id, reconciled_at, matched_ref, notes')
           .in('payment_id', paymentIds)
       : Promise.resolve({ data: [] as ReconRow[] }),
@@ -96,7 +96,7 @@ export async function loadPoolChargeDetail(
 
   let collected = 0;
   for (const p of payments) {
-    const amt = parseFloat(p.amount);
+    const amt = p.amount;
     collected += p.reverses_payment_id ? -amt : amt;
   }
 
@@ -132,7 +132,7 @@ export async function loadPoolChargeDetail(
       id: p.id,
       payerLabel:
         (p.payer_member_id ? memberById.get(p.payer_member_id) : null) ?? fallbackLabel ?? '—',
-      amount: parseFloat(p.amount),
+      amount: p.amount,
       currency: p.currency,
       method: p.method,
       source: p.source,

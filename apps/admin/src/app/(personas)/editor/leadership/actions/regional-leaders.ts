@@ -19,7 +19,7 @@ async function upsertOne(
 ): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
+    .schema('cms')
     .from(table as never)
     .insert({
       branch_name: input.branchName.trim(),
@@ -51,7 +51,7 @@ async function updateOne(
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase
-    .schema('cms' as never)
+    .schema('cms')
     .from(table as never)
     .update(body as never)
     .eq('id', id);
@@ -63,7 +63,7 @@ async function updateOne(
 async function deleteOne(table: RegionalTable, id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
   const { error } = await supabase
-    .schema('cms' as never)
+    .schema('cms')
     .from(table as never)
     .delete()
     .eq('id', id);
@@ -79,7 +79,7 @@ async function deleteMany(
   if (ids.length === 0) return { ok: true, data: { count: 0 } };
   const supabase = await getServerClient();
   const { error } = await supabase
-    .schema('cms' as never)
+    .schema('cms')
     .from(table as never)
     .delete()
     .in('id', ids);

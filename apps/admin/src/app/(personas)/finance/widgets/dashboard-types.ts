@@ -14,7 +14,7 @@ export interface RawLedgerEntry {
   readonly id: string;
   readonly scope_id: string;
   readonly direction: string;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly payment_id: string | null;
   readonly expense_id: string | null;
@@ -33,7 +33,7 @@ export interface RawPayment {
 export interface RawExpense {
   readonly id: string;
   readonly payee: string;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly scope_id: string;
   readonly status: string;

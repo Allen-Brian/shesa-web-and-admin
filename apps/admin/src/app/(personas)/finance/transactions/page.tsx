@@ -17,7 +17,7 @@ interface RawTransactionRow {
   readonly charge_id: string | null;
   readonly scope_id: string;
   readonly payer_member_id: string | null;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly method: string;
   readonly source: string;
@@ -91,8 +91,8 @@ export default async function TransactionsPage() {
     { data: reconciliationsRaw },
   ] = await Promise.all([
     supabase
-      .schema('finance' as never)
-      .from('payments' as never)
+      .schema('finance')
+      .from('payments')
       .select(
         'id, obligation_id, charge_id, scope_id, payer_member_id, amount, currency, method, source, reverses_payment_id, external_ref, metadata, created_at',
       )
@@ -100,19 +100,19 @@ export default async function TransactionsPage() {
       .order('created_at', { ascending: false })
       .limit(500),
     supabase
-      .schema('finance' as never)
-      .from('charges' as never)
+      .schema('finance')
+      .from('charges')
       .select('id, scope_id, name, shape, currency, status, lifecycle')
       .in('scope_id', scopeFilterIds)
       .eq('status', 'active')
       .order('name'),
     supabase
-      .schema('finance' as never)
-      .from('receipt_verifications' as never)
+      .schema('finance')
+      .from('receipt_verifications')
       .select('token, payment_id, receipt_number'),
     supabase
-      .schema('finance' as never)
-      .from('reconciliations' as never)
+      .schema('finance')
+      .from('reconciliations')
       .select('payment_id, reconciled_at, matched_ref, notes'),
   ]);
 
@@ -163,8 +163,8 @@ export default async function TransactionsPage() {
   );
   const { data: staleChargeRows } = staleChargeIds.length
     ? await supabase
-        .schema('finance' as never)
-        .from('charges' as never)
+        .schema('finance')
+        .from('charges')
         .select('id, scope_id, name, shape, currency, status, lifecycle')
         .in('id', staleChargeIds)
     : { data: [] as RawChargeRow[] };
@@ -198,7 +198,7 @@ export default async function TransactionsPage() {
       payerPhone: meta.payer_phone ?? null,
       payerLocation: meta.payer_location ?? null,
       isAnonymousPayer: isAnon,
-      amount: parseFloat(p.amount),
+      amount: p.amount,
       currency: p.currency,
       method: p.method,
       source: p.source,

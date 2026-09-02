@@ -33,7 +33,7 @@ interface RawPaymentRow {
   readonly charge_id: string | null;
   readonly scope_id: string;
   readonly payer_member_id: string | null;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly method: string;
   readonly source: string;
@@ -73,20 +73,17 @@ export default async function DonationsPage() {
 
   const [{ data: chargesRaw }, { data: treasuriesRaw }, { data: paymentsRaw }] = await Promise.all([
     supabase
-      .schema('finance' as never)
-      .from('charges' as never)
+      .schema('finance')
+      .from('charges')
       .select(
         'id, scope_id, name, description, currency, lifecycle, open_date, close_date, status, created_at, group_id',
       )
       .eq('shape', 'donation')
       .order('created_at', { ascending: false }),
+    supabase.schema('finance').from('treasury_balances').select('scope_id'),
     supabase
-      .schema('finance' as never)
-      .from('treasury_balances' as never)
-      .select('scope_id'),
-    supabase
-      .schema('finance' as never)
-      .from('payments' as never)
+      .schema('finance')
+      .from('payments')
       .select(
         'id, charge_id, scope_id, payer_member_id, amount, currency, method, source, reverses_payment_id, metadata, created_at',
       )
@@ -105,11 +102,7 @@ export default async function DonationsPage() {
     new Set(chargesData.map((c) => c.group_id).filter((id): id is string => !!id)),
   );
   const { data: groupsRaw } = groupIds.length
-    ? await supabase
-        .schema('finance' as never)
-        .from('groups' as never)
-        .select('id, name')
-        .in('id', groupIds)
+    ? await supabase.schema('finance').from('groups').select('id, name').in('id', groupIds)
     : { data: [] as RawGroupRow[] };
   const groupById = new Map(((groupsRaw ?? []) as RawGroupRow[]).map((g) => [g.id, g] as const));
 
@@ -152,7 +145,7 @@ export default async function DonationsPage() {
     if (p.reverses_payment_id) continue;
     if (reversedIds.has(p.id)) continue;
     const bucket = raisedByCharge.get(p.charge_id) ?? { raised: 0, count: 0 };
-    bucket.raised += parseFloat(p.amount);
+    bucket.raised += p.amount;
     bucket.count += 1;
     raisedByCharge.set(p.charge_id, bucket);
   }
@@ -200,7 +193,7 @@ export default async function DonationsPage() {
         donorLabel,
         isMember: !!member,
         isPublic: !!meta.public_donation,
-        amount: parseFloat(p.amount),
+        amount: p.amount,
         currency: p.currency,
         method: p.method,
         reversesPaymentId: p.reverses_payment_id,

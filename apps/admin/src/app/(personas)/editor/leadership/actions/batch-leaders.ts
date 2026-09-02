@@ -12,8 +12,8 @@ export async function createBatchLeader(
 ): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('batch_leaders' as never)
+    .schema('cms')
+    .from('batch_leaders')
     .insert({
       batch: input.batch.trim(),
       name: input.name.trim(),
@@ -41,8 +41,8 @@ export async function updateBatchLeader(
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('batch_leaders' as never)
+    .schema('cms')
+    .from('batch_leaders')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -52,11 +52,7 @@ export async function updateBatchLeader(
 
 export async function deleteBatchLeader(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('batch_leaders' as never)
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.schema('cms').from('batch_leaders').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/leadership');
   return { ok: true };
@@ -68,11 +64,7 @@ export async function deleteBatchLeaders(
 ): Promise<ActionResult<{ count: number }>> {
   if (ids.length === 0) return { ok: true, data: { count: 0 } };
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('batch_leaders' as never)
-    .delete()
-    .in('id', ids);
+  const { error } = await supabase.schema('cms').from('batch_leaders').delete().in('id', ids);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/leadership');
   return { ok: true, data: { count: ids.length } };

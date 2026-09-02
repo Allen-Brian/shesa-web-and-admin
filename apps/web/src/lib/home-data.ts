@@ -73,8 +73,8 @@ export async function loadHomeEvents(): Promise<readonly HomeEventItem[]> {
   const supabase = await getServerClient();
   const now = new Date().toISOString();
   const { data } = await supabase
-    .schema('cms' as never)
-    .from('site_events' as never)
+    .schema('cms')
+    .from('site_events')
     .select('slug, title, banner_url, starts_at, location, city')
     .gte('starts_at', now)
     .order('starts_at', { ascending: true })
@@ -111,20 +111,14 @@ export async function loadHomeProjects(): Promise<readonly HomeProjectItem[]> {
   const supabase = await getServerClient();
   const [{ data: projectsRaw }, { data: mapRaw }, { data: categoriesRaw }] = await Promise.all([
     supabase
-      .schema('cms' as never)
-      .from('projects' as never)
+      .schema('cms')
+      .from('projects')
       .select('id, slug, title, short_description, banner_url, is_featured')
       .order('is_featured', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(3),
-    supabase
-      .schema('cms' as never)
-      .from('project_categories_map' as never)
-      .select('project_id, category_id'),
-    supabase
-      .schema('cms' as never)
-      .from('project_categories' as never)
-      .select('id, name'),
+    supabase.schema('cms').from('project_categories_map').select('project_id, category_id'),
+    supabase.schema('cms').from('project_categories').select('id, name'),
   ]);
   const projects = (projectsRaw ?? []) as ReadonlyArray<{
     id: string;
@@ -158,33 +152,47 @@ export async function loadHomeProjects(): Promise<readonly HomeProjectItem[]> {
  */
 export async function loadHomeAlbums(): Promise<readonly HomeAlbumItem[]> {
   const supabase = await getServerClient();
-  const { data } = await supabase
-    .schema('cms' as never)
-    .from('gallery_albums' as never)
-    .select('slug, title, event_date, cover_url, short_description, photo_count')
-    .order('event_date', { ascending: false, nullsFirst: false })
+
+  // Columns are `date_label`, `description` and `sort_order` — this query
+  // asked for `event_date`, `short_description` and `photo_count`, none of
+  // which exist. PostgREST answered every call with
+  // `column gallery_albums.event_date does not exist`, `data` came back null,
+  // and `?? []` turned that into an empty list, so the home gallery has
+  // silently rendered nothing since it shipped. The `as never` casts on the
+  // query builder are what kept the compiler quiet about it.
+  //
+  // `date_label` is free text the editor writes ("November 2024"), not a
+  // date — so it is displayed as-is rather than parsed and reformatted.
+  // Ordering is by `sort_order` because a text label cannot be sorted
+  // chronologically.
+  const { data, error } = await supabase
+    .schema('cms')
+    .from('gallery_albums')
+    .select('slug, title, date_label, cover_url, description, gallery_media(count)')
+    .order('sort_order', { ascending: true })
     .limit(7);
-  const rows = (data ?? []) as ReadonlyArray<{
-    slug: string;
-    title: string;
-    event_date: string | null;
-    cover_url: string | null;
-    short_description: string | null;
-    photo_count: number | null;
-  }>;
-  return rows.map((a) => {
-    const dateLabel = a.event_date
-      ? new Date(a.event_date).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
-      : '';
-    return {
-      title: a.title,
-      date: dateLabel,
-      photos: a.photo_count ?? 0,
-      description: a.short_description ?? '',
-      cover: a.cover_url && a.cover_url.trim() ? a.cover_url : PLACEHOLDER_BANNER,
-      slug: a.slug,
-    };
-  });
+
+  if (error) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        component: 'web.home.loadHomeAlbums',
+        message: 'gallery_albums query failed',
+        error: error.message,
+      }),
+    );
+    return [];
+  }
+
+  return (data ?? []).map((a) => ({
+    title: a.title,
+    date: a.date_label ?? '',
+    // PostgREST returns an embedded aggregate as `[{ count: n }]`.
+    photos: a.gallery_media?.[0]?.count ?? 0,
+    description: a.description ?? '',
+    cover: a.cover_url && a.cover_url.trim() ? a.cover_url : PLACEHOLDER_BANNER,
+    slug: a.slug,
+  }));
 }
 
 /**
@@ -196,8 +204,8 @@ export async function loadHomeAlbums(): Promise<readonly HomeAlbumItem[]> {
 export async function loadHomeLeaders(): Promise<readonly HomeLeaderItem[]> {
   const supabase = await getServerClient();
   const { data } = await supabase
-    .schema('cms' as never)
-    .from('mainstream_leaders' as never)
+    .schema('cms')
+    .from('mainstream_leaders')
     .select('id, name, position, location, photo_url, sort_order')
     .order('sort_order', { ascending: true })
     .limit(4);

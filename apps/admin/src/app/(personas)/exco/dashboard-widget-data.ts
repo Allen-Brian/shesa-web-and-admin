@@ -51,7 +51,7 @@ export function computeDashboardWidgetData(args: {
     .map((c) => {
       const raised = scopedPayments
         .filter((p) => p.charge_id === c.id && !p.reverses_payment_id)
-        .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+        .reduce((sum, p) => sum + p.amount, 0);
       const goal = c.goal_amount ? parseFloat(c.goal_amount) : null;
       return {
         id: c.id,
@@ -80,14 +80,14 @@ export function computeDashboardWidgetData(args: {
   const paidByObligation = new Map<string, number>();
   for (const p of scopedPayments) {
     if (!p.obligation_id) continue;
-    const amt = parseFloat(p.amount);
+    const amt = p.amount;
     const signed = p.reverses_payment_id ? -amt : amt;
     paidByObligation.set(p.obligation_id, (paidByObligation.get(p.obligation_id) ?? 0) + signed);
   }
   const chargesCompletion: readonly ChargeCompletion[] = scopedActiveCharges
     .map((c) => {
       const chargeObligs = scopedObligations.filter((o) => o.charge_id === c.id);
-      const expected = chargeObligs.reduce((s, o) => s + parseFloat(o.amount), 0);
+      const expected = chargeObligs.reduce((s, o) => s + o.amount, 0);
       const paid = chargeObligs.reduce((s, o) => s + (paidByObligation.get(o.id) ?? 0), 0);
       const pct = expected > 0 ? Math.round((paid / expected) * 100) : 0;
       return {
@@ -115,7 +115,7 @@ export function computeDashboardWidgetData(args: {
       id: p.id,
       payer: member?.full_name ?? donorLabel ?? '—',
       what: charge?.name ?? '—',
-      amount: parseFloat(p.amount),
+      amount: p.amount,
       currency: p.currency,
       method: p.method,
       isReversal: !!p.reverses_payment_id,

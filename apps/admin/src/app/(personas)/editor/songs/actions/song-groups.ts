@@ -9,8 +9,8 @@ import type { ActionResult, GroupInput } from './types';
 export async function createSongGroup(input: GroupInput): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('song_groups' as never)
+    .schema('cms')
+    .from('song_groups')
     .insert({
       name: input.name.trim(),
       slug: input.slug.trim(),
@@ -39,8 +39,8 @@ export async function updateSongGroup(
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('song_groups' as never)
+    .schema('cms')
+    .from('song_groups')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -51,11 +51,7 @@ export async function updateSongGroup(
 
 export async function deleteSongGroup(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('song_groups' as never)
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.schema('cms').from('song_groups').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/songs');
   revalidatePath('/songs');

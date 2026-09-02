@@ -15,7 +15,7 @@ interface RawContributionRow {
   readonly description: string | null;
   readonly shape: string;
   readonly goal_amount: string | null;
-  readonly base_amount: string | null;
+  readonly base_amount: number | null;
   readonly currency: string;
   readonly lifecycle: string | null;
   readonly open_date: string | null;
@@ -31,7 +31,7 @@ interface ScopeRow {
 
 interface RawPaymentRow {
   readonly charge_id: string | null;
-  readonly amount: string;
+  readonly amount: number;
   readonly payer_member_id: string | null;
   readonly reverses_payment_id: string | null;
   readonly metadata: Record<string, unknown> | null;
@@ -49,16 +49,16 @@ export default async function ExcoContributionsViewPage() {
 
   const [{ data: contributionsRaw }, { data: paymentsRaw }] = await Promise.all([
     supabase
-      .schema('finance' as never)
-      .from('charges' as never)
+      .schema('finance')
+      .from('charges')
       .select(
         'id, scope_id, name, description, shape, goal_amount, base_amount, currency, lifecycle, open_date, close_date, capacity',
       )
       .in('shape', ['goal', 'open', 'ticketed', 'fixed'])
       .order('close_date', { ascending: true, nullsFirst: false }),
     supabase
-      .schema('finance' as never)
-      .from('payments' as never)
+      .schema('finance')
+      .from('payments')
       .select('charge_id, amount, payer_member_id, reverses_payment_id, metadata')
       .limit(5000),
   ]);
@@ -83,7 +83,7 @@ export default async function ExcoContributionsViewPage() {
       contributors: new Set<string>(),
       anonymousCount: 0,
     };
-    bucket.raised += parseFloat(p.amount);
+    bucket.raised += p.amount;
     if (p.payer_member_id) {
       bucket.contributors.add(p.payer_member_id);
     } else {
@@ -106,7 +106,7 @@ export default async function ExcoContributionsViewPage() {
       scopeName: scopeById.get(c.scope_id)?.name ?? '—',
       shape: c.shape,
       goalAmount: c.goal_amount != null ? parseFloat(c.goal_amount) : null,
-      baseAmount: c.base_amount != null ? parseFloat(c.base_amount) : null,
+      baseAmount: c.base_amount != null ? c.base_amount : null,
       currency: c.currency,
       lifecycle: c.lifecycle,
       openDate: c.open_date,

@@ -102,22 +102,19 @@ export async function loadEditorProjects(): Promise<LoadedProjects> {
 
   const [{ data: projectsRaw }, { data: categoriesRaw }, { data: mapRaw }] = await Promise.all([
     supabase
-      .schema('cms' as never)
-      .from('projects' as never)
+      .schema('cms')
+      .from('projects')
       .select(
         'id, slug, title, short_description, description_html, banner_url, status, started_on, location, lead, is_featured, funding_raised, funding_target, funding_currency, milestones, impact_stats, created_at, updated_at',
       )
       .order('is_featured', { ascending: false })
       .order('created_at', { ascending: false }),
     supabase
-      .schema('cms' as never)
-      .from('project_categories' as never)
+      .schema('cms')
+      .from('project_categories')
       .select('id, name, sort_order')
       .order('sort_order'),
-    supabase
-      .schema('cms' as never)
-      .from('project_categories_map' as never)
-      .select('project_id, category_id'),
+    supabase.schema('cms').from('project_categories_map').select('project_id, category_id'),
   ]);
 
   const catsByProject = new Map<string, string[]>();

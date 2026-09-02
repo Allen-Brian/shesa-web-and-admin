@@ -69,28 +69,28 @@ export default async function LeadershipPage() {
     { data: batchRaw },
   ] = await Promise.all([
     supabase
-      .schema('cms' as never)
-      .from('mainstream_sectors' as never)
+      .schema('cms')
+      .from('mainstream_sectors')
       .select('id, name, caption')
       .order('sort_order'),
     supabase
-      .schema('cms' as never)
-      .from('mainstream_leaders' as never)
+      .schema('cms')
+      .from('mainstream_leaders')
       .select('id, sector_id, position, name, location, photo_url')
       .order('sort_order'),
     supabase
-      .schema('cms' as never)
-      .from('branch_leaders' as never)
+      .schema('cms')
+      .from('branch_leaders')
       .select('id, branch_name, name, region, photo_url')
       .order('sort_order'),
     supabase
-      .schema('cms' as never)
-      .from('diaspora_leaders' as never)
+      .schema('cms')
+      .from('diaspora_leaders')
       .select('id, branch_name, name, region, photo_url')
       .order('sort_order'),
     supabase
-      .schema('cms' as never)
-      .from('batch_leaders' as never)
+      .schema('cms')
+      .from('batch_leaders')
       .select('id, batch, name, photo_url')
       .order('sort_order'),
   ]);

@@ -22,7 +22,7 @@ interface RawPayment {
   readonly charge_id: string | null;
   readonly scope_id: string;
   readonly payer_member_id: string | null;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly method: string;
   readonly source: string;
@@ -73,8 +73,8 @@ export default async function GroupTransactionsPage({ params }: Props) {
     { data: reconciliationsRaw },
   ] = await Promise.all([
     supabase
-      .schema('finance' as never)
-      .from('payments' as never)
+      .schema('finance')
+      .from('payments')
       .select(
         'id, obligation_id, charge_id, scope_id, payer_member_id, amount, currency, method, source, reverses_payment_id, external_ref, metadata, created_at',
       )
@@ -82,17 +82,17 @@ export default async function GroupTransactionsPage({ params }: Props) {
       .order('created_at', { ascending: false })
       .limit(500),
     supabase
-      .schema('finance' as never)
-      .from('charges' as never)
+      .schema('finance')
+      .from('charges')
       .select('id, scope_id, name, shape, currency, status, lifecycle')
       .eq('group_id', group.id),
     supabase
-      .schema('finance' as never)
-      .from('receipt_verifications' as never)
+      .schema('finance')
+      .from('receipt_verifications')
       .select('token, payment_id, receipt_number'),
     supabase
-      .schema('finance' as never)
-      .from('reconciliations' as never)
+      .schema('finance')
+      .from('reconciliations')
       .select('payment_id, reconciled_at, matched_ref, notes'),
   ]);
 
@@ -174,7 +174,7 @@ export default async function GroupTransactionsPage({ params }: Props) {
       payerPhone: meta.payer_phone ?? null,
       payerLocation: meta.payer_location ?? null,
       isAnonymousPayer: isAnon,
-      amount: parseFloat(p.amount),
+      amount: p.amount,
       currency: p.currency,
       method: p.method,
       source: p.source,

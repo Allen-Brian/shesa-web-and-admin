@@ -14,8 +14,8 @@ import type { ActionResult, SectorInput } from './types';
 export async function createSector(input: SectorInput): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('mainstream_sectors' as never)
+    .schema('cms')
+    .from('mainstream_sectors')
     .insert({
       name: input.name.trim(),
       caption: input.caption?.trim() || null,
@@ -38,8 +38,8 @@ export async function updateSector(id: string, patch: Partial<SectorInput>): Pro
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('mainstream_sectors' as never)
+    .schema('cms')
+    .from('mainstream_sectors')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -49,11 +49,7 @@ export async function updateSector(id: string, patch: Partial<SectorInput>): Pro
 
 export async function deleteSector(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('mainstream_sectors' as never)
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.schema('cms').from('mainstream_sectors').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/leadership');
   return { ok: true };
@@ -65,11 +61,7 @@ export async function deleteSectors(
 ): Promise<ActionResult<{ count: number }>> {
   if (ids.length === 0) return { ok: true, data: { count: 0 } };
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('mainstream_sectors' as never)
-    .delete()
-    .in('id', ids);
+  const { error } = await supabase.schema('cms').from('mainstream_sectors').delete().in('id', ids);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/leadership');
   return { ok: true, data: { count: ids.length } };

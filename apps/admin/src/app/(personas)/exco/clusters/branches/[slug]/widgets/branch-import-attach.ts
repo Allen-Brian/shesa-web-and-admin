@@ -5,7 +5,7 @@ import { extractInvokeMessage } from '@/lib/edge-invoke';
 import type { AttachOutcome, AttachRow, ScopeCatalog } from './branch-import-types';
 
 // Same widening rationale as branch-import-resolver.ts — per-call
-// `.schema('core' as never)` makes the outer generic irrelevant.
+// `.schema('core')` makes the outer generic irrelevant.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabaseClient = SupabaseClient<any, any, any>;
 

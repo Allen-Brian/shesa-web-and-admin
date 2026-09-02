@@ -65,22 +65,19 @@ export async function loadEditorNews(): Promise<LoadedNews> {
 
   const [{ data: articlesRaw }, { data: categoriesRaw }, { data: mapRaw }] = await Promise.all([
     supabase
-      .schema('cms' as never)
-      .from('articles' as never)
+      .schema('cms')
+      .from('articles')
       .select(
         'id, slug, title, excerpt, content_html, banner_url, author_name, author_title, author_photo_url, status, publish_at, is_featured, created_at, updated_at',
       )
       .order('publish_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false }),
     supabase
-      .schema('cms' as never)
-      .from('article_categories' as never)
+      .schema('cms')
+      .from('article_categories')
       .select('id, name, sort_order')
       .order('sort_order'),
-    supabase
-      .schema('cms' as never)
-      .from('article_categories_map' as never)
-      .select('article_id, category_id'),
+    supabase.schema('cms').from('article_categories_map').select('article_id, category_id'),
   ]);
 
   const catsByArticle = new Map<string, string[]>();

@@ -61,8 +61,8 @@ export default async function ReportsPage() {
   const allowedScopeIds = active?.scopeIds ?? [];
 
   const { data: treasuriesRaw } = await supabase
-    .schema('finance' as never)
-    .from('treasury_balances' as never)
+    .schema('finance')
+    .from('treasury_balances')
     .select('scope_id');
 
   const treasuryScopeIds = ((treasuriesRaw ?? []) as Array<{ scope_id: string }>).map(
@@ -101,8 +101,8 @@ export default async function ReportsPage() {
   // returned rows' charge_id with this list, so we ship the map to the
   // client once.
   const { data: groupsRaw } = await supabase
-    .schema('finance' as never)
-    .from('groups' as never)
+    .schema('finance')
+    .from('groups')
     .select('id, name, status')
     .in('status', ['active', 'closed'])
     .order('name');
@@ -111,8 +111,8 @@ export default async function ReportsPage() {
 
   const { data: chargesRaw } = groupIds.length
     ? await supabase
-        .schema('finance' as never)
-        .from('charges' as never)
+        .schema('finance')
+        .from('charges')
         .select('id, group_id')
         .in('group_id', groupIds)
     : { data: [] as RawCharge[] };

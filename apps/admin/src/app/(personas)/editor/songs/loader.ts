@@ -54,16 +54,16 @@ export async function loadEditorSongs(): Promise<LoadedSongs> {
 
   const [{ data: songsRaw }, { data: groupsRaw }] = await Promise.all([
     supabase
-      .schema('cms' as never)
-      .from('songs' as never)
+      .schema('cms')
+      .from('songs')
       .select(
         'id, group_id, slug, title, performer, description, audio_url, cover_url, duration_seconds, lyrics, sort_order, created_at, updated_at',
       )
       .order('sort_order')
       .order('title'),
     supabase
-      .schema('cms' as never)
-      .from('song_groups' as never)
+      .schema('cms')
+      .from('song_groups')
       .select('id, name, slug, description, sort_order')
       .order('sort_order'),
   ]);

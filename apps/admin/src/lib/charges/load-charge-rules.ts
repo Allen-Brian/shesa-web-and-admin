@@ -10,7 +10,7 @@ interface RawException {
   readonly id: string;
   readonly form: RuleForm;
   readonly condition: Record<string, unknown> | null;
-  readonly replacement_amount: string;
+  readonly replacement_amount: number;
   readonly member_id: string | null;
 }
 
@@ -57,8 +57,8 @@ export async function loadChargeRules(
   const [{ data: exceptionsRaw }, { data: batchesRaw }, { data: membershipsRaw }] =
     await Promise.all([
       supabase
-        .schema('finance' as never)
-        .from('exceptions' as never)
+        .schema('finance')
+        .from('exceptions')
         .select('id, form, condition, replacement_amount, member_id')
         .eq('charge_id', chargeId)
         .eq('is_active', true),
@@ -86,7 +86,7 @@ export async function loadChargeRules(
   const rules: RuleRow[] = ((exceptionsRaw ?? []) as RawException[]).map((e) => ({
     id: e.id,
     form: e.form,
-    replacementAmount: parseFloat(e.replacement_amount),
+    replacementAmount: e.replacement_amount,
     description: describeRule(e, currency, batchName, memberName),
   }));
 
@@ -107,7 +107,7 @@ function describeRule(
   batchName: ReadonlyMap<string, string>,
   memberName: ReadonlyMap<string, string>,
 ): string {
-  const amount = `${new Intl.NumberFormat().format(parseFloat(e.replacement_amount))} ${currency}`;
+  const amount = `${new Intl.NumberFormat().format(e.replacement_amount)} ${currency}`;
   const cond = e.condition ?? {};
   if (e.form === 'fixed') {
     const ids = (cond.batch_scope_ids as string[] | undefined) ?? [];

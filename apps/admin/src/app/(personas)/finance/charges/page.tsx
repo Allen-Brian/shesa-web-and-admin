@@ -21,7 +21,7 @@ interface RawChargeRow {
   readonly name: string;
   readonly description: string | null;
   readonly shape: string;
-  readonly base_amount: string | null;
+  readonly base_amount: number | null;
   readonly currency: string;
   readonly recurrence: string;
   readonly recurrence_interval: number;
@@ -43,20 +43,20 @@ interface RawScopeRow {
 
 interface RawObligationRow {
   readonly charge_id: string;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
 }
 
 interface RawPaymentRow {
   readonly obligation_id: string | null;
-  readonly amount: string;
+  readonly amount: number;
   readonly reverses_payment_id: string | null;
 }
 
 interface RawChargeTargetRow {
   readonly charge_id: string;
   readonly target_scope_id: string;
-  readonly amount: string;
+  readonly amount: number;
 }
 
 /**
@@ -95,17 +95,14 @@ export default async function ChargesPage() {
 
   const [{ data: chargesRaw }, { data: treasuriesRaw }] = await Promise.all([
     supabase
-      .schema('finance' as never)
-      .from('charges' as never)
+      .schema('finance')
+      .from('charges')
       .select(
         'id, scope_id, name, description, shape, base_amount, currency, recurrence, recurrence_interval, status, activation_date, created_at, target_party_type',
       )
       .in('shape', ['charge', 'fixed'])
       .order('created_at', { ascending: false }),
-    supabase
-      .schema('finance' as never)
-      .from('treasury_balances' as never)
-      .select('scope_id'),
+    supabase.schema('finance').from('treasury_balances').select('scope_id'),
   ]);
 
   const chargesData = (chargesRaw ?? []) as RawChargeRow[];
@@ -115,19 +112,19 @@ export default async function ChargesPage() {
     chargeIds.length
       ? await Promise.all([
           supabase
-            .schema('finance' as never)
-            .from('obligations' as never)
+            .schema('finance')
+            .from('obligations')
             .select('charge_id, amount, currency')
             .in('charge_id', chargeIds),
           supabase
-            .schema('finance' as never)
-            .from('payments' as never)
+            .schema('finance')
+            .from('payments')
             .select('obligation_id, amount, reverses_payment_id')
             .in('charge_id', chargeIds)
             .limit(5000),
           supabase
-            .schema('finance' as never)
-            .from('charge_targets' as never)
+            .schema('finance')
+            .from('charge_targets')
             .select('charge_id, target_scope_id, amount')
             .in('charge_id', chargeIds),
         ])
@@ -144,21 +141,22 @@ export default async function ChargesPage() {
   // Expected per charge — sum of obligation amounts.
   const expectedByCharge = new Map<string, number>();
   for (const o of obligations) {
-    expectedByCharge.set(
-      o.charge_id,
-      (expectedByCharge.get(o.charge_id) ?? 0) + parseFloat(o.amount),
-    );
+    expectedByCharge.set(o.charge_id, (expectedByCharge.get(o.charge_id) ?? 0) + o.amount);
   }
 
   // Target count per Group charge — displayed in the list Type cell so
   // "Group · 4 targets" reads at a glance without opening the detail
   // page.
   const targetCountByCharge = new Map<string, number>();
+  // `ChargeTargetDraft.amount` is a string because the same shape backs the
+  // edit dialog's form inputs, where the value is whatever the operator has
+  // typed. The database column is NUMERIC and arrives as a number, so this is
+  // a real boundary — convert explicitly rather than letting a cast hide it.
   const targetsByCharge = new Map<string, { targetScopeId: string; amount: string }[]>();
   for (const t of chargeTargets) {
     targetCountByCharge.set(t.charge_id, (targetCountByCharge.get(t.charge_id) ?? 0) + 1);
     const bucket = targetsByCharge.get(t.charge_id) ?? [];
-    bucket.push({ targetScopeId: t.target_scope_id, amount: t.amount });
+    bucket.push({ targetScopeId: t.target_scope_id, amount: String(t.amount) });
     targetsByCharge.set(t.charge_id, bucket);
   }
 
@@ -173,8 +171,8 @@ export default async function ChargesPage() {
     // correct without inflating the initial payload.
     const { data: obIds } = chargeIds.length
       ? await supabase
-          .schema('finance' as never)
-          .from('obligations' as never)
+          .schema('finance')
+          .from('obligations')
           .select('id, charge_id')
           .in('charge_id', chargeIds)
       : { data: [] as Array<{ id: string; charge_id: string }> };
@@ -188,7 +186,7 @@ export default async function ChargesPage() {
     if (!p.obligation_id) continue;
     const chargeId = obligationChargeById.get(p.obligation_id);
     if (!chargeId) continue;
-    const amt = parseFloat(p.amount);
+    const amt = p.amount;
     const signed = p.reverses_payment_id ? -amt : amt;
     collectedByCharge.set(chargeId, (collectedByCharge.get(chargeId) ?? 0) + signed);
   }
@@ -218,7 +216,7 @@ export default async function ChargesPage() {
       name: c.name,
       description: c.description,
       shape: c.shape,
-      baseAmount: c.base_amount ? parseFloat(c.base_amount) : null,
+      baseAmount: c.base_amount ? c.base_amount : null,
       currency: c.currency,
       recurrence: c.recurrence,
       recurrenceInterval: c.recurrence_interval,

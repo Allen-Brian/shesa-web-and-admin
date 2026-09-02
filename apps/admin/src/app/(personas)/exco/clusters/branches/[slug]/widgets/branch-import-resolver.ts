@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { AttachRow, MemberLookup, MemberRow, ScopeCatalog } from './branch-import-types';
 
-// Per-query `.schema('core' as never)` calls make the outer client's
+// Per-query `.schema('core')` calls make the outer client's
 // pre-scoped generic irrelevant. Widen the type to `any` so the helper
 // composes with the app's server client without a chain of casts —
 // same convention as `lib/memberships/memberable-scopes.ts`.

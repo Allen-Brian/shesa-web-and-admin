@@ -19,7 +19,7 @@ export function sumPaidByObligation(payments: readonly RawPayment[]): Map<string
   const paidByObligation = new Map<string, number>();
   for (const p of payments) {
     if (!p.obligation_id) continue;
-    const amt = parseFloat(p.amount);
+    const amt = p.amount;
     const signed = p.reverses_payment_id ? -amt : amt;
     paidByObligation.set(p.obligation_id, (paidByObligation.get(p.obligation_id) ?? 0) + signed);
   }
@@ -61,7 +61,7 @@ export function buildMatrixCells(
     const ob = partyObligations.find((o) => (o.period_start ?? 'one-off') === p.key);
     if (!ob) return null;
     const paid = paidByObligation.get(ob.id) ?? 0;
-    const owed = parseFloat(ob.amount);
+    const owed = ob.amount;
     return {
       obligationId: ob.id,
       owed,
@@ -85,7 +85,7 @@ export function computeMatrixTotals(
 ): { expected: number; collected: number } {
   return obligations.reduce(
     (acc, o) => {
-      acc.expected += parseFloat(o.amount);
+      acc.expected += o.amount;
       acc.collected += paidByObligation.get(o.id) ?? 0;
       return acc;
     },
@@ -124,7 +124,7 @@ export function buildMatrixPaymentLog(
       return {
         id: p.id,
         payerLabel: label,
-        amount: parseFloat(p.amount),
+        amount: p.amount,
         currency: p.currency,
         method: p.method,
         source: p.source,

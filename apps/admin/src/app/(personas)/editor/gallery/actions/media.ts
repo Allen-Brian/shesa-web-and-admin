@@ -14,8 +14,8 @@ import type { ActionResult, MediaInput } from './types';
 export async function createMediaItem(input: MediaInput): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('gallery_media' as never)
+    .schema('cms')
+    .from('gallery_media')
     .insert({
       album_id: input.albumId,
       kind: input.kind,
@@ -51,8 +51,8 @@ export async function updateMediaItem(
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('gallery_media' as never)
+    .schema('cms')
+    .from('gallery_media')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -63,11 +63,7 @@ export async function updateMediaItem(
 
 export async function deleteMediaItem(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('gallery_media' as never)
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.schema('cms').from('gallery_media').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/gallery');
   revalidatePath('/gallery');
@@ -85,8 +81,8 @@ export async function reorderMedia(
   const supabase = await getServerClient();
   for (const u of updates) {
     const { error } = await supabase
-      .schema('cms' as never)
-      .from('gallery_media' as never)
+      .schema('cms')
+      .from('gallery_media')
       .update({ sort_order: u.sortOrder } as never)
       .eq('id', u.id);
     if (error) return { ok: false, message: error.message };

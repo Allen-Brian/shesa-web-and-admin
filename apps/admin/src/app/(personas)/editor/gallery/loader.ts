@@ -102,29 +102,23 @@ export async function loadEditorGallery(): Promise<LoadedGallery> {
     { data: eventsRaw },
   ] = await Promise.all([
     supabase
-      .schema('cms' as never)
-      .from('gallery_albums' as never)
+      .schema('cms')
+      .from('gallery_albums')
       .select(
         'id, slug, title, date_label, location, description, cover_url, photographer, linked_event_id, sort_order, created_at, updated_at',
       )
       .order('sort_order')
       .order('created_at', { ascending: false }),
     supabase
-      .schema('cms' as never)
-      .from('gallery_album_categories' as never)
+      .schema('cms')
+      .from('gallery_album_categories')
       .select('id, name, sort_order')
       .order('sort_order'),
+    supabase.schema('cms').from('gallery_album_categories_map').select('album_id, category_id'),
+    supabase.schema('cms').from('gallery_media').select('id, album_id'),
     supabase
-      .schema('cms' as never)
-      .from('gallery_album_categories_map' as never)
-      .select('album_id, category_id'),
-    supabase
-      .schema('cms' as never)
-      .from('gallery_media' as never)
-      .select('id, album_id'),
-    supabase
-      .schema('cms' as never)
-      .from('site_events' as never)
+      .schema('cms')
+      .from('site_events')
       .select('id, slug, title, starts_at')
       .order('starts_at', { ascending: false }),
   ]);
@@ -165,8 +159,8 @@ export async function loadEditorGallery(): Promise<LoadedGallery> {
 export async function loadAlbumMedia(albumId: string): Promise<readonly MediaRow[]> {
   const supabase = await getServerClient();
   const { data } = await supabase
-    .schema('cms' as never)
-    .from('gallery_media' as never)
+    .schema('cms')
+    .from('gallery_media')
     .select('id, album_id, kind, src, thumbnail_url, poster_url, alt, aspect, sort_order')
     .eq('album_id', albumId)
     .order('sort_order');

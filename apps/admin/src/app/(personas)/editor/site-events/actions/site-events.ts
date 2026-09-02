@@ -22,8 +22,8 @@ async function clearOtherFeatured(
   excludeId: string | null,
 ): Promise<void> {
   const q = supabase
-    .schema('cms' as never)
-    .from('site_events' as never)
+    .schema('cms')
+    .from('site_events')
     .update({ is_featured: false } as never)
     .eq('is_featured', true);
   if (excludeId) q.neq('id', excludeId);
@@ -36,16 +36,16 @@ async function replaceCategoryMap(
   categoryIds: readonly string[],
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const { error: delErr } = await supabase
-    .schema('cms' as never)
-    .from('site_event_categories_map' as never)
+    .schema('cms')
+    .from('site_event_categories_map')
     .delete()
     .eq('event_id', eventId);
   if (delErr) return { ok: false, message: delErr.message };
   if (categoryIds.length === 0) return { ok: true };
   const rows = categoryIds.map((c) => ({ event_id: eventId, category_id: c }));
   const { error: insErr } = await supabase
-    .schema('cms' as never)
-    .from('site_event_categories_map' as never)
+    .schema('cms')
+    .from('site_event_categories_map')
     .insert(rows as never);
   if (insErr) return { ok: false, message: insErr.message };
   return { ok: true };
@@ -80,8 +80,8 @@ export async function createSiteEvent(
   const supabase = await getServerClient();
   if (input.isFeatured) await clearOtherFeatured(supabase, null);
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('site_events' as never)
+    .schema('cms')
+    .from('site_events')
     .insert(toDbBody(input) as never)
     .select('id')
     .maybeSingle();
@@ -101,8 +101,8 @@ export async function updateSiteEvent(id: string, input: SiteEventInput): Promis
   if (input.isFeatured) await clearOtherFeatured(supabase, id);
   const body = { ...toDbBody(input), updated_at: new Date().toISOString() };
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('site_events' as never)
+    .schema('cms')
+    .from('site_events')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -117,11 +117,7 @@ export async function updateSiteEvent(id: string, input: SiteEventInput): Promis
 
 export async function deleteSiteEvent(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('site_events' as never)
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.schema('cms').from('site_events').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/site-events');
   revalidatePath('/events');
@@ -134,11 +130,7 @@ export async function deleteSiteEvents(
 ): Promise<ActionResult<{ count: number }>> {
   if (ids.length === 0) return { ok: true, data: { count: 0 } };
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('site_events' as never)
-    .delete()
-    .in('id', ids);
+  const { error } = await supabase.schema('cms').from('site_events').delete().in('id', ids);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/site-events');
   revalidatePath('/events');

@@ -32,20 +32,14 @@ async function loadAllEvents(): Promise<readonly SiteEvent[]> {
 
   const [{ data: eventsRaw }, { data: categoriesRaw }, { data: mapRaw }] = await Promise.all([
     supabase
-      .schema('cms' as never)
-      .from('site_events' as never)
+      .schema('cms')
+      .from('site_events')
       .select(
         'id, slug, title, short_description, description_html, banner_url, starts_at, ends_at, location, city, is_featured, has_ticketing, ticket_url, ticket_price, ticket_currency, flyers, program, album_slug',
       )
       .order('starts_at', { ascending: true }),
-    supabase
-      .schema('cms' as never)
-      .from('site_event_categories' as never)
-      .select('id, name'),
-    supabase
-      .schema('cms' as never)
-      .from('site_event_categories_map' as never)
-      .select('event_id, category_id'),
+    supabase.schema('cms').from('site_event_categories').select('id, name'),
+    supabase.schema('cms').from('site_event_categories_map').select('event_id, category_id'),
   ]);
 
   const catNameById = new Map(((categoriesRaw ?? []) as RawCategory[]).map((c) => [c.id, c.name]));
@@ -90,8 +84,8 @@ async function resolveAlbumSlug(
   if (manualSlug) return manualSlug;
   const supabase = await getServerClient();
   const { data } = await supabase
-    .schema('cms' as never)
-    .from('gallery_albums' as never)
+    .schema('cms')
+    .from('gallery_albums')
     .select('slug')
     .eq('linked_event_id', eventId)
     .maybeSingle();

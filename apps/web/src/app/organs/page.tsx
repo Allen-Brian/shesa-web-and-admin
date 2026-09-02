@@ -67,13 +67,13 @@ export default async function OrgansPage() {
 
   const [{ data: sectorsRaw }, { data: organsRaw }] = await Promise.all([
     supabase
-      .schema('cms' as never)
-      .from('organ_sectors' as never)
+      .schema('cms')
+      .from('organ_sectors')
       .select('id, name, slug, description, sort_order')
       .order('sort_order'),
     supabase
-      .schema('cms' as never)
-      .from('organs' as never)
+      .schema('cms')
+      .from('organs')
       .select(
         'id, sector_id, slug, name, short_name, location, country, founded_year, member_count, description, logo_url, contact_email, contact_phone, website_url, sort_order',
       )

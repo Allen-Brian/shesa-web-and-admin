@@ -96,22 +96,19 @@ export async function loadEditorSiteEvents(): Promise<LoadedSiteEvents> {
 
   const [{ data: eventsRaw }, { data: categoriesRaw }, { data: mapRaw }] = await Promise.all([
     supabase
-      .schema('cms' as never)
-      .from('site_events' as never)
+      .schema('cms')
+      .from('site_events')
       .select(
         'id, slug, title, short_description, description_html, banner_url, starts_at, ends_at, location, city, is_featured, has_ticketing, ticket_url, ticket_price, ticket_currency, flyers, program, album_slug, created_at, updated_at',
       )
       .order('is_featured', { ascending: false })
       .order('starts_at', { ascending: false }),
     supabase
-      .schema('cms' as never)
-      .from('site_event_categories' as never)
+      .schema('cms')
+      .from('site_event_categories')
       .select('id, name, sort_order')
       .order('sort_order'),
-    supabase
-      .schema('cms' as never)
-      .from('site_event_categories_map' as never)
-      .select('event_id, category_id'),
+    supabase.schema('cms').from('site_event_categories_map').select('event_id, category_id'),
   ]);
 
   const catsByEvent = new Map<string, string[]>();

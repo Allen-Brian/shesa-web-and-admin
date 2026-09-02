@@ -34,21 +34,15 @@ export default async function ProjectsPage() {
 
   const [{ data: projectsRaw }, { data: categoriesRaw }, { data: mapRaw }] = await Promise.all([
     supabase
-      .schema('cms' as never)
-      .from('projects' as never)
+      .schema('cms')
+      .from('projects')
       .select(
         'id, slug, title, short_description, description_html, banner_url, status, started_on, location, lead, is_featured, funding_raised, funding_target, funding_currency, milestones, impact_stats',
       )
       .order('is_featured', { ascending: false })
       .order('created_at', { ascending: false }),
-    supabase
-      .schema('cms' as never)
-      .from('project_categories' as never)
-      .select('id, name'),
-    supabase
-      .schema('cms' as never)
-      .from('project_categories_map' as never)
-      .select('project_id, category_id'),
+    supabase.schema('cms').from('project_categories').select('id, name'),
+    supabase.schema('cms').from('project_categories_map').select('project_id, category_id'),
   ]);
 
   const catNameById = new Map(((categoriesRaw ?? []) as RawCategory[]).map((c) => [c.id, c.name]));

@@ -77,6 +77,974 @@ export type Database = {
       [_ in never]: never
     }
   }
+  cms: {
+    Tables: {
+      agm_registrations: {
+        Row: {
+          amount_xaf: number
+          attire_size: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          kind: string
+          note: string | null
+          payment_method: string
+          phone: string
+          quantity: number | null
+          reference: string
+          settled_at: string | null
+          settled_by: string | null
+        }
+        Insert: {
+          amount_xaf: number
+          attire_size?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          kind: string
+          note?: string | null
+          payment_method: string
+          phone: string
+          quantity?: number | null
+          reference: string
+          settled_at?: string | null
+          settled_by?: string | null
+        }
+        Update: {
+          amount_xaf?: number
+          attire_size?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          payment_method?: string
+          phone?: string
+          quantity?: number | null
+          reference?: string
+          settled_at?: string | null
+          settled_by?: string | null
+        }
+        Relationships: []
+      }
+      article_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      article_categories_map: {
+        Row: {
+          article_id: string
+          category_id: string
+        }
+        Insert: {
+          article_id: string
+          category_id: string
+        }
+        Update: {
+          article_id?: string
+          category_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_categories_map_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_categories_map_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "article_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      articles: {
+        Row: {
+          author_name: string
+          author_photo_url: string | null
+          author_title: string | null
+          banner_url: string | null
+          content_html: string
+          created_at: string
+          excerpt: string | null
+          id: string
+          is_featured: boolean
+          publish_at: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_name: string
+          author_photo_url?: string | null
+          author_title?: string | null
+          banner_url?: string | null
+          content_html?: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          is_featured?: boolean
+          publish_at?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_name?: string
+          author_photo_url?: string | null
+          author_title?: string | null
+          banner_url?: string | null
+          content_html?: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          is_featured?: boolean
+          publish_at?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      batch_leaders: {
+        Row: {
+          batch: string
+          created_at: string
+          id: string
+          name: string
+          photo_url: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          batch: string
+          created_at?: string
+          id?: string
+          name: string
+          photo_url?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          batch?: string
+          created_at?: string
+          id?: string
+          name?: string
+          photo_url?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      branch_leaders: {
+        Row: {
+          branch_name: string
+          created_at: string
+          id: string
+          name: string
+          photo_url: string | null
+          region: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          branch_name: string
+          created_at?: string
+          id?: string
+          name: string
+          photo_url?: string | null
+          region?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          branch_name?: string
+          created_at?: string
+          id?: string
+          name?: string
+          photo_url?: string | null
+          region?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      diaspora_leaders: {
+        Row: {
+          branch_name: string
+          created_at: string
+          id: string
+          name: string
+          photo_url: string | null
+          region: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          branch_name: string
+          created_at?: string
+          id?: string
+          name: string
+          photo_url?: string | null
+          region?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          branch_name?: string
+          created_at?: string
+          id?: string
+          name?: string
+          photo_url?: string | null
+          region?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gallery_album_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gallery_album_categories_map: {
+        Row: {
+          album_id: string
+          category_id: string
+        }
+        Insert: {
+          album_id: string
+          category_id: string
+        }
+        Update: {
+          album_id?: string
+          category_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_album_categories_map_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_albums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gallery_album_categories_map_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_album_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_albums: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          date_label: string | null
+          description: string | null
+          id: string
+          linked_event_id: string | null
+          location: string | null
+          photographer: string | null
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          date_label?: string | null
+          description?: string | null
+          id?: string
+          linked_event_id?: string | null
+          location?: string | null
+          photographer?: string | null
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          date_label?: string | null
+          description?: string | null
+          id?: string
+          linked_event_id?: string | null
+          location?: string | null
+          photographer?: string | null
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_albums_linked_event_id_fkey"
+            columns: ["linked_event_id"]
+            isOneToOne: false
+            referencedRelation: "site_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_media: {
+        Row: {
+          album_id: string
+          alt: string | null
+          aspect: string
+          created_at: string
+          id: string
+          kind: string
+          poster_url: string | null
+          sort_order: number
+          src: string
+          thumbnail_url: string | null
+        }
+        Insert: {
+          album_id: string
+          alt?: string | null
+          aspect?: string
+          created_at?: string
+          id?: string
+          kind: string
+          poster_url?: string | null
+          sort_order?: number
+          src: string
+          thumbnail_url?: string | null
+        }
+        Update: {
+          album_id?: string
+          alt?: string | null
+          aspect?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          poster_url?: string | null
+          sort_order?: number
+          src?: string
+          thumbnail_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_media_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_albums"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mainstream_leaders: {
+        Row: {
+          created_at: string
+          id: string
+          location: string | null
+          name: string
+          photo_url: string | null
+          position: string
+          sector_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          name: string
+          photo_url?: string | null
+          position: string
+          sector_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          name?: string
+          photo_url?: string | null
+          position?: string
+          sector_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mainstream_leaders_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "mainstream_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mainstream_sectors: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      organ_sectors: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      organs: {
+        Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          country: string | null
+          created_at: string
+          description: string | null
+          founded_year: number | null
+          id: string
+          location: string | null
+          logo_url: string | null
+          member_count: number
+          name: string
+          sector_id: string
+          short_name: string | null
+          slug: string
+          sort_order: number
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          founded_year?: number | null
+          id?: string
+          location?: string | null
+          logo_url?: string | null
+          member_count?: number
+          name: string
+          sector_id: string
+          short_name?: string | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          founded_year?: number | null
+          id?: string
+          location?: string | null
+          logo_url?: string | null
+          member_count?: number
+          name?: string
+          sector_id?: string
+          short_name?: string | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organs_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "organ_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      project_categories_map: {
+        Row: {
+          category_id: string
+          project_id: string
+        }
+        Insert: {
+          category_id: string
+          project_id: string
+        }
+        Update: {
+          category_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_categories_map_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "project_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_categories_map_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          banner_url: string | null
+          created_at: string
+          description_html: string
+          funding_currency: string | null
+          funding_raised: number | null
+          funding_target: number | null
+          id: string
+          impact_stats: Json
+          is_featured: boolean
+          lead: string | null
+          location: string | null
+          milestones: Json
+          short_description: string | null
+          slug: string
+          started_on: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          banner_url?: string | null
+          created_at?: string
+          description_html?: string
+          funding_currency?: string | null
+          funding_raised?: number | null
+          funding_target?: number | null
+          id?: string
+          impact_stats?: Json
+          is_featured?: boolean
+          lead?: string | null
+          location?: string | null
+          milestones?: Json
+          short_description?: string | null
+          slug: string
+          started_on?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          banner_url?: string | null
+          created_at?: string
+          description_html?: string
+          funding_currency?: string | null
+          funding_raised?: number | null
+          funding_target?: number | null
+          id?: string
+          impact_stats?: Json
+          is_featured?: boolean
+          lead?: string | null
+          location?: string | null
+          milestones?: Json
+          short_description?: string | null
+          slug?: string
+          started_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_event_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_event_categories_map: {
+        Row: {
+          category_id: string
+          event_id: string
+        }
+        Insert: {
+          category_id: string
+          event_id: string
+        }
+        Update: {
+          category_id?: string
+          event_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_event_categories_map_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "site_event_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_event_categories_map_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "site_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_events: {
+        Row: {
+          album_slug: string | null
+          banner_url: string | null
+          city: string | null
+          created_at: string
+          description_html: string
+          ends_at: string | null
+          flyers: Json
+          has_ticketing: boolean
+          id: string
+          is_featured: boolean
+          location: string | null
+          program: Json
+          short_description: string | null
+          slug: string
+          starts_at: string
+          ticket_currency: string | null
+          ticket_price: number | null
+          ticket_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          album_slug?: string | null
+          banner_url?: string | null
+          city?: string | null
+          created_at?: string
+          description_html?: string
+          ends_at?: string | null
+          flyers?: Json
+          has_ticketing?: boolean
+          id?: string
+          is_featured?: boolean
+          location?: string | null
+          program?: Json
+          short_description?: string | null
+          slug: string
+          starts_at: string
+          ticket_currency?: string | null
+          ticket_price?: number | null
+          ticket_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          album_slug?: string | null
+          banner_url?: string | null
+          city?: string | null
+          created_at?: string
+          description_html?: string
+          ends_at?: string | null
+          flyers?: Json
+          has_ticketing?: boolean
+          id?: string
+          is_featured?: boolean
+          location?: string | null
+          program?: Json
+          short_description?: string | null
+          slug?: string
+          starts_at?: string
+          ticket_currency?: string | null
+          ticket_price?: number | null
+          ticket_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      song_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      songs: {
+        Row: {
+          audio_url: string
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          duration_seconds: number | null
+          group_id: string
+          id: string
+          lyrics: string | null
+          performer: string | null
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audio_url: string
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          group_id: string
+          id?: string
+          lyrics?: string | null
+          performer?: string | null
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audio_url?: string
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          group_id?: string
+          id?: string
+          lyrics?: string | null
+          performer?: string | null
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "songs_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "song_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_throttle: {
+        Row: {
+          bucket_key: string
+          hit_count: number
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          bucket_key: string
+          hit_count?: number
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          bucket_key?: string
+          hit_count?: number
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      consume_submission_slot: {
+        Args: {
+          p_bucket_key: string
+          p_limit?: number
+          p_window_seconds?: number
+        }
+        Returns: boolean
+      }
+      prune_submission_throttle: {
+        Args: { p_older_than_seconds?: number }
+        Returns: number
+      }
+      submit_agm_registration: {
+        Args: {
+          p_amount_xaf: number
+          p_attire_size?: string
+          p_email?: string
+          p_full_name: string
+          p_kind: string
+          p_note?: string
+          p_payment_method: string
+          p_phone: string
+          p_quantity?: number
+        }
+        Returns: {
+          reference: string
+        }[]
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   core: {
     Tables: {
       batches: {
@@ -551,7 +1519,7 @@ export type Database = {
           gender?: string | null
           house_scope_id: string
           id?: string
-          member_code?: string
+          member_code: string
           member_status?: Database["core"]["Enums"]["member_status"]
           network_scope_id: string
           phone?: string | null
@@ -1401,6 +2369,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_permission_at_any_scope: {
+        Args: { p_key: string; p_user_id: string }
+        Returns: boolean
+      }
       is_admin_role_key: { Args: { role_key: string }; Returns: boolean }
       mainstream_scope_id: { Args: never; Returns: string }
       member_owned_by: {
@@ -1839,6 +2811,1165 @@ export type Database = {
       [_ in never]: never
     }
   }
+  finance: {
+    Tables: {
+      charge_amount_versions: {
+        Row: {
+          amount: number
+          charge_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          effective_from: string
+          id: string
+          target_scope_id: string | null
+        }
+        Insert: {
+          amount: number
+          charge_id: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          effective_from: string
+          id?: string
+          target_scope_id?: string | null
+        }
+        Update: {
+          amount?: number
+          charge_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          effective_from?: string
+          id?: string
+          target_scope_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_amount_versions_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charge_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          key: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      charge_targets: {
+        Row: {
+          amount: number
+          charge_id: string
+          created_at: string
+          currency: string
+          id: string
+          target_scope_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          charge_id: string
+          created_at?: string
+          currency: string
+          id?: string
+          target_scope_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          charge_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          target_scope_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_targets_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charges: {
+        Row: {
+          activation_date: string | null
+          base_amount: number | null
+          capacity: number | null
+          category_id: string | null
+          close_date: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          event_id: string | null
+          goal_amount: number | null
+          group_id: string | null
+          id: string
+          issue_date: string | null
+          lifecycle:
+            | Database["finance"]["Enums"]["contribution_lifecycle"]
+            | null
+          min_amount: number | null
+          name: string
+          open_date: string | null
+          recurrence: Database["finance"]["Enums"]["charge_recurrence"]
+          recurrence_interval: number
+          scope_id: string
+          shape: Database["finance"]["Enums"]["charge_shape"]
+          status: Database["finance"]["Enums"]["charge_status"]
+          target_filter: Json
+          target_party_type: Database["finance"]["Enums"]["party_type"] | null
+          updated_at: string
+        }
+        Insert: {
+          activation_date?: string | null
+          base_amount?: number | null
+          capacity?: number | null
+          category_id?: string | null
+          close_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          description?: string | null
+          event_id?: string | null
+          goal_amount?: number | null
+          group_id?: string | null
+          id?: string
+          issue_date?: string | null
+          lifecycle?:
+            | Database["finance"]["Enums"]["contribution_lifecycle"]
+            | null
+          min_amount?: number | null
+          name: string
+          open_date?: string | null
+          recurrence?: Database["finance"]["Enums"]["charge_recurrence"]
+          recurrence_interval?: number
+          scope_id: string
+          shape: Database["finance"]["Enums"]["charge_shape"]
+          status?: Database["finance"]["Enums"]["charge_status"]
+          target_filter?: Json
+          target_party_type?: Database["finance"]["Enums"]["party_type"] | null
+          updated_at?: string
+        }
+        Update: {
+          activation_date?: string | null
+          base_amount?: number | null
+          capacity?: number | null
+          category_id?: string | null
+          close_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          event_id?: string | null
+          goal_amount?: number | null
+          group_id?: string | null
+          id?: string
+          issue_date?: string | null
+          lifecycle?:
+            | Database["finance"]["Enums"]["contribution_lifecycle"]
+            | null
+          min_amount?: number | null
+          name?: string
+          open_date?: string | null
+          recurrence?: Database["finance"]["Enums"]["charge_recurrence"]
+          recurrence_interval?: number
+          scope_id?: string
+          shape?: Database["finance"]["Enums"]["charge_shape"]
+          status?: Database["finance"]["Enums"]["charge_status"]
+          target_filter?: Json
+          target_party_type?: Database["finance"]["Enums"]["party_type"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charges_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "charge_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charges_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contribution_extensions: {
+        Row: {
+          charge_id: string
+          created_at: string
+          extended_by: string | null
+          id: string
+          new_close_at: string
+          previous_close_at: string
+          reason: string | null
+        }
+        Insert: {
+          charge_id: string
+          created_at?: string
+          extended_by?: string | null
+          id?: string
+          new_close_at: string
+          previous_close_at: string
+          reason?: string | null
+        }
+        Update: {
+          charge_id?: string
+          created_at?: string
+          extended_by?: string | null
+          id?: string
+          new_close_at?: string
+          previous_close_at?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contribution_extensions_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exceptions: {
+        Row: {
+          charge_id: string
+          condition: Json
+          created_at: string
+          created_by: string | null
+          form: Database["finance"]["Enums"]["exception_form"]
+          id: string
+          is_active: boolean
+          member_id: string | null
+          priority: number
+          replacement_amount: number
+        }
+        Insert: {
+          charge_id: string
+          condition?: Json
+          created_at?: string
+          created_by?: string | null
+          form: Database["finance"]["Enums"]["exception_form"]
+          id?: string
+          is_active?: boolean
+          member_id?: string | null
+          priority: number
+          replacement_amount: number
+        }
+        Update: {
+          charge_id?: string
+          condition?: Json
+          created_at?: string
+          created_by?: string | null
+          form?: Database["finance"]["Enums"]["exception_form"]
+          id?: string
+          is_active?: boolean
+          member_id?: string | null
+          priority?: number
+          replacement_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exceptions_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exchange_rates: {
+        Row: {
+          effective_at: string
+          from_currency: string
+          id: string
+          note: string | null
+          rate: number
+          set_by: string | null
+          to_currency: string
+        }
+        Insert: {
+          effective_at?: string
+          from_currency: string
+          id?: string
+          note?: string | null
+          rate: number
+          set_by?: string | null
+          to_currency: string
+        }
+        Update: {
+          effective_at?: string
+          from_currency?: string
+          id?: string
+          note?: string | null
+          rate?: number
+          set_by?: string | null
+          to_currency?: string
+        }
+        Relationships: []
+      }
+      expense_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          key: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      expense_settings: {
+        Row: {
+          approval_threshold_amount: number | null
+          approval_threshold_currency: string | null
+          scope_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approval_threshold_amount?: number | null
+          approval_threshold_currency?: string | null
+          scope_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approval_threshold_amount?: number | null
+          approval_threshold_currency?: string | null
+          scope_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          attachment_url: string | null
+          category_id: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          group_id: string | null
+          id: string
+          incurred_at: string
+          payee: string
+          recorded_by: string | null
+          reversal_reason: string | null
+          reverses_expense_id: string | null
+          scope_id: string
+          status: Database["finance"]["Enums"]["expense_status"]
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          attachment_url?: string | null
+          category_id?: string | null
+          created_at?: string
+          currency: string
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          incurred_at?: string
+          payee: string
+          recorded_by?: string | null
+          reversal_reason?: string | null
+          reverses_expense_id?: string | null
+          scope_id: string
+          status?: Database["finance"]["Enums"]["expense_status"]
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          attachment_url?: string | null
+          category_id?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          incurred_at?: string
+          payee?: string
+          recorded_by?: string | null
+          reversal_reason?: string | null
+          reverses_expense_id?: string | null
+          scope_id?: string
+          status?: Database["finance"]["Enums"]["expense_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_reverses_expense_id_fkey"
+            columns: ["reverses_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_on: string | null
+          id: string
+          name: string
+          scope_id: string
+          show_in_sidebar: boolean
+          slug: string
+          starts_on: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_on?: string | null
+          id?: string
+          name: string
+          scope_id: string
+          show_in_sidebar?: boolean
+          slug: string
+          starts_on?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_on?: string | null
+          id?: string
+          name?: string
+          scope_id?: string
+          show_in_sidebar?: boolean
+          slug?: string
+          starts_on?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ledger_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          direction: Database["finance"]["Enums"]["ledger_direction"]
+          expense_id: string | null
+          id: string
+          journal_id: string
+          memo: string | null
+          payment_id: string | null
+          scope_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          direction: Database["finance"]["Enums"]["ledger_direction"]
+          expense_id?: string | null
+          id?: string
+          journal_id: string
+          memo?: string | null
+          payment_id?: string | null
+          scope_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          direction?: Database["finance"]["Enums"]["ledger_direction"]
+          expense_id?: string | null
+          id?: string
+          journal_id?: string
+          memo?: string | null
+          payment_id?: string | null
+          scope_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_expense_fk"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_payment_fk"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obligations: {
+        Row: {
+          amount: number
+          charge_id: string
+          created_at: string
+          currency: string
+          exception_applied: string | null
+          id: string
+          party_id: string
+          party_type: Database["finance"]["Enums"]["party_type"]
+          period_end: string | null
+          period_start: string | null
+          prorated: boolean
+          scope_id: string
+          status: Database["finance"]["Enums"]["obligation_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          charge_id: string
+          created_at?: string
+          currency: string
+          exception_applied?: string | null
+          id?: string
+          party_id: string
+          party_type: Database["finance"]["Enums"]["party_type"]
+          period_end?: string | null
+          period_start?: string | null
+          prorated?: boolean
+          scope_id: string
+          status?: Database["finance"]["Enums"]["obligation_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          charge_id?: string
+          created_at?: string
+          currency?: string
+          exception_applied?: string | null
+          id?: string
+          party_id?: string
+          party_type?: Database["finance"]["Enums"]["party_type"]
+          period_end?: string | null
+          period_start?: string | null
+          prorated?: boolean
+          scope_id?: string
+          status?: Database["finance"]["Enums"]["obligation_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obligations_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "obligations_exception_applied_fkey"
+            columns: ["exception_applied"]
+            isOneToOne: false
+            referencedRelation: "exceptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_intents: {
+        Row: {
+          amount: number
+          available_from: string
+          charge_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          failure_reason: string | null
+          id: string
+          metadata: Json
+          method: Database["finance"]["Enums"]["payment_method"]
+          note: string | null
+          obligation_id: string | null
+          payer_email: string | null
+          payer_location: string | null
+          payer_member_id: string | null
+          payer_name: string | null
+          payer_phone: string | null
+          quantity: number | null
+          resulting_payment_id: string | null
+          scope_id: string
+          status: Database["finance"]["Enums"]["payment_intent_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          available_from?: string
+          charge_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json
+          method: Database["finance"]["Enums"]["payment_method"]
+          note?: string | null
+          obligation_id?: string | null
+          payer_email?: string | null
+          payer_location?: string | null
+          payer_member_id?: string | null
+          payer_name?: string | null
+          payer_phone?: string | null
+          quantity?: number | null
+          resulting_payment_id?: string | null
+          scope_id: string
+          status?: Database["finance"]["Enums"]["payment_intent_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          available_from?: string
+          charge_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json
+          method?: Database["finance"]["Enums"]["payment_method"]
+          note?: string | null
+          obligation_id?: string | null
+          payer_email?: string | null
+          payer_location?: string | null
+          payer_member_id?: string | null
+          payer_name?: string | null
+          payer_phone?: string | null
+          quantity?: number | null
+          resulting_payment_id?: string | null
+          scope_id?: string
+          status?: Database["finance"]["Enums"]["payment_intent_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_intents_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_intents_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_intents_resulting_payment_id_fkey"
+            columns: ["resulting_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          charge_id: string | null
+          created_at: string
+          currency: string
+          external_ref: string | null
+          group_id: string | null
+          id: string
+          metadata: Json
+          method: Database["finance"]["Enums"]["payment_method"]
+          obligation_id: string | null
+          payer_member_id: string | null
+          rate_snapshot: number | null
+          rate_target_currency: string | null
+          recorded_by: string | null
+          reversal_reason: string | null
+          reverses_payment_id: string | null
+          scope_id: string
+          source: Database["finance"]["Enums"]["payment_source"]
+        }
+        Insert: {
+          amount: number
+          charge_id?: string | null
+          created_at?: string
+          currency: string
+          external_ref?: string | null
+          group_id?: string | null
+          id?: string
+          metadata?: Json
+          method: Database["finance"]["Enums"]["payment_method"]
+          obligation_id?: string | null
+          payer_member_id?: string | null
+          rate_snapshot?: number | null
+          rate_target_currency?: string | null
+          recorded_by?: string | null
+          reversal_reason?: string | null
+          reverses_payment_id?: string | null
+          scope_id: string
+          source: Database["finance"]["Enums"]["payment_source"]
+        }
+        Update: {
+          amount?: number
+          charge_id?: string | null
+          created_at?: string
+          currency?: string
+          external_ref?: string | null
+          group_id?: string | null
+          id?: string
+          metadata?: Json
+          method?: Database["finance"]["Enums"]["payment_method"]
+          obligation_id?: string | null
+          payer_member_id?: string | null
+          rate_snapshot?: number | null
+          rate_target_currency?: string | null
+          recorded_by?: string | null
+          reversal_reason?: string | null
+          reverses_payment_id?: string | null
+          scope_id?: string
+          source?: Database["finance"]["Enums"]["payment_source"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_reverses_payment_id_fkey"
+            columns: ["reverses_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receipt_verifications: {
+        Row: {
+          created_at: string
+          payment_id: string
+          receipt_number: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          payment_id: string
+          receipt_number: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          payment_id?: string
+          receipt_number?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_verifications_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reconciliations: {
+        Row: {
+          id: string
+          matched_ref: string | null
+          notes: string | null
+          payment_id: string
+          reconciled_at: string
+          reconciled_by: string
+        }
+        Insert: {
+          id?: string
+          matched_ref?: string | null
+          notes?: string | null
+          payment_id: string
+          reconciled_at?: string
+          reconciled_by: string
+        }
+        Update: {
+          id?: string
+          matched_ref?: string | null
+          notes?: string | null
+          payment_id?: string
+          reconciled_at?: string
+          reconciled_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: true
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          buyer_member_id: string | null
+          charge_id: string
+          created_at: string
+          id: string
+          payment_id: string
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          buyer_member_id?: string | null
+          charge_id: string
+          created_at?: string
+          id?: string
+          payment_id: string
+          quantity: number
+          unit_price: number
+        }
+        Update: {
+          buyer_member_id?: string | null
+          charge_id?: string
+          created_at?: string
+          id?: string
+          payment_id?: string
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treasury_balances: {
+        Row: {
+          balance: number
+          currency: string
+          scope_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          currency: string
+          scope_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          currency?: string
+          scope_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      can_read_reports: { Args: { p_scope_id: string }; Returns: boolean }
+      compute_period: {
+        Args: {
+          p_interval: number
+          p_recurrence: Database["finance"]["Enums"]["charge_recurrence"]
+          p_reference: string
+        }
+        Returns: {
+          period_end: string
+          period_start: string
+        }[]
+      }
+      effective_amount: {
+        Args: {
+          p_charge_id: string
+          p_period_start: string
+          p_target_scope_id: string
+        }
+        Returns: number
+      }
+      generate_obligations_for_charge: {
+        Args: { p_charge_id: string; p_reference?: string }
+        Returns: number
+      }
+      generate_obligations_sweep: {
+        Args: { p_reference?: string }
+        Returns: number
+      }
+      get_arrears: {
+        Args: { p_scope_id: string }
+        Returns: {
+          amount_owed: number
+          amount_paid: number
+          arrears: number
+          charge_id: string
+          charge_name: string
+          member_id: string
+          member_name: string
+          period_start: string
+        }[]
+      }
+      get_collections: {
+        Args: { p_from?: string; p_scope_id: string; p_to?: string }
+        Returns: {
+          charge_id: string
+          charge_name: string
+          payment_count: number
+          shape: string
+          total_collected: number
+        }[]
+      }
+      get_contribution_progress: {
+        Args: { p_charge_id: string }
+        Returns: {
+          capacity: number
+          charge_id: string
+          charge_name: string
+          contributor_count: number
+          goal_amount: number
+          raised: number
+          shape: string
+          sold: number
+        }[]
+      }
+      get_donation_report: {
+        Args: { p_from?: string; p_scope_id: string; p_to?: string }
+        Returns: {
+          anonymous_count: number
+          charge_id: string
+          charge_name: string
+          donation_count: number
+          named_donor_count: number
+          total_donated: number
+        }[]
+      }
+      get_exchange_rate: {
+        Args: { p_at?: string; p_from_currency: string; p_to_currency: string }
+        Returns: number
+      }
+      get_expense_report_by_category: {
+        Args: { p_from?: string; p_scope_id: string; p_to?: string }
+        Returns: {
+          category_id: string
+          category_key: string
+          category_name: string
+          expense_count: number
+          total_amount: number
+        }[]
+      }
+      get_member_statement: {
+        Args: { p_from?: string; p_member_id: string; p_to?: string }
+        Returns: {
+          amount_owed: number
+          amount_paid: number
+          balance: number
+          charge_id: string
+          charge_name: string
+          obligation_status: string
+          period_start: string
+          scope_id: string
+          scope_name: string
+        }[]
+      }
+      get_payment_method_breakdown: {
+        Args: { p_from?: string; p_scope_id: string; p_to?: string }
+        Returns: {
+          method: string
+          payment_count: number
+          total_amount: number
+        }[]
+      }
+      get_treasury_statement: {
+        Args: { p_from?: string; p_scope_id: string; p_to?: string }
+        Returns: {
+          closing_balance: number
+          currency: string
+          expense_sum: number
+          income_sum: number
+          opening_balance: number
+          scope_id: string
+        }[]
+      }
+      resolve_exception_for_charge: {
+        Args: { p_charge_id: string; p_member_id: string; p_reference?: string }
+        Returns: {
+          exception_id: string
+          matched_form: string
+          matched_priority: number
+          replacement_amount: number
+        }[]
+      }
+      schedule_amount_change: {
+        Args: {
+          p_actor: string
+          p_amount: number
+          p_charge_id: string
+          p_target_scope_id: string
+        }
+        Returns: string
+      }
+      verify_receipt: {
+        Args: { p_token: string }
+        Returns: {
+          amount: number
+          charge_name: string
+          currency: string
+          paid_at: string
+          receipt_number: string
+          reversed: boolean
+          valid: boolean
+        }[]
+      }
+      write_ledger_from_expense: {
+        Args: { p_expense_id: string }
+        Returns: string
+      }
+      write_ledger_from_payment: {
+        Args: { p_payment_id: string }
+        Returns: string
+      }
+    }
+    Enums: {
+      charge_recurrence:
+        | "one_time"
+        | "monthly"
+        | "quarterly"
+        | "biannual"
+        | "yearly"
+      charge_shape:
+        | "charge"
+        | "goal"
+        | "open"
+        | "ticketed"
+        | "fixed"
+        | "donation"
+      charge_status: "draft" | "active" | "paused" | "archived"
+      contribution_lifecycle: "draft" | "open" | "closed" | "archived"
+      exception_form: "relative" | "fixed" | "senior" | "individual"
+      expense_status: "recorded" | "pending_approval" | "approved"
+      ledger_direction: "income" | "expense"
+      obligation_status: "open" | "partial" | "paid" | "cancelled" | "forgiven"
+      party_type: "member" | "branch"
+      payment_intent_status:
+        | "pending"
+        | "succeeded"
+        | "failed"
+        | "cancelled"
+        | "expired"
+      payment_method:
+        | "mtn_momo"
+        | "orange_money"
+        | "cash"
+        | "bank_transfer"
+        | "card"
+      payment_source: "auto" | "manual"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   notifications: {
     Tables: {
       notification_deliveries: {
@@ -1936,6 +4067,25 @@ export type Database = {
     }
     Functions: {
       can_view_delivery: { Args: { p_delivery_id: string }; Returns: boolean }
+      queue_delete: {
+        Args: { p_msg_id: number; p_queue: string }
+        Returns: boolean
+      }
+      queue_read: {
+        Args: { p_qty: number; p_queue: string; p_vt: number }
+        Returns: {
+          message: Json
+          msg_id: number
+        }[]
+      }
+      queue_send: {
+        Args: { p_message: Json; p_queue: string }
+        Returns: number
+      }
+      requeue_stranded_events: {
+        Args: { p_limit?: number; p_older_than_seconds?: number }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
@@ -2084,6 +4234,9 @@ export const Constants = {
   audit: {
     Enums: {},
   },
+  cms: {
+    Enums: {},
+  },
   core: {
     Enums: {
       chapter_kind: ["autonomous", "grouping"],
@@ -2171,6 +4324,40 @@ export const Constants = {
       ],
       reminder_cadence: ["weekly", "biweekly", "monthly"],
       rsvp_response: ["interested", "going"],
+    },
+  },
+  finance: {
+    Enums: {
+      charge_recurrence: [
+        "one_time",
+        "monthly",
+        "quarterly",
+        "biannual",
+        "yearly",
+      ],
+      charge_shape: ["charge", "goal", "open", "ticketed", "fixed", "donation"],
+      charge_status: ["draft", "active", "paused", "archived"],
+      contribution_lifecycle: ["draft", "open", "closed", "archived"],
+      exception_form: ["relative", "fixed", "senior", "individual"],
+      expense_status: ["recorded", "pending_approval", "approved"],
+      ledger_direction: ["income", "expense"],
+      obligation_status: ["open", "partial", "paid", "cancelled", "forgiven"],
+      party_type: ["member", "branch"],
+      payment_intent_status: [
+        "pending",
+        "succeeded",
+        "failed",
+        "cancelled",
+        "expired",
+      ],
+      payment_method: [
+        "mtn_momo",
+        "orange_money",
+        "cash",
+        "bank_transfer",
+        "card",
+      ],
+      payment_source: ["auto", "manual"],
     },
   },
   notifications: {

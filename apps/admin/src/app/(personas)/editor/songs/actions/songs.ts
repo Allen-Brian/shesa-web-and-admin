@@ -24,8 +24,8 @@ function toDbBody(input: SongInput) {
 export async function createSong(input: SongInput): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('songs' as never)
+    .schema('cms')
+    .from('songs')
     .insert(toDbBody(input) as never)
     .select('id')
     .maybeSingle();
@@ -41,8 +41,8 @@ export async function updateSong(id: string, input: SongInput): Promise<ActionRe
   const supabase = await getServerClient();
   const body = { ...toDbBody(input), updated_at: new Date().toISOString() };
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('songs' as never)
+    .schema('cms')
+    .from('songs')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -54,11 +54,7 @@ export async function updateSong(id: string, input: SongInput): Promise<ActionRe
 
 export async function deleteSong(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('songs' as never)
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.schema('cms').from('songs').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/songs');
   revalidatePath('/songs');
@@ -70,11 +66,7 @@ export async function deleteSongs(
 ): Promise<ActionResult<{ count: number }>> {
   if (ids.length === 0) return { ok: true, data: { count: 0 } };
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('songs' as never)
-    .delete()
-    .in('id', ids);
+  const { error } = await supabase.schema('cms').from('songs').delete().in('id', ids);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/songs');
   revalidatePath('/songs');

@@ -26,8 +26,8 @@ interface RawGroup {
 export async function loadSidebarGroups(): Promise<readonly SidebarGroupItem[]> {
   const supabase = await getServerClient();
   const { data } = await supabase
-    .schema('finance' as never)
-    .from('groups' as never)
+    .schema('finance')
+    .from('groups')
     .select('id, slug, name, show_in_sidebar, status')
     .eq('show_in_sidebar', true)
     .in('status', ['active', 'closed'])

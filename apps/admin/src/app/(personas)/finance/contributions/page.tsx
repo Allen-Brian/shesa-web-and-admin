@@ -17,7 +17,7 @@ interface RawChargeRow {
   readonly description: string | null;
   readonly shape: string;
   readonly currency: string;
-  readonly base_amount: string | null;
+  readonly base_amount: number | null;
   readonly goal_amount: string | null;
   readonly min_amount: string | null;
   readonly capacity: number | null;
@@ -45,7 +45,7 @@ interface RawScopeRow {
 
 interface RawPaymentRow {
   readonly charge_id: string | null;
-  readonly amount: string;
+  readonly amount: number;
   readonly payer_member_id: string | null;
   readonly reverses_payment_id: string | null;
   readonly metadata: Record<string, unknown> | null;
@@ -69,20 +69,17 @@ export default async function ContributionsPage() {
 
   const [{ data: chargesRaw }, { data: treasuriesRaw }, { data: paymentsRaw }] = await Promise.all([
     supabase
-      .schema('finance' as never)
-      .from('charges' as never)
+      .schema('finance')
+      .from('charges')
       .select(
         'id, scope_id, name, description, shape, currency, base_amount, goal_amount, min_amount, capacity, lifecycle, open_date, close_date, status, created_at, group_id',
       )
       .in('shape', ['goal', 'open', 'ticketed', 'fixed'])
       .order('created_at', { ascending: false }),
+    supabase.schema('finance').from('treasury_balances').select('scope_id'),
     supabase
-      .schema('finance' as never)
-      .from('treasury_balances' as never)
-      .select('scope_id'),
-    supabase
-      .schema('finance' as never)
-      .from('payments' as never)
+      .schema('finance')
+      .from('payments')
       .select('charge_id, amount, payer_member_id, reverses_payment_id, metadata')
       .limit(5000),
   ]);
@@ -97,11 +94,7 @@ export default async function ContributionsPage() {
     new Set(chargesData.map((c) => c.group_id).filter((id): id is string => !!id)),
   );
   const { data: groupsRaw } = groupIds.length
-    ? await supabase
-        .schema('finance' as never)
-        .from('groups' as never)
-        .select('id, name')
-        .in('id', groupIds)
+    ? await supabase.schema('finance').from('groups').select('id, name').in('id', groupIds)
     : { data: [] as RawGroupRow[] };
   const groupById = new Map(((groupsRaw ?? []) as RawGroupRow[]).map((g) => [g.id, g] as const));
 
@@ -147,7 +140,7 @@ export default async function ContributionsPage() {
       contributors: new Set<string>(),
       anonymousCount: 0,
     };
-    bucket.raised += parseFloat(p.amount);
+    bucket.raised += p.amount;
     if (p.payer_member_id) {
       bucket.contributors.add(p.payer_member_id);
     } else {
@@ -172,7 +165,7 @@ export default async function ContributionsPage() {
       description: c.description,
       shape: c.shape,
       currency: c.currency,
-      baseAmount: c.base_amount ? parseFloat(c.base_amount) : null,
+      baseAmount: c.base_amount ? c.base_amount : null,
       goalAmount: c.goal_amount ? parseFloat(c.goal_amount) : null,
       minAmount: c.min_amount ? parseFloat(c.min_amount) : null,
       capacity: c.capacity,

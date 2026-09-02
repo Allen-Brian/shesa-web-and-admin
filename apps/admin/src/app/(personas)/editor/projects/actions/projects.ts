@@ -19,16 +19,16 @@ async function replaceCategoryMap(
   categoryIds: readonly string[],
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const { error: delErr } = await supabase
-    .schema('cms' as never)
-    .from('project_categories_map' as never)
+    .schema('cms')
+    .from('project_categories_map')
     .delete()
     .eq('project_id', projectId);
   if (delErr) return { ok: false, message: delErr.message };
   if (categoryIds.length === 0) return { ok: true };
   const rows = categoryIds.map((c) => ({ project_id: projectId, category_id: c }));
   const { error: insErr } = await supabase
-    .schema('cms' as never)
-    .from('project_categories_map' as never)
+    .schema('cms')
+    .from('project_categories_map')
     .insert(rows as never);
   if (insErr) return { ok: false, message: insErr.message };
   return { ok: true };
@@ -59,8 +59,8 @@ function toDbBody(input: ProjectInput) {
 export async function createProject(input: ProjectInput): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('projects' as never)
+    .schema('cms')
+    .from('projects')
     .insert(toDbBody(input) as never)
     .select('id')
     .maybeSingle();
@@ -79,8 +79,8 @@ export async function updateProject(id: string, input: ProjectInput): Promise<Ac
   const supabase = await getServerClient();
   const body = { ...toDbBody(input), updated_at: new Date().toISOString() };
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('projects' as never)
+    .schema('cms')
+    .from('projects')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -95,11 +95,7 @@ export async function updateProject(id: string, input: ProjectInput): Promise<Ac
 
 export async function deleteProject(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('projects' as never)
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.schema('cms').from('projects').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/projects');
   revalidatePath('/projects');
@@ -112,11 +108,7 @@ export async function deleteProjects(
 ): Promise<ActionResult<{ count: number }>> {
   if (ids.length === 0) return { ok: true, data: { count: 0 } };
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('projects' as never)
-    .delete()
-    .in('id', ids);
+  const { error } = await supabase.schema('cms').from('projects').delete().in('id', ids);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/projects');
   revalidatePath('/projects');

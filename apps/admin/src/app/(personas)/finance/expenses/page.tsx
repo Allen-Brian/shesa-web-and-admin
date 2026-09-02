@@ -19,7 +19,7 @@ interface RawExpenseRow {
   readonly scope_id: string;
   readonly category_id: string | null;
   readonly payee: string;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly description: string | null;
   readonly status: string;
@@ -82,26 +82,23 @@ export default async function ExpensesPage() {
     { data: settingsRaw },
   ] = await Promise.all([
     supabase
-      .schema('finance' as never)
-      .from('expenses' as never)
+      .schema('finance')
+      .from('expenses')
       .select(
         'id, scope_id, category_id, payee, amount, currency, description, status, reverses_expense_id, incurred_at, created_at, group_id',
       )
       .order('incurred_at', { ascending: false })
       .limit(500),
+    supabase.schema('finance').from('treasury_balances').select('scope_id'),
     supabase
-      .schema('finance' as never)
-      .from('treasury_balances' as never)
-      .select('scope_id'),
-    supabase
-      .schema('finance' as never)
-      .from('expense_categories' as never)
+      .schema('finance')
+      .from('expense_categories')
       .select('id, key, name, sort_order, is_active')
       .eq('is_active', true)
       .order('sort_order'),
     supabase
-      .schema('finance' as never)
-      .from('expense_settings' as never)
+      .schema('finance')
+      .from('expense_settings')
       .select('scope_id, approval_threshold_amount, approval_threshold_currency'),
   ]);
 
@@ -117,11 +114,7 @@ export default async function ExpensesPage() {
     new Set(expensesData.map((e) => e.group_id).filter((id): id is string => !!id)),
   );
   const { data: groupsRaw } = groupIds.length
-    ? await supabase
-        .schema('finance' as never)
-        .from('groups' as never)
-        .select('id, name')
-        .in('id', groupIds)
+    ? await supabase.schema('finance').from('groups').select('id, name').in('id', groupIds)
     : { data: [] as RawGroupRow[] };
   const groupsData = (groupsRaw ?? []) as RawGroupRow[];
   const groupById = new Map(groupsData.map((g) => [g.id, g] as const));
@@ -155,7 +148,7 @@ export default async function ExpensesPage() {
       categoryKey: category?.key ?? null,
       categoryName: category?.name ?? null,
       payee: e.payee,
-      amount: parseFloat(e.amount),
+      amount: e.amount,
       currency: e.currency,
       description: e.description,
       status: e.status,

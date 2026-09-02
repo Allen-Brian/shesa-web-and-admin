@@ -10,7 +10,7 @@ export interface RawCharge {
   readonly name: string;
   readonly description: string | null;
   readonly shape: string;
-  readonly base_amount: string | null;
+  readonly base_amount: number | null;
   readonly goal_amount: string | null;
   readonly currency: string;
   readonly recurrence: string;
@@ -28,7 +28,7 @@ export interface RawObligation {
   readonly charge_id: string;
   readonly party_type: string;
   readonly party_id: string;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly status: string;
   readonly period_start: string | null;
@@ -41,7 +41,7 @@ export interface RawPayment {
   readonly obligation_id: string | null;
   readonly charge_id: string | null;
   readonly payer_member_id: string | null;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly method: string;
   readonly source: string;

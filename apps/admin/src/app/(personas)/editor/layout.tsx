@@ -25,13 +25,10 @@ export default async function EditorLayout({ children }: { readonly children: Re
   // branch admin who somehow navigated here, a plain member, etc.) is
   // bounced back out. Uses the SECURITY DEFINER RPC — bypasses RLS on
   // the RBAC tables.
-  const { data: allowedCms } = await supabase.schema('core').rpc(
-    'has_permission_at_any_scope' as never,
-    {
-      p_user_id: user.id,
-      p_key: 'cms.edit',
-    } as never,
-  );
+  const { data: allowedCms } = await supabase.schema('core').rpc('has_permission_at_any_scope', {
+    p_user_id: user.id,
+    p_key: 'cms.edit',
+  });
   if (allowedCms !== true) {
     redirect('/');
   }

@@ -56,10 +56,7 @@ export async function requireMediaPermission(
 
   const { data: allowed, error } = await supabase
     .schema('core')
-    .rpc(
-      'has_permission_at_any_scope' as never,
-      { p_user_id: user.id, p_key: permissionKey } as never,
-    );
+    .rpc('has_permission_at_any_scope', { p_user_id: user.id, p_key: permissionKey } as never);
 
   if (error) {
     // Fail closed, but say so distinctly — a checker outage should not

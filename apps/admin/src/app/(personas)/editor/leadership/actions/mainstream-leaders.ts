@@ -12,8 +12,8 @@ export async function createMainstreamLeader(
 ): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('mainstream_leaders' as never)
+    .schema('cms')
+    .from('mainstream_leaders')
     .insert({
       sector_id: input.sectorId,
       position: input.position.trim(),
@@ -45,8 +45,8 @@ export async function updateMainstreamLeader(
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('mainstream_leaders' as never)
+    .schema('cms')
+    .from('mainstream_leaders')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -56,11 +56,7 @@ export async function updateMainstreamLeader(
 
 export async function deleteMainstreamLeader(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('mainstream_leaders' as never)
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.schema('cms').from('mainstream_leaders').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/leadership');
   return { ok: true };
@@ -72,11 +68,7 @@ export async function deleteMainstreamLeaders(
 ): Promise<ActionResult<{ count: number }>> {
   if (ids.length === 0) return { ok: true, data: { count: 0 } };
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('mainstream_leaders' as never)
-    .delete()
-    .in('id', ids);
+  const { error } = await supabase.schema('cms').from('mainstream_leaders').delete().in('id', ids);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/leadership');
   return { ok: true, data: { count: ids.length } };

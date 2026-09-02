@@ -58,22 +58,16 @@ export default async function NewsPage({ searchParams }: Params) {
 
   const [{ data: articlesRaw }, { data: categoriesRaw }, { data: mapRaw }] = await Promise.all([
     supabase
-      .schema('cms' as never)
-      .from('articles' as never)
+      .schema('cms')
+      .from('articles')
       .select(
         'id, slug, title, excerpt, content_html, banner_url, author_name, author_title, author_photo_url, status, publish_at, created_at, is_featured',
       )
       .eq('status', 'published')
       .order('publish_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false }),
-    supabase
-      .schema('cms' as never)
-      .from('article_categories' as never)
-      .select('id, name'),
-    supabase
-      .schema('cms' as never)
-      .from('article_categories_map' as never)
-      .select('article_id, category_id'),
+    supabase.schema('cms').from('article_categories').select('id, name'),
+    supabase.schema('cms').from('article_categories_map').select('article_id, category_id'),
   ]);
 
   const catNameById = new Map(((categoriesRaw ?? []) as RawCategory[]).map((c) => [c.id, c.name]));

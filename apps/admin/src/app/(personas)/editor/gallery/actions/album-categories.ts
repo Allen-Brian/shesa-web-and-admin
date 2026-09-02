@@ -12,8 +12,8 @@ export async function createAlbumCategory(
 ): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('gallery_album_categories' as never)
+    .schema('cms')
+    .from('gallery_album_categories')
     .insert({ name: input.name.trim(), sort_order: input.sortOrder } as never)
     .select('id')
     .maybeSingle();
@@ -34,8 +34,8 @@ export async function updateAlbumCategory(
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('gallery_album_categories' as never)
+    .schema('cms')
+    .from('gallery_album_categories')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -46,8 +46,8 @@ export async function updateAlbumCategory(
 export async function deleteAlbumCategory(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('gallery_album_categories' as never)
+    .schema('cms')
+    .from('gallery_album_categories')
     .delete()
     .eq('id', id);
   if (error) return { ok: false, message: error.message };

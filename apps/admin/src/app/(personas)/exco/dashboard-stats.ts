@@ -65,7 +65,7 @@ export function computeDashboardStats(args: {
   // Total collected: net of reversals, aggregated per currency.
   const collectedByCurrencyMap = new Map<string, number>();
   for (const p of scopedPayments) {
-    const amt = parseFloat(p.amount);
+    const amt = p.amount;
     const signed = p.reverses_payment_id ? -amt : amt;
     collectedByCurrencyMap.set(p.currency, (collectedByCurrencyMap.get(p.currency) ?? 0) + signed);
   }
@@ -103,7 +103,7 @@ export function computeDashboardStats(args: {
   const paidByObligation = new Map<string, number>();
   for (const p of scopedPayments) {
     if (!p.obligation_id) continue;
-    const amt = parseFloat(p.amount);
+    const amt = p.amount;
     const signed = p.reverses_payment_id ? -amt : amt;
     paidByObligation.set(p.obligation_id, (paidByObligation.get(p.obligation_id) ?? 0) + signed);
   }
@@ -111,7 +111,7 @@ export function computeDashboardStats(args: {
   let paidSum = 0;
   for (const o of context.scopedObligations) {
     if (!chargeIdsInScope.has(o.charge_id)) continue;
-    expectedSum += parseFloat(o.amount);
+    expectedSum += o.amount;
     paidSum += paidByObligation.get(o.id) ?? 0;
   }
   const percentCompletion = expectedSum > 0 ? Math.round((paidSum / expectedSum) * 100) : 0;
@@ -163,7 +163,7 @@ export function computeDashboardStats(args: {
   const prevMonthCollected = new Map<string, number>();
   for (const p of scopedPayments) {
     const t = new Date(p.created_at).getTime();
-    const amt = parseFloat(p.amount);
+    const amt = p.amount;
     const signed = p.reverses_payment_id ? -amt : amt;
     if (t >= monthStart.getTime()) {
       thisMonthCollected.set(p.currency, (thisMonthCollected.get(p.currency) ?? 0) + signed);

@@ -54,32 +54,32 @@ export async function loadDashboardRawData(supabase: ServerClient): Promise<Dash
       .select('member_id, scope_id, membership_status, engagement, joined_at')
       .in('membership_status', ['active', 'passive', 'pending']),
     supabase
-      .schema('exco' as never)
-      .from('events' as never)
+      .schema('exco')
+      .from('events')
       .select('id, owner_scope_id, name, start_at, end_at, venue_name, online_url, types, status')
       .in('status', ['published', 'scheduled'])
       .order('start_at', { ascending: true })
       .limit(50),
     supabase
-      .schema('exco' as never)
-      .from('announcements' as never)
+      .schema('exco')
+      .from('announcements')
       .select('id, owner_scope_id, title, body, published_at, status')
       .eq('status', 'published')
       .order('published_at', { ascending: false })
       .limit(20),
     supabase
-      .schema('finance' as never)
-      .from('charges' as never)
+      .schema('finance')
+      .from('charges')
       .select(
         'id, scope_id, name, shape, base_amount, goal_amount, currency, status, lifecycle, close_date, recurrence',
       ),
     supabase
-      .schema('finance' as never)
-      .from('obligations' as never)
+      .schema('finance')
+      .from('obligations')
       .select('id, charge_id, scope_id, amount, currency, status, period_start'),
     supabase
-      .schema('finance' as never)
-      .from('payments' as never)
+      .schema('finance')
+      .from('payments')
       .select(
         'id, charge_id, obligation_id, scope_id, payer_member_id, amount, currency, method, source, reverses_payment_id, created_at, metadata',
       )

@@ -21,7 +21,7 @@ export function buildChargeSummary(charge: RawCharge, scopeRow: ScopeRow | null)
     scopeName: scopeRow?.name ?? '—',
     scopeSlug: scopeRow?.slug ?? '',
     shape: charge.shape,
-    baseAmount: charge.base_amount ? parseFloat(charge.base_amount) : null,
+    baseAmount: charge.base_amount ? charge.base_amount : null,
     goalAmount: charge.goal_amount ? parseFloat(charge.goal_amount) : null,
     currency: charge.currency,
     recurrence: charge.recurrence,

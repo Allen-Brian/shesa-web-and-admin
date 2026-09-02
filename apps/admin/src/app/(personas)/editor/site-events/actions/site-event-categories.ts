@@ -12,8 +12,8 @@ export async function createEventCategory(
 ): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('site_event_categories' as never)
+    .schema('cms')
+    .from('site_event_categories')
     .insert({ name: input.name.trim(), sort_order: input.sortOrder } as never)
     .select('id')
     .maybeSingle();
@@ -34,8 +34,8 @@ export async function updateEventCategory(
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('site_event_categories' as never)
+    .schema('cms')
+    .from('site_event_categories')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -46,8 +46,8 @@ export async function updateEventCategory(
 export async function deleteEventCategory(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('site_event_categories' as never)
+    .schema('cms')
+    .from('site_event_categories')
     .delete()
     .eq('id', id);
   if (error) return { ok: false, message: error.message };

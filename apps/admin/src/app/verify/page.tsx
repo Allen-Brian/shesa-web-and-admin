@@ -47,8 +47,8 @@ export default async function VerifyPage({ searchParams }: PageProps) {
 
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('finance' as never)
-    .rpc('verify_receipt' as never, { p_token: token } as never);
+    .schema('finance')
+    .rpc('verify_receipt', { p_token: token } as never);
 
   if (error) {
     return (

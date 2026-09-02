@@ -59,7 +59,7 @@ export function PendingApprovalsPanel({
                       </span>
                     </div>
                     <span className="text-sm font-medium text-foreground tabular-nums">
-                      {formatMoney(parseFloat(e.amount), e.currency)}
+                      {formatMoney(e.amount, e.currency)}
                     </span>
                   </div>
                 </li>

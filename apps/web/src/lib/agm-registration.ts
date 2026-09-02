@@ -105,14 +105,15 @@ export async function submitAgmRegistration(
   // homepage and take anonymous writes, so without this they are
   // trivially floodable.
   const key = await throttleKey();
-  const { data: allowed, error: throttleErr } = await supabase.schema('cms' as never).rpc(
-    'consume_submission_slot' as never,
-    {
-      p_bucket_key: key,
+  const { data: allowed, error: throttleErr } = await supabase
+    .schema('cms')
+    .rpc('consume_submission_slot', {
+      // An empty key is the "could not attribute this request" signal —
+      // consume_submission_slot fails closed on it, same as on NULL.
+      p_bucket_key: key ?? '',
       p_limit: THROTTLE_LIMIT,
       p_window_seconds: THROTTLE_WINDOW_SECONDS,
-    } as never,
-  );
+    });
 
   if (throttleErr) {
     // Fail closed. A rate limiter that opens up when it breaks is not a
@@ -136,20 +137,19 @@ export async function submitAgmRegistration(
     };
   }
 
-  const { data, error } = await supabase.schema('cms' as never).rpc(
-    'submit_agm_registration' as never,
-    {
-      p_kind: input.kind,
-      p_full_name: input.fullName.trim(),
-      p_phone: input.phone.trim(),
-      p_amount_xaf: input.amountXaf,
-      p_payment_method: input.paymentMethod,
-      p_email: input.email.trim() || null,
-      p_quantity: input.quantity ?? null,
-      p_attire_size: input.attireSize ?? null,
-      p_note: input.note ?? null,
-    } as never,
-  );
+  const { data, error } = await supabase.schema('cms').rpc('submit_agm_registration', {
+    p_kind: input.kind,
+    p_full_name: input.fullName.trim(),
+    p_phone: input.phone.trim(),
+    p_amount_xaf: input.amountXaf,
+    p_payment_method: input.paymentMethod,
+    // These four are DEFAULT NULL in SQL, so the generated types make
+    // them optional rather than nullable — omit rather than pass null.
+    p_email: input.email.trim() || undefined,
+    p_quantity: input.quantity ?? undefined,
+    p_attire_size: input.attireSize ?? undefined,
+    p_note: input.note ?? undefined,
+  });
 
   if (error) {
     console.error(

@@ -12,8 +12,8 @@ export async function createProjectCategory(
 ): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('project_categories' as never)
+    .schema('cms')
+    .from('project_categories')
     .insert({ name: input.name.trim(), sort_order: input.sortOrder } as never)
     .select('id')
     .maybeSingle();
@@ -34,8 +34,8 @@ export async function updateProjectCategory(
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('project_categories' as never)
+    .schema('cms')
+    .from('project_categories')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -45,11 +45,7 @@ export async function updateProjectCategory(
 
 export async function deleteProjectCategory(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('project_categories' as never)
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.schema('cms').from('project_categories').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/projects');
   return { ok: true };

@@ -5,7 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { RawObligation, RawPayment } from './charge-detail-raw-types';
 
 // Same widening rationale as the branch-import helpers — per-query
-// `.schema('finance' as never)` makes the outer generic irrelevant.
+// `.schema('finance')` makes the outer generic irrelevant.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabaseClient = SupabaseClient<any, any, any>;
 
@@ -20,8 +20,8 @@ export async function loadObligations(
   chargeId: string,
 ): Promise<RawObligation[]> {
   const { data } = await supabase
-    .schema('finance' as never)
-    .from('obligations' as never)
+    .schema('finance')
+    .from('obligations')
     .select(
       'id, charge_id, party_type, party_id, amount, currency, status, period_start, period_end, prorated',
     )
@@ -35,8 +35,8 @@ export async function loadPaymentsByObligations(
 ): Promise<RawPayment[]> {
   if (obligationIds.length === 0) return [];
   const { data } = await supabase
-    .schema('finance' as never)
-    .from('payments' as never)
+    .schema('finance')
+    .from('payments')
     .select(
       'id, obligation_id, charge_id, payer_member_id, amount, currency, method, source, reverses_payment_id, metadata, created_at',
     )

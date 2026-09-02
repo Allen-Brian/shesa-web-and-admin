@@ -42,7 +42,7 @@ export interface MemberableScope {
   readonly chapter_kind: 'autonomous' | 'grouping' | null;
 }
 
-// The helper switches to the `core` schema per-query via `.schema('core' as never)`,
+// The helper switches to the `core` schema per-query via `.schema('core')`,
 // so the outer client type doesn't need to be pre-scoped. Accept any
 // SupabaseClient shape.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,8 +53,8 @@ export async function resolveMemberableScopes(
   userId: string,
 ): Promise<MemberableScope[]> {
   const { data: grants } = await supabase
-    .schema('core' as never)
-    .from('role_assignments' as never)
+    .schema('core')
+    .from('role_assignments')
     .select(
       `
         scope_id,
@@ -98,8 +98,8 @@ export async function resolveMemberableScopes(
   if (scopedIds.size === 0) return [];
 
   const { data: candidates } = await supabase
-    .schema('core' as never)
-    .from('scopes' as never)
+    .schema('core')
+    .from('scopes')
     .select('id, slug, name, scope_type, chapter_kind, status')
     .eq('status', 'active')
     .in('id', Array.from(scopedIds))

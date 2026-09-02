@@ -41,20 +41,14 @@ export default async function FinanceLayout({ children }: { readonly children: R
   // `finance.read` as parallel, so gating on one alone would lock out
   // holders of the other.
   const [{ data: allowedTreasury }, { data: allowedFinance }] = await Promise.all([
-    supabase.schema('core').rpc(
-      'has_permission_at_any_scope' as never,
-      {
-        p_user_id: user.id,
-        p_key: 'treasury.read',
-      } as never,
-    ),
-    supabase.schema('core').rpc(
-      'has_permission_at_any_scope' as never,
-      {
-        p_user_id: user.id,
-        p_key: 'finance.read',
-      } as never,
-    ),
+    supabase.schema('core').rpc('has_permission_at_any_scope', {
+      p_user_id: user.id,
+      p_key: 'treasury.read',
+    } as never),
+    supabase.schema('core').rpc('has_permission_at_any_scope', {
+      p_user_id: user.id,
+      p_key: 'finance.read',
+    } as never),
   ]);
   if (allowedTreasury !== true && allowedFinance !== true) {
     redirect('/');

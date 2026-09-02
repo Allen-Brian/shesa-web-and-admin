@@ -29,7 +29,7 @@ interface RawCharge {
 }
 
 interface RawPayment {
-  readonly amount: string;
+  readonly amount: number;
   readonly group_id: string | null;
   readonly reverses_payment_id: string | null;
 }
@@ -57,8 +57,8 @@ export default async function GroupsPage() {
   if (!user) redirect('/login?next=/finance/groups');
 
   const { data: groupsRaw } = await supabase
-    .schema('finance' as never)
-    .from('groups' as never)
+    .schema('finance')
+    .from('groups')
     .select(
       'id, slug, name, description, status, show_in_sidebar, starts_on, ends_on, created_at, scope_id',
     )
@@ -75,25 +75,21 @@ export default async function GroupsPage() {
   ] = await Promise.all([
     groupIds.length
       ? supabase
-          .schema('finance' as never)
-          .from('charges' as never)
+          .schema('finance')
+          .from('charges')
           .select('id, group_id, currency')
           .in('group_id', groupIds)
       : Promise.resolve({ data: [] as RawCharge[] }),
     groupIds.length
       ? supabase
-          .schema('finance' as never)
-          .from('payments' as never)
+          .schema('finance')
+          .from('payments')
           .select('amount, group_id, reverses_payment_id')
           .in('group_id', groupIds)
           .limit(5000)
       : Promise.resolve({ data: [] as RawPayment[] }),
     groupIds.length
-      ? supabase
-          .schema('finance' as never)
-          .from('expenses' as never)
-          .select('group_id')
-          .in('group_id', groupIds)
+      ? supabase.schema('finance').from('expenses').select('group_id').in('group_id', groupIds)
       : Promise.resolve({ data: [] as RawExpense[] }),
     supabase
       .schema('core')
@@ -119,7 +115,7 @@ export default async function GroupsPage() {
   const txnCountByGroup = new Map<string, number>();
   for (const p of payments) {
     if (!p.group_id) continue;
-    const amt = parseFloat(p.amount);
+    const amt = p.amount;
     const signed = p.reverses_payment_id ? -amt : amt;
     raisedByGroup.set(p.group_id, (raisedByGroup.get(p.group_id) ?? 0) + signed);
     txnCountByGroup.set(p.group_id, (txnCountByGroup.get(p.group_id) ?? 0) + 1);

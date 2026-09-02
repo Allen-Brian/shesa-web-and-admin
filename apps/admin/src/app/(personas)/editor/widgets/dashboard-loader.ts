@@ -20,7 +20,7 @@ const UPCOMING_EVENT_LIMIT = 4;
  */
 export async function loadEditorDashboard(): Promise<EditorDashboardData> {
   const supabase = await getServerClient();
-  const cms = supabase.schema('cms' as never);
+  const cms = supabase.schema('cms');
   const nowIso = new Date().toISOString();
 
   const [
@@ -45,60 +45,43 @@ export async function loadEditorDashboard(): Promise<EditorDashboardData> {
     { data: featuredEventRaw },
     { data: featuredProjectRaw },
   ] = await Promise.all([
+    cms.from('articles').select('id', { count: 'exact', head: true }).eq('status', 'published'),
+    cms.from('articles').select('id', { count: 'exact', head: true }).eq('status', 'draft'),
+    cms.from('articles').select('id', { count: 'exact', head: true }),
+    cms.from('site_events').select('id', { count: 'exact', head: true }).gte('starts_at', nowIso),
+    cms.from('site_events').select('id', { count: 'exact', head: true }),
     cms
-      .from('articles' as never)
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'published'),
-    cms
-      .from('articles' as never)
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'draft'),
-    cms.from('articles' as never).select('id', { count: 'exact', head: true }),
-    cms
-      .from('site_events' as never)
-      .select('id', { count: 'exact', head: true })
-      .gte('starts_at', nowIso),
-    cms.from('site_events' as never).select('id', { count: 'exact', head: true }),
-    cms
-      .from('projects' as never)
+      .from('projects')
       .select('id', { count: 'exact', head: true })
       .in('status', ['Active', 'Ongoing', 'Fundraising']),
-    cms.from('projects' as never).select('id', { count: 'exact', head: true }),
-    cms.from('gallery_albums' as never).select('id', { count: 'exact', head: true }),
-    cms.from('gallery_media' as never).select('id', { count: 'exact', head: true }),
-    cms.from('songs' as never).select('id', { count: 'exact', head: true }),
-    cms.from('organs' as never).select('id', { count: 'exact', head: true }),
-    cms.from('mainstream_leaders' as never).select('id', { count: 'exact', head: true }),
-    cms.from('branch_leaders' as never).select('id', { count: 'exact', head: true }),
-    cms.from('diaspora_leaders' as never).select('id', { count: 'exact', head: true }),
-    cms.from('batch_leaders' as never).select('id', { count: 'exact', head: true }),
+    cms.from('projects').select('id', { count: 'exact', head: true }),
+    cms.from('gallery_albums').select('id', { count: 'exact', head: true }),
+    cms.from('gallery_media').select('id', { count: 'exact', head: true }),
+    cms.from('songs').select('id', { count: 'exact', head: true }),
+    cms.from('organs').select('id', { count: 'exact', head: true }),
+    cms.from('mainstream_leaders').select('id', { count: 'exact', head: true }),
+    cms.from('branch_leaders').select('id', { count: 'exact', head: true }),
+    cms.from('diaspora_leaders').select('id', { count: 'exact', head: true }),
+    cms.from('batch_leaders').select('id', { count: 'exact', head: true }),
     cms
-      .from('articles' as never)
+      .from('articles')
       .select('id, title, slug, status, publish_at, updated_at, is_featured')
       .order('updated_at', { ascending: false })
       .limit(RECENT_ARTICLE_LIMIT),
     cms
-      .from('site_events' as never)
+      .from('site_events')
       .select('id, title, slug, starts_at, city, is_featured')
       .gte('starts_at', nowIso)
       .order('starts_at', { ascending: true })
       .limit(UPCOMING_EVENT_LIMIT),
     cms
-      .from('articles' as never)
+      .from('articles')
       .select('title, slug, status')
       .eq('is_featured', true)
       .eq('status', 'published')
       .limit(1),
-    cms
-      .from('site_events' as never)
-      .select('title, slug, starts_at')
-      .eq('is_featured', true)
-      .limit(1),
-    cms
-      .from('projects' as never)
-      .select('title, slug, status')
-      .eq('is_featured', true)
-      .limit(1),
+    cms.from('site_events').select('title, slug, starts_at').eq('is_featured', true).limit(1),
+    cms.from('projects').select('title, slug, status').eq('is_featured', true).limit(1),
   ]);
 
   const totalLeaders =

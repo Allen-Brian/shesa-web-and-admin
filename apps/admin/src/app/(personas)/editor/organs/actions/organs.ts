@@ -28,8 +28,8 @@ function toDbBody(input: OrganInput) {
 export async function createOrgan(input: OrganInput): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('organs' as never)
+    .schema('cms')
+    .from('organs')
     .insert(toDbBody(input) as never)
     .select('id')
     .maybeSingle();
@@ -45,8 +45,8 @@ export async function updateOrgan(id: string, input: OrganInput): Promise<Action
   const supabase = await getServerClient();
   const body = { ...toDbBody(input), updated_at: new Date().toISOString() };
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('organs' as never)
+    .schema('cms')
+    .from('organs')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -58,11 +58,7 @@ export async function updateOrgan(id: string, input: OrganInput): Promise<Action
 
 export async function deleteOrgan(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('organs' as never)
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.schema('cms').from('organs').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/organs');
   revalidatePath('/organs');
@@ -74,11 +70,7 @@ export async function deleteOrgans(
 ): Promise<ActionResult<{ count: number }>> {
   if (ids.length === 0) return { ok: true, data: { count: 0 } };
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('organs' as never)
-    .delete()
-    .in('id', ids);
+  const { error } = await supabase.schema('cms').from('organs').delete().in('id', ids);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/organs');
   revalidatePath('/organs');

@@ -13,13 +13,13 @@ interface GroupDashboardProps {
 }
 
 interface RawPayment {
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly reverses_payment_id: string | null;
 }
 
 interface RawExpense {
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly reverses_expense_id: string | null;
   readonly status: string;
@@ -40,20 +40,20 @@ export default async function GroupDashboardPage({ params }: GroupDashboardProps
   const supabase = await getServerClient();
   const [{ data: paymentsRaw }, { data: expensesRaw }, { count: chargeCount }] = await Promise.all([
     supabase
-      .schema('finance' as never)
-      .from('payments' as never)
+      .schema('finance')
+      .from('payments')
       .select('amount, currency, reverses_payment_id')
       .eq('group_id', group.id)
       .limit(5000),
     supabase
-      .schema('finance' as never)
-      .from('expenses' as never)
+      .schema('finance')
+      .from('expenses')
       .select('amount, currency, reverses_expense_id, status')
       .eq('group_id', group.id)
       .limit(5000),
     supabase
-      .schema('finance' as never)
-      .from('charges' as never)
+      .schema('finance')
+      .from('charges')
       .select('id', { count: 'exact', head: true })
       .eq('group_id', group.id),
   ]);
@@ -65,7 +65,7 @@ export default async function GroupDashboardPage({ params }: GroupDashboardProps
   let currency: string | null = null;
   let txnCount = 0;
   for (const p of payments) {
-    const amt = parseFloat(p.amount);
+    const amt = p.amount;
     const signed = p.reverses_payment_id ? -amt : amt;
     income += signed;
     txnCount += 1;
@@ -75,7 +75,7 @@ export default async function GroupDashboardPage({ params }: GroupDashboardProps
   let expenseSum = 0;
   for (const e of expenses) {
     if (e.status !== 'approved' && e.status !== 'recorded') continue;
-    const amt = parseFloat(e.amount);
+    const amt = e.amount;
     const signed = e.reverses_expense_id ? -amt : amt;
     expenseSum += signed;
     currency ??= e.currency;

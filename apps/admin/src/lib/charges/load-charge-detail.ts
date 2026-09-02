@@ -13,7 +13,7 @@ export type { ChargeDetailData } from './charge-detail-types';
 
 interface RawChargeTargetRow {
   readonly target_scope_id: string;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
 }
 
@@ -44,8 +44,8 @@ export async function loadChargeDetail(id: string): Promise<ChargeDetailData | n
   const supabase = await getServerClient();
 
   const { data: chargeRaw } = await supabase
-    .schema('finance' as never)
-    .from('charges' as never)
+    .schema('finance')
+    .from('charges')
     .select(
       'id, scope_id, name, description, shape, base_amount, goal_amount, currency, recurrence, recurrence_interval, status, lifecycle, activation_date, open_date, close_date, created_at, target_party_type',
     )
@@ -82,8 +82,8 @@ export async function loadChargeDetail(id: string): Promise<ChargeDetailData | n
 async function loadChargeTargets(chargeId: string): Promise<readonly ChargeTargetPlanRow[]> {
   const supabase = await getServerClient();
   const { data: rows } = await supabase
-    .schema('finance' as never)
-    .from('charge_targets' as never)
+    .schema('finance')
+    .from('charge_targets')
     .select('target_scope_id, amount, currency')
     .eq('charge_id', chargeId);
   const targets = (rows ?? []) as RawChargeTargetRow[];
@@ -107,7 +107,7 @@ async function loadChargeTargets(chargeId: string): Promise<readonly ChargeTarge
         targetScopeId: t.target_scope_id,
         targetName: scope?.name ?? '(unknown scope)',
         scopeType: scope?.scope_type ?? 'branch',
-        amount: parseFloat(t.amount),
+        amount: t.amount,
         currency: t.currency,
       };
     })

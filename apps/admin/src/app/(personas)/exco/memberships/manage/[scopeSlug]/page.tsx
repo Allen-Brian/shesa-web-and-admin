@@ -65,8 +65,8 @@ export default async function ManageMembershipScopePage({ params }: Params) {
         .eq('membership_status', 'pending')
         .order('created_at', { ascending: false }),
       supabase
-        .schema('core' as never)
-        .from('membership_transfers' as never)
+        .schema('core')
+        .from('membership_transfers')
         .select('id, member_id, source_scope_id, requested_by, requested_at, reason, created_at')
         .eq('destination_scope_id', scopeRow.id)
         .eq('status', 'pending')

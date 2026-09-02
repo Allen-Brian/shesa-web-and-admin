@@ -13,7 +13,7 @@ interface RawObligation {
   readonly charge_id: string;
   readonly party_id: string;
   readonly scope_id: string;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly status: string;
   readonly period_start: string | null;
@@ -36,7 +36,7 @@ interface RawScope {
 
 interface RawPayment {
   readonly obligation_id: string | null;
-  readonly amount: string;
+  readonly amount: number;
   readonly reverses_payment_id: string | null;
 }
 
@@ -53,8 +53,8 @@ export default async function ExcoObligationsPage() {
   const supabase = await getServerClient();
 
   const { data: obligationsRaw } = await supabase
-    .schema('finance' as never)
-    .from('obligations' as never)
+    .schema('finance')
+    .from('obligations')
     .select(
       'id, charge_id, party_id, scope_id, amount, currency, status, period_start, period_end, created_at',
     )
@@ -72,8 +72,8 @@ export default async function ExcoObligationsPage() {
   // subtracted so the number reflects the net settled amount.
   const { data: paymentsRaw } = raw.length
     ? await supabase
-        .schema('finance' as never)
-        .from('payments' as never)
+        .schema('finance')
+        .from('payments')
         .select('obligation_id, amount, reverses_payment_id')
         .in(
           'obligation_id',
@@ -83,15 +83,15 @@ export default async function ExcoObligationsPage() {
   const paidByObligation = new Map<string, number>();
   for (const p of (paymentsRaw ?? []) as RawPayment[]) {
     if (!p.obligation_id) continue;
-    const amt = parseFloat(p.amount);
+    const amt = p.amount;
     const signed = p.reverses_payment_id ? -amt : amt;
     paidByObligation.set(p.obligation_id, (paidByObligation.get(p.obligation_id) ?? 0) + signed);
   }
 
   const { data: chargeRows } = chargeIds.length
     ? await supabase
-        .schema('finance' as never)
-        .from('charges' as never)
+        .schema('finance')
+        .from('charges')
         .select('id, name, scope_id, recurrence')
         .in('id', chargeIds)
     : { data: [] as RawCharge[] };
@@ -107,7 +107,7 @@ export default async function ExcoObligationsPage() {
 
   const rows: ObligationRow[] = raw.map((o) => {
     const charge = chargeById.get(o.charge_id);
-    const amount = parseFloat(o.amount);
+    const amount = o.amount;
     const paid = Math.max(0, paidByObligation.get(o.id) ?? 0);
     return {
       id: o.id,

@@ -34,7 +34,7 @@ interface RawPayment {
   readonly charge_id: string | null;
   readonly scope_id: string;
   readonly payer_member_id: string | null;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly method: string;
   readonly reverses_payment_id: string | null;
@@ -55,8 +55,8 @@ export default async function GroupDonationsPage({ params }: Props) {
 
   const supabase = await getServerClient();
   const { data: campaignsRaw } = await supabase
-    .schema('finance' as never)
-    .from('charges' as never)
+    .schema('finance')
+    .from('charges')
     .select(
       'id, scope_id, name, description, currency, lifecycle, open_date, close_date, status, created_at',
     )
@@ -68,8 +68,8 @@ export default async function GroupDonationsPage({ params }: Props) {
 
   const { data: paymentsRaw } = campaignIds.length
     ? await supabase
-        .schema('finance' as never)
-        .from('payments' as never)
+        .schema('finance')
+        .from('payments')
         .select(
           'id, charge_id, scope_id, payer_member_id, amount, currency, method, reverses_payment_id, metadata, created_at',
         )
@@ -113,7 +113,7 @@ export default async function GroupDonationsPage({ params }: Props) {
     if (p.reverses_payment_id) continue;
     if (reversedIds.has(p.id)) continue;
     const bucket = raisedByCharge.get(p.charge_id) ?? { raised: 0, count: 0 };
-    bucket.raised += parseFloat(p.amount);
+    bucket.raised += p.amount;
     bucket.count += 1;
     raisedByCharge.set(p.charge_id, bucket);
   }
@@ -157,7 +157,7 @@ export default async function GroupDonationsPage({ params }: Props) {
         donorLabel,
         isMember: !!member,
         isPublic: !!meta.public_donation,
-        amount: parseFloat(p.amount),
+        amount: p.amount,
         currency: p.currency,
         method: p.method,
         reversesPaymentId: p.reverses_payment_id,

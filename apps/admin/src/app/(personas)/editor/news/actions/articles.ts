@@ -19,16 +19,16 @@ async function replaceCategoryMap(
   categoryIds: readonly string[],
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const { error: delErr } = await supabase
-    .schema('cms' as never)
-    .from('article_categories_map' as never)
+    .schema('cms')
+    .from('article_categories_map')
     .delete()
     .eq('article_id', articleId);
   if (delErr) return { ok: false, message: delErr.message };
   if (categoryIds.length === 0) return { ok: true };
   const rows = categoryIds.map((c) => ({ article_id: articleId, category_id: c }));
   const { error: insErr } = await supabase
-    .schema('cms' as never)
-    .from('article_categories_map' as never)
+    .schema('cms')
+    .from('article_categories_map')
     .insert(rows as never);
   if (insErr) return { ok: false, message: insErr.message };
   return { ok: true };
@@ -53,8 +53,8 @@ function toDbBody(input: ArticleInput) {
 export async function createArticle(input: ArticleInput): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('articles' as never)
+    .schema('cms')
+    .from('articles')
     .insert(toDbBody(input) as never)
     .select('id')
     .maybeSingle();
@@ -73,8 +73,8 @@ export async function updateArticle(id: string, input: ArticleInput): Promise<Ac
   const supabase = await getServerClient();
   const body = { ...toDbBody(input), updated_at: new Date().toISOString() };
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('articles' as never)
+    .schema('cms')
+    .from('articles')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -88,11 +88,7 @@ export async function updateArticle(id: string, input: ArticleInput): Promise<Ac
 
 export async function deleteArticle(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('articles' as never)
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.schema('cms').from('articles').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/news');
   revalidatePath('/news');
@@ -105,11 +101,7 @@ export async function deleteArticles(
 ): Promise<ActionResult<{ count: number }>> {
   if (ids.length === 0) return { ok: true, data: { count: 0 } };
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('articles' as never)
-    .delete()
-    .in('id', ids);
+  const { error } = await supabase.schema('cms').from('articles').delete().in('id', ids);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/news');
   revalidatePath('/news');

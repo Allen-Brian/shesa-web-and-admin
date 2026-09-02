@@ -73,30 +73,30 @@ export async function loadFinanceDashboard(): Promise<DashboardData> {
     { count: txnsThisMonth },
   ] = await Promise.all([
     supabase
-      .schema('finance' as never)
-      .from('ledger_entries' as never)
+      .schema('finance')
+      .from('ledger_entries')
       .select('id, scope_id, direction, amount, currency, payment_id, expense_id, memo, created_at')
       .in('scope_id', scopeIds)
       .gte('created_at', thirtyDaysAgo.toISOString())
       .order('created_at', { ascending: false }),
     supabase
-      .schema('finance' as never)
-      .from('expenses' as never)
+      .schema('finance')
+      .from('expenses')
       .select('id, payee, amount, currency, scope_id, status, incurred_at, reverses_expense_id')
       .in('scope_id', scopeIds)
       .eq('status', 'pending_approval')
       .order('incurred_at', { ascending: false })
       .limit(10),
     supabase
-      .schema('finance' as never)
-      .from('payments' as never)
+      .schema('finance')
+      .from('payments')
       .select('id, payer_member_id, method, metadata, reverses_payment_id')
       .in('scope_id', scopeIds)
       .order('created_at', { ascending: false })
       .limit(50),
     supabase
-      .schema('finance' as never)
-      .from('expenses' as never)
+      .schema('finance')
+      .from('expenses')
       .select('id, payee, amount, currency, scope_id, status, incurred_at, reverses_expense_id')
       .in('scope_id', scopeIds)
       .order('incurred_at', { ascending: false })
@@ -104,8 +104,8 @@ export async function loadFinanceDashboard(): Promise<DashboardData> {
     // Ongoing contributions — donation / ticketed / goal / open / fixed
     // charges currently live at the active scope.
     supabase
-      .schema('finance' as never)
-      .from('charges' as never)
+      .schema('finance')
+      .from('charges')
       .select('id', { count: 'exact', head: true })
       .in('scope_id', scopeIds)
       .in('shape', ['goal', 'open', 'ticketed', 'donation', 'fixed'])
@@ -115,8 +115,8 @@ export async function loadFinanceDashboard(): Promise<DashboardData> {
     // scope. Reversals are excluded so the number represents fresh
     // movement rather than corrections.
     supabase
-      .schema('finance' as never)
-      .from('payments' as never)
+      .schema('finance')
+      .from('payments')
       .select('id', { count: 'exact', head: true })
       .in('scope_id', scopeIds)
       .gte('created_at', monthStart.toISOString())

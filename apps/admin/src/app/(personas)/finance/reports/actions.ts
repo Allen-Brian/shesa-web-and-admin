@@ -92,7 +92,10 @@ export async function runReport(
 > {
   const supabase = await getServerClient();
 
-  const fromArg = params.from ? new Date(params.from).toISOString() : null;
+  // `undefined`, not `null`: these RPC params are DEFAULT NULL in SQL, so the
+  // generated types make them optional. Omitting the key lets the function's
+  // own default apply, which is what "no lower bound" means here.
+  const fromArg = params.from ? new Date(params.from).toISOString() : undefined;
   const toArg = params.to ? new Date(params.to).toISOString() : new Date().toISOString();
 
   const { reportKey, scopeId } = params;
@@ -100,14 +103,11 @@ export async function runReport(
   try {
     switch (reportKey) {
       case 'collections': {
-        const { data, error } = await supabase.schema('finance' as never).rpc(
-          'get_collections' as never,
-          {
-            p_scope_id: scopeId,
-            p_from: fromArg,
-            p_to: toArg,
-          } as never,
-        );
+        const { data, error } = await supabase.schema('finance').rpc('get_collections', {
+          p_scope_id: scopeId,
+          p_from: fromArg,
+          p_to: toArg,
+        });
         if (error) return { ok: false, message: error.message };
         return {
           ok: true,
@@ -116,8 +116,8 @@ export async function runReport(
       }
       case 'arrears': {
         const { data, error } = await supabase
-          .schema('finance' as never)
-          .rpc('get_arrears' as never, { p_scope_id: scopeId } as never);
+          .schema('finance')
+          .rpc('get_arrears', { p_scope_id: scopeId } as never);
         if (error) return { ok: false, message: error.message };
         return {
           ok: true,
@@ -125,14 +125,11 @@ export async function runReport(
         };
       }
       case 'treasury_statement': {
-        const { data, error } = await supabase.schema('finance' as never).rpc(
-          'get_treasury_statement' as never,
-          {
-            p_scope_id: scopeId,
-            p_from: fromArg,
-            p_to: toArg,
-          } as never,
-        );
+        const { data, error } = await supabase.schema('finance').rpc('get_treasury_statement', {
+          p_scope_id: scopeId,
+          p_from: fromArg,
+          p_to: toArg,
+        });
         if (error) return { ok: false, message: error.message };
         return {
           ok: true,
@@ -143,14 +140,13 @@ export async function runReport(
         };
       }
       case 'payment_method_breakdown': {
-        const { data, error } = await supabase.schema('finance' as never).rpc(
-          'get_payment_method_breakdown' as never,
-          {
+        const { data, error } = await supabase
+          .schema('finance')
+          .rpc('get_payment_method_breakdown', {
             p_scope_id: scopeId,
             p_from: fromArg,
             p_to: toArg,
-          } as never,
-        );
+          });
         if (error) return { ok: false, message: error.message };
         return {
           ok: true,
@@ -161,14 +157,13 @@ export async function runReport(
         };
       }
       case 'expense_report_by_category': {
-        const { data, error } = await supabase.schema('finance' as never).rpc(
-          'get_expense_report_by_category' as never,
-          {
+        const { data, error } = await supabase
+          .schema('finance')
+          .rpc('get_expense_report_by_category', {
             p_scope_id: scopeId,
             p_from: fromArg,
             p_to: toArg,
-          } as never,
-        );
+          });
         if (error) return { ok: false, message: error.message };
         return {
           ok: true,
@@ -179,14 +174,11 @@ export async function runReport(
         };
       }
       case 'donation_report': {
-        const { data, error } = await supabase.schema('finance' as never).rpc(
-          'get_donation_report' as never,
-          {
-            p_scope_id: scopeId,
-            p_from: fromArg,
-            p_to: toArg,
-          } as never,
-        );
+        const { data, error } = await supabase.schema('finance').rpc('get_donation_report', {
+          p_scope_id: scopeId,
+          p_from: fromArg,
+          p_to: toArg,
+        });
         if (error) return { ok: false, message: error.message };
         return {
           ok: true,

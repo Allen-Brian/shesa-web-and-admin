@@ -16,8 +16,8 @@ export async function createArticleCategory(
 ): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();
   const { data, error } = await supabase
-    .schema('cms' as never)
-    .from('article_categories' as never)
+    .schema('cms')
+    .from('article_categories')
     .insert({ name: input.name.trim(), sort_order: input.sortOrder } as never)
     .select('id')
     .maybeSingle();
@@ -38,8 +38,8 @@ export async function updateArticleCategory(
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase
-    .schema('cms' as never)
-    .from('article_categories' as never)
+    .schema('cms')
+    .from('article_categories')
     .update(body as never)
     .eq('id', id);
   if (error) return { ok: false, message: error.message };
@@ -49,11 +49,7 @@ export async function updateArticleCategory(
 
 export async function deleteArticleCategory(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
-  const { error } = await supabase
-    .schema('cms' as never)
-    .from('article_categories' as never)
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.schema('cms').from('article_categories').delete().eq('id', id);
   if (error) return { ok: false, message: error.message };
   revalidatePath('/editor/news');
   return { ok: true };

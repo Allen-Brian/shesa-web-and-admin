@@ -14,7 +14,7 @@ interface RawChargeRow {
   readonly name: string;
   readonly description: string | null;
   readonly shape: string;
-  readonly base_amount: string | null;
+  readonly base_amount: number | null;
   readonly currency: string;
   readonly recurrence: string;
   readonly recurrence_interval: number;
@@ -38,8 +38,8 @@ export default async function ExcoChargesViewPage() {
   const supabase = await getServerClient();
 
   const { data: chargesRaw } = await supabase
-    .schema('finance' as never)
-    .from('charges' as never)
+    .schema('finance')
+    .from('charges')
     .select(
       'id, scope_id, name, description, shape, base_amount, currency, recurrence, recurrence_interval, status, activation_date, created_at',
     )
@@ -59,7 +59,7 @@ export default async function ExcoChargesViewPage() {
     description: c.description,
     scopeName: scopeById.get(c.scope_id)?.name ?? '—',
     shape: c.shape,
-    baseAmount: c.base_amount != null ? parseFloat(c.base_amount) : null,
+    baseAmount: c.base_amount != null ? c.base_amount : null,
     currency: c.currency,
     recurrence: c.recurrence,
     recurrenceInterval: c.recurrence_interval,
