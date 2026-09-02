@@ -13,15 +13,14 @@ Apps and packages each own exactly one concern (SRP at the package level).
 
 ### Apps
 
-| App            | Stack            | Purpose                                                                                                                                                                                                                                                                 |
-| -------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web`     | Next.js          | Public website + CMS                                                                                                                                                                                                                                                    |
-| `apps/auth`    | Next.js          | Central authentication at `auth.shesaconnect.com` (prod) / `staging-auth.shesaconnect.com` (staging) — login / logout / reset / invite / OAuth callback. Writes the shared Supabase session cookie scoped to the apex domain so the other apps' middleware can read it. |
-| `apps/exco`    | React or Next.js | Governance dashboard for executive committees                                                                                                                                                                                                                           |
-| `apps/finance` | React or Next.js | Finance application (charges, payments, treasury, reports, exceptions)                                                                                                                                                                                                  |
-| `apps/connect` | React or Next.js | Forums, jobs, achievements, live sessions, polls                                                                                                                                                                                                                        |
+| App          | Stack   | Purpose                                                                                                            |
+| ------------ | ------- | ------------------------------------------------------------------------------------------------------------------ |
+| `apps/web`   | Next.js | Public website — renders CMS-authored content and the AGM flows. Fully public; no auth-gated route.                |
+| `apps/admin` | Next.js | Governance console at `admin.shesaconnect.com`, hosting three personas: Exco, Finance, Editor. Owns its own login. |
 
-Stack per app is the call of whoever scaffolds it — Next.js when SEO / SSR / Server Actions help; plain React (Vite) when a single-page dashboard is enough. `apps/auth` is Next.js because cookie writes require Server Actions / Route Handlers.
+Two apps, both Next.js. `apps/auth`, `apps/exco`, `apps/finance` and `apps/connect`
+were retired by [ADR-0040](../adr/0040-consolidated-admin-app-per-app-auth.md), which
+merged the two Vite SPAs into `apps/admin` and moved authentication into it.
 
 ### Packages — runtime
 
@@ -55,7 +54,7 @@ Imports flow **one way only — downward**. Enforced by `dependency-cruiser` in 
 
 ```mermaid
 flowchart TD
-  apps["apps/* (web, auth, exco, finance, connect)"]
+  apps["apps/* (web, admin)"]
   ui["packages/ui"]
   supa["packages/supabase"]
   domain["packages/domain"]
@@ -80,7 +79,13 @@ Hard rules:
 - **No package imports an app.** Ever.
 - **`packages/ui` must not import** `packages/supabase` or `packages/domain`. It stays presentational; data is passed in as props.
 - **`packages/types` imports nothing.** It is the root of the type graph.
-- **The Supabase service-role key is banned everywhere except Server Actions, Route Handlers, and Edge Functions.** Browser bundles ship the anon key only; RLS enforces access. Enforced by ESLint `no-restricted-imports` on the service-role client export.
+- **The Supabase service-role key is banned everywhere except Server Actions, Route Handlers, and Edge Functions.** Browser bundles ship the anon key only; RLS enforces access.
+  > ⚠️ **Convention only, for now.** Several files carry comments claiming this
+  > is "enforced by ESLint `no-restricted-imports`". It is not — the rule was
+  > never written, so nothing currently stops `@shesa/supabase/service-role` or
+  > `@shesa/config/env.server` being imported into a `'use client'` file, which
+  > would put the service-role key and the Resend key into a browser bundle.
+  > Landing the rule is tracked as SEC-11.
 - A package may only import packages strictly below it in the graph.
 
 ---
@@ -110,19 +115,79 @@ Test for "does this belong in `packages/ui`?": _Could every Shesa app use it wit
 
 ## 5. Naming
 
-| Thing            | Convention                                 | Example                        |
-| ---------------- | ------------------------------------------ | ------------------------------ |
-| React component  | `PascalCase.tsx`, default export OR named  | `MemberCard.tsx`               |
-| Hook             | `useThing.ts`, camelCase                   | `useCurrentMember.ts`          |
-| Server Action    | `verbResource.ts` or `actions.ts`          | `createCharge.ts`              |
-| Util             | camelCase, named export, pure              | `formatCurrency.ts`            |
-| Type file        | camelCase or PascalCase, grouped by domain | `member.ts`                    |
-| Folder           | kebab-case                                 | `member-profile/`              |
-| Package          | `@shesa/kebab-case`                        | `@shesa/ui`                    |
-| Boolean prop     | `is` / `has` / `can` / `should`            | `isLoading`, `canSubmit`       |
-| Interface / type | PascalCase, no `I` prefix                  | `Member`, not `IMember`        |
-| Constant         | SCREAMING_SNAKE_CASE                       | `MAX_BULK_IMPORT_ROWS`         |
-| CSS variable     | semantic, kebab-case                       | `--color-primary`, `--space-4` |
+### 5.1 The rule that matters
+
+**A filename must say what the file is without its directory.**
+
+Everything else here follows from that. The test: if this file appeared alone
+in a search result, an editor tab, or a stack trace, would you know what it is?
+`charge-matrix-columns.tsx` passes. `types.ts` does not.
+
+This is not a style preference. In September 2026 the repository held 19 files
+called `actions.ts`, 19 called `types.ts`, 12 called `data.ts` and 6 called
+`slugify.ts`. Every one of them meant something different, and the only way to
+tell which was which was to read the path — so fuzzy-find was useless and a tab
+strip told you nothing. Worse, near-identical files with identical names is how
+[the missing authorization check in eight media actions](../../supabase/migrations/_archive/README.md)
+survived review: the ninth copy looked exactly like the eight before it.
+
+### 5.2 Files
+
+| Thing                | Convention                             | Example                                          |
+| -------------------- | -------------------------------------- | ------------------------------------------------ |
+| Any source file      | kebab-case                             | `charge-matrix-columns.tsx`                      |
+| React component file | kebab-case, named export in PascalCase | `member-card.tsx` exporting `MemberCard`         |
+| Widget / view file   | `<entity>-<concern>[-<subconcern>]`    | `branch-import-issue-row-editor.tsx`             |
+| `lib/` loader        | **verb**-first                         | `load-charge-detail.ts`, `build-matrix-shape.ts` |
+| Server Action file   | `<entity>-actions.ts`                  | `charge-actions.ts`, `photo-actions.ts`          |
+| Type file            | `<entity>-<concern>-types.ts`          | `charge-detail-types.ts`                         |
+| Hook                 | `use-<thing>.ts`                       | `use-charge-columns.ts`                          |
+| Folder               | kebab-case                             | `member-profile/`                                |
+| Package              | `@shesa/kebab-case`                    | `@shesa/ui`                                      |
+
+Two sub-patterns the codebase already converged on, worth keeping:
+
+- **`lib/` is verb-first, `widgets/` is entity-first.** A `lib/` module _does_
+  something (`load-…`, `build-…`, `resolve-…`); a `widgets/` module _is_
+  something (`charge-hero`, `branches-columns`).
+- **Singular for detail scope, plural for list scope.** `branch-detail-toolbar.tsx`
+  sits under `[slug]/`; `branches-columns.tsx` sits over the list.
+
+### 5.3 Banned filenames
+
+Bare, context-free names. Each has a compliant form:
+
+| Don't                               | Do                                                  |
+| ----------------------------------- | --------------------------------------------------- |
+| `actions.ts`                        | `charge-actions.ts`                                 |
+| `types.ts`                          | `charge-detail-types.ts`                            |
+| `data.ts`                           | `strategic-plan-content.ts`                         |
+| `helpers.ts`                        | `charge-matrix-helpers.ts`                          |
+| `loader.ts`                         | `load-gallery-albums.ts`                            |
+| `form.tsx`                          | `network-form.tsx`                                  |
+| `list-view.tsx` / `detail-view.tsx` | `branches-list-view.tsx` / `branch-detail-view.tsx` |
+| `slugify.ts`                        | none — import from `@shesa/domain/utils`            |
+
+**Exempt: filenames the App Router owns.** `page.tsx`, `layout.tsx`, `route.ts`,
+`middleware.ts`, `loading.tsx`, `error.tsx`, `not-found.tsx`, `template.tsx`,
+`default.tsx`, `sitemap.ts`, `robots.ts`, `opengraph-image.tsx`. The framework
+resolves these by name; the directory _is_ the identifier. Roughly 100 files.
+
+### 5.4 Identifiers
+
+| Thing            | Convention                      | Example                        |
+| ---------------- | ------------------------------- | ------------------------------ |
+| Boolean prop     | `is` / `has` / `can` / `should` | `isLoading`, `canSubmit`       |
+| Interface / type | PascalCase, no `I` prefix       | `Member`, not `IMember`        |
+| Constant         | SCREAMING_SNAKE_CASE            | `MAX_BULK_IMPORT_ROWS`         |
+| CSS variable     | semantic, kebab-case            | `--color-primary`, `--space-4` |
+
+> **Changed 2026-09-03.** This section used to mandate `PascalCase.tsx` for
+> components and explicitly bless `actions.ts`. No file in the repository has
+> ever been PascalCase, and `actions.ts` was the single worst offender against
+> 5.1 — so the standard described a codebase that did not exist while
+> permitting the thing that most needed banning. It now matches the code, and
+> the code is being brought to match it.
 
 ---
 

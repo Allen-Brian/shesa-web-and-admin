@@ -16,6 +16,7 @@
     "compose:down": "docker compose -f infra/docker-compose.dev.yml down",
     "compose:logs": "docker compose -f infra/docker-compose.dev.yml logs -f",
     "lint": "turbo run lint",
+    "check:filenames": "node scripts/check-filenames.mjs",
     "typecheck": "turbo run typecheck",
     "test": "vitest run",
     "test:watch": "vitest",

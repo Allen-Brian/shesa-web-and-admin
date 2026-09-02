@@ -21,14 +21,14 @@ How server-side code is structured, where each concern lives, and the rules that
 
 ## 2. The locked decisions
 
-| #   | Decision           | Concretely                                                                                                                  |
-| --- | ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Data access        | **supabase-js** with generated types (`supabase gen types`). No ORM, no Kysely, no PostgREST wrapper.                       |
-| 2   | Validation         | **Zod** schemas shared by client forms and Server Actions (`packages/domain/validators/`). See [ADR-0004](../adr/0004-shared-zod-schemas-fe-be.md). |
-| 3   | Inter-domain calls | Through **public helpers** in `packages/domain/<domain>/`; cross-domain side effects via **outbox events**. See [ADR-0005](../adr/0005-inter-module-communication.md). |
-| 4   | Authorization      | **RLS as primary**, **policy module** in Server Actions as second layer. See [ADR-0006](../adr/0006-casl-for-authorization.md).                   |
+| #   | Decision           | Concretely                                                                                                                                                                      |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Data access        | **supabase-js** with generated types (`supabase gen types`). No ORM, no Kysely, no PostgREST wrapper.                                                                           |
+| 2   | Validation         | **Zod** schemas shared by client forms and Server Actions (`packages/domain/validators/`). See [ADR-0004](../adr/0004-shared-zod-schemas-fe-be.md).                             |
+| 3   | Inter-domain calls | Through **public helpers** in `packages/domain/<domain>/`; cross-domain side effects via **outbox events**. See [ADR-0005](../adr/0005-inter-module-communication.md).          |
+| 4   | Authorization      | **RLS as primary**, **policy module** in Server Actions as second layer. See [ADR-0006](../adr/0006-casl-for-authorization.md).                                                 |
 | 5   | Org model          | **Hierarchy of org nodes** (Branch → Chapter → Batch → House → Sector) with scoped role / flag / position grants. See [ADR-0007](../adr/0007-tenancy-model-orgs-and-grants.md). |
-| 6   | Reliability        | **Transactional outbox** for cross-domain side effects. See [ADR-0008](../adr/0008-transactional-outbox.md).                |
+| 6   | Reliability        | **Transactional outbox** for cross-domain side effects. See [ADR-0008](../adr/0008-transactional-outbox.md).                                                                    |
 
 ---
 
@@ -45,7 +45,9 @@ export async function createCharge(formData: FormData) {
 
   // 2. Resolve the caller's session
   const supabase = createServerClient(cookies());
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new UnauthorizedError();
 
   // 3. Load the member's effective permissions (from the policy module)
@@ -70,15 +72,15 @@ Each step is mandatory for any mutating action. The error envelope ([ADR-0009](.
 
 ## 4. Where things live
 
-| Layer                     | Lives in                                | Does                                                                  | Never does                                                          |
-| ------------------------- | --------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Server Action / Route Handler | `apps/<app>/app/.../actions.ts`     | Validates input, calls policy, calls a service, returns a response    | Direct table writes, raw supabase-js calls without going through a service |
-| Edge Function             | `supabase/functions/<name>/index.ts`    | Webhook receivers, scheduled jobs, Database Webhook consumers          | App-facing CRUD (use Server Actions for that)                       |
-| Service                   | `packages/domain/<domain>/services/`    | Business logic; transactions; emits outbox events                      | HTTP / Next concerns; cross-domain table access                     |
-| Repository (thin)         | `packages/domain/<domain>/repos/`       | supabase-js calls scoped to one domain; returns domain types           | Business logic; cross-domain knowledge                              |
-| Policy                    | `packages/domain/policy/`               | `can(member, action, resource)`                                        | Domain logic                                                        |
-| Validators                | `packages/domain/validators/`           | Zod schemas for inputs                                                 | Side effects                                                        |
-| Generated DB types        | `packages/supabase/types.gen.ts`        | Row + table types                                                      | Hand-edited (regenerated by `supabase gen types`)                   |
+| Layer                         | Lives in                             | Does                                                               | Never does                                                                 |
+| ----------------------------- | ------------------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| Server Action / Route Handler | `apps/<app>/app/.../actions.ts`      | Validates input, calls policy, calls a service, returns a response | Direct table writes, raw supabase-js calls without going through a service |
+| Edge Function                 | `supabase/functions/<name>/index.ts` | Webhook receivers, scheduled jobs, Database Webhook consumers      | App-facing CRUD (use Server Actions for that)                              |
+| Service                       | `packages/domain/<domain>/services/` | Business logic; transactions; emits outbox events                  | HTTP / Next concerns; cross-domain table access                            |
+| Repository (thin)             | `packages/domain/<domain>/repos/`    | supabase-js calls scoped to one domain; returns domain types       | Business logic; cross-domain knowledge                                     |
+| Policy                        | `packages/domain/policy/`            | `can(member, action, resource)`                                    | Domain logic                                                               |
+| Validators                    | `packages/domain/validators/`        | Zod schemas for inputs                                             | Side effects                                                               |
+| Generated DB types            | `packages/supabase/types.gen.ts`     | Row + table types                                                  | Hand-edited (regenerated by `supabase gen types`)                          |
 
 The "repository" layer is **thin** — supabase-js is already a typed query builder, so the repo is mostly a place to keep the queries grouped by domain and add domain-type mapping if needed.
 
@@ -153,25 +155,44 @@ Idempotency on retried jobs ([ADR-0015](../adr/0015-idempotency-keys-mandatory.m
 
 ## 11. Naming
 
-| Thing                       | Convention                                          | Example                            |
-| --------------------------- | --------------------------------------------------- | ---------------------------------- |
-| Schema                      | one word, lowercase                                 | `finance`                          |
-| Table                       | snake_case, plural                                  | `finance.charges`                  |
-| Server Action file          | camelCase verb-resource or `actions.ts`             | `createCharge.ts`                  |
-| Edge Function folder        | kebab-case                                          | `supabase/functions/momo-webhook/` |
-| Service                     | PascalCase class or `chargeService` namespace       | `ChargeService.create()`           |
-| Domain event                | past tense, namespaced                              | `payment.recorded`                 |
-| Permission                  | `resource.action`, lowercase                        | `charge.create`                    |
-| Repository method           | intention-revealing                                 | `findMemberById`, `insertCharge`   |
-| Error code                  | SCREAMING_SNAKE                                     | `MEMBER_NOT_FOUND`                 |
+| Thing                     | Convention                                    | Example                             |
+| ------------------------- | --------------------------------------------- | ----------------------------------- |
+| Schema                    | one word, lowercase                           | `finance`                           |
+| Table                     | snake_case, plural                            | `finance.charges`                   |
+| Server Action file        | `<entity>-actions.ts`, kebab-case             | `charge-actions.ts`                 |
+| Edge Function folder      | kebab-case                                    | `supabase/functions/momo-webhook/`  |
+| Edge Function action file | kebab-case verb-resource                      | `record-manual.ts`, `grant-role.ts` |
+| Service                   | PascalCase class or `chargeService` namespace | `ChargeService.create()`            |
+| Domain event              | past tense, namespaced                        | `payment.recorded`                  |
+| Permission                | `resource.action`, lowercase                  | `charge.create`                     |
+| Repository method         | intention-revealing                           | `findMemberById`, `insertCharge`    |
+| Error code                | SCREAMING_SNAKE                               | `MEMBER_NOT_FOUND`                  |
+
+A filename must say what the file is without its directory — see
+[frontend.md §5.1](./frontend.md#51-the-rule-that-matters), which applies to
+every workspace, not just the React side. Bare `actions.ts` is no longer
+acceptable; it was the convention that let nineteen unrelated modules share
+one name.
+
+### Reaching a non-`public` schema
+
+Every supabase-js call against `core`, `finance`, `cms`, `exco`, `notifications`
+or `audit` **must** carry an explicit `.schema('<name>')`. Without it PostgREST
+resolves against `public`, the call fails at runtime, and — because the
+generated `Database` type covers every exposed schema — the compiler will catch
+the omission only if you have not silenced it with a cast.
+
+Do not reach for `as never` to quiet a query. It is what hid a completely
+inert notification pipeline for months, and a home-page query selecting three
+columns that did not exist. If a query will not typecheck, the query is wrong.
 
 ---
 
 ## 12. Testing
 
-| Level       | Targets                  | Against                                         |
-| ----------- | ------------------------ | ----------------------------------------------- |
-| Unit        | Services, policy, utils  | Mocked supabase-js or a local in-memory layer   |
-| Integration | Repositories + RLS       | A local Supabase (CLI) with seeded fixtures     |
+| Level       | Targets                  | Against                                                   |
+| ----------- | ------------------------ | --------------------------------------------------------- |
+| Unit        | Services, policy, utils  | Mocked supabase-js or a local in-memory layer             |
+| Integration | Repositories + RLS       | A local Supabase (CLI) with seeded fixtures               |
 | E2E         | Server Actions           | A local Supabase + Playwright / Vitest hits a running app |
-| Schema      | Migrations apply cleanly | Local Supabase + `supabase db reset`            |
+| Schema      | Migrations apply cleanly | Local Supabase + `supabase db reset`                      |
