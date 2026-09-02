@@ -17,6 +17,38 @@ export default async function ExcoLayout({ children }: { readonly children: Reac
     redirect('/login?next=/exco');
   }
 
+  // Entry gate. Being signed in is not enough: without this, any account
+  // with a login — including a plain member who claimed an invite —
+  // reached the whole Exco console. RLS still filtered the data, but
+  // every Server Action exported from this tree became a reachable
+  // endpoint. `/editor` has always gated this way; Exco now matches.
+  //
+  // The gate is "holds any active grant" rather than a specific key on
+  // purpose. Exco spans Clusters, Memberships, Events, Announcements,
+  // Positions, Audit and Settings, each keyed differently — an announcer
+  // holds none of the cluster or membership keys but belongs here. A
+  // narrower gate would lock out legitimate roles; the per-surface
+  // sidebar flags below and the Edge Functions behind each write are
+  // what enforce the finer grain.
+  //
+  // RLS on role_assignments admits a user to their own rows, so this
+  // runs safely under the caller's JWT.
+  const { data: grants } = await supabase
+    .schema('core')
+    .from('role_assignments')
+    .select('id, ends_at')
+    .eq('user_id', user.id)
+    .is('revoked_at', null)
+    .lte('starts_at', new Date().toISOString());
+
+  const nowMs = Date.now();
+  const hasActiveGrant = (grants ?? []).some(
+    (g) => !g.ends_at || new Date(g.ends_at).getTime() > nowMs,
+  );
+  if (!hasActiveGrant) {
+    redirect('/');
+  }
+
   const [{ data: profile }, { data: mainstream }] = await Promise.all([
     supabase
       .schema('core')

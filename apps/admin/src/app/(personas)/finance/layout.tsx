@@ -30,6 +30,36 @@ export default async function FinanceLayout({ children }: { readonly children: R
     redirect('/login?next=/finance');
   }
 
+  // Entry gate. Being signed in is not enough: without this, any account
+  // with a login — including a plain member who claimed an invite —
+  // reached the whole Finance console. RLS still filtered the data, but
+  // every Server Action exported from this tree became a reachable
+  // endpoint, and the correctness of each one was the only thing left in
+  // the way. `/editor` has always gated this way; Finance now matches.
+  //
+  // Either key admits: the finance RLS policies treat `treasury.read` and
+  // `finance.read` as parallel, so gating on one alone would lock out
+  // holders of the other.
+  const [{ data: allowedTreasury }, { data: allowedFinance }] = await Promise.all([
+    supabase.schema('core').rpc(
+      'has_permission_at_any_scope' as never,
+      {
+        p_user_id: user.id,
+        p_key: 'treasury.read',
+      } as never,
+    ),
+    supabase.schema('core').rpc(
+      'has_permission_at_any_scope' as never,
+      {
+        p_user_id: user.id,
+        p_key: 'finance.read',
+      } as never,
+    ),
+  ]);
+  if (allowedTreasury !== true && allowedFinance !== true) {
+    redirect('/');
+  }
+
   const { data: profile } = await supabase
     .schema('core')
     .from('profiles')

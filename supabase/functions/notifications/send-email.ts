@@ -26,8 +26,9 @@
 import { z } from 'npm:zod@3.24.1';
 
 import { withCors } from '../_shared/cors.ts';
-import { internalError, notFound, success } from '../_shared/errors.ts';
+import { internalError, notFound, success, unauthorized } from '../_shared/errors.ts';
 import { buildContext } from '../_shared/request-context.ts';
+import { checkWorkerSecret } from '../_shared/worker-auth.ts';
 import { createServiceRoleClient } from '../_shared/supabase-client.ts';
 import { parseJson } from '../_shared/validation.ts';
 
@@ -71,6 +72,25 @@ interface SuccessBody {
 
 export async function sendEmail(req: Request): Promise<Response> {
   const ctx = buildContext(req);
+  // ── Worker gate ────────────────────────────────────────────────────
+  // This handler runs as service_role with no caller identity to check,
+  // so `verify_jwt` is not a boundary — it accepts the public anon key.
+  // Only the scheduler holding NOTIFICATIONS_WORKER_SECRET may drain the
+  // queue. Without this, anyone could burn the Resend quota or hold every
+  // queued message invisible under a long visibility timeout.
+  const workerAuth = await checkWorkerSecret(req, 'NOTIFICATIONS_WORKER_SECRET');
+  if (!workerAuth.ok) {
+    console.warn(
+      JSON.stringify({
+        level: 'warn',
+        traceId: ctx.traceId,
+        message: 'notifications: rejected unauthorized worker call',
+        handler: 'sendEmail',
+        reason: workerAuth.reason,
+      }),
+    );
+    return withCors(req, unauthorized(ctx.traceId));
+  }
 
   if (!RESEND_API_KEY || !EMAIL_FROM) {
     console.error(

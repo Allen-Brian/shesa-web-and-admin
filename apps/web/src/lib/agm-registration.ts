@@ -19,6 +19,11 @@
  * existing authorized `payments/confirm` edge function.
  */
 
+import { createHash } from 'node:crypto';
+import { headers } from 'next/headers';
+
+import { clientEnv } from '@shesa/config/env.client';
+
 import { getServerClient } from './supabase-server';
 
 /** The three shapes a public AGM submission can take. */
@@ -40,6 +45,32 @@ export interface AgmRegistrationInput {
 export type AgmRegistrationResult =
   | { readonly ok: true; readonly redirectTo: string }
   | { readonly ok: false; readonly message: string };
+
+/** Submissions allowed per client, per window. */
+const THROTTLE_LIMIT = 5;
+const THROTTLE_WINDOW_SECONDS = 3600;
+
+/**
+ * Build the throttle bucket key for this request.
+ *
+ * The database never sees the visitor — submissions arrive through a
+ * Server Action, so the Postgres session IP is this server's. The real
+ * client address is only available here, in the request headers.
+ *
+ * It is hashed before it leaves this function so the counter table never
+ * becomes a log of who browsed the site from where. Salted with the
+ * apex domain so the digests aren't a plain rainbow-table lookup of the
+ * IPv4 space.
+ */
+async function throttleKey(): Promise<string | null> {
+  const h = await headers();
+  const forwarded = h.get('x-forwarded-for')?.split(',')[0]?.trim();
+  const ip = forwarded || h.get('cf-connecting-ip') || h.get('x-real-ip');
+  if (!ip) return null;
+  return createHash('sha256')
+    .update(`agm:${clientEnv.NEXT_PUBLIC_APP_BASE_DOMAIN}:${ip}`)
+    .digest('hex');
+}
 
 /** Shared field checks. The RPC re-validates — this exists for the message quality. */
 export function validateAgmRegistration(
@@ -69,6 +100,41 @@ export async function submitAgmRegistration(
   if (invalid) return { ok: false, message: invalid };
 
   const supabase = await getServerClient();
+
+  // Rate limit before writing anything. The forms are linked from the
+  // homepage and take anonymous writes, so without this they are
+  // trivially floodable.
+  const key = await throttleKey();
+  const { data: allowed, error: throttleErr } = await supabase.schema('cms' as never).rpc(
+    'consume_submission_slot' as never,
+    {
+      p_bucket_key: key,
+      p_limit: THROTTLE_LIMIT,
+      p_window_seconds: THROTTLE_WINDOW_SECONDS,
+    } as never,
+  );
+
+  if (throttleErr) {
+    // Fail closed. A rate limiter that opens up when it breaks is not a
+    // rate limiter.
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        component: 'web.agm.submitRegistration',
+        message: 'consume_submission_slot failed',
+        error: throttleErr.message,
+      }),
+    );
+    return { ok: false, message: 'We could not process that right now. Please try again shortly.' };
+  }
+
+  if (allowed !== true) {
+    return {
+      ok: false,
+      message:
+        "You've submitted several registrations already. Please wait a little while, or contact the secretariat if you need to register a group.",
+    };
+  }
 
   const { data, error } = await supabase.schema('cms' as never).rpc(
     'submit_agm_registration' as never,
