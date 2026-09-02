@@ -122,6 +122,7 @@ export async function enqueueNotification(req: Request): Promise<Response> {
 
   // 1. Create the event row
   const { data: eventRow, error: eventErr } = await supabase
+    .schema('notifications' as never)
     .from('notification_events' as never)
     .insert({
       event_type: input.eventType,
@@ -162,6 +163,7 @@ export async function enqueueNotification(req: Request): Promise<Response> {
   }));
 
   const { data: deliveryRows, error: deliveryErr } = await supabase
+    .schema('notifications' as never)
     .from('notification_deliveries' as never)
     .insert(deliveriesInput as never)
     .select('id, channel');
@@ -180,25 +182,33 @@ export async function enqueueNotification(req: Request): Promise<Response> {
   }
 
   // 3. Enqueue the event id to notification_dispatch.
-  const { error: queueErr } = await supabase.rpc(
-    'pgmq.send' as never,
+  const { error: queueErr } = await supabase.schema('notifications' as never).rpc(
+    'queue_send' as never,
     {
-      queue_name: 'notification_dispatch',
-      msg: { eventId, traceId: ctx.traceId },
+      p_queue: 'notification_dispatch',
+      p_message: { eventId, traceId: ctx.traceId },
     } as never,
   );
 
   if (queueErr) {
-    // The delivery rows exist but the queue write failed. The
-    // dispatcher's backstop sweep (pending events older than N minutes
-    // get re-enqueued) handles this; log and continue. We don't roll
-    // back because the rows ARE valid — a backstop is preferable to
-    // dropping work.
+    // The delivery rows exist but the queue write failed. We leave the
+    // event at status 'pending' and let the backstop sweep re-enqueue it
+    // (notifications.requeue_stranded_events, drained at the top of
+    // dispatch-notifications). Rolling back would be worse — the rows
+    // ARE valid, and a duplicate dispatch is harmless because every
+    // delivery carries a UNIQUE idempotency_key.
+    //
+    // Until 2026-09-02 this comment claimed a backstop that did not
+    // exist, and the swallowed error was how a completely broken queue
+    // path stayed invisible for months: every call returned 200 while
+    // nothing was ever delivered. The sweep is real now, but the failure
+    // is still worth surfacing in the response so a caller can retry
+    // rather than assume the notification is on its way.
     console.error(
       JSON.stringify({
         level: 'error',
         traceId: ctx.traceId,
-        message: 'enqueue-notification: pgmq.send failed (will rely on backstop)',
+        message: 'enqueue-notification: queue_send failed — left pending for the backstop sweep',
         eventId,
         error: queueErr.message,
       }),
@@ -206,6 +216,7 @@ export async function enqueueNotification(req: Request): Promise<Response> {
   } else {
     // Flip event to 'queued' on successful enqueue.
     await supabase
+      .schema('notifications' as never)
       .from('notification_events' as never)
       .update({ status: 'queued' } as never)
       .eq('id', eventId);

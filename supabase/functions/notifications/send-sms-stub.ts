@@ -82,12 +82,12 @@ export async function sendSmsStub(req: Request): Promise<Response> {
   const supabase = createServiceRoleClient();
   const { batchSize, visibilityTimeoutSec } = parsed.data;
 
-  const { data: messages, error: readErr } = await supabase.rpc(
-    'pgmq.read' as never,
+  const { data: messages, error: readErr } = await supabase.schema('notifications' as never).rpc(
+    'queue_read' as never,
     {
-      queue_name: 'sms_send',
-      vt: visibilityTimeoutSec,
-      qty: batchSize,
+      p_queue: 'sms_send',
+      p_vt: visibilityTimeoutSec,
+      p_qty: batchSize,
     } as never,
   );
 
@@ -96,7 +96,7 @@ export async function sendSmsStub(req: Request): Promise<Response> {
       JSON.stringify({
         level: 'error',
         traceId: ctx.traceId,
-        message: 'send-sms-stub: pgmq.read failed',
+        message: 'send-sms-stub: queue_read failed',
         error: readErr.message,
       }),
     );
@@ -125,6 +125,7 @@ async function processOne(
   deliveryId: string,
 ): Promise<'sent' | 'skipped'> {
   const { data: deliveryRaw } = await supabase
+    .schema('notifications' as never)
     .from('notification_deliveries' as never)
     .select('id, event_id, status, attempt_count')
     .eq('id', deliveryId)
@@ -136,6 +137,7 @@ async function processOne(
   if (delivery.status === 'sent') return 'skipped';
 
   const { data: eventRaw } = await supabase
+    .schema('notifications' as never)
     .from('notification_events' as never)
     .select('event_type, recipient_phone, payload')
     .eq('id', delivery.event_id)
@@ -159,6 +161,7 @@ async function processOne(
   );
 
   await supabase
+    .schema('notifications' as never)
     .from('notification_deliveries' as never)
     .update({
       status: 'sent',
@@ -174,11 +177,11 @@ async function ackMessage(
   supabase: ReturnType<typeof createServiceRoleClient>,
   msgId: number,
 ): Promise<void> {
-  await supabase.rpc(
-    'pgmq.delete' as never,
+  await supabase.schema('notifications' as never).rpc(
+    'queue_delete' as never,
     {
-      queue_name: 'sms_send',
-      msg_id: msgId,
+      p_queue: 'sms_send',
+      p_msg_id: msgId,
     } as never,
   );
 }

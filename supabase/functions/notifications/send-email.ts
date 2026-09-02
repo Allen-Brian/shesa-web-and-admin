@@ -109,12 +109,12 @@ export async function sendEmail(req: Request): Promise<Response> {
   const supabase = createServiceRoleClient();
   const { batchSize, visibilityTimeoutSec } = parsed.data;
 
-  const { data: messages, error: readErr } = await supabase.rpc(
-    'pgmq.read' as never,
+  const { data: messages, error: readErr } = await supabase.schema('notifications' as never).rpc(
+    'queue_read' as never,
     {
-      queue_name: 'email_send',
-      vt: visibilityTimeoutSec,
-      qty: batchSize,
+      p_queue: 'email_send',
+      p_vt: visibilityTimeoutSec,
+      p_qty: batchSize,
     } as never,
   );
 
@@ -123,7 +123,7 @@ export async function sendEmail(req: Request): Promise<Response> {
       JSON.stringify({
         level: 'error',
         traceId: ctx.traceId,
-        message: 'send-email: pgmq.read failed',
+        message: 'send-email: queue_read failed',
         error: readErr.message,
       }),
     );
@@ -166,6 +166,7 @@ async function processOne(
 ): Promise<ProcessResult> {
   // 1. Fetch delivery row.
   const { data: deliveryRaw, error: dErr } = await supabase
+    .schema('notifications' as never)
     .from('notification_deliveries' as never)
     .select('id, event_id, status, idempotency_key, attempt_count')
     .eq('id', deliveryId)
@@ -202,6 +203,7 @@ async function processOne(
 
   // 3. Fetch event row for recipient + content.
   const { data: eventRaw, error: eErr } = await supabase
+    .schema('notifications' as never)
     .from('notification_events' as never)
     .select('event_type, recipient_user_id, recipient_email, payload')
     .eq('id', delivery.event_id)
@@ -295,12 +297,24 @@ async function resolveEmail(
   if (event.recipient_email) return event.recipient_email;
   if (!event.recipient_user_id) return null;
 
-  const { data } = await supabase
-    .from('users' as never)
-    .select('email')
-    .eq('id', event.recipient_user_id)
-    .maybeSingle();
-  return (data as { email: string } | null)?.email ?? null;
+  // Via the Auth admin API, not PostgREST. `.from('users')` resolved to
+  // `public.users`, which does not exist, and `.schema('auth')` would not
+  // have helped either — `auth` is deliberately not in the PostgREST
+  // exposed-schema list. The service-role key is exactly what the admin
+  // API is for.
+  const { data, error } = await supabase.auth.admin.getUserById(event.recipient_user_id);
+  if (error) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        message: 'send-email: auth.admin.getUserById failed',
+        userId: event.recipient_user_id,
+        error: error.message,
+      }),
+    );
+    return null;
+  }
+  return data.user?.email ?? null;
 }
 
 async function markDelivery(
@@ -313,6 +327,7 @@ async function markDelivery(
   },
 ): Promise<void> {
   await supabase
+    .schema('notifications' as never)
     .from('notification_deliveries' as never)
     .update({
       status: patch.status,
@@ -357,11 +372,11 @@ async function ackMessage(
   supabase: ReturnType<typeof createServiceRoleClient>,
   msgId: number,
 ): Promise<void> {
-  await supabase.rpc(
-    'pgmq.delete' as never,
+  await supabase.schema('notifications' as never).rpc(
+    'queue_delete' as never,
     {
-      queue_name: 'email_send',
-      msg_id: msgId,
+      p_queue: 'email_send',
+      p_msg_id: msgId,
     } as never,
   );
 }

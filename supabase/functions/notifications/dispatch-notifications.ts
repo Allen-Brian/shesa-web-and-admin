@@ -87,13 +87,49 @@ export async function dispatchNotifications(req: Request): Promise<Response> {
   const supabase = createServiceRoleClient();
   const { batchSize, visibilityTimeoutSec } = parsed.data;
 
-  // ── Read a batch from notification_dispatch ────────────────────────
-  const { data: messages, error: readErr } = await supabase.rpc(
-    'pgmq.read' as never,
+  // ── Backstop sweep ─────────────────────────────────────────────────
+  // enqueue-notification tolerates a failed queue write and leaves the
+  // event at 'pending' on the basis that this sweep picks it up. Run it
+  // before draining so a recovered event joins the same batch. A
+  // duplicate dispatch is harmless — every delivery row carries a UNIQUE
+  // idempotency_key and the per-channel senders dedupe on it.
+  const { data: requeued, error: sweepErr } = await supabase.schema('notifications' as never).rpc(
+    'requeue_stranded_events' as never,
     {
-      queue_name: 'notification_dispatch',
-      vt: visibilityTimeoutSec,
-      qty: batchSize,
+      p_older_than_seconds: 300,
+      p_limit: 100,
+    } as never,
+  );
+
+  if (sweepErr) {
+    // Non-fatal: the sweep is a repair path, not the main one. Draining
+    // the queue is still worth doing.
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        traceId: ctx.traceId,
+        message: 'dispatch-notifications: requeue_stranded_events failed',
+        error: sweepErr.message,
+      }),
+    );
+  } else if (typeof requeued === 'number' && requeued > 0) {
+    console.info(
+      JSON.stringify({
+        level: 'info',
+        traceId: ctx.traceId,
+        message: 'dispatch-notifications: re-enqueued stranded events',
+        count: requeued,
+      }),
+    );
+  }
+
+  // ── Read a batch from notification_dispatch ────────────────────────
+  const { data: messages, error: readErr } = await supabase.schema('notifications' as never).rpc(
+    'queue_read' as never,
+    {
+      p_queue: 'notification_dispatch',
+      p_vt: visibilityTimeoutSec,
+      p_qty: batchSize,
     } as never,
   );
 
@@ -102,7 +138,7 @@ export async function dispatchNotifications(req: Request): Promise<Response> {
       JSON.stringify({
         level: 'error',
         traceId: ctx.traceId,
-        message: 'dispatch-notifications: pgmq.read failed',
+        message: 'dispatch-notifications: queue_read failed',
         error: readErr.message,
       }),
     );
@@ -158,6 +194,7 @@ async function dispatchOne(
   eventId: string,
 ): Promise<boolean> {
   const { data: deliveries, error } = await supabase
+    .schema('notifications' as never)
     .from('notification_deliveries' as never)
     .select('id, channel, idempotency_key')
     .eq('event_id', eventId)
@@ -190,6 +227,7 @@ async function dispatchOne(
       // in_app deliveries don't need a queue — the row IS the delivery.
       // Mark sent immediately.
       const { error: markErr } = await supabase
+        .schema('notifications' as never)
         .from('notification_deliveries' as never)
         .update({ status: 'sent', last_attempt_at: new Date().toISOString() } as never)
         .eq('id', d.id);
@@ -208,11 +246,11 @@ async function dispatchOne(
       continue;
     }
 
-    const { error: enqueueErr } = await supabase.rpc(
-      'pgmq.send' as never,
+    const { error: enqueueErr } = await supabase.schema('notifications' as never).rpc(
+      'queue_send' as never,
       {
-        queue_name: targetQueue,
-        msg: { deliveryId: d.id, idempotencyKey: d.idempotency_key, traceId },
+        p_queue: targetQueue,
+        p_message: { deliveryId: d.id, idempotencyKey: d.idempotency_key, traceId },
       } as never,
     );
 
@@ -234,6 +272,7 @@ async function dispatchOne(
 
   if (allOk) {
     await supabase
+      .schema('notifications' as never)
       .from('notification_events' as never)
       .update({ status: 'completed' } as never)
       .eq('id', eventId);
@@ -247,11 +286,11 @@ async function ackMessage(
   supabase: ReturnType<typeof createServiceRoleClient>,
   msgId: number,
 ): Promise<void> {
-  await supabase.rpc(
-    'pgmq.delete' as never,
+  await supabase.schema('notifications' as never).rpc(
+    'queue_delete' as never,
     {
-      queue_name: 'notification_dispatch',
-      msg_id: msgId,
+      p_queue: 'notification_dispatch',
+      p_msg_id: msgId,
     } as never,
   );
 }
