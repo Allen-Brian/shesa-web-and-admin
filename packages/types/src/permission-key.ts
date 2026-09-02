@@ -59,9 +59,54 @@ export const PERMISSION_KEYS = [
   'role.grant',
   'role.revoke',
 
-  // finance
+  // finance — coarse keys, kept for the seeded Finance role
   'finance.read',
   'finance.write',
+
+  /* ── finance, fine-grained (Phase 3) ────────────────────────────────
+   * These 28 keys were added by MIGRATIONS rather than the seed, so
+   * until 2026-09-02 they existed in core.permissions but not here —
+   * every `has_permission(..., 'payment.record')` call site was passing
+   * an untyped string, and a typo would have failed closed at runtime
+   * rather than at build time. The catalogue now lives entirely in
+   * supabase/seed.sql and these two lists agree.
+   * ------------------------------------------------------------------ */
+  'treasury.read',
+  'finance.report',
+  'finance.export',
+
+  'charge.create',
+  'charge.update',
+  'charge.archive',
+
+  'contribution.approve',
+  'contribution.extend',
+
+  'obligation.cancel',
+  'obligation.forgive',
+
+  'payment.record',
+  'payment.record_on_behalf',
+  'payment.reverse',
+
+  'expense.record',
+  'expense.approve',
+  'expense.reverse',
+  'expense_settings.manage',
+
+  'exception.create',
+  'exception.apply_individual',
+
+  'donation.record',
+  'ticket.purchase',
+  'receipt.generate',
+  'reconciliation.record',
+  'exchange_rate.set',
+  'group.manage',
+
+  'registration.pay_on_behalf',
+  'membership.remove',
+  'membership.engagement.set',
 
   // cms
   'cms.edit',
