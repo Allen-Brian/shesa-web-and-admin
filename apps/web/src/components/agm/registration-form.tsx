@@ -15,10 +15,12 @@ interface Props {
 
 /**
  * AGM 2026 ticket form. The event uses a single flat unit price
- * (`AGM_TICKET_UNIT_PRICE_XAF`); the visitor picks a quantity, and
- * the total renders alongside the button. Submission calls
- * `record_public_ticket_purchase` server-side; on success we forward
- * the visitor to their receipt using the returned verification token.
+ * (`AGM_TICKET_UNIT_PRICE_XAF`); the visitor picks a quantity, and the
+ * total renders alongside the button.
+ *
+ * No payment is taken here — there is no provider connected until
+ * Tranzak lands. Submission records the registration and forwards to a
+ * confirmation page; the secretariat settles payment out-of-band.
  */
 export function RegistrationForm({ initialError }: Props) {
   const router = useRouter();
@@ -41,6 +43,10 @@ export function RegistrationForm({ initialError }: Props) {
       setError('Please enter your full name.');
       return;
     }
+    if (phone.trim().length < 9) {
+      setError('Please enter a phone number we can reach you on.');
+      return;
+    }
     if (!Number.isFinite(quantity) || quantity < 1) {
       setError('Quantity must be at least 1.');
       return;
@@ -58,14 +64,7 @@ export function RegistrationForm({ initialError }: Props) {
         setError(res.message);
         return;
       }
-      // redirectTo is either an internal receipt path (cash) or the
-      // Fapshi hosted-checkout URL (MoMo/card/bank). Externals need a
-      // full navigation, not router.push.
-      if (res.redirectTo.startsWith('http')) {
-        window.location.href = res.redirectTo;
-      } else {
-        router.push(res.redirectTo);
-      }
+      router.push(res.redirectTo);
     });
   };
 
@@ -90,8 +89,8 @@ export function RegistrationForm({ initialError }: Props) {
           Fill it in. Get your ticket.
         </h3>
         <p className="mt-3 max-w-lg text-[14.5px] leading-[1.7] text-black/60">
-          Tickets are a flat {AGM_TICKET_UNIT_PRICE_XAF.toLocaleString()} XAF per head. You'll get a
-          printable receipt with a QR code on the next page, bring it to the check-in desk.
+          Tickets are a flat {AGM_TICKET_UNIT_PRICE_XAF.toLocaleString()} XAF per head. Register
+          here and the secretariat will be in touch on your phone number to arrange payment.
         </p>
       </div>
 
@@ -125,13 +124,15 @@ export function RegistrationForm({ initialError }: Props) {
 
       <label className="flex flex-col gap-1.5">
         <span className="font-heading text-[11px] font-medium uppercase tracking-[0.22em] text-black/60">
-          Phone (optional)
+          Phone
         </span>
         <input
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
+          type="tel"
           placeholder="+237 6xx xxx xxx"
           maxLength={80}
+          required
           className="rounded-xs border border-black/12 bg-white px-4 py-3 text-[15px] text-black focus:border-primary focus:outline-none"
         />
       </label>
@@ -182,7 +183,7 @@ export function RegistrationForm({ initialError }: Props) {
           disabled={pending}
           className="group inline-flex items-center justify-center gap-3 rounded-xs bg-primary px-7 py-3.5 text-sm font-medium tracking-wide text-white transition-all duration-500 hover:-translate-y-0.5 hover:bg-black disabled:opacity-60 disabled:hover:translate-y-0"
         >
-          {pending ? 'Issuing your ticket…' : 'Pay & issue my ticket'}
+          {pending ? 'Registering…' : 'Register my place'}
           <span
             aria-hidden
             className="grid h-6 w-6 place-items-center rounded-xs bg-white/15 transition-transform group-hover:translate-x-1"

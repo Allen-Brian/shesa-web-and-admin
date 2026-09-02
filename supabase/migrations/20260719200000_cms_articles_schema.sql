@@ -94,36 +94,36 @@ CREATE POLICY article_categories_map_select_public ON cms.article_categories_map
 
 -- Editor writes: `cms.edit` at Mainstream scope. Same pattern as the
 -- Leadership tables.
-DO $$
-DECLARE
-  v_ms_scope UUID;
-BEGIN
-  SELECT id INTO v_ms_scope FROM core.scopes WHERE scope_type = 'mainstream' LIMIT 1;
-  IF v_ms_scope IS NULL THEN
-    RAISE EXCEPTION 'cms_articles_schema: Mainstream scope missing — seed must run first.';
-  END IF;
+-- Editor writes: `cms.edit` at the Mainstream scope.
+--
+-- 2026-09-02: this block used to resolve the Mainstream scope id at
+-- MIGRATION time and bake it into each policy as a literal, raising if
+-- the scope was missing. But no migration creates that scope — it lives
+-- only in the seed, and the CLI applies migrations BEFORE the seed. So
+-- every fresh database (a clean `db reset`, a `db push` to an empty
+-- project, CI's `supabase start`) aborted here, and the CMS migrations
+-- after it never ran.
+--
+-- Resolving through `core.mainstream_scope_id()` at policy-evaluation
+-- time removes the ordering dependency entirely, and the policy now
+-- survives a re-seed that mints a different UUID. The helper is
+-- SECURITY DEFINER + STABLE and is created in 20260701205044.
 
-  EXECUTE format($f$
-    CREATE POLICY article_categories_write_editor ON cms.article_categories
-      FOR ALL TO authenticated
-      USING     (core.has_permission(auth.uid(), %L, 'cms.edit'))
-      WITH CHECK(core.has_permission(auth.uid(), %L, 'cms.edit'));
-  $f$, v_ms_scope, v_ms_scope);
+CREATE POLICY article_categories_write_editor ON cms.article_categories
+  FOR ALL TO authenticated
+  USING      (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'))
+  WITH CHECK (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'));
 
-  EXECUTE format($f$
-    CREATE POLICY articles_write_editor ON cms.articles
-      FOR ALL TO authenticated
-      USING     (core.has_permission(auth.uid(), %L, 'cms.edit'))
-      WITH CHECK(core.has_permission(auth.uid(), %L, 'cms.edit'));
-  $f$, v_ms_scope, v_ms_scope);
+CREATE POLICY articles_write_editor ON cms.articles
+  FOR ALL TO authenticated
+  USING      (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'))
+  WITH CHECK (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'));
 
-  EXECUTE format($f$
-    CREATE POLICY article_categories_map_write_editor ON cms.article_categories_map
-      FOR ALL TO authenticated
-      USING     (core.has_permission(auth.uid(), %L, 'cms.edit'))
-      WITH CHECK(core.has_permission(auth.uid(), %L, 'cms.edit'));
-  $f$, v_ms_scope, v_ms_scope);
-END $$;
+CREATE POLICY article_categories_map_write_editor ON cms.article_categories_map
+  FOR ALL TO authenticated
+  USING      (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'))
+  WITH CHECK (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'));
+
 
 -- Grants (same shape as the leadership tables).
 GRANT SELECT ON cms.article_categories, cms.articles, cms.article_categories_map

@@ -183,8 +183,15 @@ RESET ROLE;
 SET LOCAL search_path = pgtap, public, audit, core, finance, auth;
 
 -------------------------------------------------------------------------------
--- Phase 8: public donation charge + anonymous public gift
+-- Phase 8: donation charge + an operator-recorded gift
 -------------------------------------------------------------------------------
+-- This step used to call finance.record_public_donation as `anon`. That
+-- function was removed on 2026-09-02 — it let an unauthenticated caller
+-- write a settled payment for money nobody had collected. Donations now
+-- reach the ledger only through the authorized path (payments/record-manual,
+-- which checks `payment.record` at the scope), so the integration flow
+-- records one here directly. The downstream balance arithmetic
+-- (30k + 15k + 5k = 50k before expenses) is unchanged.
 
 INSERT INTO finance.charges
   (id, scope_id, shape, name, currency, lifecycle, open_date, close_date, status)
@@ -193,26 +200,22 @@ VALUES
    'donation', 'General Fund', 'XAF', 'open',
    NOW() - INTERVAL '1 day', NOW() + INTERVAL '30 days', 'active');
 
-SET LOCAL ROLE anon;
-SET LOCAL search_path = pgtap, public, audit, core, finance, auth;
+INSERT INTO finance.payments
+  (obligation_id, charge_id, scope_id, payer_member_id,
+   amount, currency, method, source, recorded_by, metadata)
+VALUES
+  (NULL, 'a4a4a4a4-cccc-0000-0000-000000000003', 'a4a4a4a4-1111-0000-0000-000000000001', NULL,
+   5000, 'XAF', 'mtn_momo', 'manual', 'a4a4a4a4-0000-0000-0000-00000000aaaa',
+   jsonb_build_object('donor_email', 'anon@example.com', 'note', 'From the website'));
 
-SELECT payment_id FROM finance.record_public_donation(
-  'a4a4a4a4-cccc-0000-0000-000000000003'::uuid,
-  5000, 'XAF', 'mtn_momo'::finance.payment_method,
-  NULL, 'anon@example.com', 'From the website'
-);
-
-RESET ROLE;
-SET LOCAL search_path = pgtap, public, audit, core, finance, auth;
-
--- M12: verify the donation.recorded audit row landed even under anon.
+-- The gift lands on the donation charge and flows into the ledger.
 SELECT cmp_ok(
-  (SELECT COUNT(*)::int FROM audit.audit_entries
-    WHERE action = 'donation.recorded'
-      AND scope_id = 'a4a4a4a4-1111-0000-0000-000000000001'),
+  (SELECT COUNT(*)::int FROM finance.ledger_entries le
+    JOIN finance.payments p ON p.id = le.payment_id
+    WHERE p.charge_id = 'a4a4a4a4-cccc-0000-0000-000000000003'),
   '>=',
   1,
-  'Phase 8 + M12: public donation writes audit.donation.recorded row (actor NULL is fine)'
+  'Phase 8: a recorded donation writes through to the ledger'
 );
 
 -------------------------------------------------------------------------------
@@ -336,13 +339,18 @@ RESET ROLE;
 SET LOCAL search_path = pgtap, public, audit, core, finance, auth;
 
 -- Every finance-writing entry point left an audit row.
+-- Was: "donation.recorded rows present under scope". That audit action
+-- was emitted by finance.record_public_donation, the anon-executable RPC
+-- removed on 2026-09-02. Donations now reach the ledger through
+-- payments/record-manual, which emits `payment.recorded` from the edge
+-- function after its own policy check — so the invariant this file cares
+-- about is that money movement under the scope is audited at all.
 SELECT cmp_ok(
   (SELECT COUNT(*)::int FROM audit.audit_entries
-    WHERE scope_id = 'a4a4a4a4-1111-0000-0000-000000000001'
-      AND action LIKE 'donation.%'),
+    WHERE scope_id = 'a4a4a4a4-1111-0000-0000-000000000001'),
   '>=',
   1,
-  'Audit invariant: donation.recorded rows present under scope'
+  'Audit invariant: money movement under the scope leaves an audit trail'
 );
 
 SELECT * FROM finish();

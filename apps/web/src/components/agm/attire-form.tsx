@@ -21,10 +21,12 @@ interface Props {
 
 /**
  * Attire order form for AGM 2026. The buyer picks a size (S / M / L /
- * XL / XXL), a quantity, and their payment channel; the piece is a
- * flat 50 000 XAF each. Submission calls `record_public_ticket_purchase`
- * against the seeded Attire charge with the size in metadata; the
- * receipt page renders it as "Size · M".
+ * XL / XXL), a quantity, and their payment channel; the piece is a flat
+ * 50 000 XAF each.
+ *
+ * No payment is taken — there is no provider connected until Tranzak
+ * lands. Submission records the order and forwards to a confirmation
+ * page; the secretariat settles payment out-of-band.
  */
 export function AttireForm({ initialError }: Props) {
   const router = useRouter();
@@ -48,6 +50,10 @@ export function AttireForm({ initialError }: Props) {
       setError('Please enter your full name.');
       return;
     }
+    if (phone.trim().length < 9) {
+      setError('Please enter a phone number we can reach you on.');
+      return;
+    }
     if (!Number.isFinite(quantity) || quantity < 1) {
       setError('Quantity must be at least 1.');
       return;
@@ -66,11 +72,7 @@ export function AttireForm({ initialError }: Props) {
         setError(res.message);
         return;
       }
-      if (res.redirectTo.startsWith('http')) {
-        window.location.href = res.redirectTo;
-      } else {
-        router.push(res.redirectTo);
-      }
+      router.push(res.redirectTo);
     });
   };
 
@@ -157,13 +159,15 @@ export function AttireForm({ initialError }: Props) {
 
       <label className="flex flex-col gap-1.5">
         <span className="font-heading text-[11px] font-medium uppercase tracking-[0.22em] text-black/60">
-          Phone (optional)
+          Phone
         </span>
         <input
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
+          type="tel"
           placeholder="+237 6xx xxx xxx"
           maxLength={80}
+          required
           className="rounded-xs border border-black/12 bg-white px-4 py-3 text-[15px] text-black focus:border-primary focus:outline-none"
         />
       </label>

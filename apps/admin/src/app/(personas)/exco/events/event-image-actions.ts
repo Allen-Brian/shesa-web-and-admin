@@ -3,7 +3,7 @@
 import { clientEnv } from '@shesa/config/env.client';
 import { createServiceRoleClient } from '@shesa/supabase/service-role';
 
-import { getServerClient } from '@/lib/supabase-server';
+import { requireMediaPermission } from '@/lib/media/public-media';
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // matches the bucket file_size_limit
@@ -13,22 +13,20 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // matches the bucket file_size_limit
  * EventImagesPicker's onChange. Returns a public CDN URL the form
  * embeds into the hidden `advertImageUrlsJson` payload.
  *
- * Auth model: the caller must be signed in (getServerClient reads
- * the session cookie). Beyond that, uploads land in an
- * uploader-scoped folder in the public `event-advert-images` bucket
- * — the caller can only overwrite their own path. When we wire the
- * events/create Edge Function to associate images to a specific
- * event, unreferenced uploads become reap candidates for a
- * scheduled cleanup job.
+ * Auth model: the caller must hold `event.create` at some scope — the
+ * same permission the events/create Edge Function requires. Being
+ * merely signed in is not enough: this action opens a service-role
+ * client, so it is the only boundary in front of a public bucket.
+ * Uploads land in an uploader-scoped folder, so a caller can only
+ * overwrite their own path; unreferenced uploads are reap candidates
+ * for a scheduled cleanup job.
  */
 export async function uploadEventAdvertImage(
   formData: FormData,
 ): Promise<{ ok: true; url: string; path: string } | { ok: false; message: string }> {
-  const supabase = await getServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: 'Not signed in.' };
+  const auth = await requireMediaPermission('event.create');
+  if (!auth.ok) return auth;
+  const user = { id: auth.userId };
 
   const file = formData.get('file');
   if (!(file instanceof File)) return { ok: false, message: 'No file supplied.' };

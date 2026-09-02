@@ -3,7 +3,7 @@
 import { clientEnv } from '@shesa/config/env.client';
 import { createServiceRoleClient } from '@shesa/supabase/service-role';
 
-import { getServerClient } from '@/lib/supabase-server';
+import { deletePublicObject, requireMediaPermission } from '@/lib/media/public-media';
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -29,11 +29,9 @@ interface ActionErr {
  * surface and the reap-cleanup logic can key off the `news/` prefix.
  */
 export async function uploadArticleImage(formData: FormData): Promise<UploadOk | ActionErr> {
-  const supabase = await getServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: 'Not signed in.' };
+  const auth = await requireMediaPermission();
+  if (!auth.ok) return auth;
+  const user = { id: auth.userId };
 
   const file = formData.get('file');
   if (!(file instanceof File)) return { ok: false, message: 'No file supplied.' };
@@ -70,12 +68,9 @@ export async function uploadArticleImage(formData: FormData): Promise<UploadOk |
  * prefix handles orphans.
  */
 export async function deleteArticleImage(publicUrl: string): Promise<void> {
-  if (!publicUrl) return;
-  const marker = `/storage/v1/object/public/${BUCKET}/`;
-  const idx = publicUrl.indexOf(marker);
-  if (idx < 0) return;
-  const path = publicUrl.slice(idx + marker.length);
-  if (!path) return;
-  const serviceClient = createServiceRoleClient();
-  await serviceClient.storage.from(BUCKET).remove([path]);
+  await deletePublicObject({
+    publicUrl,
+    bucket: BUCKET,
+    prefix: 'news',
+  });
 }

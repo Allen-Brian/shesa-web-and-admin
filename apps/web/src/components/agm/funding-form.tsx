@@ -41,6 +41,10 @@ export function FundingForm({ initialError }: Props) {
       setError('Please enter your name.');
       return;
     }
+    if (phone.trim().length < 9) {
+      setError('Please enter a phone number we can reach you on.');
+      return;
+    }
     if (!Number.isFinite(amountXaf) || amountXaf <= 0) {
       setError('Enter a positive amount.');
       return;
@@ -60,11 +64,7 @@ export function FundingForm({ initialError }: Props) {
         setError(res.message);
         return;
       }
-      if (res.redirectTo.startsWith('http')) {
-        window.location.href = res.redirectTo;
-      } else {
-        router.push(res.redirectTo);
-      }
+      router.push(res.redirectTo);
     });
   };
 
@@ -133,13 +133,15 @@ export function FundingForm({ initialError }: Props) {
 
         <label className="flex flex-col gap-1.5">
           <span className="font-heading text-[11px] font-medium uppercase tracking-[0.22em] text-black/60">
-            Phone (optional)
+            Phone
           </span>
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            type="tel"
             placeholder="+237 6xx xxx xxx"
             maxLength={80}
+            required
             className="rounded-xs border border-black/12 bg-white px-4 py-3 text-[15px] text-black focus:border-primary focus:outline-none"
           />
         </label>

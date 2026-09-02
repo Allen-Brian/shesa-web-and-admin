@@ -3,7 +3,7 @@
 import { clientEnv } from '@shesa/config/env.client';
 import { createServiceRoleClient } from '@shesa/supabase/service-role';
 
-import { getServerClient } from '@/lib/supabase-server';
+import { deletePublicObject, requireMediaPermission } from '@/lib/media/public-media';
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 const ALLOWED_AUDIO_TYPES = new Set([
@@ -35,11 +35,9 @@ interface ActionErr {
 
 /** Cover image for a song. Path: `songs/{user_id}/{ts}-{name}` in cms-media. */
 export async function uploadSongCover(formData: FormData): Promise<UploadOk | ActionErr> {
-  const supabase = await getServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: 'Not signed in.' };
+  const auth = await requireMediaPermission();
+  if (!auth.ok) return auth;
+  const user = { id: auth.userId };
 
   const file = formData.get('file');
   if (!(file instanceof File)) return { ok: false, message: 'No file supplied.' };
@@ -72,14 +70,11 @@ export async function uploadSongCover(formData: FormData): Promise<UploadOk | Ac
 
 /** Best-effort delete of a song cover (cms-media). */
 export async function deleteSongCover(publicUrl: string): Promise<void> {
-  if (!publicUrl) return;
-  const marker = `/storage/v1/object/public/${MEDIA_BUCKET}/`;
-  const idx = publicUrl.indexOf(marker);
-  if (idx < 0) return;
-  const path = publicUrl.slice(idx + marker.length);
-  if (!path) return;
-  const serviceClient = createServiceRoleClient();
-  await serviceClient.storage.from(MEDIA_BUCKET).remove([path]);
+  await deletePublicObject({
+    publicUrl,
+    bucket: MEDIA_BUCKET,
+    prefix: 'songs',
+  });
 }
 
 /**
@@ -87,11 +82,9 @@ export async function deleteSongCover(publicUrl: string): Promise<void> {
  * dedicated `cms-audio` bucket. Enforces a 50 MB ceiling per file.
  */
 export async function uploadSongAudio(formData: FormData): Promise<UploadOk | ActionErr> {
-  const supabase = await getServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: 'Not signed in.' };
+  const auth = await requireMediaPermission();
+  if (!auth.ok) return auth;
+  const user = { id: auth.userId };
 
   const file = formData.get('file');
   if (!(file instanceof File)) return { ok: false, message: 'No file supplied.' };
@@ -124,12 +117,9 @@ export async function uploadSongAudio(formData: FormData): Promise<UploadOk | Ac
 
 /** Best-effort delete of a song audio file (cms-audio). */
 export async function deleteSongAudio(publicUrl: string): Promise<void> {
-  if (!publicUrl) return;
-  const marker = `/storage/v1/object/public/${AUDIO_BUCKET}/`;
-  const idx = publicUrl.indexOf(marker);
-  if (idx < 0) return;
-  const path = publicUrl.slice(idx + marker.length);
-  if (!path) return;
-  const serviceClient = createServiceRoleClient();
-  await serviceClient.storage.from(AUDIO_BUCKET).remove([path]);
+  await deletePublicObject({
+    publicUrl,
+    bucket: AUDIO_BUCKET,
+    prefix: 'songs',
+  });
 }

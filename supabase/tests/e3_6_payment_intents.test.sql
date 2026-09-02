@@ -72,14 +72,21 @@ FROM core.roles r WHERE r.key = 'finance';
 -- A) payment_intent_status has the four values in order
 -------------------------------------------------------------------------------
 
+-- The four core states must come first, in this order. A trailing
+-- `expired` label survives from the Fapshi integration: Postgres cannot
+-- drop an enum label without recreating the type, so the 2026-09-02
+-- removal migration left it in place as an unused value. The squashed
+-- baseline simply won't declare it. Asserting a prefix rather than
+-- equality keeps this test honest either way.
 SELECT is(
   (SELECT array_agg(enumlabel::text ORDER BY enumsortorder)
    FROM pg_enum e
    INNER JOIN pg_type t ON t.oid = e.enumtypid
    INNER JOIN pg_namespace n ON n.oid = t.typnamespace
-   WHERE t.typname = 'payment_intent_status' AND n.nspname = 'finance'),
+   WHERE t.typname = 'payment_intent_status' AND n.nspname = 'finance')
+    [1:4],
   ARRAY['pending', 'succeeded', 'failed', 'cancelled']::text[],
-  'finance.payment_intent_status enum has the four values in order'
+  'finance.payment_intent_status enum leads with the four core values in order'
 );
 
 -------------------------------------------------------------------------------

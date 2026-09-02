@@ -147,53 +147,46 @@ CREATE POLICY batch_leaders_select_public ON cms.batch_leaders
 -- bypass in has_permission). Branch admins hold cms.edit at their
 -- branch — that fails the Mainstream check, so they can't touch the
 -- public-site content.
-DO $$
-DECLARE
-  v_ms_scope UUID;
-BEGIN
-  SELECT id INTO v_ms_scope
-    FROM core.scopes WHERE scope_type = 'mainstream' LIMIT 1;
+-- Editor writes: `cms.edit` at the Mainstream scope.
+--
+-- 2026-09-02: this block used to resolve the Mainstream scope id at
+-- MIGRATION time and bake it into each policy as a literal, raising if
+-- the scope was missing. But no migration creates that scope — it lives
+-- only in the seed, and the CLI applies migrations BEFORE the seed. So
+-- every fresh database (a clean `db reset`, a `db push` to an empty
+-- project, CI's `supabase start`) aborted here, and the CMS migrations
+-- after it never ran.
+--
+-- Resolving through `core.mainstream_scope_id()` at policy-evaluation
+-- time removes the ordering dependency entirely, and the policy now
+-- survives a re-seed that mints a different UUID. The helper is
+-- SECURITY DEFINER + STABLE and is created in 20260701205044.
 
-  -- Fail loud if the seed hasn't populated Mainstream yet.
-  IF v_ms_scope IS NULL THEN
-    RAISE EXCEPTION 'cms_leadership_schema: Mainstream scope missing — the seed must run before this migration in the fresh-DB path.';
-  END IF;
+CREATE POLICY mainstream_sectors_write_editor ON cms.mainstream_sectors
+  FOR ALL TO authenticated
+  USING      (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'))
+  WITH CHECK (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'));
 
-  EXECUTE format($f$
-    CREATE POLICY mainstream_sectors_write_editor ON cms.mainstream_sectors
-      FOR ALL TO authenticated
-      USING     (core.has_permission(auth.uid(), %L, 'cms.edit'))
-      WITH CHECK(core.has_permission(auth.uid(), %L, 'cms.edit'));
-  $f$, v_ms_scope, v_ms_scope);
+CREATE POLICY mainstream_leaders_write_editor ON cms.mainstream_leaders
+  FOR ALL TO authenticated
+  USING      (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'))
+  WITH CHECK (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'));
 
-  EXECUTE format($f$
-    CREATE POLICY mainstream_leaders_write_editor ON cms.mainstream_leaders
-      FOR ALL TO authenticated
-      USING     (core.has_permission(auth.uid(), %L, 'cms.edit'))
-      WITH CHECK(core.has_permission(auth.uid(), %L, 'cms.edit'));
-  $f$, v_ms_scope, v_ms_scope);
+CREATE POLICY branch_leaders_write_editor ON cms.branch_leaders
+  FOR ALL TO authenticated
+  USING      (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'))
+  WITH CHECK (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'));
 
-  EXECUTE format($f$
-    CREATE POLICY branch_leaders_write_editor ON cms.branch_leaders
-      FOR ALL TO authenticated
-      USING     (core.has_permission(auth.uid(), %L, 'cms.edit'))
-      WITH CHECK(core.has_permission(auth.uid(), %L, 'cms.edit'));
-  $f$, v_ms_scope, v_ms_scope);
+CREATE POLICY diaspora_leaders_write_editor ON cms.diaspora_leaders
+  FOR ALL TO authenticated
+  USING      (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'))
+  WITH CHECK (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'));
 
-  EXECUTE format($f$
-    CREATE POLICY diaspora_leaders_write_editor ON cms.diaspora_leaders
-      FOR ALL TO authenticated
-      USING     (core.has_permission(auth.uid(), %L, 'cms.edit'))
-      WITH CHECK(core.has_permission(auth.uid(), %L, 'cms.edit'));
-  $f$, v_ms_scope, v_ms_scope);
+CREATE POLICY batch_leaders_write_editor ON cms.batch_leaders
+  FOR ALL TO authenticated
+  USING      (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'))
+  WITH CHECK (core.has_permission(auth.uid(), core.mainstream_scope_id(), 'cms.edit'));
 
-  EXECUTE format($f$
-    CREATE POLICY batch_leaders_write_editor ON cms.batch_leaders
-      FOR ALL TO authenticated
-      USING     (core.has_permission(auth.uid(), %L, 'cms.edit'))
-      WITH CHECK(core.has_permission(auth.uid(), %L, 'cms.edit'));
-  $f$, v_ms_scope, v_ms_scope);
-END $$;
 
 -- ── 6. Expose the schema via PostgREST ──────────────────────────────
 -- The `postgrest` role needs USAGE on the schema + SELECT on tables
