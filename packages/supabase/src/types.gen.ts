@@ -4059,6 +4059,7 @@ export type Database = {
       obligation_status: "open" | "partial" | "paid" | "cancelled" | "forgiven"
       party_type: "member" | "branch"
       payment_intent_status:
+        | "initiated"
         | "pending"
         | "succeeded"
         | "failed"
@@ -4451,6 +4452,7 @@ export const Constants = {
       obligation_status: ["open", "partial", "paid", "cancelled", "forgiven"],
       party_type: ["member", "branch"],
       payment_intent_status: [
+        "initiated",
         "pending",
         "succeeded",
         "failed",

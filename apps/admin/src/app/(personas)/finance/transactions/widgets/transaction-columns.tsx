@@ -50,21 +50,24 @@ export function buildTransactionColumns(actions: TransactionColumnActions): ColD
       suppressMovable: true,
     },
     {
+      // Date and time are separate columns so each sorts and filters on its
+      // own — "everything on the 14th" and "everything after 18:00" are
+      // different questions, and a single stacked cell answers neither.
       headerName: 'Date',
       field: 'createdAt',
-      width: 180,
-      autoHeight: true,
+      width: 130,
       cellRenderer: (p: ICellRendererParams<SerialRow, string>) => {
         if (!p.value) return <span className="text-xs text-muted-foreground">-</span>;
-        return (
-          <div className="flex flex-col justify-center py-1 leading-tight">
-            <span className="text-sm text-foreground">{formatShortDay(p.value)}</span>
-            <span className="text-[11px] tabular-nums text-muted-foreground">
-              {formatTime24(p.value)}
-            </span>
-          </div>
-        );
+        return <span className="text-sm text-foreground">{formatShortDay(p.value)}</span>;
       },
+    },
+    {
+      headerName: 'Time',
+      field: 'createdAt',
+      colId: 'createdAtTime',
+      width: 100,
+      valueFormatter: (p) => formatTime24(p.value as string) ?? '-',
+      cellClass: 'tabular-nums text-muted-foreground',
     },
     {
       headerName: 'Payer',

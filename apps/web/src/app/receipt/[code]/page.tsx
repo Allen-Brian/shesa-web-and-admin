@@ -4,7 +4,12 @@ import QRCode from 'qrcode';
 
 import { createServiceRoleClient } from '@shesa/supabase/service-role';
 
-import { PaymentStatus, settlePaymentIntent, type SettleResponse } from './payment-status';
+import {
+  PaymentStatus,
+  settleGatewayRequest,
+  settlePaymentIntent,
+  type SettleResponse,
+} from './payment-status';
 import {
   ReceiptCard,
   type AgmReceiptData,
@@ -225,8 +230,21 @@ export async function generateMetadata({
  * after the browser gets back. Settling on arrival closes that gap, and a
  * payment that did not succeed gets an explanation instead of a receipt.
  */
-export default async function ReceiptPage({ params }: { readonly params: Promise<Params> }) {
+export default async function ReceiptPage({
+  params,
+  searchParams,
+}: {
+  readonly params: Promise<Params>;
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { code } = await params;
+  const query = await searchParams;
+
+  // Tranzak appends its own `requestId` to whichever exit it picks, and on
+  // a real payment it picked one we had not planned for. Honouring the
+  // parameter means the page still works if the gateway sends the payer
+  // somewhere unexpected, as long as it lands here.
+  const gatewayRequestId = typeof query.requestId === 'string' ? query.requestId : null;
 
   let receipt: AgmReceiptData | null = null;
   let settleResult: SettleResponse | null = null;
@@ -234,8 +252,10 @@ export default async function ReceiptPage({ params }: { readonly params: Promise
 
   if (code.startsWith(SANDBOX_PREFIX)) {
     receipt = await loadSandboxReceipt(code.slice(SANDBOX_PREFIX.length));
-  } else if (INTENT_ID.test(code)) {
-    settleResult = await settlePaymentIntent(code);
+  } else if (INTENT_ID.test(code) || gatewayRequestId) {
+    settleResult = INTENT_ID.test(code)
+      ? await settlePaymentIntent(code)
+      : await settleGatewayRequest(gatewayRequestId!);
 
     if (settleResult?.mode === 'sandbox' && settleResult.settlementId) {
       receipt = await loadSandboxReceipt(settleResult.settlementId);
@@ -246,7 +266,9 @@ export default async function ReceiptPage({ params }: { readonly params: Promise
     }
 
     // Came back from the gateway with no money recorded — say why.
-    if (!receipt) return <PaymentStatus intentId={code} result={settleResult} />;
+    if (!receipt) {
+      return <PaymentStatus intentId={settleResult?.intentId ?? code} result={settleResult} />;
+    }
   } else {
     receipt = await loadReceipt(code);
   }

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   BarChart,
   CalendarClock,
+  Activity,
   CreditCard,
   FlaskConical,
   HandCoins,
@@ -72,6 +73,7 @@ interface NavItem {
 const NAV_ITEMS: readonly NavItem[] = [
   { href: '/finance', label: 'Dashboard', Icon: Home },
   { href: '/finance/transactions', label: 'Transactions', Icon: TextAlignJustify },
+  { href: '/finance/payment-attempts', label: 'Payment attempts', Icon: Activity },
   { href: '/finance/charges', label: 'Charges', Icon: CreditCard },
   { href: '/finance/contributions', label: 'Contributions', Icon: Landmark },
   { href: '/finance/donations', label: 'Donations', Icon: HandCoins },

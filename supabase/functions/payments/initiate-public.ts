@@ -224,7 +224,10 @@ export async function initiatePublicPayment(req: Request): Promise<Response> {
       amount,
       currency: charge.currency,
       method,
-      status: 'pending',
+      // `initiated`, not `pending`: the gateway has not been called yet.
+      // If the call below fails, this row is the only evidence anybody
+      // tried to pay, and its status says exactly where it stopped.
+      status: 'initiated',
       mode: config.mode,
       quantity,
       payer_name: input.fullName.trim(),
@@ -265,8 +268,16 @@ export async function initiatePublicPayment(req: Request): Promise<Response> {
         currencyCode: charge.currency,
         description: input.description,
         mchTransactionRef: intentId,
+        // Both point at the same handler, deliberately.
+        //
+        // On a real sandbox payment Tranzak ignored the per-request
+        // `returnUrl` and sent the payer to the `cancelUrl` instead —
+        // with `success=true` on the query string. The documentation does
+        // not describe the precedence, so rather than guess, every exit
+        // lands somewhere that can work it out. Tranzak appends
+        // `requestId` to whichever it picks, and that is enough.
         returnUrl: `${config.returnUrlBase}${input.returnPath.replace('{intentId}', intentId)}`,
-        cancelUrl: `${config.returnUrlBase}/agm-2026`,
+        cancelUrl: `${config.returnUrlBase}${input.returnPath.replace('{intentId}', intentId)}`,
         callbackUrl: config.callbackUrl,
       },
       config,
@@ -277,11 +288,13 @@ export async function initiatePublicPayment(req: Request): Promise<Response> {
       throw new Error('gateway returned no paymentAuthUrl');
     }
 
-    // Record the gateway's reference so the return page can poll on it.
+    // The gateway now holds the request, so the intent moves on and
+    // records the reference the return page and webhook both key off.
     await service
       .schema('finance' as never)
       .from('payment_intents' as never)
       .update({
+        status: 'pending',
         metadata: {
           provider: 'tranzak',
           provider_ref: created.requestId,

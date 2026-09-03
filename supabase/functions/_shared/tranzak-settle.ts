@@ -354,8 +354,11 @@ export async function settleFromIntentId(intentId: string): Promise<SettleResult
 
   const requestId = (intent.metadata ?? {})['provider_ref'];
   if (typeof requestId !== 'string' || requestId.length === 0) {
+    // Still `initiated`: the gateway was never successfully called, so
+    // there is no reference to ask about. Nothing to settle and nobody
+    // waiting on a payer.
     log('warn', 'intent has no gateway reference to poll', { intentId });
-    return { outcome: 'pending', intentId, mode: intent.mode };
+    return { outcome: 'pending', intentId, mode: intent.mode, ...(await contextFor(intent)) };
   }
 
   const config = resolveTranzakConfig();

@@ -38,10 +38,23 @@ export function buildSandboxPaymentColumns(): ColDef<SerialSandboxPaymentRow>[] 
       suppressMovable: true,
     },
     {
-      headerName: 'When',
+      // Separate columns so each sorts on its own — "everything on the
+      // 14th" and "everything after 18:00" are different questions.
+      headerName: 'Date',
       field: 'createdAt',
-      width: 170,
-      valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleString() : '—'),
+      width: 130,
+      valueFormatter: (p) => (p.value ? new Date(p.value).toLocaleDateString() : '—'),
+    },
+    {
+      headerName: 'Time',
+      field: 'createdAt',
+      colId: 'createdAtTime',
+      width: 100,
+      valueFormatter: (p) =>
+        p.value
+          ? new Date(p.value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '—',
+      cellClass: 'tabular-nums text-muted-foreground',
     },
     {
       headerName: 'Charge',

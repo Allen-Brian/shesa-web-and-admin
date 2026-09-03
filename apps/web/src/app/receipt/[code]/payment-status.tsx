@@ -4,6 +4,8 @@ import { serverEnv } from '@shesa/config/env.server';
 
 export interface SettleResponse {
   readonly outcome?: string;
+  /** Present whenever the intent was resolved, including from a requestId. */
+  readonly intentId?: string;
   readonly mode?: 'sandbox' | 'live';
   readonly settlementId?: string;
   readonly receiptToken?: string;
@@ -26,6 +28,25 @@ export interface SettleResponse {
  * closed the tab on the gateway's page.
  */
 export async function settlePaymentIntent(intentId: string): Promise<SettleResponse | null> {
+  return await callSettle({ intentId });
+}
+
+/**
+ * Settle from the gateway's own reference.
+ *
+ * Tranzak appends `requestId` to the redirect it chooses, and on a real
+ * payment it chose an exit we had not planned for. Keying off that
+ * parameter means the payer still ends up somewhere useful even when the
+ * URL is not the one we asked for.
+ */
+export async function settleGatewayRequest(requestId: string): Promise<SettleResponse | null> {
+  return await callSettle({ requestId });
+}
+
+async function callSettle(body: {
+  intentId?: string;
+  requestId?: string;
+}): Promise<SettleResponse | null> {
   try {
     const res = await fetch(
       `${serverEnv.SUPABASE_URL.replace(/\/+$/, '')}/functions/v1/payments/tranzak-settle`,
@@ -36,7 +57,7 @@ export async function settlePaymentIntent(intentId: string): Promise<SettleRespo
           apikey: serverEnv.SUPABASE_SERVICE_ROLE_KEY,
           authorization: `Bearer ${serverEnv.SUPABASE_SERVICE_ROLE_KEY}`,
         },
-        body: JSON.stringify({ intentId }),
+        body: JSON.stringify(body),
         cache: 'no-store',
       },
     );
@@ -47,7 +68,7 @@ export async function settlePaymentIntent(intentId: string): Promise<SettleRespo
         level: 'error',
         component: 'web.receipt.settle',
         message: 'settle call failed',
-        intentId,
+        ...body,
         error: String(err),
       }),
     );

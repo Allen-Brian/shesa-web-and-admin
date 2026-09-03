@@ -5,6 +5,8 @@ import { FlaskConical } from 'lucide-react';
 
 import { Alert, AlertDescription, DataTable, EntityTablePanel, type GridApi } from '@shesa/ui';
 
+import { GatewayDetailSheet } from '@/components/finance/gateway-detail-sheet';
+
 import { buildSandboxPaymentColumns } from './sandbox-payment-columns';
 import type { SandboxPaymentRow, SerialSandboxPaymentRow } from './sandbox-payment-types';
 
@@ -27,6 +29,7 @@ interface Props {
 export function SandboxPaymentsView({ payments, mode }: Props) {
   const [search, setSearch] = useState('');
   const [gridApi, setGridApi] = useState<GridApi<SerialSandboxPaymentRow> | null>(null);
+  const [selected, setSelected] = useState<SandboxPaymentRow | null>(null);
   const columnDefs = useMemo(() => buildSandboxPaymentColumns(), []);
 
   const filtered = useMemo<readonly SerialSandboxPaymentRow[]>(() => {
@@ -103,6 +106,96 @@ export function SandboxPaymentsView({ payments, mode }: Props) {
         onGridReady={(e) => setGridApi(e.api)}
         showColumnPicker={false}
         selectable={false}
+        onRowClicked={(e) => e.data && setSelected(e.data)}
+      />
+
+      <GatewayDetailSheet
+        open={!!selected}
+        onOpenChange={(o) => !o && setSelected(null)}
+        title={selected?.chargeName ?? ''}
+        subtitle={selected ? `${selected.scopeName} · test settlement` : null}
+        badges={
+          selected
+            ? [
+                { label: selected.providerStatus ?? 'unknown' },
+                { label: 'test', className: 'border-amber-500/40 text-amber-700' },
+              ]
+            : []
+        }
+        link={
+          selected
+            ? { href: `/agm-2026/receipt/sandbox-${selected.id}`, label: 'View the test receipt' }
+            : null
+        }
+        sections={
+          selected
+            ? [
+                {
+                  title: 'Payer',
+                  fields: [
+                    { label: 'Name', value: selected.payerLabel },
+                    { label: 'Phone', value: selected.payerPhone },
+                    { label: 'Email', value: selected.payerEmail },
+                  ],
+                },
+                {
+                  title: 'Asked for',
+                  fields: [
+                    {
+                      label: 'Amount',
+                      value: `${selected.amount.toLocaleString()} ${selected.currency}`,
+                    },
+                    { label: 'Method', value: selected.method },
+                  ],
+                },
+                {
+                  title: 'Gateway reported',
+                  fields: [
+                    {
+                      label: 'Gross',
+                      value:
+                        selected.gatewayAmount == null
+                          ? null
+                          : `${selected.gatewayAmount.toLocaleString()} ${selected.gatewayCurrency ?? ''}`.trim(),
+                    },
+                    {
+                      label: 'Fee',
+                      value:
+                        selected.gatewayFee == null ? null : selected.gatewayFee.toLocaleString(),
+                    },
+                    {
+                      label: 'Net received',
+                      value:
+                        selected.gatewayNetAmount == null
+                          ? null
+                          : selected.gatewayNetAmount.toLocaleString(),
+                    },
+                    { label: 'Status', value: selected.providerStatus },
+                    { label: 'Reconciles', value: selected.reconciles ? 'Yes' : 'No' },
+                  ],
+                },
+                {
+                  title: 'References',
+                  fields: [
+                    {
+                      label: 'Request',
+                      value: selected.providerRef,
+                      mono: true,
+                      copyable: true,
+                    },
+                    {
+                      label: 'Transaction',
+                      value: selected.providerTransactionId,
+                      mono: true,
+                      copyable: true,
+                    },
+                    { label: 'Intent', value: selected.intentId, mono: true, copyable: true },
+                    { label: 'Settlement', value: selected.id, mono: true, copyable: true },
+                  ],
+                },
+              ]
+            : []
+        }
       />
     </div>
   );
