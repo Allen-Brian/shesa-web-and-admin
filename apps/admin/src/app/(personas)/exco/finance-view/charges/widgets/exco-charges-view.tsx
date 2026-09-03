@@ -16,10 +16,10 @@ import {
 
 import { ChargesEmptyState } from './empty-state';
 import { ChargesKpiStrip } from './kpi-strip';
-import type { ChargeRow, SerialRow } from './types';
+import type { ChargeRow, SerialRow } from './exco-charge-widget-types';
 import { useChargeColumns } from './use-charge-columns';
 
-export type { ChargeRow } from './types';
+export type { ChargeRow } from './exco-charge-widget-types';
 
 interface Props {
   readonly rows: readonly ChargeRow[];

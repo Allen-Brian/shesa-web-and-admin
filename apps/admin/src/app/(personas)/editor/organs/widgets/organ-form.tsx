@@ -7,12 +7,12 @@ import { Save, Trash2 } from 'lucide-react';
 import { Button, ConfirmDialog, Input, Label, Textarea, toast } from '@shesa/ui';
 
 import { createOrgan, deleteOrgan, updateOrgan } from '../actions/organs';
-import type { OrganInput } from '../actions/types';
+import type { OrganInput } from '../actions/organ-action-types';
 import { OrganLogoPicker } from './organ-logo-picker';
 import { OrganSectorManagerDialog } from './organ-sector-manager-dialog';
 import { SectorSelect } from './sector-select';
 import { slugify } from '@shesa/domain/utils';
-import type { OrganRow, SectorRow } from './types';
+import type { OrganRow, SectorRow } from './organ-widget-types';
 
 interface Props {
   readonly sectors: readonly SectorRow[];

@@ -6,7 +6,7 @@ import type {
   Milestone,
   ProjectRow,
   ProjectStatus,
-} from './widgets/types';
+} from './widgets/project-widget-types';
 
 interface RawProject {
   readonly id: string;

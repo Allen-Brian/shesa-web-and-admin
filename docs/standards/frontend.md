@@ -173,6 +173,14 @@ Bare, context-free names. Each has a compliant form:
 `default.tsx`, `sitemap.ts`, `robots.ts`, `opengraph-image.tsx`. The framework
 resolves these by name; the directory _is_ the identifier. Roughly 100 files.
 
+**Exempt: `packages/ui/src/components/`.** One file per design-system
+primitive, named after the component it exports — `button.tsx`, `dialog.tsx`,
+`form.tsx`. There the bare noun _is_ the identifier, it matches upstream
+shadcn, and the whole directory follows the pattern, so renaming one file to
+satisfy 5.1 would only make it the odd one out.
+
+`pnpm check:filenames` enforces all of the above, and runs in CI ahead of lint.
+
 ### 5.4 Identifiers
 
 | Thing            | Convention                      | Example                        |

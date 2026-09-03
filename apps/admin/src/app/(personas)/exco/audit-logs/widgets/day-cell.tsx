@@ -1,4 +1,4 @@
-import { formatDayOnly, formatRelativeShort } from './helpers';
+import { formatDayOnly, formatRelativeShort } from './audit-log-helpers';
 
 export function DayCell({ iso }: { readonly iso: string }) {
   return (

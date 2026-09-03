@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, CategoryInput } from './types';
+import type { ActionResult, CategoryInput } from './news-action-types';
 
 /**
  * CRUD for `cms.article_categories`. RLS gates on `cms.edit`.

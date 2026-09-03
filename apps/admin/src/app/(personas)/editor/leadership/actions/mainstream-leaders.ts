@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, MainstreamLeaderInput } from './types';
+import type { ActionResult, MainstreamLeaderInput } from './leadership-action-types';
 
 /** CRUD for `cms.mainstream_leaders`. RLS gates on `cms.edit`. */
 export async function createMainstreamLeader(

@@ -4,7 +4,12 @@ import { redirect } from 'next/navigation';
 
 import { submitAgmRegistration, type AgmRegistrationResult } from '@/lib/agm-registration';
 
-import { PAYMENT_OPTIONS, tierForAmount, type AgmFundingTier, type PaymentOption } from './data';
+import {
+  PAYMENT_OPTIONS,
+  tierForAmount,
+  type AgmFundingTier,
+  type PaymentOption,
+} from './agm-content';
 
 export interface FundingInput {
   readonly fullName: string;

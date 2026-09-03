@@ -23,7 +23,7 @@ import {
 import type { GovernanceMemberPickerRow } from '@/components/governance/assign-position-dialog';
 import { formatOrdinal } from '@/lib/batches/ordinal';
 
-import { archiveBatch, restoreBatch } from '../../actions';
+import { archiveBatch, restoreBatch } from '../../batch-actions';
 import { BatchFormDialog } from '../../widgets/form-dialog';
 import { BatchDetailHeader } from './batch-detail-header';
 import { exportBatchMembersCsv } from './batch-detail-helpers';

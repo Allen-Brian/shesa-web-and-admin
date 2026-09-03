@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 
 import { toast } from '@shesa/ui';
 
-import { runReport, type ReportKey } from '../actions';
+import { runReport, type ReportKey } from '../report-actions';
 import {
   PRESETS,
   REPORTS,

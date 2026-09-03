@@ -12,7 +12,7 @@ import {
   type MassActions,
 } from '@shesa/ui';
 
-import { archiveAnnouncement, publishAnnouncement } from '../actions';
+import { archiveAnnouncement, publishAnnouncement } from '../announcement-actions';
 import { buildConfirmTitle } from './list-helpers';
 import { buildAnnouncementsColumnDefs } from './list-columns';
 import type { AnnouncementRow, ConfirmState, SerialRow } from './list-types';

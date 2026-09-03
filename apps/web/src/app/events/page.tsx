@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import type { SiteEvent } from '@/components/events/data';
+import type { SiteEvent } from '@/components/events/events-content';
 import { EventsHero } from '@/components/events/events-hero';
 import { EventsList } from '@/components/events/events-list';
 import { formatEvent, type RawSiteEvent } from '@/components/events/format-event';

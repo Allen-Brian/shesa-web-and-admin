@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, CalendarDays } from 'lucide-react';
 
-import { loadEditorSiteEvents } from '../../loader';
+import { loadEditorSiteEvents } from '../../load-site-events';
 import { SiteEventForm } from '../../widgets/site-event-form';
 
 export const dynamic = 'force-dynamic';

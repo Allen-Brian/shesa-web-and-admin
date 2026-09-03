@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from 'react';
 
 import { downloadUrl } from './download';
-import type { MediaItem } from './data';
+import type { MediaItem } from './gallery-content';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 

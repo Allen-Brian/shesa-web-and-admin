@@ -23,7 +23,7 @@ import {
   toast,
 } from '@shesa/ui';
 
-import { createRule } from '../actions';
+import { createRule } from '../charge-detail-actions';
 import type { ChargeRulesData, RuleForm } from './charge-detail-types';
 
 /**

@@ -1,6 +1,6 @@
 'use client';
 
-import type { SerialRow } from './types';
+import type { SerialRow } from './obligation-widget-types';
 
 /**
  * Compact paid/total bar for the Progress column. Uses the payment ratio

@@ -9,7 +9,7 @@ import type {
   ExpenseByCategoryRow,
   PaymentMethodRow,
   TreasuryStatementRow,
-} from '../actions';
+} from '../report-actions';
 import {
   computeArrearsInsights,
   computeCollectionsInsights,

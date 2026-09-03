@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import type { Article } from '@/components/news/data';
+import type { Article } from '@/components/news/news-content';
 import { formatArticle } from '@/components/news/format-article';
 import { NewsHero } from '@/components/news/news-hero';
 import { NewsReader } from '@/components/news/news-reader';

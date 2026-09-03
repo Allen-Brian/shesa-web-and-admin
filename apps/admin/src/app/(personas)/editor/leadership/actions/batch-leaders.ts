@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, BatchLeaderInput } from './types';
+import type { ActionResult, BatchLeaderInput } from './leadership-action-types';
 
 /** CRUD for `cms.batch_leaders`. RLS gates on `cms.edit`. */
 export async function createBatchLeader(

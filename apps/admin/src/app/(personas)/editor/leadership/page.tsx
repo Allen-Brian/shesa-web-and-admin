@@ -8,7 +8,7 @@ import type {
   MainstreamLeaderRow,
   RegionalLeaderRow,
   SectorRow,
-} from './widgets/types';
+} from './widgets/leadership-widget-types';
 
 export const dynamic = 'force-dynamic';
 

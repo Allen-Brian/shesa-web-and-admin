@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation';
 import { getServerClient } from '@/lib/supabase-server';
 import { resolveMemberBadges } from '@/lib/resolve-badges';
 
-import { HouseDetailHeader } from './widgets/header';
-import { HouseRoster, type RosterRow } from './widgets/roster';
+import { HouseDetailHeader } from './widgets/house-header';
+import { HouseRoster, type RosterRow } from './widgets/house-roster';
 
 export const dynamic = 'force-dynamic';
 

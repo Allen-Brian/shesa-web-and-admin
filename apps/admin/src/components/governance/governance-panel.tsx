@@ -20,13 +20,13 @@ import type {
   GovernancePositionCatalogRow,
   GovernancePositionHolderRow,
   GovernanceRoleHolderRow,
-} from './types';
+} from './governance-types';
 
 export type {
   GovernancePositionCatalogRow,
   GovernancePositionHolderRow,
   GovernanceRoleHolderRow,
-} from './types';
+} from './governance-types';
 
 interface GovernancePanelProps {
   readonly scopeId: string;

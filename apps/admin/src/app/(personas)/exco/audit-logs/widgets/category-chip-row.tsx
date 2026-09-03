@@ -1,5 +1,5 @@
-import { CATEGORY_META, CATEGORY_ORDER } from './constants';
-import type { CategoryFilter } from './types';
+import { CATEGORY_META, CATEGORY_ORDER } from './audit-log-constants';
+import type { CategoryFilter } from './audit-log-widget-types';
 
 export function CategoryChipRow({
   category,

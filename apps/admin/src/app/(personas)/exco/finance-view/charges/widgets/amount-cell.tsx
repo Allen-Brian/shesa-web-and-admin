@@ -1,6 +1,6 @@
 'use client';
 
-import type { SerialRow } from './types';
+import type { SerialRow } from './exco-charge-widget-types';
 
 /**
  * Amount cell with the number prominent and the currency as a small

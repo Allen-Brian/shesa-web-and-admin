@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, SectorInput } from './types';
+import type { ActionResult, SectorInput } from './leadership-action-types';
 
 /**
  * CRUD server actions for `cms.mainstream_sectors`. Writes run under

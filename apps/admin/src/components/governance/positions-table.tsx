@@ -10,7 +10,7 @@ import type {
   GovernancePositionHolderRow,
   GovernanceRoleHolderRow,
   PositionTableRow,
-} from './types';
+} from './governance-types';
 import { usePositionColumns } from './use-position-columns';
 
 interface PositionsTableProps {

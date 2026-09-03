@@ -21,7 +21,7 @@ import {
 
 import { deleteProjects } from '../actions/projects';
 import { ProjectCategoryManagerDialog } from './project-category-manager-dialog';
-import type { CategoryRow, ProjectRow, ProjectStatus } from './types';
+import type { CategoryRow, ProjectRow, ProjectStatus } from './project-widget-types';
 import { useProjectColumns, type ProjectSerialRow } from './use-project-columns';
 
 interface Props {

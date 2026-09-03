@@ -1,4 +1,4 @@
-import { getInitials } from './helpers';
+import { getInitials } from './audit-log-helpers';
 
 export function ActorCell({
   label,

@@ -2,7 +2,7 @@
 
 import { ObligationStatusBadge } from './obligation-status-badge';
 import { SummaryStat } from './summary-stat';
-import type { PaymentDraft } from './types';
+import type { PaymentDraft } from './obligation-widget-types';
 
 /**
  * Read-only recap panel at the top of the payment dialog. Reminds the

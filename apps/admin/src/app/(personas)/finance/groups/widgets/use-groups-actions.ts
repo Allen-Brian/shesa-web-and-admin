@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { toast } from '@shesa/ui';
 
-import { createGroup, updateGroup } from '../actions';
+import { createGroup, updateGroup } from '../finance-group-actions';
 import { slugify } from './groups-helpers';
 import type { CreateGroupForm, GroupStatus } from './groups-types';
 

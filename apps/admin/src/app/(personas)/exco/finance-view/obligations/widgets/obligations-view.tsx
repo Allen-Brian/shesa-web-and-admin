@@ -15,14 +15,14 @@ import {
   type GridApi,
 } from '@shesa/ui';
 
-import { recordObligationPayment } from '../actions';
+import { recordObligationPayment } from '../obligation-actions';
 import { KpiStrip } from './kpi-strip';
 import { PaymentDialog } from './payment-dialog';
 import { buildDraft } from './build-draft';
-import type { ObligationRow, PaymentDraft, SerialRow } from './types';
+import type { ObligationRow, PaymentDraft, SerialRow } from './obligation-widget-types';
 import { useObligationColumns } from './use-obligation-columns';
 
-export type { ObligationRow } from './types';
+export type { ObligationRow } from './obligation-widget-types';
 
 interface Props {
   readonly rows: readonly ObligationRow[];

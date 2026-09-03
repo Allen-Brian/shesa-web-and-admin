@@ -16,7 +16,7 @@ import type {
   GovernancePositionHolderRow,
   GovernanceRoleHolderRow,
   PositionTableRow,
-} from './types';
+} from './governance-types';
 
 interface PositionRowActionsProps {
   readonly row: PositionTableRow;

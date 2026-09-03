@@ -17,7 +17,7 @@ import {
 
 import { createBatchLeader, updateBatchLeader } from '../actions/batch-leaders';
 import { LeaderPhotoPicker } from './leader-photo-picker';
-import type { BatchLeaderRow } from './types';
+import type { BatchLeaderRow } from './leadership-widget-types';
 
 interface Props {
   readonly open: boolean;

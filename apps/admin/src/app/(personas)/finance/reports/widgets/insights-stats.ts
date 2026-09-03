@@ -4,7 +4,7 @@ import type {
   DonationReportRow,
   ExpenseByCategoryRow,
   PaymentMethodRow,
-} from '../actions';
+} from '../report-actions';
 import { formatMethod, shorten } from './reports-formatters';
 
 /**

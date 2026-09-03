@@ -8,8 +8,8 @@ import { Images } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/empty-state';
 
-import type { Album } from './data';
-import { ALL_CATEGORY } from './data';
+import type { Album } from './gallery-content';
+import { ALL_CATEGORY } from './gallery-content';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 

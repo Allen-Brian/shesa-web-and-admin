@@ -10,7 +10,7 @@ import type {
 } from '@/components/governance/governance-panel';
 import type { GovernanceMemberPickerRow } from '@/components/governance/assign-position-dialog';
 
-import { BatchDetailView, type BatchMemberRow } from './widgets/detail-view';
+import { BatchDetailView, type BatchMemberRow } from './widgets/batch-detail-view';
 
 export const dynamic = 'force-dynamic';
 

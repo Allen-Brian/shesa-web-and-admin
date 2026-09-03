@@ -10,7 +10,7 @@ import {
   recordManualPayment,
   reversePayment,
   undoReconciliation,
-} from '../actions';
+} from '../transaction-actions';
 import type { ChargeOption, RecordForm } from './transactions-types';
 
 interface UsePaymentsActionsInput {

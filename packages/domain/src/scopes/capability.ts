@@ -14,7 +14,7 @@
  * initial onboarding.
  */
 
-import type { ChapterKind, ScopeType } from './constants';
+import type { ChapterKind, ScopeType } from './scope-constants';
 
 export interface ScopeCapabilities {
   canManageMembers: boolean;

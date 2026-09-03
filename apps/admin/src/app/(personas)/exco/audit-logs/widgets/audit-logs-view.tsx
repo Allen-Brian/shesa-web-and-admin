@@ -8,14 +8,20 @@ import { AuditLogsHeader } from './audit-logs-header';
 import { AuditLogsKpiStrip, type AuditKpis } from './audit-logs-kpi-strip';
 import { AuditLogsTable } from './audit-logs-table';
 import { CategoryChipRow } from './category-chip-row';
-import { WINDOW_MS } from './constants';
+import { WINDOW_MS } from './audit-log-constants';
 import { DetailsDialog } from './details-dialog';
 import { ExportCsvButton } from './export-csv-button';
-import { categorize } from './helpers';
-import type { AuditEntryRow, AuditScope, CategoryFilter, SerialRow, WindowFilter } from './types';
+import { categorize } from './audit-log-helpers';
+import type {
+  AuditEntryRow,
+  AuditScope,
+  CategoryFilter,
+  SerialRow,
+  WindowFilter,
+} from './audit-log-widget-types';
 import { WindowSelect } from './window-select';
 
-export type { AuditEntryRow } from './types';
+export type { AuditEntryRow } from './audit-log-widget-types';
 
 interface AuditLogsViewProps {
   readonly scope: AuditScope;

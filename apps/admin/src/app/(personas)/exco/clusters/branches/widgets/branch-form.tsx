@@ -8,7 +8,7 @@ import { Button, Input, Label, Switch, Textarea, toast } from '@shesa/ui';
 import { CountryRegionPicker } from '@/components/geography/country-region-picker';
 import { defaultCurrencyForCountry } from '@/lib/country-currency';
 
-import { createBranch, updateBranch, type BranchFormState } from '../actions';
+import { createBranch, updateBranch, type BranchFormState } from '../branch-actions';
 
 export interface BranchInitialValues {
   readonly scopeId?: string;

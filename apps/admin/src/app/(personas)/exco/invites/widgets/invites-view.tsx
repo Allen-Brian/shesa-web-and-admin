@@ -6,13 +6,13 @@ import { MailOpen } from 'lucide-react';
 
 import { DataTable, EntityTablePanel, toast, type GridApi } from '@shesa/ui';
 
-import { resendInvite } from '../actions';
+import { resendInvite } from '../invite-actions';
 import { InvitesFilters, type StatusFilter } from './invites-filters';
 import { InvitesStats } from './invites-stats';
-import type { BatchOption, InviteRow, SerialRow } from './types';
+import type { BatchOption, InviteRow, SerialRow } from './invite-widget-types';
 import { useInviteColumns } from './use-invite-columns';
 
-export type { InviteRow } from './types';
+export type { InviteRow } from './invite-widget-types';
 
 interface InvitesViewProps {
   readonly rows: readonly InviteRow[];

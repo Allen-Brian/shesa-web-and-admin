@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, AlbumInput } from './types';
+import type { ActionResult, AlbumInput } from './gallery-action-types';
 
 async function replaceCategoryMap(
   supabase: Awaited<ReturnType<typeof getServerClient>>,

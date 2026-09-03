@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Film } from 'lucide-react';
 
-import type { MediaRow } from './types';
+import type { MediaRow } from './gallery-widget-types';
 
 interface Props {
   readonly item: MediaRow;

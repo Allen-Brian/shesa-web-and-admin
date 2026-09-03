@@ -22,7 +22,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { AUDIENCE_ALL, type AudienceDefinition } from '@shesa/domain/audience';
 
-import { getAudienceCount } from './actions';
+import { getAudienceCount } from './audience-actions';
 import { AudienceLocationGroup } from './audience-location-group';
 import { AudienceReachPreview, type ReachState } from './audience-reach-preview';
 import { AudienceScopeGroup } from './audience-scope-group';

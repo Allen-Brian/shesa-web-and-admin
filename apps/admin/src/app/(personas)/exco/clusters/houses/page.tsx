@@ -1,7 +1,7 @@
 import { ClusterPageHeader } from '@/components/clusters/page-header';
 import { getServerClient } from '@/lib/supabase-server';
 
-import { HousesListView, type HouseRow } from './widgets/list-view';
+import { HousesListView, type HouseRow } from './widgets/houses-list-view';
 
 export const dynamic = 'force-dynamic';
 

@@ -23,14 +23,20 @@ import {
 import { QuillEditor } from '@/components/rich-editor/quill-editor';
 
 import { createProject, deleteProject, updateProject } from '../actions/projects';
-import type { ProjectInput } from '../actions/types';
+import type { ProjectInput } from '../actions/project-action-types';
 import { ProjectCategoryManagerDialog } from './project-category-manager-dialog';
 import { TaxonomyPicker } from '@/components/taxonomy/taxonomy-picker';
 import { ImpactEditor } from './impact-editor';
 import { MilestonesEditor } from './milestones-editor';
 import { ProjectBannerPicker } from './project-banner-picker';
 import { slugify } from '@shesa/domain/utils';
-import type { CategoryRow, ImpactStat, Milestone, ProjectRow, ProjectStatus } from './types';
+import type {
+  CategoryRow,
+  ImpactStat,
+  Milestone,
+  ProjectRow,
+  ProjectStatus,
+} from './project-widget-types';
 
 interface Props {
   readonly categories: readonly CategoryRow[];

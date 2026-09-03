@@ -6,7 +6,7 @@ import { Music4 } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/empty-state';
 
-import type { PublicSong, PublicSongGroup } from './data';
+import type { PublicSong, PublicSongGroup } from './songs-content';
 import { usePlayer } from './player-context';
 import { SongCard } from './song-card';
 

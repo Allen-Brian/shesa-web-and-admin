@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, SongInput } from './types';
+import type { ActionResult, SongInput } from './song-action-types';
 
 function toDbBody(input: SongInput) {
   return {

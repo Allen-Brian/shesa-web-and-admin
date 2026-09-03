@@ -1,4 +1,4 @@
-import type { PaymentMethod } from '../actions';
+import type { PaymentMethod } from '../transaction-actions';
 
 /**
  * Row + form shapes for the transactions view. Kept in a plain file

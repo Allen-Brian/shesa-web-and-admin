@@ -1,4 +1,4 @@
-import type { Article } from './data';
+import type { Article } from './news-content';
 
 interface RawArticle {
   readonly id: string;

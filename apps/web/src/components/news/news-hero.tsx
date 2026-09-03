@@ -6,7 +6,7 @@ import { motion, type Variants } from 'framer-motion';
 import { useRef, useState } from 'react';
 
 import { isLocalSupabaseUrl } from '../leadership/is-local-supabase-url';
-import type { Article } from './data';
+import type { Article } from './news-content';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 

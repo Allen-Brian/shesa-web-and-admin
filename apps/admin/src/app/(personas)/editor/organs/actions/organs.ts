@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, OrganInput } from './types';
+import type { ActionResult, OrganInput } from './organ-action-types';
 
 function toDbBody(input: OrganInput) {
   return {

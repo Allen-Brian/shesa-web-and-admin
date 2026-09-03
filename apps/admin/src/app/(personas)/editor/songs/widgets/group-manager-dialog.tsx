@@ -20,7 +20,7 @@ import { createSongGroup, deleteSongGroup, updateSongGroup } from '../actions/so
 import { GroupRowCreator } from './group-row-creator';
 import { GroupRowEditor } from './group-row-editor';
 import { slugify } from '@shesa/domain/utils';
-import type { GroupRow } from './types';
+import type { GroupRow } from './song-widget-types';
 
 interface Props {
   readonly open: boolean;

@@ -21,7 +21,11 @@ import {
 } from '@shesa/ui';
 
 import { PaymentSummary } from './payment-summary';
-import { PAYMENT_METHOD_OPTIONS, type PaymentDraft, type PaymentMethod } from './types';
+import {
+  PAYMENT_METHOD_OPTIONS,
+  type PaymentDraft,
+  type PaymentMethod,
+} from './obligation-widget-types';
 
 interface PaymentDialogProps {
   readonly draft: PaymentDraft | null;

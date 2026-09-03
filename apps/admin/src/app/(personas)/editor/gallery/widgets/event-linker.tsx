@@ -16,7 +16,7 @@ import {
   PopoverTrigger,
 } from '@shesa/ui';
 
-import type { LinkableEvent } from './types';
+import type { LinkableEvent } from './gallery-widget-types';
 
 interface Props {
   readonly events: readonly LinkableEvent[];

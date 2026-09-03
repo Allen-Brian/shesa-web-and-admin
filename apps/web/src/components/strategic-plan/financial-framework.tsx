@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 
-import { FINANCIAL_FRAMEWORK } from './data';
+import { FINANCIAL_FRAMEWORK } from './strategic-plan-content';
 import { SectionShell } from './section-shell';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];

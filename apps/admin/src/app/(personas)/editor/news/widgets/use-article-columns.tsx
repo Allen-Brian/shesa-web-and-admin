@@ -7,7 +7,7 @@ import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
 import { ArticleStatusBadge } from './article-status-badge';
 import { LeaderAvatar } from '../../leadership/widgets/leader-avatar';
-import type { ArticleRow } from './types';
+import type { ArticleRow } from './news-widget-types';
 
 export type ArticleSerialRow = ArticleRow & {
   readonly serial: number;

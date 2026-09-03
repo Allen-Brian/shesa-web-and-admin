@@ -18,7 +18,7 @@ import {
   updateDiasporaLeader,
 } from '../actions/regional-leaders';
 import { RegionalLeaderDialog } from './regional-leader-dialog';
-import type { RegionalLeaderRow } from './types';
+import type { RegionalLeaderRow } from './leadership-widget-types';
 import { useRegionalColumns, type RegionalSerialRow } from './use-regional-columns';
 
 /** Diaspora tab — same shape as Branches, wired to a separate table. */

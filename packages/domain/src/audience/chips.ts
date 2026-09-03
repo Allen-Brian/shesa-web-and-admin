@@ -13,7 +13,7 @@
  * every group is 'all').
  */
 
-import { AUDIENCE_ALL_LABEL } from './constants';
+import { AUDIENCE_ALL_LABEL } from './audience-constants';
 import { isAudienceAll, type AudienceDefinition } from './schema';
 
 /**

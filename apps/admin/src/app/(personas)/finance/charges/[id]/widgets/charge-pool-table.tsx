@@ -18,7 +18,7 @@ import {
 
 import { formatShortDay, formatTime24 } from '@/lib/format/date-time';
 
-import { markReconciled, undoReconciliation } from '../../../transactions/actions';
+import { markReconciled, undoReconciliation } from '../../../transactions/transaction-actions';
 import { ChargePoolPaymentSheet } from './charge-pool-payment-sheet';
 import type { ChargeDetailPoolProps, PoolRow } from './charge-detail-types';
 import { downloadCsv, formatMethod, getInitials, slugify } from './shared-formatters';

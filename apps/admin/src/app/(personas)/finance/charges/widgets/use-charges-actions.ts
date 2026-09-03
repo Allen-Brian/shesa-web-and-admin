@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { toast } from '@shesa/ui';
 
-import { archiveCharge, createCharge, deleteCharge, updateCharge } from '../actions';
+import { archiveCharge, createCharge, deleteCharge, updateCharge } from '../charge-actions';
 import type { CreateForm, EditForm, ScopeOption } from './charges-types';
 
 interface UseChargesActionsInput {

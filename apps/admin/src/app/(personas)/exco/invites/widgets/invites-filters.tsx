@@ -2,7 +2,7 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shesa/ui';
 
-import type { BatchOption, ClaimStatus } from './types';
+import type { BatchOption, ClaimStatus } from './invite-widget-types';
 
 export type StatusFilter = '__all' | ClaimStatus | 'failed';
 

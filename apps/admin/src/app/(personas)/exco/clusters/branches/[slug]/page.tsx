@@ -12,7 +12,7 @@ import {
   type PositionCatalogRow,
   type PositionHolderRow,
   type RoleHolderRow,
-} from './widgets/detail-view';
+} from './widgets/branch-detail-view';
 
 export const dynamic = 'force-dynamic';
 

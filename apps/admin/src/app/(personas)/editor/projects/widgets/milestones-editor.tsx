@@ -4,7 +4,7 @@ import { GripVertical, Plus, Trash2 } from 'lucide-react';
 
 import { Button, Checkbox, Input, Textarea } from '@shesa/ui';
 
-import type { Milestone } from './types';
+import type { Milestone } from './project-widget-types';
 
 interface Props {
   readonly milestones: readonly Milestone[];

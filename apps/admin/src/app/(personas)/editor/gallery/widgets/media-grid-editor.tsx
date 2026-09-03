@@ -8,11 +8,11 @@ import { ConfirmDialog, toast } from '@shesa/ui';
 
 import { deleteAlbumMedia } from '../actions/photo-actions';
 import { deleteMediaItem, reorderMedia, updateMediaItem } from '../actions/media';
-import type { MediaAspect } from '../actions/types';
+import type { MediaAspect } from '../actions/gallery-action-types';
 import { MediaGridCell } from './media-grid-cell';
 import { MediaItemDialog } from './media-item-dialog';
 import { MediaUploader } from './media-uploader';
-import type { MediaRow } from './types';
+import type { MediaRow } from './gallery-widget-types';
 
 interface Props {
   readonly albumId: string;

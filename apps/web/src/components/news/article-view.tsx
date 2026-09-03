@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 import { isLocalSupabaseUrl } from '../leadership/is-local-supabase-url';
 import { AuthorAvatar } from './author-avatar';
-import type { Article } from './data';
+import type { Article } from './news-content';
 
 /**
  * Right-panel article body. Author strip, headline, banner, and the

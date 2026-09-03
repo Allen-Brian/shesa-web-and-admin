@@ -5,7 +5,7 @@ import { getServerClient } from '@/lib/supabase-server';
 import type { ScopeStatus } from '@/components/clusters/cluster-list';
 import { isDiaspora } from '@/lib/country-currency';
 
-import { BranchesListView, type BranchRow, type ChapterRow } from './widgets/list-view';
+import { BranchesListView, type BranchRow, type ChapterRow } from './widgets/branches-list-view';
 
 export const dynamic = 'force-dynamic';
 

@@ -1,4 +1,4 @@
-import type { ProgramItem, SiteEvent } from './data';
+import type { ProgramItem, SiteEvent } from './events-content';
 
 export interface RawSiteEvent {
   readonly id: string;

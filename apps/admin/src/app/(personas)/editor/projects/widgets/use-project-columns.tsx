@@ -7,7 +7,7 @@ import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
 import { LeaderAvatar } from '../../leadership/widgets/leader-avatar';
 import { ProjectStatusBadge } from './project-status-badge';
-import type { ProjectRow } from './types';
+import type { ProjectRow } from './project-widget-types';
 
 export type ProjectSerialRow = ProjectRow & {
   readonly serial: number;

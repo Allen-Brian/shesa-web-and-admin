@@ -12,7 +12,7 @@ import {
   type MassActions,
 } from '@shesa/ui';
 
-import { archiveEvent, publishEvent } from '../actions';
+import { archiveEvent, publishEvent } from '../event-actions';
 import { CalendarView } from './calendar-view';
 import { EventsFilterChips } from './events-filter-chips';
 import { EventsFilterDropdown } from './events-filter-dropdown';

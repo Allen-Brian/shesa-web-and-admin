@@ -3,7 +3,7 @@ import type {
   GovernancePositionHolderRow,
   GovernanceRoleHolderRow,
   PositionTableRow,
-} from './types';
+} from './governance-types';
 
 /**
  * Joins the position catalog with the current holder + their portal

@@ -21,7 +21,7 @@ import {
 
 import { deleteOrgans } from '../actions/organs';
 import { OrganSectorManagerDialog } from './organ-sector-manager-dialog';
-import type { OrganRow, SectorRow } from './types';
+import type { OrganRow, SectorRow } from './organ-widget-types';
 import { useOrganColumns, type OrganSerialRow } from './use-organ-columns';
 
 interface Props {

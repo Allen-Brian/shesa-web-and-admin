@@ -7,14 +7,14 @@ import { Save, Trash2 } from 'lucide-react';
 import { Button, ConfirmDialog, Input, Label, Textarea, toast } from '@shesa/ui';
 
 import { createAlbum, deleteAlbum, updateAlbum } from '../actions/albums';
-import type { AlbumInput } from '../actions/types';
+import type { AlbumInput } from '../actions/gallery-action-types';
 import { AlbumCoverPicker } from './album-cover-picker';
 import { AlbumCategoryManagerDialog } from './album-category-manager-dialog';
 import { TaxonomyPicker } from '@/components/taxonomy/taxonomy-picker';
 import { EventLinker } from './event-linker';
 import { MediaGridEditor } from './media-grid-editor';
 import { slugify } from '@shesa/domain/utils';
-import type { AlbumRow, CategoryRow, LinkableEvent, MediaRow } from './types';
+import type { AlbumRow, CategoryRow, LinkableEvent, MediaRow } from './gallery-widget-types';
 
 interface Props {
   readonly categories: readonly CategoryRow[];

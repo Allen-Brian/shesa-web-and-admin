@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@shesa/ui';
 
-import type { PaymentMethod } from '../actions';
+import type { PaymentMethod } from '../transaction-actions';
 import type { ChargeOption, RecordForm } from './transactions-types';
 import { PAYMENT_METHODS } from './transactions-types';
 

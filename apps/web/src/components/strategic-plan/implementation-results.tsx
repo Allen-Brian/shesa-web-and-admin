@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 
-import { ACCOUNTABILITY, MONITORING_INDICATORS, PHASES } from './data';
+import { ACCOUNTABILITY, MONITORING_INDICATORS, PHASES } from './strategic-plan-content';
 import { SectionShell } from './section-shell';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];

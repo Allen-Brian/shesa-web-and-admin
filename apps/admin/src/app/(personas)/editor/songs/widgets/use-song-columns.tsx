@@ -7,7 +7,7 @@ import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
 import { LeaderAvatar } from '../../leadership/widgets/leader-avatar';
 import { formatDuration } from './song-duration';
-import type { SongRow } from './types';
+import type { SongRow } from './song-widget-types';
 
 export type SongSerialRow = SongRow & {
   readonly serial: number;

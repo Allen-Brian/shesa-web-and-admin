@@ -18,7 +18,7 @@ import {
 import { GovernancePanel } from '@/components/governance/governance-panel';
 import type { ScopeStatus } from '@/components/clusters/cluster-list';
 
-import { archiveBranch, restoreBranch } from '../../actions';
+import { archiveBranch, restoreBranch } from '../../branch-actions';
 import { BranchFormDialog } from '../../widgets/branch-form-dialog';
 import { ChapterFormDialog } from '../../widgets/chapter-form-dialog';
 import { BranchChaptersTab } from './branch-chapters-tab';

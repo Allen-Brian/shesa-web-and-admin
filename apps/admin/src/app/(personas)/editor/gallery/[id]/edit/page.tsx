@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Images } from 'lucide-react';
 
-import { loadAlbumMedia, loadEditorGallery } from '../../loader';
+import { loadAlbumMedia, loadEditorGallery } from '../../load-gallery';
 import { AlbumForm } from '../../widgets/album-form';
 
 export const dynamic = 'force-dynamic';

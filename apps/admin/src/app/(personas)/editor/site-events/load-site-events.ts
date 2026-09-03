@@ -1,6 +1,6 @@
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { CategoryRow, ProgramItem, SiteEventRow } from './widgets/types';
+import type { CategoryRow, ProgramItem, SiteEventRow } from './widgets/site-event-widget-types';
 
 interface RawEvent {
   readonly id: string;

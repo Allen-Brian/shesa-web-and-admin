@@ -5,7 +5,7 @@ import { slugify } from '@shesa/domain/utils';
 import { TaxonomyManagerDialog } from '@/components/taxonomy/taxonomy-manager-dialog';
 
 import { createOrganSector, deleteOrganSector, updateOrganSector } from '../actions/organ-sectors';
-import type { SectorRow } from './types';
+import type { SectorRow } from './organ-widget-types';
 
 interface Props {
   readonly open: boolean;

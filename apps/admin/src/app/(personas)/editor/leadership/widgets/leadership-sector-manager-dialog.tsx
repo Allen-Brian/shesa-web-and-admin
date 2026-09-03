@@ -3,7 +3,7 @@
 import { TaxonomyManagerDialog } from '@/components/taxonomy/taxonomy-manager-dialog';
 
 import { createSector, deleteSector, updateSector } from '../actions/sectors';
-import type { SectorRow } from './types';
+import type { SectorRow } from './leadership-widget-types';
 
 interface Props {
   readonly open: boolean;

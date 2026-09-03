@@ -1,6 +1,6 @@
 import { Target } from 'lucide-react';
 
-import { loadEditorProjects } from './loader';
+import { loadEditorProjects } from './load-projects';
 import { ProjectsListView } from './widgets/projects-list-view';
 
 export const dynamic = 'force-dynamic';

@@ -4,7 +4,12 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
-import { AGM_FUNDING_TIERS, PAYMENT_OPTIONS, tierForAmount, type PaymentOption } from './data';
+import {
+  AGM_FUNDING_TIERS,
+  PAYMENT_OPTIONS,
+  tierForAmount,
+  type PaymentOption,
+} from './agm-content';
 import { donateForAgmFunding } from './funding-action';
 import { FundingTierCard } from './funding-tier-card';
 

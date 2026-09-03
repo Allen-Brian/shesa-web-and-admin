@@ -2,7 +2,7 @@
 
 import { motion, type Variants } from 'framer-motion';
 
-import { CALL_TO_ACTION } from './data';
+import { CALL_TO_ACTION } from './strategic-plan-content';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 
 import { isLocalSupabaseUrl } from '../leadership/is-local-supabase-url';
-import type { Article } from './data';
+import type { Article } from './news-content';
 
 /**
  * Circular author avatar. Renders the uploaded photo when present,

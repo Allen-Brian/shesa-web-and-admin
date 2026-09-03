@@ -74,10 +74,19 @@ function* walk(dir) {
   }
 }
 
+/**
+ * The design-system primitives are named after the component they export,
+ * one file per shadcn primitive — `button.tsx`, `dialog.tsx`, `form.tsx`.
+ * The bare noun IS the identifier there, and it matches upstream, so §5.1
+ * does not apply to that one directory.
+ */
+const EXEMPT_DIRS = ['packages/ui/src/components'];
+
 const offenders = [];
 for (const root of ROOTS) {
   for (const file of walk(root)) {
     if (!/\.(ts|tsx)$/.test(file)) continue;
+    if (EXEMPT_DIRS.some((d) => file.startsWith(`${d}/`))) continue;
     const stem = basename(file).replace(/\.(ts|tsx)$/, '');
     if (FRAMEWORK_OWNED.has(stem)) continue;
     const fix = BANNED.get(stem);

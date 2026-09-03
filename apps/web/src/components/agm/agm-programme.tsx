@@ -2,7 +2,7 @@
 
 import { motion, type Variants } from 'framer-motion';
 
-import { AGM_SCHEDULE } from './data';
+import { AGM_SCHEDULE } from './agm-content';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 

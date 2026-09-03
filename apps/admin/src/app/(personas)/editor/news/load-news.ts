@@ -1,6 +1,6 @@
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ArticleRow, ArticleStatus, CategoryRow } from './widgets/types';
+import type { ArticleRow, ArticleStatus, CategoryRow } from './widgets/news-widget-types';
 
 interface RawArticle {
   readonly id: string;

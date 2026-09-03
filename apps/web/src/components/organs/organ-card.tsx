@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 
-import type { PublicOrgan } from './data';
+import type { PublicOrgan } from './organs-content';
 
 function MapPin({ className }: { readonly className?: string }) {
   return (

@@ -5,7 +5,7 @@ import { useFormStatus } from 'react-dom';
 
 import { Button, Input, Label, toast } from '@shesa/ui';
 
-import { requestPasswordReset, type ForgotPasswordState } from './actions';
+import { requestPasswordReset, type ForgotPasswordState } from './forgot-password-actions';
 
 const INITIAL: ForgotPasswordState = { ok: true };
 

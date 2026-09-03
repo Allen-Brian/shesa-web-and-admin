@@ -1,6 +1,6 @@
 import { ScrollText } from 'lucide-react';
 
-import type { AuditScope } from './types';
+import type { AuditScope } from './audit-log-widget-types';
 
 function scopeLabel(scopeType: AuditScope['scope_type']): string {
   if (scopeType === 'mainstream') return 'Mainstream';

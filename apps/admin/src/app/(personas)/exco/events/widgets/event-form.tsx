@@ -11,7 +11,7 @@ import type { AudienceDefinition } from '@shesa/domain/audience';
 import { type AudienceOptions } from '@/components/audience/audience-selector';
 import { QuillEditor } from '@/components/rich-editor/quill-editor';
 
-import { createEvent, updateEvent, type EventFormState } from '../actions';
+import { createEvent, updateEvent, type EventFormState } from '../event-actions';
 import { EventAudienceCard } from './event-audience-card';
 import { EventImagesCard } from './event-images-card';
 import { EventProgramCard } from './event-program-card';

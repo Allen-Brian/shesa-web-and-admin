@@ -18,7 +18,7 @@ import {
   updateBranchLeader,
 } from '../actions/regional-leaders';
 import { RegionalLeaderDialog } from './regional-leader-dialog';
-import type { RegionalLeaderRow } from './types';
+import type { RegionalLeaderRow } from './leadership-widget-types';
 import { useRegionalColumns, type RegionalSerialRow } from './use-regional-columns';
 
 /** Branches tab — DataTable of every branch/chapter president. */

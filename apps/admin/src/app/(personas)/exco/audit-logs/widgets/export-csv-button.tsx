@@ -4,8 +4,8 @@ import { Download } from 'lucide-react';
 
 import { Button } from '@shesa/ui';
 
-import { categorize, downloadCsv } from './helpers';
-import type { AuditEntryRow } from './types';
+import { categorize, downloadCsv } from './audit-log-helpers';
+import type { AuditEntryRow } from './audit-log-widget-types';
 
 export function ExportCsvButton({
   rows,

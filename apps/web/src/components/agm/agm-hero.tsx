@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 
-import { AGM_META } from './data';
+import { AGM_META } from './agm-content';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 

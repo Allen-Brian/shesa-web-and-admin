@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, Target } from 'lucide-react';
 
-import { loadEditorProjects } from '../loader';
+import { loadEditorProjects } from '../load-projects';
 import { ProjectForm } from '../widgets/project-form';
 
 export const dynamic = 'force-dynamic';

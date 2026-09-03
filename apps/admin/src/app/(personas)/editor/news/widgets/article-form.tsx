@@ -22,13 +22,13 @@ import {
 import { QuillEditor } from '@/components/rich-editor/quill-editor';
 
 import { createArticle, deleteArticle, updateArticle } from '../actions/articles';
-import type { ArticleInput } from '../actions/types';
+import type { ArticleInput } from '../actions/news-action-types';
 import { ArticleBannerPicker } from './article-banner-picker';
 import { AuthorPhotoPicker } from './author-photo-picker';
 import { ArticleCategoryManagerDialog } from './article-category-manager-dialog';
 import { TaxonomyPicker } from '@/components/taxonomy/taxonomy-picker';
 import { slugify } from '@shesa/domain/utils';
-import type { ArticleRow, ArticleStatus, CategoryRow } from './types';
+import type { ArticleRow, ArticleStatus, CategoryRow } from './news-widget-types';
 
 interface Props {
   readonly categories: readonly CategoryRow[];

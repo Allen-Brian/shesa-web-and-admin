@@ -21,7 +21,7 @@ import {
 
 import { deleteAlbums } from '../actions/albums';
 import { AlbumCategoryManagerDialog } from './album-category-manager-dialog';
-import type { AlbumRow, CategoryRow, LinkableEvent } from './types';
+import type { AlbumRow, CategoryRow, LinkableEvent } from './gallery-widget-types';
 import { useAlbumColumns, type AlbumSerialRow } from './use-album-columns';
 
 interface Props {

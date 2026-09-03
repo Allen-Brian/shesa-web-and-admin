@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { BarChart } from 'lucide-react';
 
-import type { ReportKey } from '../actions';
+import type { ReportKey } from '../report-actions';
 import { ReportCataloguePicker } from './report-catalogue-picker';
 import { ReportControlsCard } from './report-controls-card';
 import { ReportResultPanel } from './report-result-panel';

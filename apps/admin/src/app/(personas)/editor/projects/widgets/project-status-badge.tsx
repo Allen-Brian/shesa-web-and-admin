@@ -2,7 +2,7 @@
 
 import { Badge } from '@shesa/ui';
 
-import type { ProjectStatus } from './types';
+import type { ProjectStatus } from './project-widget-types';
 
 const STYLES: Record<ProjectStatus, string> = {
   Active: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',

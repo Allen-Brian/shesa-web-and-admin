@@ -1,7 +1,12 @@
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { MediaAspect, MediaKind } from './actions/types';
-import type { AlbumRow, CategoryRow, LinkableEvent, MediaRow } from './widgets/types';
+import type { MediaAspect, MediaKind } from './actions/gallery-action-types';
+import type {
+  AlbumRow,
+  CategoryRow,
+  LinkableEvent,
+  MediaRow,
+} from './widgets/gallery-widget-types';
 
 interface RawAlbum {
   readonly id: string;

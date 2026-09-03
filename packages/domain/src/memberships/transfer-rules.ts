@@ -26,7 +26,7 @@
  * hide/show controls before the round-trip.
  */
 
-import type { ChapterKind, ScopeType } from '../scopes/constants';
+import type { ChapterKind, ScopeType } from '../scopes/scope-constants';
 
 export interface TransferScopeShape {
   scopeId: string;

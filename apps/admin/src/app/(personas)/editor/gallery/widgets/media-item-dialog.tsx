@@ -15,9 +15,9 @@ import {
   Label,
 } from '@shesa/ui';
 
-import type { MediaAspect } from '../actions/types';
+import type { MediaAspect } from '../actions/gallery-action-types';
 import { MediaThumbnail } from './media-thumbnail';
-import type { MediaRow } from './types';
+import type { MediaRow } from './gallery-widget-types';
 
 const ASPECT_OPTIONS: readonly MediaAspect[] = ['1/1', '3/4', '4/3', '3/2', '2/3', '16/9', '9/16'];
 

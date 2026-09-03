@@ -1,4 +1,4 @@
-import type { CategoryFilter } from './types';
+import type { CategoryFilter } from './audit-log-widget-types';
 
 export function categorize(action: string): CategoryFilter {
   if (action.startsWith('role.granted') || action.startsWith('membership.approved')) return 'grant';

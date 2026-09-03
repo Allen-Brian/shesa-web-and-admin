@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, GroupInput } from './types';
+import type { ActionResult, GroupInput } from './song-action-types';
 
 export async function createSongGroup(input: GroupInput): Promise<ActionResult<{ id: string }>> {
   const supabase = await getServerClient();

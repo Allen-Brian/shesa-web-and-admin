@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, RegionalLeaderInput } from './types';
+import type { ActionResult, RegionalLeaderInput } from './leadership-action-types';
 
 /**
  * Shared CRUD for `cms.branch_leaders` + `cms.diaspora_leaders` — the

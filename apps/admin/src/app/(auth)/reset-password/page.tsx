@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, Logo } from 
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import { ResetPasswordForm } from './form';
+import { ResetPasswordForm } from './reset-password-form';
 
 export const dynamic = 'force-dynamic';
 

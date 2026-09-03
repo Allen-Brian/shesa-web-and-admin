@@ -1,4 +1,4 @@
-import type { CategoryFilter, WindowFilter } from './types';
+import type { CategoryFilter, WindowFilter } from './audit-log-widget-types';
 
 export const CATEGORY_META: Record<CategoryFilter, { label: string; tone: string }> = {
   all: { label: 'All', tone: '' },

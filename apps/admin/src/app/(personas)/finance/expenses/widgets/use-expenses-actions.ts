@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { toast } from '@shesa/ui';
 
-import { approveExpense, recordExpense, reverseExpense } from '../actions';
+import { approveExpense, recordExpense, reverseExpense } from '../expense-actions';
 import type { RecordForm, ScopeOption } from './expenses-types';
 
 interface UseExpensesActionsInput {

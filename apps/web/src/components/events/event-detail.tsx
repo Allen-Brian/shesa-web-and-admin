@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
-import type { SiteEvent } from './data';
+import type { SiteEvent } from './events-content';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -597,7 +597,7 @@ function RelatedCard({ event }: { readonly event: SiteEvent }) {
 function ProgrammeSection({
   program,
 }: {
-  readonly program: readonly import('./data').ProgramItem[];
+  readonly program: readonly import('./events-content').ProgramItem[];
 }) {
   return (
     <section

@@ -2,7 +2,7 @@
 
 import { motion, type Variants } from 'framer-motion';
 
-import { sponsorTiers, sponsors } from './data';
+import { sponsorTiers, sponsors } from './sponsors-content';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 

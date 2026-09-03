@@ -1,4 +1,4 @@
-import type { Project, ProjectImpact, ProjectMilestone, ProjectStatus } from './data';
+import type { Project, ProjectImpact, ProjectMilestone, ProjectStatus } from './projects-content';
 
 export interface RawProject {
   readonly id: string;

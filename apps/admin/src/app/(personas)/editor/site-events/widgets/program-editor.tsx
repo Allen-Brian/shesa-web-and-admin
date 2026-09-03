@@ -4,7 +4,7 @@ import { GripVertical, Plus, Trash2 } from 'lucide-react';
 
 import { Button, Input, Textarea } from '@shesa/ui';
 
-import type { ProgramItem } from './types';
+import type { ProgramItem } from './site-event-widget-types';
 
 interface Props {
   readonly program: readonly ProgramItem[];

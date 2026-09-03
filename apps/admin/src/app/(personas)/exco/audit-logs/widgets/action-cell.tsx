@@ -1,7 +1,7 @@
 import { Badge } from '@shesa/ui';
 
-import { CATEGORY_META } from './constants';
-import { categorize } from './helpers';
+import { CATEGORY_META } from './audit-log-constants';
+import { categorize } from './audit-log-helpers';
 
 export function ActionCell({ action }: { readonly action: string }) {
   const cat = categorize(action);

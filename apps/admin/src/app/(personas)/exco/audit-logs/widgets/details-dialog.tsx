@@ -13,7 +13,7 @@ import { ActionCell } from './action-cell';
 import { CopyButton } from './copy-button';
 import { DetailCopyableField } from './detail-copyable-field';
 import { DetailField } from './detail-field';
-import type { AuditEntryRow } from './types';
+import type { AuditEntryRow } from './audit-log-widget-types';
 
 export function DetailsDialog({
   entry,

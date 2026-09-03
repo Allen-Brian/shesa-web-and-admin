@@ -10,7 +10,7 @@ import {
   useState,
 } from 'react';
 
-import type { PublicSong } from './data';
+import type { PublicSong } from './songs-content';
 
 interface PlayerState {
   readonly current: PublicSong | null;

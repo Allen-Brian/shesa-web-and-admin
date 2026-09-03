@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 
 import { StatsCard } from '@shesa/ui';
 
-import type { ObligationRow } from './types';
+import type { ObligationRow } from './obligation-widget-types';
 
 interface KpiStripProps {
   readonly rows: readonly ObligationRow[];

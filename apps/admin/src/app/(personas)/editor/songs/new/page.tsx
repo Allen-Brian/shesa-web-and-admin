@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, Music } from 'lucide-react';
 
-import { loadEditorSongs } from '../loader';
+import { loadEditorSongs } from '../load-songs';
 import { SongForm } from '../widgets/song-form';
 
 export const dynamic = 'force-dynamic';

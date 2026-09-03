@@ -11,7 +11,7 @@ import type {
   GovernancePositionHolderRow,
   GovernanceRoleHolderRow,
   PositionTableRow,
-} from './types';
+} from './governance-types';
 
 interface UsePositionColumnsArgs {
   readonly canManage: boolean;

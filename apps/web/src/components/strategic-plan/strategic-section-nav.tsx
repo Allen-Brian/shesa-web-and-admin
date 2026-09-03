@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { SECTION_NAV } from './data';
+import { SECTION_NAV } from './strategic-plan-content';
 
 /**
  * Sticky in-page nav that highlights the current section as the user

@@ -4,7 +4,7 @@ import { Crown, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@shesa/ui';
 
-import type { GovernanceRoleHolderRow } from './types';
+import type { GovernanceRoleHolderRow } from './governance-types';
 
 interface RolesPanelProps {
   readonly scopeLabel: string;

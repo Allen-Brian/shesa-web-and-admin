@@ -1,4 +1,4 @@
-import type { Album, MediaItem } from './data';
+import type { Album, MediaItem } from './gallery-content';
 
 export interface RawAlbum {
   readonly id: string;

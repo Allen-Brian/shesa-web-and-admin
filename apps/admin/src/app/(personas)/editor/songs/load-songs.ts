@@ -1,6 +1,6 @@
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { GroupRow, SongRow } from './widgets/types';
+import type { GroupRow, SongRow } from './widgets/song-widget-types';
 
 interface RawGroup {
   readonly id: string;

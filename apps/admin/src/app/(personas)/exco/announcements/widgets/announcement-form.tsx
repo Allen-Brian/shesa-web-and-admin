@@ -8,7 +8,7 @@ import { Label, toast } from '@shesa/ui';
 import { type AudienceOptions } from '@/components/audience/audience-selector';
 import { QuillEditor } from '@/components/rich-editor/quill-editor';
 
-import { createAnnouncement, type AnnouncementFormState } from '../actions';
+import { createAnnouncement, type AnnouncementFormState } from '../announcement-actions';
 import { AudienceCard } from './audience-card';
 import type { OwnerScopeOption } from './owner-scope-select';
 import { PublicationSettingsCard } from './publication-settings-card';

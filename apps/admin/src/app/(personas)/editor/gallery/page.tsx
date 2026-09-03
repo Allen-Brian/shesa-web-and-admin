@@ -1,6 +1,6 @@
 import { Images } from 'lucide-react';
 
-import { loadEditorGallery } from './loader';
+import { loadEditorGallery } from './load-gallery';
 import { AlbumsListView } from './widgets/albums-list-view';
 
 export const dynamic = 'force-dynamic';

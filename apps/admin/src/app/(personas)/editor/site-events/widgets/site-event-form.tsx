@@ -9,14 +9,14 @@ import { Button, Checkbox, ConfirmDialog, Input, Label, Textarea, toast } from '
 import { QuillEditor } from '@/components/rich-editor/quill-editor';
 
 import { createSiteEvent, deleteSiteEvent, updateSiteEvent } from '../actions/site-events';
-import type { SiteEventInput } from '../actions/types';
+import type { SiteEventInput } from '../actions/site-event-action-types';
 import { SiteEventCategoryManagerDialog } from './site-event-category-manager-dialog';
 import { TaxonomyPicker } from '@/components/taxonomy/taxonomy-picker';
 import { EventBannerPicker } from './event-banner-picker';
 import { FlyersEditor } from './flyers-editor';
 import { ProgramEditor } from './program-editor';
 import { slugify } from '@shesa/domain/utils';
-import type { CategoryRow, ProgramItem, SiteEventRow } from './types';
+import type { CategoryRow, ProgramItem, SiteEventRow } from './site-event-widget-types';
 
 interface Props {
   readonly categories: readonly CategoryRow[];

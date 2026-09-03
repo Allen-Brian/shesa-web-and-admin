@@ -1,4 +1,4 @@
-import type { PaymentMethod } from '../actions';
+import type { PaymentMethod } from '../donation-actions';
 
 /**
  * Shared row + form shapes for the donations view. Kept in a plain

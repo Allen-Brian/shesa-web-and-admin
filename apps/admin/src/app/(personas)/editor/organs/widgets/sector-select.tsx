@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@shesa/ui';
 
-import type { SectorRow } from './types';
+import type { SectorRow } from './organ-widget-types';
 
 interface Props {
   readonly sectors: readonly SectorRow[];

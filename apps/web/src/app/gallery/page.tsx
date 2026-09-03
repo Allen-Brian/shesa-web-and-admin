@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 import { AlbumGrid } from '@/components/gallery/album-grid';
-import type { Album } from '@/components/gallery/data';
+import type { Album } from '@/components/gallery/gallery-content';
 import {
   formatAlbum,
   type RawAlbum,

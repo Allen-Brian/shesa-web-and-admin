@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, ArticleInput } from './types';
+import type { ActionResult, ArticleInput } from './news-action-types';
 
 /**
  * CRUD for `cms.articles`. Category assignments are managed as a

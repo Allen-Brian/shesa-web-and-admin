@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, CategoryInput } from './types';
+import type { ActionResult, CategoryInput } from './gallery-action-types';
 
 /** CRUD for `cms.gallery_album_categories`. RLS gates on `cms.edit`. */
 export async function createAlbumCategory(

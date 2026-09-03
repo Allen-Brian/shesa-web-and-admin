@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, SectorInput } from './types';
+import type { ActionResult, SectorInput } from './organ-action-types';
 
 /** CRUD for `cms.organ_sectors`. RLS gates on `cms.edit`. */
 export async function createOrganSector(input: SectorInput): Promise<ActionResult<{ id: string }>> {

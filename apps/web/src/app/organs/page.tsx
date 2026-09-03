@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import type { PublicOrgan, PublicOrganSector } from '@/components/organs/data';
+import type { PublicOrgan, PublicOrganSector } from '@/components/organs/organs-content';
 import { OrgansHero } from '@/components/organs/organs-hero';
 import { OrgansSections } from '@/components/organs/organs-sections';
 import { getServerClient } from '@/lib/supabase-server';

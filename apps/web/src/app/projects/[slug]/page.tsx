@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import type { Project } from '@/components/projects/data';
+import type { Project } from '@/components/projects/projects-content';
 import { formatProject, type RawProject } from '@/components/projects/format-project';
 import { ProjectDetail } from '@/components/projects/project-detail';
 import { getServerClient } from '@/lib/supabase-server';

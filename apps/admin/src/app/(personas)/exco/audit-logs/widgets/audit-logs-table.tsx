@@ -15,7 +15,7 @@ import { ActorCell } from './actor-cell';
 import { DayCell } from './day-cell';
 import { EntityCell } from './entity-cell';
 import { TimeCell } from './time-cell';
-import type { SerialRow } from './types';
+import type { SerialRow } from './audit-log-widget-types';
 
 export function AuditLogsTable({
   rows,

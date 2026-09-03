@@ -5,7 +5,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 
 import { Button, Input } from '@shesa/ui';
 
-import type { GroupRow } from './types';
+import type { GroupRow } from './song-widget-types';
 
 interface Props {
   readonly group: GroupRow;

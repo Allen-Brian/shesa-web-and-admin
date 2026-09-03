@@ -10,7 +10,7 @@
  * otherwise say "Mainstream".
  */
 
-import type { ScopeType } from './constants';
+import type { ScopeType } from './scope-constants';
 
 export const SHESA_GLOBAL_LABEL = 'Shesa Global';
 

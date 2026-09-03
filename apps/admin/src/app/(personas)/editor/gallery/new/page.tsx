@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, Images } from 'lucide-react';
 
-import { loadEditorGallery } from '../loader';
+import { loadEditorGallery } from '../load-gallery';
 import { AlbumForm } from '../widgets/album-form';
 
 export const dynamic = 'force-dynamic';

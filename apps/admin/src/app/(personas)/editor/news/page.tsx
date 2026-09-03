@@ -1,6 +1,6 @@
 import { Newspaper } from 'lucide-react';
 
-import { loadEditorNews } from './loader';
+import { loadEditorNews } from './load-news';
 import { NewsListView } from './widgets/news-list-view';
 
 export const dynamic = 'force-dynamic';

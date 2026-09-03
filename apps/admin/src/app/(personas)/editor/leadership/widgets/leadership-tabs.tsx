@@ -8,7 +8,7 @@ import { BatchesTab } from './batches-tab';
 import { BranchesTab } from './branches-tab';
 import { DiasporaTab } from './diaspora-tab';
 import { MainstreamTab } from './mainstream-tab';
-import type { BatchLeaderRow, RegionalLeaderRow, SectorRow } from './types';
+import type { BatchLeaderRow, RegionalLeaderRow, SectorRow } from './leadership-widget-types';
 
 interface Props {
   readonly sectors: readonly SectorRow[];

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 
 import { isLocalSupabaseUrl } from '../leadership/is-local-supabase-url';
-import type { Article } from './data';
+import type { Article } from './news-content';
 
 interface Props {
   readonly article: Article;

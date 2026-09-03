@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, CategoryInput } from './types';
+import type { ActionResult, CategoryInput } from './site-event-action-types';
 
 /** CRUD for `cms.site_event_categories`. RLS gates on `cms.edit`. */
 export async function createEventCategory(

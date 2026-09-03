@@ -14,7 +14,7 @@ import {
 
 import { deleteBatchLeaders } from '../actions/batch-leaders';
 import { BatchLeaderDialog } from './batch-leader-dialog';
-import type { BatchLeaderRow } from './types';
+import type { BatchLeaderRow } from './leadership-widget-types';
 import { useBatchColumns, type BatchSerialRow } from './use-batch-columns';
 
 /** Batches tab — DataTable of every batch chair. Batch label is unique. */

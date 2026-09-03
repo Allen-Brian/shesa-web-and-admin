@@ -11,7 +11,7 @@ import {
   closeContribution,
   createContribution,
   extendContribution,
-} from '../actions';
+} from '../contribution-actions';
 import type { ContributionRow, CreateForm, ScopeOption } from './contributions-types';
 
 interface UseContributionsActionsInput {

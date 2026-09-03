@@ -10,7 +10,7 @@ import type {
 } from '@/components/governance/governance-panel';
 import type { GovernanceMemberPickerRow } from '@/components/governance/assign-position-dialog';
 
-import { ChapterDetailView, type ChapterMemberRow } from './widgets/detail-view';
+import { ChapterDetailView, type ChapterMemberRow } from './widgets/chapter-detail-view';
 
 export const dynamic = 'force-dynamic';
 

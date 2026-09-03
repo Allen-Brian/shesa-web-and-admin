@@ -1,6 +1,6 @@
 import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
-import type { ReportKey } from '../actions';
+import type { ReportKey } from '../report-actions';
 import { formatMethod } from './reports-formatters';
 import type { ResultRow } from './reports-types';
 

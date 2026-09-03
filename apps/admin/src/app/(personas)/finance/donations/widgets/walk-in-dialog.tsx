@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@shesa/ui';
 
-import type { PaymentMethod } from '../actions';
+import type { PaymentMethod } from '../donation-actions';
 import type { CampaignRow, WalkInForm } from './donations-types';
 import { PAYMENT_METHODS } from './donations-types';
 

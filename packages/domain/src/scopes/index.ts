@@ -8,6 +8,6 @@
  *     consumed by Exco UI to disable actions per scope shape.
  */
 
-export * from './constants';
+export * from './scope-constants';
 export * from './capability';
 export * from './display';

@@ -21,7 +21,7 @@ import {
 
 import { deleteArticles } from '../actions/articles';
 import { ArticleCategoryManagerDialog } from './article-category-manager-dialog';
-import type { ArticleRow, ArticleStatus, CategoryRow } from './types';
+import type { ArticleRow, ArticleStatus, CategoryRow } from './news-widget-types';
 import { useArticleColumns, type ArticleSerialRow } from './use-article-columns';
 
 interface Props {

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { motion, type Variants } from 'framer-motion';
 
-import type { Project } from './data';
+import type { Project } from './projects-content';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 

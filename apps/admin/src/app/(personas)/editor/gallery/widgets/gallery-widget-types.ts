@@ -1,4 +1,4 @@
-import type { MediaAspect, MediaKind } from '../actions/types';
+import type { MediaAspect, MediaKind } from '../actions/gallery-action-types';
 
 export interface CategoryRow {
   readonly id: string;

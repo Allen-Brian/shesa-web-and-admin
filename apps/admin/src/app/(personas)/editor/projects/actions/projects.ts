@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, ProjectInput } from './types';
+import type { ActionResult, ProjectInput } from './project-action-types';
 
 /**
  * CRUD for `cms.projects`. Categories are managed as a table

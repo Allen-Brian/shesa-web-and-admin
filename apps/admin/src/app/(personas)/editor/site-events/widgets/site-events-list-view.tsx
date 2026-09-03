@@ -21,7 +21,7 @@ import {
 
 import { deleteSiteEvents } from '../actions/site-events';
 import { SiteEventCategoryManagerDialog } from './site-event-category-manager-dialog';
-import type { CategoryRow, SiteEventRow } from './types';
+import type { CategoryRow, SiteEventRow } from './site-event-widget-types';
 import { useEventColumns, type EventSerialRow } from './use-event-columns';
 
 interface Props {

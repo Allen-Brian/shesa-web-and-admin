@@ -1,4 +1,4 @@
-import type { ObligationRow, PaymentDraft } from './types';
+import type { ObligationRow, PaymentDraft } from './obligation-widget-types';
 
 /**
  * Default amount = remaining outstanding for the common "settle this

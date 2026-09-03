@@ -11,7 +11,7 @@ import {
   toast,
 } from '@shesa/ui';
 
-import { NetworkForm, type NetworkInitialValues } from './form';
+import { NetworkForm, type NetworkInitialValues } from './network-form';
 
 interface NetworkFormDialogProps {
   readonly open: boolean;

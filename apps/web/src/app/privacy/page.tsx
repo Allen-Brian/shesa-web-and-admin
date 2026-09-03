@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { LegalDocument } from '@/components/legal/legal-document';
 import { LegalPageHero } from '@/components/legal/legal-page-hero';
 
-import { PRIVACY_META, PRIVACY_SECTIONS } from './data';
+import { PRIVACY_META, PRIVACY_SECTIONS } from './privacy-content';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy · SHESA',

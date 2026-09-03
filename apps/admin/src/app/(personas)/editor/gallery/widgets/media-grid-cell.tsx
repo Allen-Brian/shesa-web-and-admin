@@ -3,7 +3,7 @@
 import { ArrowLeft, ArrowRight, Trash2 } from 'lucide-react';
 
 import { MediaThumbnail } from './media-thumbnail';
-import type { MediaRow } from './types';
+import type { MediaRow } from './gallery-widget-types';
 
 interface Props {
   readonly item: MediaRow;

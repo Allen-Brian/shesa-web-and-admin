@@ -10,7 +10,7 @@ import {
   type EventInitialProgramItem,
   type EventInitialValues,
   type OwnerScopeOption,
-} from '../widgets/form';
+} from '../widgets/event-form';
 
 export const dynamic = 'force-dynamic';
 

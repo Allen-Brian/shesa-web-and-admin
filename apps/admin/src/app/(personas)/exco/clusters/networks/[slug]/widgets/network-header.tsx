@@ -9,9 +9,9 @@ import { Badge, BackLink, Button, ConfirmDialog, toast } from '@shesa/ui';
 import { NetworkIcon } from '@/components/networks/icon-picker';
 import type { ScopeStatus } from '@/components/clusters/cluster-list';
 
-import { archiveNetwork } from '../../actions';
+import { archiveNetwork } from '../../network-actions';
 import { NetworkFormDialog } from '../../widgets/form-dialog';
-import { buildChipGradient } from '../../widgets/list-view';
+import { buildChipGradient } from '../../widgets/networks-list-view';
 
 interface NetworkDetailHeaderProps {
   readonly scopeId: string;

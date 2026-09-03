@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import type { PublicSong, PublicSongGroup } from '@/components/songs/data';
+import type { PublicSong, PublicSongGroup } from '@/components/songs/songs-content';
 import { DockedPlayer } from '@/components/songs/docked-player';
 import { PlayerProvider } from '@/components/songs/player-context';
 import { SongsBrowser } from '@/components/songs/songs-browser';

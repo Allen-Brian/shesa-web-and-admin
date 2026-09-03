@@ -10,7 +10,7 @@ import {
   PAYMENT_OPTIONS,
   type AttireSize,
   type PaymentOption,
-} from './data';
+} from './agm-content';
 import { orderAttire } from './attire-action';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];

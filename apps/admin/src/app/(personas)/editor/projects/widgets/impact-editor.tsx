@@ -4,7 +4,7 @@ import { Plus, Trash2 } from 'lucide-react';
 
 import { Button, Input } from '@shesa/ui';
 
-import type { ImpactStat } from './types';
+import type { ImpactStat } from './project-widget-types';
 
 interface Props {
   readonly stats: readonly ImpactStat[];

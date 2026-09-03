@@ -1,6 +1,6 @@
 import { Network } from 'lucide-react';
 
-import { loadEditorOrgans } from './loader';
+import { loadEditorOrgans } from './load-organs';
 import { OrgansListView } from './widgets/organs-list-view';
 
 export const dynamic = 'force-dynamic';

@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 
 import { StatsCard } from '@shesa/ui';
 
-import type { ChargeRow } from './types';
+import type { ChargeRow } from './exco-charge-widget-types';
 
 /**
  * Four at-a-glance counters — total / active / draft / archived —

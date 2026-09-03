@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReportKey } from '../actions';
+import type { ReportKey } from '../report-actions';
 import { REPORTS } from './reports-types';
 
 /**

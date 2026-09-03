@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { extractInvokeMessage } from '@/lib/edge-invoke';
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult } from '../actions';
+import type { ActionResult } from '../charge-actions';
 
 /**
  * Server Actions for the charge-detail drill-down — the cell side

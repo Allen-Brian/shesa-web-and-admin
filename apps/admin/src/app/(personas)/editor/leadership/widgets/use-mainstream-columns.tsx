@@ -6,7 +6,7 @@ import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
 import { LeaderAvatar } from './leader-avatar';
 import { RowMenu } from './row-menu';
-import type { MainstreamLeaderRow } from './types';
+import type { MainstreamLeaderRow } from './leadership-widget-types';
 
 export type MainstreamSerialRow = MainstreamLeaderRow & {
   readonly serial: number;

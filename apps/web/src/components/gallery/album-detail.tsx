@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 
 import { MediaGrid } from './media-grid';
-import type { Album } from './data';
+import type { Album } from './gallery-content';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 

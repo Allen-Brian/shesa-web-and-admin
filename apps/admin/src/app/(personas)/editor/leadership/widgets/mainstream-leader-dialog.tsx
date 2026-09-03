@@ -22,7 +22,7 @@ import {
 
 import { createMainstreamLeader, updateMainstreamLeader } from '../actions/mainstream-leaders';
 import { LeaderPhotoPicker } from './leader-photo-picker';
-import type { MainstreamLeaderRow, SectorRow } from './types';
+import type { MainstreamLeaderRow, SectorRow } from './leadership-widget-types';
 
 interface Props {
   readonly open: boolean;

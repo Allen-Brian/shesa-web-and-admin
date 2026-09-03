@@ -7,7 +7,7 @@ import {
   deleteEventCategory,
   updateEventCategory,
 } from '../actions/site-event-categories';
-import type { CategoryRow } from './types';
+import type { CategoryRow } from './site-event-widget-types';
 
 interface Props {
   readonly open: boolean;

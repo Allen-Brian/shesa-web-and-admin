@@ -2,7 +2,7 @@ import { ClusterPageHeader } from '@/components/clusters/page-header';
 import { getServerClient } from '@/lib/supabase-server';
 import type { ScopeStatus } from '@/components/clusters/cluster-list';
 
-import { NetworksListView, type NetworkRow } from './widgets/list-view';
+import { NetworksListView, type NetworkRow } from './widgets/networks-list-view';
 
 export const dynamic = 'force-dynamic';
 

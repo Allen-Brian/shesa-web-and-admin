@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { LegalDocument } from '@/components/legal/legal-document';
 import { LegalPageHero } from '@/components/legal/legal-page-hero';
 
-import { TERMS_META, TERMS_SECTIONS } from './data';
+import { TERMS_META, TERMS_SECTIONS } from './terms-content';
 
 export const metadata: Metadata = {
   title: 'Terms of Service · SHESA',

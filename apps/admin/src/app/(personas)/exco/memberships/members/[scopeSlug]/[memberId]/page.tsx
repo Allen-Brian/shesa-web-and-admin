@@ -8,7 +8,7 @@ import {
   type MemberProfile,
   type MembershipHistoryRow,
   type TransferDestination,
-} from './widgets/detail-view';
+} from './widgets/member-detail-view';
 
 export const dynamic = 'force-dynamic';
 

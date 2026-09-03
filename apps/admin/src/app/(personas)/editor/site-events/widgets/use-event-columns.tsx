@@ -7,7 +7,7 @@ import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
 import { LeaderAvatar } from '../../leadership/widgets/leader-avatar';
 import { EventStatusBadge } from './event-status-badge';
-import type { SiteEventRow } from './types';
+import type { SiteEventRow } from './site-event-widget-types';
 
 export type EventSerialRow = SiteEventRow & {
   readonly serial: number;

@@ -6,7 +6,7 @@ import { Badge, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
 import { LeaderAvatar } from './leader-avatar';
 import { RowMenu } from './row-menu';
-import type { BatchLeaderRow } from './types';
+import type { BatchLeaderRow } from './leadership-widget-types';
 
 export type BatchSerialRow = BatchLeaderRow & { readonly serial: number };
 

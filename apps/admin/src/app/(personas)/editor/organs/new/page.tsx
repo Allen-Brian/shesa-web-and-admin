@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, Network } from 'lucide-react';
 
-import { loadEditorOrgans } from '../loader';
+import { loadEditorOrgans } from '../load-organs';
 import { OrganForm } from '../widgets/organ-form';
 
 export const dynamic = 'force-dynamic';

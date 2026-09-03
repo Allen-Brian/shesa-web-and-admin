@@ -8,7 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 import { ArticlePreview } from './article-preview';
 import { ArticleView } from './article-view';
-import type { Article } from './data';
+import type { Article } from './news-content';
 import { Pagination } from './pagination';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];

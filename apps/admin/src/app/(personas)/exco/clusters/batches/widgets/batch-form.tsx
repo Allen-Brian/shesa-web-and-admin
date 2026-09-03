@@ -7,7 +7,7 @@ import { Button, Input, Label, Textarea, toast } from '@shesa/ui';
 
 import { formatOrdinal } from '@/lib/batches/ordinal';
 
-import { createBatch, updateBatch } from '../actions';
+import { createBatch, updateBatch } from '../batch-actions';
 import type { BatchFormState } from '../batch-form-types';
 
 export interface BatchInitialValues {

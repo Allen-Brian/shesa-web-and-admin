@@ -14,7 +14,7 @@ import {
   type RowClickedEvent,
 } from '@shesa/ui';
 
-import { archiveBranch, restoreBranch } from '../actions';
+import { archiveBranch, restoreBranch } from '../branch-actions';
 import type { BranchInitialValues } from './branch-form';
 import { BranchFormDialog } from './branch-form-dialog';
 import { buildBranchesColumns } from './branches-columns';

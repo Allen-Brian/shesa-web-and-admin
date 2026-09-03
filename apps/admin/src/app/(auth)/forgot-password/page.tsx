@@ -10,7 +10,7 @@ import {
   Logo,
 } from '@shesa/ui';
 
-import { ForgotPasswordForm } from './form';
+import { ForgotPasswordForm } from './forgot-password-form';
 
 export const metadata = {
   title: 'Shesa Admin — Reset password',

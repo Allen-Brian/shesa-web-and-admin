@@ -9,7 +9,7 @@ import { Sprout } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
 
 import { isLocalSupabaseUrl } from '../leadership/is-local-supabase-url';
-import type { Project, ProjectStatus } from './data';
+import type { Project, ProjectStatus } from './projects-content';
 
 /** "All" first, then every unique category name from the loaded set. */
 type CategoryFilter = 'All' | string;

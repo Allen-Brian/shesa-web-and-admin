@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 
 import { submitAgmRegistration, type AgmRegistrationResult } from '@/lib/agm-registration';
 
-import { AGM_TICKET_UNIT_PRICE_XAF, PAYMENT_OPTIONS, type PaymentOption } from './data';
+import { AGM_TICKET_UNIT_PRICE_XAF, PAYMENT_OPTIONS, type PaymentOption } from './agm-content';
 
 export interface RegisterInput {
   readonly fullName: string;

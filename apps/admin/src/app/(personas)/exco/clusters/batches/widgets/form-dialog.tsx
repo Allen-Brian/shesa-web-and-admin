@@ -11,7 +11,7 @@ import {
   toast,
 } from '@shesa/ui';
 
-import { BatchForm, type BatchInitialValues } from './form';
+import { BatchForm, type BatchInitialValues } from './batch-form';
 
 interface BatchFormDialogProps {
   readonly open: boolean;

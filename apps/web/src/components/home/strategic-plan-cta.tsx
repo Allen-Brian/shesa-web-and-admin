@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 
-import { GOALS } from '@/components/strategic-plan/data';
+import { GOALS } from '@/components/strategic-plan/strategic-plan-content';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 

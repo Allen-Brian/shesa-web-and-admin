@@ -4,8 +4,8 @@ import { getServerClient } from '@/lib/supabase-server';
 import type { ScopeStatus } from '@/components/clusters/cluster-list';
 import { resolveMemberBadges } from '@/lib/resolve-badges';
 
-import { NetworkDetailHeader } from './widgets/header';
-import { NetworkRoster, type RosterRow } from './widgets/roster';
+import { NetworkDetailHeader } from './widgets/network-header';
+import { NetworkRoster, type RosterRow } from './widgets/network-roster';
 
 export const dynamic = 'force-dynamic';
 

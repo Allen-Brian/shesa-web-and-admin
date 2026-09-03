@@ -17,7 +17,7 @@ import {
 import { deleteMainstreamLeaders } from '../actions/mainstream-leaders';
 import { MainstreamLeaderDialog } from './mainstream-leader-dialog';
 import { LeadershipSectorManagerDialog } from './leadership-sector-manager-dialog';
-import type { MainstreamLeaderRow, SectorRow } from './types';
+import type { MainstreamLeaderRow, SectorRow } from './leadership-widget-types';
 import { useMainstreamColumns, type MainstreamSerialRow } from './use-mainstream-columns';
 
 interface Props {

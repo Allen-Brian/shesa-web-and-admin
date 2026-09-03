@@ -1,6 +1,6 @@
 'use client';
 
-import type { SerialRow } from './types';
+import type { SerialRow } from './exco-charge-widget-types';
 
 /**
  * Stacked name + description cell. Description wraps to two lines

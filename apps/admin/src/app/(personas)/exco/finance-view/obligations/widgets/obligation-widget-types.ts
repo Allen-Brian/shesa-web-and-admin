@@ -1,6 +1,6 @@
-import type { PaymentMethod } from '../actions';
+import type { PaymentMethod } from '../obligation-actions';
 
-export type { PaymentMethod } from '../actions';
+export type { PaymentMethod } from '../obligation-actions';
 
 export interface ObligationRow {
   readonly id: string;

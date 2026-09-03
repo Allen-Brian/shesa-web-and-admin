@@ -8,7 +8,7 @@ import { ChargeAmountCell } from './amount-cell';
 import { formatRecurrence } from '@/lib/format/recurrence';
 import { ChargeNameCell } from './name-cell';
 import { ChargeStatusBadge } from './charge-status-badge';
-import type { SerialRow } from './types';
+import type { SerialRow } from './exco-charge-widget-types';
 
 /**
  * Column defs for the branch read-only charges table. Extracted so

@@ -15,7 +15,7 @@ import {
   toast,
 } from '@shesa/ui';
 
-import { forgiveObligation, recordObligationPayment } from '../actions';
+import { forgiveObligation, recordObligationPayment } from '../charge-detail-actions';
 
 type PaymentMethod = 'mtn_momo' | 'orange_money' | 'cash' | 'bank_transfer' | 'card';
 

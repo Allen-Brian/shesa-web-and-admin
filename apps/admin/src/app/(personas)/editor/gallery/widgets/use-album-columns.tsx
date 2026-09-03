@@ -6,7 +6,7 @@ import { CalendarDays, Film, Image as ImageIcon, Link2 } from 'lucide-react';
 import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
 import { LeaderAvatar } from '../../leadership/widgets/leader-avatar';
-import type { AlbumRow } from './types';
+import type { AlbumRow } from './gallery-widget-types';
 
 export type AlbumSerialRow = AlbumRow & {
   readonly serial: number;

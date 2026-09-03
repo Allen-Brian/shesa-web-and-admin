@@ -2,7 +2,7 @@
 
 import { motion, type Variants } from 'framer-motion';
 
-import type { PublicOrganSector } from './data';
+import type { PublicOrganSector } from './organs-content';
 import { OrganCard } from './organ-card';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];

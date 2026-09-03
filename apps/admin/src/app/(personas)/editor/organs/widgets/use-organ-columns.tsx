@@ -6,7 +6,7 @@ import { MapPin, Users } from 'lucide-react';
 import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
 import { LeaderAvatar } from '../../leadership/widgets/leader-avatar';
-import type { OrganRow } from './types';
+import type { OrganRow } from './organ-widget-types';
 
 export type OrganSerialRow = OrganRow & {
   readonly serial: number;

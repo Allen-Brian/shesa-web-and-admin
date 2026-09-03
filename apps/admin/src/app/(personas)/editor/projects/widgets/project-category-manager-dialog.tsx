@@ -7,7 +7,7 @@ import {
   deleteProjectCategory,
   updateProjectCategory,
 } from '../actions/project-categories';
-import type { CategoryRow } from './types';
+import type { CategoryRow } from './project-widget-types';
 
 interface Props {
   readonly open: boolean;

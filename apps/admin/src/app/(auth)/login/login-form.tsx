@@ -7,7 +7,7 @@ import { Eye, EyeOff } from 'lucide-react';
 
 import { Button, Input, Label, toast } from '@shesa/ui';
 
-import { signIn, type SignInState } from './actions';
+import { signIn, type SignInState } from './login-actions';
 
 const INITIAL: SignInState = { ok: true };
 

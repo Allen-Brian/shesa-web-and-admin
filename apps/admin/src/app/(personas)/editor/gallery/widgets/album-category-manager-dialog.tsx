@@ -7,7 +7,7 @@ import {
   deleteAlbumCategory,
   updateAlbumCategory,
 } from '../actions/album-categories';
-import type { CategoryRow } from './types';
+import type { CategoryRow } from './gallery-widget-types';
 
 interface Props {
   readonly open: boolean;

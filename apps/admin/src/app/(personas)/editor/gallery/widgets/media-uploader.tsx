@@ -7,7 +7,7 @@ import { Button, toast } from '@shesa/ui';
 
 import { uploadAlbumMedia } from '../actions/photo-actions';
 import { createMediaItem } from '../actions/media';
-import type { MediaKind } from '../actions/types';
+import type { MediaKind } from '../actions/gallery-action-types';
 import { VideoUrlDialog } from './video-url-dialog';
 
 interface Props {

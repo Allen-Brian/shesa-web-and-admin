@@ -16,7 +16,7 @@
  * button before submitting rather than relying on a round-trip 400.
  */
 
-import type { ChapterKind, ScopeType } from '../scopes/constants';
+import type { ChapterKind, ScopeType } from '../scopes/scope-constants';
 
 export interface MembershipShape {
   scopeType: ScopeType;

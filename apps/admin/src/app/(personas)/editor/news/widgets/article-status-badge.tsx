@@ -2,7 +2,7 @@
 
 import { Badge } from '@shesa/ui';
 
-import type { ArticleStatus } from './types';
+import type { ArticleStatus } from './news-widget-types';
 
 const STYLES: Record<ArticleStatus, string> = {
   draft: 'border-border bg-muted/40 text-muted-foreground',

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, Newspaper } from 'lucide-react';
 
-import { loadEditorNews } from '../loader';
+import { loadEditorNews } from '../load-news';
 import { ArticleForm } from '../widgets/article-form';
 
 export const dynamic = 'force-dynamic';

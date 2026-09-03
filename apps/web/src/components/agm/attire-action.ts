@@ -10,7 +10,7 @@ import {
   PAYMENT_OPTIONS,
   type AttireSize,
   type PaymentOption,
-} from './data';
+} from './agm-content';
 
 export interface AttireOrderInput {
   readonly fullName: string;

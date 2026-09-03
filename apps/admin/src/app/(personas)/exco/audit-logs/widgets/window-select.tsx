@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shesa/ui';
 
-import type { WindowFilter } from './types';
+import type { WindowFilter } from './audit-log-widget-types';
 
 export function WindowSelect({
   value,

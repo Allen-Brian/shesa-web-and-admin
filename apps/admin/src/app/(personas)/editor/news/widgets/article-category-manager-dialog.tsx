@@ -7,7 +7,7 @@ import {
   deleteArticleCategory,
   updateArticleCategory,
 } from '../actions/article-categories';
-import type { CategoryRow } from './types';
+import type { CategoryRow } from './news-widget-types';
 
 interface Props {
   readonly open: boolean;

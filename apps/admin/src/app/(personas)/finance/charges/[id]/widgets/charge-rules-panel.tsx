@@ -6,7 +6,7 @@ import { Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
 
 import { Button, GradientPanel, toast } from '@shesa/ui';
 
-import { removeRule } from '../actions';
+import { removeRule } from '../charge-detail-actions';
 import type { ChargeRulesData, RuleForm } from './charge-detail-types';
 import { ChargeRuleDialog } from './charge-rule-dialog';
 

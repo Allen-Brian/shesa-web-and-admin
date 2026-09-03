@@ -65,6 +65,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Runs before lint: a filename violation is cheap to detect and the
+      # standard only holds if something enforces it (frontend.md §5).
+      - name: Filenames
+        run: pnpm check:filenames
+
       - name: Lint
         run: pnpm lint
 

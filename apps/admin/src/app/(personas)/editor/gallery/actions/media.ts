@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, MediaInput } from './types';
+import type { ActionResult, MediaInput } from './gallery-action-types';
 
 /**
  * CRUD for `cms.gallery_media`. Media items are children of an album

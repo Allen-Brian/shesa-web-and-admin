@@ -7,7 +7,7 @@ import { Button, ColorField, Input, Label, Textarea, toast } from '@shesa/ui';
 
 import { IconPicker } from '@/components/networks/icon-picker';
 
-import { createNetwork, updateNetwork, type NetworkFormState } from '../actions';
+import { createNetwork, updateNetwork, type NetworkFormState } from '../network-actions';
 
 export interface NetworkInitialValues {
   readonly scopeId?: string;

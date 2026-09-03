@@ -19,7 +19,7 @@ import {
   TimePicker,
 } from '@shesa/ui';
 
-import type { OwnerScopeOption } from './form';
+import type { OwnerScopeOption } from './event-form';
 
 interface EventPublicationSettingsCardProps {
   readonly ownerScopes: readonly OwnerScopeOption[];

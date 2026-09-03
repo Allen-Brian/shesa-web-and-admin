@@ -13,7 +13,7 @@ import {
   extendCampaign,
   recordWalkInDonation,
   reverseDonation,
-} from '../actions';
+} from '../donation-actions';
 import type { CampaignRow, NewCampaignForm, ScopeOption, WalkInForm } from './donations-types';
 
 interface UseDonationsActionsInput {

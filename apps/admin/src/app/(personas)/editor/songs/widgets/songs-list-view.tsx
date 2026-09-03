@@ -21,7 +21,7 @@ import {
 
 import { deleteSongs } from '../actions/songs';
 import { GroupManagerDialog } from './group-manager-dialog';
-import type { GroupRow, SongRow } from './types';
+import type { GroupRow, SongRow } from './song-widget-types';
 import { useSongColumns, type SongSerialRow } from './use-song-columns';
 
 interface Props {

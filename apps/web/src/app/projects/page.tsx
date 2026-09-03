@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 import { PartnersTicker } from '@/components/home/partners-ticker';
-import type { Project } from '@/components/projects/data';
+import type { Project } from '@/components/projects/projects-content';
 import { formatProject, type RawProject } from '@/components/projects/format-project';
 import { ProjectsHero } from '@/components/projects/projects-hero';
 import { ProjectsList } from '@/components/projects/projects-list';

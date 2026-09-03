@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@shesa/ui';
 
-import type { GroupRow } from './types';
+import type { GroupRow } from './song-widget-types';
 
 interface Props {
   readonly groups: readonly GroupRow[];

@@ -1,6 +1,6 @@
 import { CalendarDays } from 'lucide-react';
 
-import { loadEditorSiteEvents } from './loader';
+import { loadEditorSiteEvents } from './load-site-events';
 import { SiteEventsListView } from './widgets/site-events-list-view';
 
 export const dynamic = 'force-dynamic';

@@ -1,6 +1,6 @@
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { OrganRow, SectorRow } from './widgets/types';
+import type { OrganRow, SectorRow } from './widgets/organ-widget-types';
 
 interface RawSector {
   readonly id: string;

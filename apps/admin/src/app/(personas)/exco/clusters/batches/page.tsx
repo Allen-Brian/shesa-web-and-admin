@@ -2,7 +2,7 @@ import { ClusterPageHeader } from '@/components/clusters/page-header';
 import { getServerClient } from '@/lib/supabase-server';
 import type { ScopeStatus } from '@/components/clusters/cluster-list';
 
-import { BatchesListView, type BatchRow } from './widgets/list-view';
+import { BatchesListView, type BatchRow } from './widgets/batches-list-view';
 
 export const dynamic = 'force-dynamic';
 

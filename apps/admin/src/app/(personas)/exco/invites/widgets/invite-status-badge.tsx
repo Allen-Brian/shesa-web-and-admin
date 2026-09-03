@@ -4,7 +4,7 @@ import { AlertTriangle } from 'lucide-react';
 
 import { Badge } from '@shesa/ui';
 
-import type { ClaimStatus } from './types';
+import type { ClaimStatus } from './invite-widget-types';
 
 const STYLES: Record<ClaimStatus, string> = {
   not_invited: 'border-muted-foreground/30 bg-muted/40 text-muted-foreground',

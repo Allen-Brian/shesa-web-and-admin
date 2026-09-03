@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 
 import { StatsCard } from '@shesa/ui';
 
-import type { InviteRow } from './types';
+import type { InviteRow } from './invite-widget-types';
 
 interface InvitesStatsProps {
   readonly rows: readonly InviteRow[];

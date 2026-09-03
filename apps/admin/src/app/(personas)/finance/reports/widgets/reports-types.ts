@@ -8,7 +8,7 @@ import type {
   PaymentMethodRow,
   ReportKey,
   TreasuryStatementRow,
-} from '../actions';
+} from '../report-actions';
 
 /**
  * Shared types + catalogue constants for the reports view. Kept

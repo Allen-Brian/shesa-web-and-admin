@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import type { ActionResult, SiteEventInput } from './types';
+import type { ActionResult, SiteEventInput } from './site-event-action-types';
 
 /**
  * CRUD for `cms.site_events`. The is_featured column is a unique

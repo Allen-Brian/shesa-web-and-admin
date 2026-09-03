@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import type { SiteEvent } from '@/components/events/data';
+import type { SiteEvent } from '@/components/events/events-content';
 import { EventDetail } from '@/components/events/event-detail';
 import { formatEvent, type RawSiteEvent } from '@/components/events/format-event';
 import { getServerClient } from '@/lib/supabase-server';

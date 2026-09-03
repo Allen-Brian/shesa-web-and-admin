@@ -15,9 +15,9 @@ import {
   toast,
 } from '@shesa/ui';
 
-import type { RegionalLeaderInput } from '../actions/types';
+import type { RegionalLeaderInput } from '../actions/leadership-action-types';
 import { LeaderPhotoPicker } from './leader-photo-picker';
-import type { RegionalLeaderRow } from './types';
+import type { RegionalLeaderRow } from './leadership-widget-types';
 
 type CreateFn = (input: RegionalLeaderInput) => Promise<{ ok: boolean; message?: string }>;
 type UpdateFn = (

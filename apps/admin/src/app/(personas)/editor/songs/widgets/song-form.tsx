@@ -7,13 +7,13 @@ import { Save, Trash2 } from 'lucide-react';
 import { Button, ConfirmDialog, Input, Label, Textarea, toast } from '@shesa/ui';
 
 import { createSong, deleteSong, updateSong } from '../actions/songs';
-import type { SongInput } from '../actions/types';
+import type { SongInput } from '../actions/song-action-types';
 import { GroupManagerDialog } from './group-manager-dialog';
 import { GroupSelect } from './group-select';
 import { SongAudioPicker } from './song-audio-picker';
 import { SongCoverPicker } from './song-cover-picker';
 import { slugify } from '@shesa/domain/utils';
-import type { GroupRow, SongRow } from './types';
+import type { GroupRow, SongRow } from './song-widget-types';
 
 interface Props {
   readonly groups: readonly GroupRow[];

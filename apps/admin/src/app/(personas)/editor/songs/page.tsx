@@ -1,6 +1,6 @@
 import { Music } from 'lucide-react';
 
-import { loadEditorSongs } from './loader';
+import { loadEditorSongs } from './load-songs';
 import { SongsListView } from './widgets/songs-list-view';
 
 export const dynamic = 'force-dynamic';

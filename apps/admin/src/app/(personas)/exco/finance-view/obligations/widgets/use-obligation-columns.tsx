@@ -8,7 +8,7 @@ import { Button, type ColDef, type ICellRendererParams } from '@shesa/ui';
 import { ObligationStatusBadge } from './obligation-status-badge';
 import { ProgressCell } from './progress-cell';
 import { formatRecurrence } from '@/lib/format/recurrence';
-import type { ObligationRow, SerialRow } from './types';
+import type { ObligationRow, SerialRow } from './obligation-widget-types';
 
 interface UseObligationColumnsArgs {
   readonly onOpenPayment: (row: ObligationRow) => void;

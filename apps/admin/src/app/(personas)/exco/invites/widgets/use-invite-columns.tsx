@@ -6,7 +6,7 @@ import { RefreshCcw } from 'lucide-react';
 import { Button, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
 import { InviteStatusBadge } from './invite-status-badge';
-import type { ClaimStatus, SerialRow } from './types';
+import type { ClaimStatus, SerialRow } from './invite-widget-types';
 
 interface UseInviteColumnsArgs {
   readonly pending: boolean;

@@ -5,7 +5,7 @@ import { useFormStatus } from 'react-dom';
 
 import { Button, Input, Label, toast } from '@shesa/ui';
 
-import { updatePassword, type ResetPasswordState } from './actions';
+import { updatePassword, type ResetPasswordState } from './reset-password-actions';
 
 const INITIAL: ResetPasswordState = { ok: true };
 
