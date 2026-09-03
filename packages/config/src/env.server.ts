@@ -46,14 +46,19 @@ const serverEnvSchema = z.object({
   /** SMS provider mode — Phase 0 uses the stub log adapter. */
   SMS_PROVIDER_MODE: z.enum(['stub', 'live']).default('stub'),
 
-  /* ── Payment gateway ──────────────────────────────────────────────
-   * No provider is connected. Fapshi was removed on 2026-09-02; Tranzak
-   * is the intended replacement and its credentials land here when the
-   * integration does. Keep them `.optional()` when they arrive — this
-   * schema is loaded by every app through packages/supabase, and making
-   * them required would fail admin's boot over credentials it has no
-   * use for. Assert presence at the point of use instead.
+  /* ── Payment gateway (Tranzak) ────────────────────────────────────
+   * Only the MODE lives here, and only so the admin UI can label a
+   * transaction as a test one. The credentials deliberately do NOT:
+   * every authenticated write goes through an Edge Function (ADR-0033),
+   * so the Deno runtime is the only place that needs them, and keeping
+   * them out of this schema keeps them out of both Next apps' process
+   * environments. See supabase/functions/_shared/tranzak-config.ts.
+   *
+   * Optional because this schema is loaded by every app through
+   * packages/supabase — making it required would fail admin's boot over
+   * a setting it only uses for a badge.
    * ---------------------------------------------------------------- */
+  TRANZAK_MODE: z.enum(['sandbox', 'live']).optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
@@ -74,4 +79,5 @@ export const serverEnv: ServerEnv = serverEnvSchema.parse({
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   EMAIL_FROM: process.env.EMAIL_FROM,
   SMS_PROVIDER_MODE: process.env.SMS_PROVIDER_MODE,
+  TRANZAK_MODE: process.env.TRANZAK_MODE,
 });

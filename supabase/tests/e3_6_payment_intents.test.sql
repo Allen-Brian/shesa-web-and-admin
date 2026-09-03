@@ -6,8 +6,11 @@
 --   * payment_intent_status enum has the four values in order.
 --   * CHECK payment_intents_targets_something rejects (obligation_id
 --     NULL AND charge_id NULL).
---   * CHECK payment_intents_terminal_has_resulting_payment rejects a
---     succeeded row without resulting_payment_id.
+--   * CHECK payment_intents_settlement_matches_mode rejects a succeeded
+--     live row without resulting_payment_id. (It replaced
+--     payment_intents_terminal_has_resulting_payment when sandbox mode
+--     landed; the mode-specific halves are covered in
+--     e3_15_payment_modes.test.sql.)
 --   * RLS: finance role at scope CAN SELECT; unrelated user CANNOT.
 --   * Full happy path: insert intent → insert payment (as confirm does)
 --     + update intent to succeeded → obligation transitions via the M4A
@@ -95,27 +98,27 @@ SELECT is(
 
 SELECT throws_ok(
   $$ INSERT INTO finance.payment_intents
-       (scope_id, amount, currency, method, available_from)
+       (scope_id, amount, currency, method, available_from, mode)
      VALUES
-       ('cccccccc-1111-0000-0000-000000000001', 5000, 'XAF', 'cash', NOW()) $$,
+       ('cccccccc-1111-0000-0000-000000000001', 5000, 'XAF', 'cash', NOW(), 'live') $$,
   '23514',
   NULL,
   'payment_intents: NULL obligation AND NULL charge raises 23514'
 );
 
 -------------------------------------------------------------------------------
--- C) CHECK terminal_has_resulting_payment rejects succeeded w/o payment id
+-- C) CHECK settlement_matches_mode rejects succeeded w/o a settlement
 -------------------------------------------------------------------------------
 
 SELECT throws_ok(
   $$ INSERT INTO finance.payment_intents
-       (obligation_id, charge_id, scope_id, payer_member_id, amount, currency, method, status, available_from)
+       (obligation_id, charge_id, scope_id, payer_member_id, amount, currency, method, status, available_from, mode)
      VALUES
        ('cccccccc-bbbb-0000-0000-000000000001',
         'cccccccc-cccc-0000-0000-000000000001',
         'cccccccc-1111-0000-0000-000000000001',
         'cccccccc-4444-0000-0000-000000000001',
-        20000, 'XAF', 'mtn_momo', 'succeeded', NOW()) $$,
+        20000, 'XAF', 'mtn_momo', 'succeeded', NOW(), 'live') $$,
   '23514',
   NULL,
   'payment_intents: status=succeeded without resulting_payment_id raises 23514'
@@ -128,7 +131,7 @@ SELECT throws_ok(
 -- Insert a pending intent whose available_from is already past.
 INSERT INTO finance.payment_intents
   (id, obligation_id, charge_id, scope_id, payer_member_id, amount, currency, method,
-   status, available_from, created_by)
+   status, available_from, created_by, mode)
 VALUES (
   'cccccccc-dddd-0000-0000-000000000001',
   'cccccccc-bbbb-0000-0000-000000000001',
@@ -137,7 +140,8 @@ VALUES (
   'cccccccc-4444-0000-0000-000000000001',
   20000, 'XAF', 'mtn_momo',
   'pending', NOW() - INTERVAL '1 second',
-  'cccccccc-0000-0000-0000-00000000aaaa'
+  'cccccccc-0000-0000-0000-00000000aaaa',
+  'live'
 );
 
 SELECT is(

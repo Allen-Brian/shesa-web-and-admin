@@ -182,6 +182,14 @@ export const ENV_VARS = [
       'SMS provider mode. `stub` logs to console without sending. `live` enabled per-phase once a Cameroon-capable provider is wired (Phase 6).',
   },
   {
+    name: 'TRANZAK_MODE',
+    scope: 'server',
+    source: 'auto',
+    defaults: { local: 'sandbox', staging: 'sandbox', production: 'sandbox' },
+    description:
+      'Which Tranzak environment payments run against. Recorded on every finance.payment_intents row and it decides where a settlement lands: live → finance.payments (ledger, treasury, receipt, immutable), sandbox → finance.sandbox_payments (inert). Production defaults to sandbox until live credentials exist — flipping it is a deliberate act. The credentials themselves are Edge Function secrets, not app env; see supabase/functions/_shared/tranzak-config.ts.',
+  },
+  {
     name: 'NEXT_SERVER_ACTIONS_ENCRYPTION_KEY',
     scope: 'server',
     source: 'auto',
