@@ -1,6 +1,6 @@
 import { BadgeDollarSign, CircleDollarSign } from 'lucide-react';
 
-import { formatRecurrence } from './charges-helpers';
+import { formatRecurrence } from '@/lib/format/recurrence';
 import type { SerialRow } from './charges-types';
 
 /**

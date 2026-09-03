@@ -1,16 +1,6 @@
-import type { CreateGroupForm } from './groups-types';
+import { slugify as domainSlugify } from '@shesa/domain/utils';
 
-/**
- * Slugify a group name into a URL-safe slug. Mirrors the edge fn's
- * regex (lowercase alphanumerics with single hyphens between words).
- */
-export function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
-}
+import type { CreateGroupForm } from './groups-types';
 
 /** Fresh state for the "new group" dialog. */
 export function initialCreateGroup(): CreateGroupForm {
@@ -22,4 +12,15 @@ export function initialCreateGroup(): CreateGroupForm {
     endsOn: '',
     showInSidebar: true,
   };
+}
+
+/**
+ * Slug for this surface, capped at 80 characters.
+ *
+ * The local copy this replaces skipped the diacritic strip, so accented
+ * names slugged wrong — `Buéa` became `bu-a`. @shesa/domain/utils is the
+ * single source named by frontend.md §6.
+ */
+export function slugify(input: string): string {
+  return domainSlugify(input, 80);
 }

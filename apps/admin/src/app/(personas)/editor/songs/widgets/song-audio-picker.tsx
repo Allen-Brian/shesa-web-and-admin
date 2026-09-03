@@ -6,7 +6,7 @@ import { AudioLines, Loader2, Play, Upload, X } from 'lucide-react';
 import { Button, Input, Label, toast } from '@shesa/ui';
 
 import { deleteSongAudio, uploadSongAudio } from '../actions/photo-actions';
-import { formatDuration } from './slugify';
+import { formatDuration } from './song-duration';
 
 interface Props {
   readonly value: string;

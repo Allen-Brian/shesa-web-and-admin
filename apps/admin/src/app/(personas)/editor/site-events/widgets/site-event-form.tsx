@@ -15,7 +15,7 @@ import { CategoryPicker } from './category-picker';
 import { EventBannerPicker } from './event-banner-picker';
 import { FlyersEditor } from './flyers-editor';
 import { ProgramEditor } from './program-editor';
-import { slugify } from './slugify';
+import { slugify } from '@shesa/domain/utils';
 import type { CategoryRow, ProgramItem, SiteEventRow } from './types';
 
 interface Props {

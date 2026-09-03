@@ -31,27 +31,8 @@ export const tooltipStyle: React.CSSProperties = {
 };
 
 /** Human label for the payment method enum. */
-export function formatMethod(method: string): string {
-  switch (method) {
-    case 'cash':
-      return 'Cash';
-    case 'mtn_momo':
-      return 'MTN MoMo';
-    case 'orange_money':
-      return 'Orange Money';
-    case 'bank_transfer':
-      return 'Bank transfer';
-    case 'card':
-      return 'Card';
-    default:
-      return method;
-  }
-}
 
 /** Rounded whole-number money with a trailing currency suffix. */
-export function formatMoney(amount: number, currency: string): string {
-  return `${new Intl.NumberFormat().format(Math.round(amount))} ${currency}`.trim();
-}
 
 /** Compact axis tick — `1.2M` / `340k` / `812`. */
 export function compactNumber(n: number): string {
@@ -83,3 +64,9 @@ export function downloadCsv(baseName: string, rows: readonly (readonly string[])
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// Re-exported from the shared formatters so this module keeps one import
+// surface. These were local copies — formatMethod alone existed in five
+// places, formatMoney in four.
+export { formatPaymentMethod as formatMethod } from '@/lib/format/payment-method';
+export { formatMoney } from '@/lib/finance/format-money';

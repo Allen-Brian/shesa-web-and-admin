@@ -6,7 +6,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { GradientPanel } from '@shesa/ui';
 
 import { CHART_PRIMARY, tooltipLabelStyle, tooltipStyle } from './dashboard-chart-config';
-import { formatCompact } from './dashboard-formatters';
+import { formatCompact } from '@/lib/finance/format-money';
 
 interface DashboardContributionsTimelineCardProps {
   readonly data: readonly { readonly month: string; readonly raised: number }[];

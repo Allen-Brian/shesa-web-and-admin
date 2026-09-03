@@ -2,9 +2,10 @@ import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 
 import { GradientPanel } from '@shesa/ui';
 
-import { formatMoney, formatRelative } from './dashboard-formatters';
+import { formatMoney } from '@/lib/finance/format-money';
+import { formatRelativeLong } from '@/lib/format/relative-time';
 import type { DashboardActivity } from './dashboard-types';
-import { EmptyInline } from './empty-inline';
+import { EmptyInline } from '@/components/dashboard/empty-inline';
 
 /**
  * Mixed payments + expenses feed for the dashboard's operational
@@ -62,7 +63,7 @@ export function RecentActivityPanel({
                     {formatMoney(a.amount, a.currency)}
                   </span>
                   <span className="text-[11px] text-muted-foreground">
-                    {formatRelative(a.when)}
+                    {formatRelativeLong(a.when)}
                   </span>
                 </div>
               </li>

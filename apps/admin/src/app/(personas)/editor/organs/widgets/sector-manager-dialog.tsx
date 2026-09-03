@@ -17,7 +17,7 @@ import {
 } from '@shesa/ui';
 
 import { createOrganSector, deleteOrganSector, updateOrganSector } from '../actions/organ-sectors';
-import { slugify } from './slugify';
+import { slugify } from '@shesa/domain/utils';
 import { SectorRowCreator } from './sector-row-creator';
 import { SectorRowEditor } from './sector-row-editor';
 import type { SectorRow } from './types';

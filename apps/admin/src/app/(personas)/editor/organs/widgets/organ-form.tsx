@@ -11,7 +11,7 @@ import type { OrganInput } from '../actions/types';
 import { OrganLogoPicker } from './organ-logo-picker';
 import { SectorManagerDialog } from './sector-manager-dialog';
 import { SectorSelect } from './sector-select';
-import { slugify } from './slugify';
+import { slugify } from '@shesa/domain/utils';
 import type { OrganRow, SectorRow } from './types';
 
 interface Props {

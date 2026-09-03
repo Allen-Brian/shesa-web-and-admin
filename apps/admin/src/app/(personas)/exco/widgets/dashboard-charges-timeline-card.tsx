@@ -20,7 +20,7 @@ import {
   tooltipLabelStyle,
   tooltipStyle,
 } from './dashboard-chart-config';
-import { formatCompact } from './dashboard-formatters';
+import { formatCompact } from '@/lib/finance/format-money';
 
 interface DashboardChargesTimelineCardProps {
   readonly data: readonly {

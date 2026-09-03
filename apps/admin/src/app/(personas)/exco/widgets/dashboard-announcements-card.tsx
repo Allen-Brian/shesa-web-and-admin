@@ -4,7 +4,7 @@ import { Bell } from 'lucide-react';
 import { GradientPanel } from '@shesa/ui';
 
 import { DashboardEmptyBlock } from './dashboard-empty-block';
-import { formatRelative } from './dashboard-formatters';
+import { formatRelativeShort } from '@/lib/format/relative-time';
 import type { AnnouncementItem } from './dashboard-types';
 
 export function DashboardAnnouncementsCard({
@@ -39,7 +39,7 @@ export function DashboardAnnouncementsCard({
                 <span className="truncate text-sm font-medium text-foreground">{a.title}</span>
                 {a.publishedAt && (
                   <span className="text-[10px] text-muted-foreground">
-                    {formatRelative(a.publishedAt)}
+                    {formatRelativeShort(a.publishedAt)}
                   </span>
                 )}
               </div>

@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
 import { ChargeAmountCell } from './amount-cell';
-import { formatRecurrence } from './format-recurrence';
+import { formatRecurrence } from '@/lib/format/recurrence';
 import { ChargeNameCell } from './name-cell';
 import { ChargeStatusBadge } from './status-badge';
 import type { SerialRow } from './types';

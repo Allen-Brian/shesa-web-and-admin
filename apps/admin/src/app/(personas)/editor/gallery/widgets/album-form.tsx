@@ -13,7 +13,7 @@ import { CategoryManagerDialog } from './category-manager-dialog';
 import { CategoryPicker } from './category-picker';
 import { EventLinker } from './event-linker';
 import { MediaGridEditor } from './media-grid-editor';
-import { slugify } from './slugify';
+import { slugify } from '@shesa/domain/utils';
 import type { AlbumRow, CategoryRow, LinkableEvent, MediaRow } from './types';
 
 interface Props {

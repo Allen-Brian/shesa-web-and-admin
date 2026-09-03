@@ -6,7 +6,7 @@ import { Clock } from 'lucide-react';
 import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
 import { LeaderAvatar } from '../../leadership/widgets/leader-avatar';
-import { formatDuration } from './slugify';
+import { formatDuration } from './song-duration';
 import type { SongRow } from './types';
 
 export type SongSerialRow = SongRow & {

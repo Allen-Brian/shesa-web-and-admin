@@ -1,9 +1,15 @@
 import { Badge } from '@shesa/ui';
 
 /**
- * Coloured pill for a campaign's lifecycle stage. Rendered inside the
- * campaigns DataTable's Lifecycle column and the extend/close
- * confirmation dialogs.
+ * Coloured pill for a charge or campaign's lifecycle stage.
+ *
+ * Draft = muted, open = emerald, closed = amber, archived = destructive.
+ * An unknown or null value falls back to the plain border chip rather
+ * than rendering blank, so a new lifecycle value is visible instead of
+ * silently invisible.
+ *
+ * Shared by Contributions and Donations, which each carried a copy with
+ * a byte-identical body.
  */
 export function LifecycleBadge({ value }: { readonly value: string | null }) {
   const styles: Record<string, string> = {

@@ -1,23 +1,5 @@
 import type { ChargeOption, RecordForm } from './transactions-types';
 
-/** Human label for the payment method enum. */
-export function formatMethod(method: string): string {
-  switch (method) {
-    case 'cash':
-      return 'Cash';
-    case 'mtn_momo':
-      return 'MTN MoMo';
-    case 'orange_money':
-      return 'Orange Money';
-    case 'bank_transfer':
-      return 'Bank transfer';
-    case 'card':
-      return 'Card';
-    default:
-      return method;
-  }
-}
-
 /** First+last initial for the avatar chip. `—` on empty input. */
 export function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -54,3 +36,8 @@ export function collectReversedIds(
 export function buildVerifyUrl(baseUrl: string, token: string): string {
   return `${baseUrl}/verify?token=${encodeURIComponent(token)}`;
 }
+
+// Re-exported from the shared formatters so this module keeps one import
+// surface. These were local copies — formatMethod alone existed in five
+// places, formatMoney in four.
+export { formatPaymentMethod as formatMethod } from '@/lib/format/payment-method';

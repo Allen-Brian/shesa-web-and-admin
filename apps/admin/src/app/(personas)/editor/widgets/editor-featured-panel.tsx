@@ -4,7 +4,7 @@ import { CalendarDays, Newspaper, Star, Target } from 'lucide-react';
 import { GradientPanel } from '@shesa/ui';
 
 import type { FeaturedItem } from './dashboard-types';
-import { EmptyInline } from './empty-inline';
+import { EmptyInline } from '@/components/dashboard/empty-inline';
 
 const ICON_BY_KIND = {
   article: Newspaper,

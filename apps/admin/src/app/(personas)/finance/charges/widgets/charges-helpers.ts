@@ -26,20 +26,6 @@ export function initialCreate(scopeId: string, targetPartyType: TargetPartyType)
  * shown as the subtitle in the Name column and inside the create
  * dialog's Recurrence select.
  */
-export function formatRecurrence(recurrence: string, interval: number): string {
-  if (recurrence === 'one_time') return 'One-time';
-  const label =
-    recurrence === 'biannual'
-      ? 'bi-annually'
-      : recurrence === 'quarterly'
-        ? 'quarterly'
-        : recurrence === 'yearly'
-          ? 'yearly'
-          : recurrence === 'monthly'
-            ? 'monthly'
-            : recurrence;
-  return interval > 1 ? `every ${interval} × ${label}` : label;
-}
 
 /**
  * Snapshot a `ChargeRow` for the edit dialog. Every field is
@@ -75,3 +61,8 @@ export function toEditForm(row: ChargeRow): EditForm {
     })),
   };
 }
+
+// Re-exported from the shared formatters so this module keeps one import
+// surface. These were local copies — formatMethod alone existed in five
+// places, formatMoney in four.
+export { formatRecurrence } from '@/lib/format/recurrence';

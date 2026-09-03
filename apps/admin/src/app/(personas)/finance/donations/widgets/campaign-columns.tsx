@@ -4,7 +4,7 @@ import { Button, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
 import { CampaignNameCell } from './campaign-name-cell';
 import type { CampaignRow, SerialCampaignRow } from './donations-types';
-import { LifecycleBadge } from './lifecycle-badge';
+import { LifecycleBadge } from '@/components/finance/lifecycle-badge';
 
 interface CampaignColumnActions {
   readonly onApprove: (id: string) => void;

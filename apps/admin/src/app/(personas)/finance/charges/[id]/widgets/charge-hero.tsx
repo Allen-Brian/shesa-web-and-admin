@@ -5,7 +5,8 @@ import { ArrowLeft, BadgeDollarSign, CircleDollarSign, Repeat, Target, Users } f
 
 import { ChargeStatusChip } from './charge-status-chip';
 import type { ChargeSummary } from './charge-detail-types';
-import { formatMoney, formatRecurrence } from './shared-formatters';
+import { formatMoney } from '@/lib/finance/format-money';
+import { formatRecurrence } from '@/lib/format/recurrence';
 
 /**
  * Plain-Jane charge hero — used for every non-`goal` charge. Compact

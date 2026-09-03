@@ -27,7 +27,7 @@ import { ArticleBannerPicker } from './article-banner-picker';
 import { AuthorPhotoPicker } from './author-photo-picker';
 import { CategoryManagerDialog } from './category-manager-dialog';
 import { CategoryPicker } from './category-picker';
-import { slugify } from './slugify';
+import { slugify } from '@shesa/domain/utils';
 import type { ArticleRow, ArticleStatus, CategoryRow } from './types';
 
 interface Props {

@@ -7,7 +7,7 @@ import { Button, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
 import { ObligationStatusBadge } from './status-badge';
 import { ProgressCell } from './progress-cell';
-import { formatRecurrence } from './format-recurrence';
+import { formatRecurrence } from '@/lib/format/recurrence';
 import type { ObligationRow, SerialRow } from './types';
 
 interface UseObligationColumnsArgs {

@@ -37,16 +37,28 @@ export function formatDate(iso: string, locale = 'fr-CM'): string {
 /**
  * Convert a string to a kebab-case slug suitable for URLs and DB slugs.
  * Strips diacritics, lowercases, collapses non-alphanumerics to dashes.
+ * Pass `maxLength` to cap it; the cut never leaves a trailing dash.
  *
- *   slugify('Shesa Buéa') === 'shesa-buea'
+ *   slugify('Shesa Buéa')            === 'shesa-buea'
+ *   slugify('Yaoundé Gala 2026', 12) === 'yaounde-gala'
+ *
+ * The diacritic strip is load-bearing, not cosmetic. Eight copies of this
+ * function lived in the apps; two of them — used for finance group and
+ * charge slugs — skipped the NFKD pass, so every accented name produced a
+ * mangled slug: `Buéa Homecoming` became `bu-a-homecoming`, `Yaoundé Gala`
+ * became `yaound-gala`. For an organisation whose branches include Yaoundé
+ * and Buéa and whose networks include Santé, that is not an edge case.
  */
-export function slugify(input: string): string {
-  return input
+export function slugify(input: string, maxLength?: number): string {
+  const slug = input
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '') // strip combining diacritics
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+
+  // Trim to a length, then drop any dash the cut left dangling.
+  return maxLength ? slug.slice(0, maxLength).replace(/-+$/, '') : slug;
 }
 
 /**

@@ -29,7 +29,7 @@ import { CategoryPicker } from './category-picker';
 import { ImpactEditor } from './impact-editor';
 import { MilestonesEditor } from './milestones-editor';
 import { ProjectBannerPicker } from './project-banner-picker';
-import { slugify } from './slugify';
+import { slugify } from '@shesa/domain/utils';
 import type { CategoryRow, ImpactStat, Milestone, ProjectRow, ProjectStatus } from './types';
 
 interface Props {

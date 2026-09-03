@@ -3,9 +3,9 @@ import { ArrowRight, ClipboardCheck } from 'lucide-react';
 
 import { Badge, GradientPanel } from '@shesa/ui';
 
-import { formatMoney } from './dashboard-formatters';
+import { formatMoney } from '@/lib/finance/format-money';
 import type { PendingApprovalSummary, RawExpense, ScopeRow } from './dashboard-types';
-import { EmptyInline } from './empty-inline';
+import { EmptyInline } from '@/components/dashboard/empty-inline';
 
 interface PendingApprovalsPanelProps {
   readonly summary: PendingApprovalSummary;

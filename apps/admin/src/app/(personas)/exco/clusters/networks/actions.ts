@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 
+import { extractInvokeMessage, extractScopeId } from '@/lib/edge-invoke';
 import { getServerClient } from '@/lib/supabase-server';
 
 export type NetworkFormState =
@@ -213,49 +214,4 @@ export async function restoreNetwork(scopeId: string): Promise<ArchiveResult> {
   }
   revalidatePath('/exco/clusters/networks', 'layout');
   return { ok: true, scopeId };
-}
-
-/**
- * `supabase.functions.invoke` throws a `FunctionsHttpError` on any non-2xx
- * response, and its `.message` is a generic "Edge Function returned a
- * non-2xx status code". The actual error envelope is in `error.context`,
- * which is a `Response` — we clone + read it here so callers see the
- * envelope's `message` (or a raw body fragment if the response isn't
- * shaped like the envelope).
- */
-async function extractInvokeMessage(error: unknown, fallback: string): Promise<string> {
-  const anyErr = error as { message?: string; context?: unknown };
-  const ctx = anyErr.context;
-  if (
-    ctx &&
-    typeof ctx === 'object' &&
-    'clone' in ctx &&
-    typeof (ctx as Response).clone === 'function'
-  ) {
-    const response = (ctx as Response).clone();
-    try {
-      const parsed = (await response.json()) as {
-        message?: string;
-        error?: { message?: string };
-      } | null;
-      if (parsed?.error?.message) return parsed.error.message;
-      if (parsed?.message) return parsed.message;
-    } catch {
-      try {
-        const text = await (ctx as Response).clone().text();
-        if (text.trim().length > 0) return text.slice(0, 240);
-      } catch {
-        // fall through
-      }
-    }
-  }
-  return anyErr.message ?? fallback;
-}
-
-function extractScopeId(data: unknown): string | null {
-  if (!data || typeof data !== 'object') return null;
-  const record = data as { data?: { scopeId?: unknown }; scopeId?: unknown };
-  const nested = record.data?.scopeId;
-  const flat = record.scopeId;
-  return typeof nested === 'string' ? nested : typeof flat === 'string' ? flat : null;
 }

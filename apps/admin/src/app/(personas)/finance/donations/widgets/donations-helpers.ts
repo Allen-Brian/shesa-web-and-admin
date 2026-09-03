@@ -1,23 +1,5 @@
 import type { CampaignRow, NewCampaignForm, ScopeOption, WalkInForm } from './donations-types';
 
-/** Human label for the payment method enum used in tables + selects. */
-export function formatMethod(method: string): string {
-  switch (method) {
-    case 'cash':
-      return 'Cash';
-    case 'mtn_momo':
-      return 'MTN MoMo';
-    case 'orange_money':
-      return 'Orange Money';
-    case 'bank_transfer':
-      return 'Bank transfer';
-    case 'card':
-      return 'Card';
-    default:
-      return method;
-  }
-}
-
 /**
  * Fresh state for the "new campaign" dialog — first scope option
  * pre-selected, today as the open date, one year out as the default
@@ -55,3 +37,8 @@ export function suggestExtendedCloseDate(currentCloseIso: string | null): string
   if (!Number.isFinite(cur)) return '';
   return new Date(cur + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
 }
+
+// Re-exported from the shared formatters so this module keeps one import
+// surface. These were local copies — formatMethod alone existed in five
+// places, formatMoney in four.
+export { formatPaymentMethod as formatMethod } from '@/lib/format/payment-method';

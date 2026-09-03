@@ -4,7 +4,7 @@ import { ArrowRight, CalendarDays, MapPin, Star } from 'lucide-react';
 import { GradientPanel } from '@shesa/ui';
 
 import type { UpcomingSiteEvent } from './dashboard-types';
-import { EmptyInline } from './empty-inline';
+import { EmptyInline } from '@/components/dashboard/empty-inline';
 
 /**
  * Next few site events by start date. Same shape as the

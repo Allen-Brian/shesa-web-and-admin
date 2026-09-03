@@ -4,7 +4,8 @@ import { ArrowDownRight, ArrowUpRight, CircleDollarSign } from 'lucide-react';
 import { GradientPanel } from '@shesa/ui';
 
 import { DashboardEmptyBlock } from './dashboard-empty-block';
-import { formatMethod, formatRelative } from './dashboard-formatters';
+import { formatPaymentMethod } from '@/lib/format/payment-method';
+import { formatRelativeShort } from '@/lib/format/relative-time';
 import type { Transaction } from './dashboard-types';
 
 export function DashboardLatestTransactionsCard({
@@ -51,7 +52,7 @@ export function DashboardLatestTransactionsCard({
               <div className="flex min-w-0 flex-1 flex-col leading-tight">
                 <span className="truncate text-sm font-medium text-foreground">{t.payer}</span>
                 <span className="truncate text-[11px] text-muted-foreground">
-                  {t.what} · {formatMethod(t.method)}
+                  {t.what} · {formatPaymentMethod(t.method)}
                 </span>
               </div>
               <div className="text-right leading-tight">
@@ -64,7 +65,7 @@ export function DashboardLatestTransactionsCard({
                   {new Intl.NumberFormat().format(t.amount)} {t.currency}
                 </div>
                 <div className="text-[10px] text-muted-foreground">
-                  {formatRelative(t.createdAt)}
+                  {formatRelativeShort(t.createdAt)}
                 </div>
               </div>
             </li>

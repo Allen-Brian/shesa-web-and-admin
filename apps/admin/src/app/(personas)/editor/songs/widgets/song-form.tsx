@@ -12,7 +12,7 @@ import { GroupManagerDialog } from './group-manager-dialog';
 import { GroupSelect } from './group-select';
 import { SongAudioPicker } from './song-audio-picker';
 import { SongCoverPicker } from './song-cover-picker';
-import { slugify } from './slugify';
+import { slugify } from '@shesa/domain/utils';
 import type { GroupRow, SongRow } from './types';
 
 interface Props {

@@ -5,7 +5,7 @@ import { GradientPanel } from '@shesa/ui';
 
 import { ArticleStatusBadge } from './article-status-badge';
 import type { RecentArticle } from './dashboard-types';
-import { EmptyInline } from './empty-inline';
+import { EmptyInline } from '@/components/dashboard/empty-inline';
 
 /**
  * Panel of the latest touched articles across every status. Sorted by

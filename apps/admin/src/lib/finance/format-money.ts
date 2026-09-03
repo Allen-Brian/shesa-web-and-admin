@@ -42,6 +42,20 @@ export function formatCompactMoney(amount: number, currency: string): string {
   return `${sign}${compactNumber(abs)} ${currency}`;
 }
 
+/**
+ * Abbreviated number with no currency suffix — `10,333,000 → "10.3M"`.
+ *
+ * The exco dashboard kept its own copy of this, which handled K and M
+ * but not B and so rendered a billion as "1000M". Sharing the ladder
+ * below fixes that as a side effect.
+ *
+ * Signed inputs preserve their sign.
+ */
+export function formatCompact(n: number): string {
+  const sign = n < 0 ? '-' : '';
+  return `${sign}${compactNumber(Math.abs(n))}`;
+}
+
 function compactNumber(n: number): string {
   if (n < 1_000) return String(Math.round(n));
   if (n < 1_000_000) return `${trim(n / 1_000)}K`;

@@ -1,7 +1,7 @@
 import { Calendar as CalendarIcon, Sparkles, TrendingUp, Users, Wallet } from 'lucide-react';
 
 import { DashboardStatCard } from './dashboard-stat-card';
-import { formatCompact } from './dashboard-formatters';
+import { formatCompact } from '@/lib/finance/format-money';
 import type { GlobalStats } from './dashboard-types';
 
 export function DashboardGlobalStatsRow({ stats }: { readonly stats: GlobalStats }) {

@@ -23,19 +23,9 @@ export function getInitials(name: string): string {
   return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
 }
 
-export function formatRelative(iso: string): string {
-  const then = new Date(iso).getTime();
-  const now = Date.now();
-  const secs = Math.round((now - then) / 1000);
-  if (secs < 60) return 'just now';
-  const mins = Math.round(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.round(hrs / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
+// Re-exported so the audit-log widgets keep a single import, but the
+// implementation lives in @/lib/format — it was one of three copies.
+export { formatRelativeShort } from '@/lib/format/relative-time';
 
 export function formatTimeOnly(iso: string): string {
   const d = new Date(iso);

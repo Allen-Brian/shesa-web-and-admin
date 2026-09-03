@@ -19,7 +19,7 @@ import {
 import { createSongGroup, deleteSongGroup, updateSongGroup } from '../actions/song-groups';
 import { GroupRowCreator } from './group-row-creator';
 import { GroupRowEditor } from './group-row-editor';
-import { slugify } from './slugify';
+import { slugify } from '@shesa/domain/utils';
 import type { GroupRow } from './types';
 
 interface Props {

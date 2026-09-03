@@ -1,27 +1,8 @@
+import { slugify as domainSlugify } from '@shesa/domain/utils';
+
 import type { MatrixPeriod } from './charge-detail-types';
 
-/** Rounded whole-number money format with the currency suffix. */
-export function formatMoney(amount: number, currency: string): string {
-  return `${new Intl.NumberFormat().format(Math.round(amount))} ${currency}`;
-}
-
 /** Human label for the payment method enum. */
-export function formatMethod(method: string): string {
-  switch (method) {
-    case 'cash':
-      return 'Cash';
-    case 'mtn_momo':
-      return 'MTN MoMo';
-    case 'orange_money':
-      return 'Orange Money';
-    case 'bank_transfer':
-      return 'Bank transfer';
-    case 'card':
-      return 'Card';
-    default:
-      return method;
-  }
-}
 
 /** "Feb 2026" style header for a period column. Falls back to raw string. */
 export function formatPeriodHeader(p: MatrixPeriod): string {
@@ -39,30 +20,7 @@ export function formatPeriodShort(p: MatrixPeriod): string {
   return d.toLocaleDateString(undefined, { month: 'short' });
 }
 
-/** kebab-case slug capped at 60 chars. */
-export function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60);
-}
-
 /** "Every month" / "Every 2 quarters" / "One-time". */
-export function formatRecurrence(recurrence: string, interval: number): string {
-  if (recurrence === 'one_time') return 'One-time';
-  const label =
-    recurrence === 'biannual'
-      ? 'half-year'
-      : recurrence === 'quarterly'
-        ? 'quarter'
-        : recurrence === 'yearly'
-          ? 'year'
-          : recurrence === 'monthly'
-            ? 'month'
-            : recurrence;
-  return interval === 1 ? `Every ${label}` : `Every ${interval} ${label}s`;
-}
 
 /** Compact axis tick — `1.2M` / `340k` / `812`. */
 export function compactNumber(n: number): string {
@@ -129,4 +87,22 @@ export function downloadCsv(baseName: string, rows: readonly (readonly string[])
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// Re-exported from the shared formatters so this module keeps one import
+// surface. These were local copies — formatMethod alone existed in five
+// places, formatMoney in four.
+export { formatPaymentMethod as formatMethod } from '@/lib/format/payment-method';
+export { formatMoney } from '@/lib/finance/format-money';
+export { formatRecurrence } from '@/lib/format/recurrence';
+
+/**
+ * Slug for this surface, capped at 60 characters.
+ *
+ * The local copy this replaces skipped the diacritic strip, so accented
+ * names slugged wrong — `Buéa` became `bu-a`. @shesa/domain/utils is the
+ * single source named by frontend.md §6.
+ */
+export function slugify(input: string): string {
+  return domainSlugify(input, 60);
 }

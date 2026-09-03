@@ -1,6 +1,6 @@
 'use client';
 
-import { formatRecurrence } from './charges-helpers';
+import { formatRecurrence } from '@/lib/format/recurrence';
 import { formatCompactMoney } from '@/lib/finance/format-money';
 import type { CreateForm, ScopeOption, TargetScopeOption } from './charges-types';
 
