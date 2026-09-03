@@ -26,11 +26,22 @@ async function upsertOne(
       name: input.name.trim(),
       region: input.region?.trim() || null,
       photo_url: input.photoUrl?.trim() || null,
+      role: input.role ?? 'president',
       sort_order: input.sortOrder,
     } as never)
     .select('id')
     .maybeSingle();
   if (error || !data) {
+    // 23505 is branch_role_key: one president and one vice president per
+    // branch. Say which, rather than surfacing the index name.
+    if (error?.code === '23505') {
+      return {
+        ok: false,
+        message: `${input.branchName.trim()} already has a ${
+          (input.role ?? 'president') === 'president' ? 'president' : 'vice president'
+        }. Edit the existing one instead.`,
+      };
+    }
     return { ok: false, message: error?.message ?? 'Could not create leader.' };
   }
   revalidatePath('/editor/leadership');
@@ -48,6 +59,7 @@ async function updateOne(
   if (patch.name !== undefined) body.name = patch.name.trim();
   if (patch.region !== undefined) body.region = patch.region?.trim() || null;
   if (patch.photoUrl !== undefined) body.photo_url = patch.photoUrl?.trim() || null;
+  if (patch.role !== undefined) body.role = patch.role;
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase

@@ -35,6 +35,7 @@ interface RawRegional {
   readonly name: string;
   readonly region: string | null;
   readonly photo_url: string | null;
+  readonly role: string | null;
   readonly sort_order: number;
 }
 interface RawBatch {
@@ -73,12 +74,12 @@ export default async function EditorLeadershipPage() {
     supabase
       .schema('cms')
       .from('branch_leaders')
-      .select('id, branch_name, name, region, photo_url, sort_order')
+      .select('id, branch_name, name, region, photo_url, role, sort_order')
       .order('sort_order'),
     supabase
       .schema('cms')
       .from('diaspora_leaders')
-      .select('id, branch_name, name, region, photo_url, sort_order')
+      .select('id, branch_name, name, region, photo_url, role, sort_order')
       .order('sort_order'),
     supabase
       .schema('cms')
@@ -119,6 +120,9 @@ export default async function EditorLeadershipPage() {
     name: r.name,
     region: r.region,
     photoUrl: r.photo_url,
+    // Rows written before roles existed are presidents; the surface that
+    // created them could not have produced anything else.
+    role: r.role ?? 'president',
     sortOrder: r.sort_order,
   });
 

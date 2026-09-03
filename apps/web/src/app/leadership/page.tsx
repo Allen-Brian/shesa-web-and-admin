@@ -38,6 +38,12 @@ interface RawRegional {
   readonly name: string;
   readonly region: string | null;
   readonly photo_url: string | null;
+  readonly role: string | null;
+}
+
+/** Rows written before roles existed are presidents. */
+function roleLabel(role: string | null): string {
+  return role === 'vice_president' ? 'Vice President' : 'President';
 }
 interface RawBatch {
   readonly id: string;
@@ -81,12 +87,17 @@ export default async function LeadershipPage() {
     supabase
       .schema('cms')
       .from('branch_leaders')
-      .select('id, branch_name, name, region, photo_url')
+      // Presidents first within a branch, then vice presidents — `role`
+      // sorts that way alphabetically, which is a happy accident worth
+      // not relying on, hence the explicit order.
+      .select('id, branch_name, name, region, photo_url, role')
+      .order('branch_name')
+      .order('role')
       .order('sort_order'),
     supabase
       .schema('cms')
       .from('diaspora_leaders')
-      .select('id, branch_name, name, region, photo_url')
+      .select('id, branch_name, name, region, photo_url, role')
       .order('sort_order'),
     supabase
       .schema('cms')
@@ -123,6 +134,7 @@ export default async function LeadershipPage() {
     city: r.region ?? '',
     photo: r.photo_url ?? PLACEHOLDER_PHOTO,
     slug: r.id,
+    role: roleLabel(r.role),
   }));
 
   const diasporaPresidents: DiasporaPresident[] = ((diasporaRaw ?? []) as RawRegional[]).map(
@@ -132,6 +144,7 @@ export default async function LeadershipPage() {
       city: r.region ?? '',
       photo: r.photo_url ?? PLACEHOLDER_PHOTO,
       slug: r.id,
+      role: roleLabel(r.role),
     }),
   );
 

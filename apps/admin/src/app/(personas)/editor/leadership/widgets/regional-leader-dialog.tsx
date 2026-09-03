@@ -12,6 +12,11 @@ import {
   DialogTitle,
   Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   toast,
 } from '@shesa/ui';
 
@@ -38,7 +43,15 @@ interface Props {
 /**
  * Shared dialog for branch + diaspora leaders — same fields, wired to
  * different server actions via `onCreate` / `onUpdate` props.
+ *
+ * Every label here used to say "president", because the table could hold
+ * nothing else. A branch may now have a president and a vice president,
+ * so the role is a field and the copy follows it.
  */
+const ROLE_LABELS: Record<string, string> = {
+  president: 'President',
+  vice_president: 'Vice President',
+};
 export function RegionalLeaderDialog({
   open,
   onOpenChange,
@@ -54,8 +67,10 @@ export function RegionalLeaderDialog({
   const [name, setName] = useState(editing?.name ?? '');
   const [region, setRegion] = useState(editing?.region ?? '');
   const [photoUrl, setPhotoUrl] = useState(editing?.photoUrl ?? '');
+  const [role, setRole] = useState(editing?.role ?? 'president');
 
   const label = kind === 'branch' ? 'branch' : 'diaspora chapter';
+  const roleLabel = ROLE_LABELS[role] ?? 'Leader';
 
   const submit = () => {
     if (!branchName.trim() || !name.trim()) {
@@ -68,6 +83,7 @@ export function RegionalLeaderDialog({
         name,
         region,
         photoUrl,
+        role,
         sortOrder: editing?.sortOrder ?? nextSortOrder,
       };
       const res = editing ? await onUpdate(editing.id, payload) : await onCreate(payload);
@@ -85,9 +101,7 @@ export function RegionalLeaderDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {editing ? `Edit ${label} president` : `Add ${label} president`}
-          </DialogTitle>
+          <DialogTitle>{editing ? `Edit ${label} leader` : `Add ${label} leader`}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -103,7 +117,19 @@ export function RegionalLeaderDialog({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="rl-name">President name</Label>
+            <Label htmlFor="rl-role">Role</Label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger id="rl-role">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="president">President</SelectItem>
+                <SelectItem value="vice_president">Vice President</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="rl-name">{roleLabel} name</Label>
             <Input
               id="rl-name"
               value={name}
@@ -126,7 +152,7 @@ export function RegionalLeaderDialog({
             label="Photo"
             value={photoUrl ?? ''}
             onChange={setPhotoUrl}
-            alt={name || 'President'}
+            alt={name || roleLabel}
           />
         </div>
         <DialogFooter>

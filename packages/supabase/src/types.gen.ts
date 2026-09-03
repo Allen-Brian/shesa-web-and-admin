@@ -273,6 +273,7 @@ export type Database = {
           name: string
           photo_url: string | null
           region: string | null
+          role: string
           sort_order: number
           updated_at: string
         }
@@ -283,6 +284,7 @@ export type Database = {
           name: string
           photo_url?: string | null
           region?: string | null
+          role?: string
           sort_order?: number
           updated_at?: string
         }
@@ -293,6 +295,7 @@ export type Database = {
           name?: string
           photo_url?: string | null
           region?: string | null
+          role?: string
           sort_order?: number
           updated_at?: string
         }
@@ -306,6 +309,7 @@ export type Database = {
           name: string
           photo_url: string | null
           region: string | null
+          role: string
           sort_order: number
           updated_at: string
         }
@@ -316,6 +320,7 @@ export type Database = {
           name: string
           photo_url?: string | null
           region?: string | null
+          role?: string
           sort_order?: number
           updated_at?: string
         }
@@ -326,6 +331,7 @@ export type Database = {
           name?: string
           photo_url?: string | null
           region?: string | null
+          role?: string
           sort_order?: number
           updated_at?: string
         }

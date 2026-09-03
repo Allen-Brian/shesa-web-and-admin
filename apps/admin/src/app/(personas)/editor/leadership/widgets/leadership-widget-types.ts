@@ -22,6 +22,8 @@ export interface RegionalLeaderRow {
   readonly name: string;
   readonly region: string | null;
   readonly photoUrl: string | null;
+  /** `president` or `vice_president`. Older rows default to president. */
+  readonly role: string;
   readonly sortOrder: number;
 }
 

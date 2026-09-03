@@ -22,6 +22,12 @@ export type DiasporaPresident = {
   readonly city: string;
   readonly photo: string;
   readonly slug: string;
+  /**
+   * `President` or `Vice President`. Shown on the card because a chapter
+   * may list both, and two cards under one name with no title would read
+   * as a mistake.
+   */
+  readonly role: string;
 };
 
 interface DiasporaPresidentsProps {
@@ -125,6 +131,9 @@ function DiasporaCard({ president }: { readonly president: DiasporaPresident }) 
         >
           {president.name}
         </h3>
+        <p className="mt-1 text-[11.5px] font-medium uppercase tracking-[0.14em] text-black/45">
+          {president.role}
+        </p>
         <p className="mt-2 text-[12.5px] leading-snug text-black/55">{president.city}</p>
       </div>
     </article>

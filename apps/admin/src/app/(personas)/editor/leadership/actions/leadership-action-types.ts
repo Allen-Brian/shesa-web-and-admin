@@ -20,6 +20,8 @@ export interface RegionalLeaderInput {
   readonly name: string;
   readonly region?: string | null;
   readonly photoUrl?: string | null;
+  /** `president` or `vice_president`. Display only — see the column comment. */
+  readonly role?: string;
   readonly sortOrder: number;
 }
 

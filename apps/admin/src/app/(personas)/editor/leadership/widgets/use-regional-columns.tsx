@@ -52,7 +52,15 @@ export function useRegionalColumns({
           ) : null,
       },
       { headerName: branchColumnLabel, field: 'branchName', flex: 1.6, minWidth: 200 },
-      { headerName: 'President', field: 'name', flex: 1.4, minWidth: 180 },
+      // Was hardcoded to "President", from when the table could hold
+      // nothing else. A branch may now have a vice president too.
+      { headerName: 'Name', field: 'name', flex: 1.4, minWidth: 180 },
+      {
+        headerName: 'Role',
+        field: 'role',
+        width: 150,
+        valueFormatter: (p) => (p.value === 'vice_president' ? 'Vice President' : 'President'),
+      },
       {
         headerName: 'Region',
         field: 'region',
