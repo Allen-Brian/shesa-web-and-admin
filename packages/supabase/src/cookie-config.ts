@@ -14,11 +14,15 @@
  * driven by APP_BASE_DOMAIN so a change of apex is a one-line env-var
  * edit, not a source change.
  *
- * The `apps/auth` callback writes the cookie; every other app's
- * middleware reads it (via `@supabase/ssr`'s `createServerClient`).
- * The SPA session bridge at `apps/auth/api/session` (ADR-0035)
- * surfaces the identity to Vite SPAs that can't read httpOnly cookies
- * directly.
+ * `apps/admin`'s `/callback` Route Handler writes the cookie and its
+ * middleware refreshes it. `apps/web` reads it if present but does not
+ * depend on it — every public read resolves through a policy granted
+ * identically to anon and authenticated.
+ *
+ * The apex scoping is the residue of a five-app layout with a central
+ * `apps/auth` and an SPA session bridge (ADR-0035), both retired by
+ * ADR-0040. It is kept because it costs nothing and a second signed-in
+ * hostname would need it again.
  */
 
 import { serverEnv } from '@shesa/config/env.server';

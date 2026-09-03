@@ -1,10 +1,10 @@
 /**
  * Browser-side Supabase client.
  *
- * Used by client components and plain React apps. Reads from the
- * Supabase Auth cookie set server-side at `apps/auth` (the cookie's
- * apex-domain scoping makes it visible here on any Shesa subdomain
- * — see `cookie-config.ts`).
+ * Used by client components. Reads the Supabase Auth cookie written by
+ * `apps/admin`'s callback Route Handler; the cookie is scoped to the apex
+ * domain, so it is visible on any Shesa subdomain — see
+ * `cookie-config.ts`.
  *
  * Only the anon key is exposed in the browser. RLS enforces access;
  * the service-role client is server-only and is exported from
