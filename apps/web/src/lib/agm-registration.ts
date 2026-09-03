@@ -2,10 +2,13 @@
  * Shared submission path for the three AGM 2026 public forms
  * (ticket / attire / funding).
  *
- * There is no payment provider connected right now — Fapshi was removed
- * and Tranzak is not yet integrated — so a submission does exactly one
- * thing: it records who registered and what they chose, in
- * `cms.agm_registrations`.
+ * A submission always records who registered and what they chose, in
+ * `cms.agm_registrations`, and that record is never conditional on the
+ * payment: someone who abandons checkout has still told the secretariat
+ * they intend to come.
+ *
+ * Handing off to the gateway is a separate step the caller takes after
+ * this one — see `./agm-checkout`. "Pay on arrival" skips it entirely.
  *
  * It deliberately writes NOTHING to the finance schema. No payment, no
  * ledger entry, no obligation, no receipt. The four anon-executable
@@ -43,7 +46,12 @@ export interface AgmRegistrationInput {
 }
 
 export type AgmRegistrationResult =
-  | { readonly ok: true; readonly redirectTo: string }
+  | {
+      readonly ok: true;
+      readonly redirectTo: string;
+      /** `AGM-XXXXXXXXXX` — the visitor's handle, and the join key to a payment. */
+      readonly reference: string;
+    }
   | { readonly ok: false; readonly message: string };
 
 /** Submissions allowed per client, per window. */
@@ -174,5 +182,5 @@ export async function submitAgmRegistration(
     return { ok: false, message: 'Your registration was not recorded. Please try again.' };
   }
 
-  return { ok: true, redirectTo: `/agm-2026/confirmation/${reference}` };
+  return { ok: true, redirectTo: `/agm-2026/confirmation/${reference}`, reference };
 }

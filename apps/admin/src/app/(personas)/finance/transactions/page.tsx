@@ -65,6 +65,23 @@ interface PayerMetadata {
   readonly payer_phone?: string;
   readonly payer_location?: string;
   readonly public_ticket_purchase?: boolean;
+
+  /* Written by supabase/functions/_shared/tranzak-settle.ts. */
+  readonly provider?: string;
+  readonly provider_ref?: string;
+  readonly provider_transaction_id?: string;
+  readonly gateway_status?: string;
+  readonly gateway_amount?: number;
+  readonly gateway_currency?: string;
+  readonly gateway_fee?: number;
+  readonly gateway_net_amount?: number;
+}
+
+/** Metadata is free-form jsonb; read numbers defensively. */
+function num(value: unknown): number | null {
+  if (value == null) return null;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 /**
@@ -212,6 +229,14 @@ export default async function TransactionsPage() {
       reconciledAt: reconciliation?.reconciled_at ?? null,
       reconciliationMatchedRef: reconciliation?.matched_ref ?? null,
       reconciliationNotes: reconciliation?.notes ?? null,
+      gatewayProvider: meta.provider ?? null,
+      gatewayRef: meta.provider_ref ?? null,
+      gatewayTransactionId: meta.provider_transaction_id ?? null,
+      gatewayStatus: meta.gateway_status ?? null,
+      gatewayAmount: num(meta.gateway_amount),
+      gatewayCurrency: meta.gateway_currency ?? null,
+      gatewayFee: num(meta.gateway_fee),
+      gatewayNetAmount: num(meta.gateway_net_amount),
     };
   });
 

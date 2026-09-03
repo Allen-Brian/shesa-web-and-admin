@@ -6,6 +6,7 @@ import {
   BarChart,
   CalendarClock,
   CreditCard,
+  FlaskConical,
   HandCoins,
   Home,
   Landmark,
@@ -55,10 +56,18 @@ interface NavItem {
 }
 
 /**
- * Two-section sidebar: the mainstream Finance nav on top, then an
- * "Event Groups" section listing groups the caller can see. The
- * section is hidden entirely when `sidebarGroups` is empty (branch
- * finance users have no groups) so the mainstream nav stays clean.
+ * Three sections: the mainstream Finance nav, an "Event Groups" section
+ * listing groups the caller can see, and "Testing".
+ *
+ * Testing is its own group rather than an item in the main nav because
+ * what it holds is not part of the books. `finance.sandbox_payments`
+ * writes no ledger entry, moves no treasury balance and mints no receipt,
+ * and nothing above it reads that table. Filing it beside Transactions
+ * would invite exactly the confusion the separate table exists to
+ * prevent.
+ *
+ * The Event Groups section hides entirely when `sidebarGroups` is empty
+ * (branch finance users have no groups) so the mainstream nav stays clean.
  */
 const NAV_ITEMS: readonly NavItem[] = [
   { href: '/finance', label: 'Dashboard', Icon: Home },
@@ -68,6 +77,10 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: '/finance/donations', label: 'Donations', Icon: HandCoins },
   { href: '/finance/expenses', label: 'Expenses', Icon: Wallet },
   { href: '/finance/reports', label: 'Reports', Icon: BarChart },
+];
+
+const TESTING_ITEMS: readonly NavItem[] = [
+  { href: '/finance/sandbox-payments', label: 'Sandbox payments', Icon: FlaskConical },
 ];
 
 export function FinanceSidebar({ isGlobal = false, sidebarGroups = [] }: FinanceSidebarProps) {
@@ -165,6 +178,27 @@ export function FinanceSidebar({ isGlobal = false, sidebarGroups = [] }: Finance
             </SidebarGroupContent>
           </SidebarGroup>
         )}
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Testing</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {TESTING_ITEMS.map(({ href, label, Icon }) => {
+                const active = pathname === href || pathname.startsWith(`${href}/`);
+                return (
+                  <SidebarMenuItem key={href}>
+                    <SidebarMenuButton asChild tooltip={label} isActive={active}>
+                      <Link href={href}>
+                        <Icon />
+                        <span>{label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );

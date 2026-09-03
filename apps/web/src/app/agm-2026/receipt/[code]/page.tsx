@@ -48,6 +48,75 @@ interface RawCharge {
  * reads to `authenticated`. The route is server-only + gated by the
  * token in the URL, so the elevated read is safe.
  */
+/**
+ * Sandbox settlements are addressed by `sandbox-{id}` rather than a
+ * verification token, because they never get one: `finance.sandbox_payments`
+ * carries none of `finance.payments`' triggers, so nothing mints a receipt
+ * for a test payment. That is deliberate — `finance.verify_receipt` must
+ * never validate a receipt for money nobody collected, which is exactly
+ * what SEC-01 was.
+ *
+ * They still render the real receipt, because seeing what a payer will see
+ * is the entire point of a test run. The `isTest` flag is what stamps it.
+ */
+const SANDBOX_PREFIX = 'sandbox-';
+
+async function loadSandboxReceipt(id: string): Promise<AgmReceiptData | null> {
+  const supabase = createServiceRoleClient();
+
+  const { data: raw } = await supabase
+    .schema('finance')
+    .from('sandbox_payments')
+    .select(
+      'id, amount, currency, method, charge_id, payer_name, payer_email, payer_phone, ' +
+        'provider_ref, provider_status, created_at',
+    )
+    .eq('id', id)
+    .maybeSingle();
+
+  const row = raw as {
+    id: string;
+    amount: number;
+    currency: string;
+    method: string;
+    charge_id: string | null;
+    payer_name: string | null;
+    payer_email: string | null;
+    payer_phone: string | null;
+    provider_ref: string | null;
+    provider_status: string | null;
+    created_at: string;
+  } | null;
+  if (!row) return null;
+
+  const { data: chargeRaw } = row.charge_id
+    ? await supabase
+        .schema('finance')
+        .from('charges')
+        .select('id, name, shape')
+        .eq('id', row.charge_id)
+        .maybeSingle()
+    : { data: null };
+  const charge = chargeRaw as RawCharge | null;
+
+  return {
+    kind: kindFor(charge),
+    chargeName: charge?.name ?? '-',
+    // Prefixed so it can never be mistaken for, or typed in as, a real
+    // receipt number.
+    receiptNumber: `TEST-${row.provider_ref ?? row.id.slice(0, 8).toUpperCase()}`,
+    payerName: row.payer_name?.trim() || 'Anonymous',
+    email: row.payer_email,
+    phone: row.payer_phone,
+    amount: row.amount,
+    currency: row.currency,
+    method: row.method,
+    createdAt: row.created_at,
+    isTest: true,
+    metadata: { gateway_status: row.provider_status, provider_ref: row.provider_ref },
+  };
+}
+
 async function loadReceipt(token: string): Promise<AgmReceiptData | null> {
   const supabase = createServiceRoleClient();
 
@@ -101,6 +170,7 @@ async function loadReceipt(token: string): Promise<AgmReceiptData | null> {
     currency: payment.currency,
     method: payment.method,
     createdAt: payment.created_at,
+    isTest: false,
     metadata,
   };
 }
@@ -124,7 +194,9 @@ export async function generateMetadata({
 
 export default async function ReceiptPage({ params }: { readonly params: Promise<Params> }) {
   const { code } = await params;
-  const receipt = await loadReceipt(code);
+  const receipt = code.startsWith(SANDBOX_PREFIX)
+    ? await loadSandboxReceipt(code.slice(SANDBOX_PREFIX.length))
+    : await loadReceipt(code);
   if (!receipt) notFound();
 
   const receiptUrl = `https://shesaconnect.com/agm-2026/receipt/${code}`;

@@ -19,6 +19,10 @@
  *                     available_from; real providers via webhooks.
  *   confirm         — Polls an intent. On success, INSERTs the payment
  *                     row (source='auto') and updates the intent. Idempotent.
+ *   initiate-public — Opens a hosted-checkout payment for a public AGM
+ *                     form. service_role only; prices ticketed charges
+ *                     server-side so the caller cannot choose what it
+ *                     costs.
  *   tranzak-settle  — Settles a Tranzak transaction from an identifier,
  *                     re-reading the gateway before writing anything.
  *                     Reached by the webhook forwarder and the payer's
@@ -29,6 +33,7 @@ import { entityRouter } from '../_shared/entity-router.ts';
 
 import { confirmPayment } from './confirm.ts';
 import { initiatePayment } from './initiate.ts';
+import { initiatePublicPayment } from './initiate-public.ts';
 import { payOnBehalf } from './pay-on-behalf.ts';
 import { recordManualPayment } from './record-manual.ts';
 import { reversePayment } from './reverse.ts';
@@ -40,6 +45,7 @@ Deno.serve(
     'pay-on-behalf': payOnBehalf,
     reverse: reversePayment,
     initiate: initiatePayment,
+    'initiate-public': initiatePublicPayment,
     confirm: confirmPayment,
     'tranzak-settle': tranzakSettle,
   }),

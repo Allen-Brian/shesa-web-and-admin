@@ -180,6 +180,53 @@ export function TransactionDetailSheet({
                 </Section>
               )}
 
+              {target.gatewayProvider && (
+                <Section title="Gateway">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm capitalize text-foreground">
+                        {target.gatewayProvider}
+                      </span>
+                      {target.gatewayStatus && (
+                        <Badge variant="outline" className="h-5 text-[10px]">
+                          {target.gatewayStatus.replaceAll('_', ' ').toLowerCase()}
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Gross, fee and net side by side. The treasury received
+                        the net, not the gross, and the gap is the gateway's
+                        cut — worth seeing without arithmetic. */}
+                    {target.gatewayAmount != null && (
+                      <div className="grid grid-cols-3 gap-2 rounded-md border border-border bg-muted/30 p-2">
+                        <GatewayFigure
+                          label="Gross"
+                          value={target.gatewayAmount}
+                          currency={target.gatewayCurrency}
+                        />
+                        <GatewayFigure
+                          label="Fee"
+                          value={target.gatewayFee}
+                          currency={target.gatewayCurrency}
+                        />
+                        <GatewayFigure
+                          label="Net"
+                          value={target.gatewayNetAmount}
+                          currency={target.gatewayCurrency}
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex flex-col gap-0.5 font-mono text-[11px] text-muted-foreground">
+                      {target.gatewayRef && <span>Request · {target.gatewayRef}</span>}
+                      {target.gatewayTransactionId && (
+                        <span>Transaction · {target.gatewayTransactionId}</span>
+                      )}
+                    </div>
+                  </div>
+                </Section>
+              )}
+
               {target.receiptNumber && (
                 <Section title="Receipt">
                   <div className="flex flex-col gap-1">
@@ -261,6 +308,34 @@ export function TransactionDetailSheet({
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+/**
+ * One of the three gateway figures. Renders an em dash rather than a zero
+ * when the gateway did not report a value — a missing fee and a zero fee
+ * are different facts.
+ */
+function GatewayFigure({
+  label,
+  value,
+  currency,
+}: {
+  readonly label: string;
+  readonly value: number | null;
+  readonly currency: string | null;
+}) {
+  return (
+    <div className="flex flex-col leading-tight">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="text-sm tabular-nums text-foreground">
+        {value == null
+          ? '—'
+          : `${new Intl.NumberFormat('fr-CM', { maximumFractionDigits: 0 }).format(value)} ${
+              currency ?? ''
+            }`.trim()}
+      </span>
+    </div>
   );
 }
 

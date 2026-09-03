@@ -1,0 +1,302 @@
+/**
+ * Action: payments/initiate-public
+ *
+ * Opens a hosted-checkout payment for one of the public AGM forms:
+ * creates the `finance.payment_intents` row, asks Tranzak for a payment
+ * request, and returns the URL the payer's browser is sent to.
+ *
+ * ─── The price is not an input ─────────────────────────────────────────
+ * For ticketed charges the amount is read from `finance.charges.base_amount`
+ * and multiplied by the quantity here, server-side. The caller says *what*
+ * they are buying and *how many*; it never says what it costs.
+ *
+ * That distinction is the whole of SEC-01. The RPCs this replaces —
+ * `record_public_ticket_purchase` and `record_public_donation` — were
+ * SECURITY DEFINER, granted to `anon`, and took the amount from the
+ * caller straight into `finance.payments`. Anyone with the public anon
+ * key could mint a settled payment and a verifiable receipt for money
+ * nobody had collected.
+ *
+ * Donations genuinely are caller-priced — that is what a donation is —
+ * so they are bounded instead, and nothing settles until Tranzak says the
+ * money arrived.
+ *
+ * ─── Why this is service_role only ─────────────────────────────────────
+ * `apps/web`'s server action is the only caller, and it rate-limits the
+ * visitor through `cms.consume_submission_slot` before getting here. Were
+ * this reachable with the anon key that shipped in the browser bundle,
+ * the throttle would be one `curl` away from irrelevant and anyone could
+ * make us open unbounded gateway requests.
+ */
+
+import { z } from 'npm:zod@3.24.1';
+
+import { withCors } from '../_shared/cors.ts';
+import {
+  internalError,
+  notFound,
+  success,
+  unauthorized,
+  validationError,
+} from '../_shared/errors.ts';
+import { buildContext } from '../_shared/request-context.ts';
+import { createServiceRoleClient } from '../_shared/supabase-client.ts';
+import { createPaymentRequest } from '../_shared/tranzak-client.ts';
+import { resolveTranzakConfig } from '../_shared/tranzak-config.ts';
+import { secretsMatch } from '../_shared/worker-auth.ts';
+import { parseJson } from '../_shared/validation.ts';
+
+/**
+ * The gateway takes over from here, so the method the visitor picked on
+ * our form is recorded on the intent and then chosen again on Tranzak's
+ * page. `cash-on-site` never reaches this endpoint — the web action keeps
+ * that flow entirely off the gateway.
+ */
+const FORM_METHOD_TO_ENUM: Record<string, string> = {
+  'mtn-momo': 'mtn_momo',
+  'orange-money': 'orange_money',
+  card: 'card',
+  'bank-transfer': 'bank_transfer',
+};
+
+/** A donation of more than this is a conversation, not a web form. */
+const MAX_DONATION_XAF = 50_000_000;
+
+const inputSchema = z
+  .object({
+    chargeId: z.string().uuid(),
+    quantity: z.number().int().min(1).max(20).optional(),
+    /** Donations only — ignored for ticketed charges, which are priced here. */
+    amountXaf: z.number().positive().max(MAX_DONATION_XAF).optional(),
+    fullName: z.string().min(2).max(200),
+    email: z.string().max(320).optional(),
+    phone: z.string().min(9).max(80),
+    paymentMethod: z.string().min(1).max(40),
+    /** `cms.agm_registrations.reference`, so the two records can be joined. */
+    reference: z.string().max(60).optional(),
+    description: z.string().min(1).max(200),
+    /** Path the payer returns to; joined onto the configured origin. */
+    returnPath: z.string().startsWith('/').max(300),
+  })
+  .strict();
+
+interface ChargeRow {
+  readonly id: string;
+  readonly scope_id: string;
+  readonly name: string;
+  readonly shape: string;
+  readonly base_amount: number | null;
+  readonly currency: string;
+  readonly status: string;
+  readonly close_date: string | null;
+}
+
+export async function initiatePublicPayment(req: Request): Promise<Response> {
+  const ctx = await buildContext(req);
+
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  if (!ctx.jwt || !serviceKey || !(await secretsMatch(ctx.jwt, serviceKey))) {
+    return withCors(req, unauthorized(ctx.traceId));
+  }
+
+  const parsed = await parseJson(req, inputSchema, ctx.traceId);
+  if (!parsed.ok) return withCors(req, parsed.response);
+  const input = parsed.data;
+
+  const method = FORM_METHOD_TO_ENUM[input.paymentMethod];
+  if (!method) {
+    return withCors(
+      req,
+      validationError('Unsupported payment method', ctx.traceId, {
+        paymentMethod: `"${input.paymentMethod}" is not a gateway method.`,
+      }),
+    );
+  }
+
+  const service = createServiceRoleClient();
+
+  const { data: chargeRow } = await service
+    .schema('finance' as never)
+    .from('charges' as never)
+    .select('id, scope_id, name, shape, base_amount, currency, status, close_date')
+    .eq('id', input.chargeId)
+    .maybeSingle();
+
+  const charge = chargeRow as ChargeRow | null;
+  if (!charge) return withCors(req, notFound('charge', ctx.traceId));
+
+  if (charge.status !== 'active') {
+    return withCors(
+      req,
+      validationError('Charge is not open', ctx.traceId, {
+        chargeId: `"${charge.name}" is not currently accepting payments.`,
+      }),
+    );
+  }
+  if (charge.close_date && new Date(charge.close_date).getTime() < Date.now()) {
+    return withCors(
+      req,
+      validationError('Charge has closed', ctx.traceId, {
+        chargeId: `"${charge.name}" closed on ${charge.close_date}.`,
+      }),
+    );
+  }
+
+  // ── The price ────────────────────────────────────────────────────────
+  let amount: number;
+  let quantity: number | null = null;
+
+  if (charge.shape === 'ticketed') {
+    if (charge.base_amount == null || Number(charge.base_amount) <= 0) {
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          traceId: ctx.traceId,
+          component: 'payments.initiate-public',
+          message: 'ticketed charge has no base_amount',
+          chargeId: charge.id,
+        }),
+      );
+      return withCors(req, internalError(ctx.traceId));
+    }
+    quantity = input.quantity ?? 1;
+    amount = Number(charge.base_amount) * quantity;
+  } else {
+    if (input.amountXaf == null) {
+      return withCors(
+        req,
+        validationError('An amount is required', ctx.traceId, {
+          amountXaf: 'Donations must state how much.',
+        }),
+      );
+    }
+    amount = input.amountXaf;
+  }
+
+  let config;
+  try {
+    config = resolveTranzakConfig();
+  } catch (err) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        traceId: ctx.traceId,
+        component: 'payments.initiate-public',
+        message: 'tranzak configuration invalid',
+        error: String(err),
+      }),
+    );
+    return withCors(req, internalError(ctx.traceId));
+  }
+
+  // ── The intent ───────────────────────────────────────────────────────
+  // Written before the gateway call so the id exists to use as
+  // `mchTransactionRef`, which is what buys idempotency: a retry cannot
+  // open a second payment request for the same intent.
+  const { data: intentRow, error: intentErr } = await service
+    .schema('finance' as never)
+    .from('payment_intents' as never)
+    .insert({
+      charge_id: charge.id,
+      scope_id: charge.scope_id,
+      amount,
+      currency: charge.currency,
+      method,
+      status: 'pending',
+      mode: config.mode,
+      quantity,
+      payer_name: input.fullName.trim(),
+      payer_email: input.email?.trim() || null,
+      payer_phone: input.phone.trim(),
+      metadata: {
+        provider: 'tranzak',
+        source: 'public_agm_form',
+        form_payment_method: input.paymentMethod,
+        agm_reference: input.reference ?? null,
+      },
+    } as never)
+    .select('id')
+    .maybeSingle();
+
+  if (intentErr || !intentRow) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        traceId: ctx.traceId,
+        component: 'payments.initiate-public',
+        message: 'intent insert failed',
+        code: intentErr?.code,
+        error: intentErr?.message,
+      }),
+    );
+    return withCors(req, internalError(ctx.traceId));
+  }
+
+  const intentId = (intentRow as { id: string }).id;
+
+  // ── The gateway ──────────────────────────────────────────────────────
+  try {
+    const created = await createPaymentRequest(
+      {
+        amount,
+        currencyCode: charge.currency,
+        description: input.description,
+        mchTransactionRef: intentId,
+        returnUrl: `${config.returnUrlBase}${input.returnPath.replace('{intentId}', intentId)}`,
+        cancelUrl: `${config.returnUrlBase}/agm-2026`,
+        callbackUrl: config.callbackUrl,
+      },
+      config,
+    );
+
+    const checkoutUrl = created.links?.paymentAuthUrl;
+    if (!checkoutUrl) {
+      throw new Error('gateway returned no paymentAuthUrl');
+    }
+
+    // Record the gateway's reference so the return page can poll on it.
+    await service
+      .schema('finance' as never)
+      .from('payment_intents' as never)
+      .update({
+        metadata: {
+          provider: 'tranzak',
+          provider_ref: created.requestId,
+          source: 'public_agm_form',
+          form_payment_method: input.paymentMethod,
+          agm_reference: input.reference ?? null,
+        },
+        updated_at: new Date().toISOString(),
+      } as never)
+      .eq('id', intentId);
+
+    return withCors(
+      req,
+      success({ intentId, checkoutUrl, amount, currency: charge.currency, traceId: ctx.traceId }),
+    );
+  } catch (err) {
+    // The intent exists but has no gateway request. Mark it failed rather
+    // than leaving a pending row nothing will ever settle.
+    await service
+      .schema('finance' as never)
+      .from('payment_intents' as never)
+      .update({
+        status: 'failed',
+        failure_reason: 'could not open a gateway payment request',
+        updated_at: new Date().toISOString(),
+      } as never)
+      .eq('id', intentId);
+
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        traceId: ctx.traceId,
+        component: 'payments.initiate-public',
+        message: 'gateway create failed',
+        intentId,
+        error: String(err),
+      }),
+    );
+    return withCors(req, internalError(ctx.traceId));
+  }
+}

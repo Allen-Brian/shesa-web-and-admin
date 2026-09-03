@@ -14,7 +14,7 @@
 --   4. Three human users — admin@ / finance@ / editor@shesaconnect.com — with
 --      auth rows, identities, profiles and global (NULL-scope) role grants.
 --   5. The `AGM 2026` finance group + its charges. The event runs to
---      13 November 2026, so this stays in the production bootstrap.
+--      15 November 2026, so this stays in the production bootstrap.
 --   6. The five founding branches: Yaoundé, Douala, Buea, Tiko, Bamenda.
 --
 -- ── Public-website content is NOT here ──────────────────────────────────────
@@ -685,7 +685,7 @@ VALUES
    'XAF', '{}'::jsonb,
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
-   TIMESTAMPTZ '2026-11-30 23:59:59+00',
+   TIMESTAMPTZ '2026-11-15 23:59:59+00',
    'active', '88888888-2026-0000-0000-000000000001',
    '55555555-0000-0000-0000-000000000002',
    NOW(), NOW())
@@ -704,7 +704,7 @@ VALUES
    20000, 'XAF', '{}'::jsonb, 'member',
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
-   TIMESTAMPTZ '2026-11-13 23:59:59+00',
+   TIMESTAMPTZ '2026-11-15 23:59:59+00',
    'active', '88888888-2026-0000-0000-000000000001',
    '55555555-0000-0000-0000-000000000002',
    NOW(), NOW())
@@ -724,7 +724,7 @@ VALUES
    50000, 'XAF', '{}'::jsonb, 'member',
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
-   TIMESTAMPTZ '2026-10-31 23:59:59+00',
+   TIMESTAMPTZ '2026-11-15 23:59:59+00',
    'active', '88888888-2026-0000-0000-000000000001',
    '55555555-0000-0000-0000-000000000002',
    NOW(), NOW())
@@ -752,7 +752,7 @@ VALUES
    'XAF', 1, '{}'::jsonb,
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
-   TIMESTAMPTZ '2026-11-30 23:59:59+00',
+   TIMESTAMPTZ '2026-11-15 23:59:59+00',
    'active', '88888888-2026-0000-0000-000000000001',
    '55555555-0000-0000-0000-000000000002',
    NOW(), NOW()),
@@ -763,7 +763,7 @@ VALUES
    'XAF', 50001, '{}'::jsonb,
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
-   TIMESTAMPTZ '2026-11-30 23:59:59+00',
+   TIMESTAMPTZ '2026-11-15 23:59:59+00',
    'active', '88888888-2026-0000-0000-000000000001',
    '55555555-0000-0000-0000-000000000002',
    NOW(), NOW()),
@@ -774,7 +774,7 @@ VALUES
    'XAF', 250001, '{}'::jsonb,
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
-   TIMESTAMPTZ '2026-11-30 23:59:59+00',
+   TIMESTAMPTZ '2026-11-15 23:59:59+00',
    'active', '88888888-2026-0000-0000-000000000001',
    '55555555-0000-0000-0000-000000000002',
    NOW(), NOW()),
@@ -785,7 +785,7 @@ VALUES
    'XAF', 1000001, '{}'::jsonb,
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
-   TIMESTAMPTZ '2026-11-30 23:59:59+00',
+   TIMESTAMPTZ '2026-11-15 23:59:59+00',
    'active', '88888888-2026-0000-0000-000000000001',
    '55555555-0000-0000-0000-000000000002',
    NOW(), NOW())

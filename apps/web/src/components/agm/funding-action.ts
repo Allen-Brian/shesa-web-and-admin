@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 
+import { AGM_CHARGE_IDS, openAgmCheckout, PAY_ON_ARRIVAL } from '@/lib/agm-checkout';
 import { submitAgmRegistration, type AgmRegistrationResult } from '@/lib/agm-registration';
 
 import {
@@ -56,7 +57,7 @@ export async function donateForAgmFunding(input: FundingInput): Promise<FundingR
   const resolvedTier = tierForAmount(input.amountXaf);
   const note = `[${resolvedTier.toUpperCase()}] ${input.note?.trim() ?? ''}`.slice(0, 500).trim();
 
-  return submitAgmRegistration({
+  const recorded = await submitAgmRegistration({
     kind: 'donation',
     fullName: input.fullName,
     email: input.email,
@@ -65,6 +66,25 @@ export async function donateForAgmFunding(input: FundingInput): Promise<FundingR
     paymentMethod: input.paymentOption,
     note,
   });
+  if (!recorded.ok) return recorded;
+  if (input.paymentOption === PAY_ON_ARRIVAL) return recorded;
+
+  // A donation is genuinely caller-priced, so the amount does travel —
+  // bounded above by MAX_PLEDGE_XAF here and again in the Edge Function.
+  // The tier only decides which campaign the gift is filed under.
+  const checkout = await openAgmCheckout({
+    chargeId: AGM_CHARGE_IDS[resolvedTier] ?? AGM_CHARGE_IDS.general,
+    amountXaf: input.amountXaf,
+    fullName: input.fullName,
+    email: input.email,
+    phone: input.phone,
+    paymentMethod: input.paymentOption,
+    reference: recorded.reference,
+    description: `SHESA AGM 2026 — ${resolvedTier} funding`,
+  });
+  if (!checkout.ok) return recorded;
+
+  return { ...recorded, redirectTo: checkout.checkoutUrl };
 }
 
 /** Form-action variant for plain `<form action={…}>` submissions. */

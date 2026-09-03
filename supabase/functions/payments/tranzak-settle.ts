@@ -25,7 +25,7 @@
 import { z } from 'npm:zod@3.24.1';
 
 import { withCors } from '../_shared/cors.ts';
-import { internalError, success, validationError } from '../_shared/errors.ts';
+import { internalError, success } from '../_shared/errors.ts';
 import { buildContext } from '../_shared/request-context.ts';
 import { authKeyMatches, resolveTranzakConfig } from '../_shared/tranzak-config.ts';
 import { settleFromIntentId, settleFromRequestId } from '../_shared/tranzak-settle.ts';
@@ -49,8 +49,8 @@ const inputSchema = z
 export async function tranzakSettle(req: Request): Promise<Response> {
   const ctx = await buildContext(req);
 
-  const parsed = await parseJson(req, inputSchema);
-  if (!parsed.ok) return withCors(req, validationError(parsed.issues, ctx.traceId));
+  const parsed = await parseJson(req, inputSchema, ctx.traceId);
+  if (!parsed.ok) return withCors(req, parsed.response);
   const input = parsed.data;
 
   let config;

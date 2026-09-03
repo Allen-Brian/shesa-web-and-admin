@@ -9,6 +9,14 @@ import type { PaymentMethod } from '../transaction-actions';
  * `finance.payments.metadata` (see the anon-payer path used by
  * public forms and the walk-in donation entry). Surfaced here so the
  * detail sheet can display them without another round trip.
+ *
+ * The `gateway*` fields come from the same place, written by
+ * `_shared/tranzak-settle.ts` when a payment settles through Tranzak.
+ * Gross, fee and net are kept apart because they answer different
+ * questions: the payer was charged the gross, the treasury received the
+ * net, and the difference is the gateway's cut. A payment that
+ * reconciles at gross can still leave the books short, and that is only
+ * visible if all three are carried through.
  */
 
 export interface TransactionRow {
@@ -33,6 +41,16 @@ export interface TransactionRow {
   readonly createdAt: string;
   readonly receiptToken: string | null;
   readonly receiptNumber: string | null;
+
+  /** Gateway provenance. Null on manual, cash and simulated payments. */
+  readonly gatewayProvider: string | null;
+  readonly gatewayRef: string | null;
+  readonly gatewayTransactionId: string | null;
+  readonly gatewayStatus: string | null;
+  readonly gatewayAmount: number | null;
+  readonly gatewayCurrency: string | null;
+  readonly gatewayFee: number | null;
+  readonly gatewayNetAmount: number | null;
 
   /** True when a matching row exists in finance.reconciliations. */
   readonly reconciled: boolean;

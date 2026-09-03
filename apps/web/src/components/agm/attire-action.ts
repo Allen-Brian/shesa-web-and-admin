@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 
+import { AGM_CHARGE_IDS, openAgmCheckout, PAY_ON_ARRIVAL } from '@/lib/agm-checkout';
 import { submitAgmRegistration, type AgmRegistrationResult } from '@/lib/agm-registration';
 
 import {
@@ -28,9 +29,10 @@ const VALID_OPTIONS: ReadonlySet<string> = new Set(PAYMENT_OPTIONS.map((o) => o.
 /**
  * Record an AGM 2026 attire order.
  *
- * Same shape as ticket registration — captured in
- * `cms.agm_registrations`, nothing written to finance. Price is applied
- * server-side from the shared constant.
+ * Same shape as ticket registration: recorded first, then handed to
+ * hosted checkout unless the visitor is paying on arrival. The price the
+ * payer is charged comes from `finance.charges.base_amount`, not from
+ * the constant used here.
  */
 export async function orderAttire(input: AttireOrderInput): Promise<AttireOrderResult> {
   if (!ATTIRE_SIZES.includes(input.size)) {
@@ -47,7 +49,7 @@ export async function orderAttire(input: AttireOrderInput): Promise<AttireOrderR
     return { ok: false, message: 'Pick a payment option.' };
   }
 
-  return submitAgmRegistration({
+  const recorded = await submitAgmRegistration({
     kind: 'attire',
     fullName: input.fullName,
     email: input.email,
@@ -57,6 +59,22 @@ export async function orderAttire(input: AttireOrderInput): Promise<AttireOrderR
     amountXaf: AGM_ATTIRE_UNIT_PRICE_XAF * quantity,
     paymentMethod: input.paymentOption,
   });
+  if (!recorded.ok) return recorded;
+  if (input.paymentOption === PAY_ON_ARRIVAL) return recorded;
+
+  const checkout = await openAgmCheckout({
+    chargeId: AGM_CHARGE_IDS.attire,
+    quantity,
+    fullName: input.fullName,
+    email: input.email,
+    phone: input.phone,
+    paymentMethod: input.paymentOption,
+    reference: recorded.reference,
+    description: `SHESA AGM 2026 attire — ${quantity} × size ${input.size}`,
+  });
+  if (!checkout.ok) return recorded;
+
+  return { ...recorded, redirectTo: checkout.checkoutUrl };
 }
 
 /** Form-action variant for plain `<form action={…}>` submissions. */

@@ -3458,6 +3458,7 @@ export type Database = {
           id: string
           metadata: Json
           method: Database["finance"]["Enums"]["payment_method"]
+          mode: Database["finance"]["Enums"]["payment_mode"]
           note: string | null
           obligation_id: string | null
           payer_email: string | null
@@ -3467,6 +3468,7 @@ export type Database = {
           payer_phone: string | null
           quantity: number | null
           resulting_payment_id: string | null
+          sandbox_payment_id: string | null
           scope_id: string
           status: Database["finance"]["Enums"]["payment_intent_status"]
           updated_at: string
@@ -3482,6 +3484,7 @@ export type Database = {
           id?: string
           metadata?: Json
           method: Database["finance"]["Enums"]["payment_method"]
+          mode: Database["finance"]["Enums"]["payment_mode"]
           note?: string | null
           obligation_id?: string | null
           payer_email?: string | null
@@ -3491,6 +3494,7 @@ export type Database = {
           payer_phone?: string | null
           quantity?: number | null
           resulting_payment_id?: string | null
+          sandbox_payment_id?: string | null
           scope_id: string
           status?: Database["finance"]["Enums"]["payment_intent_status"]
           updated_at?: string
@@ -3506,6 +3510,7 @@ export type Database = {
           id?: string
           metadata?: Json
           method?: Database["finance"]["Enums"]["payment_method"]
+          mode?: Database["finance"]["Enums"]["payment_mode"]
           note?: string | null
           obligation_id?: string | null
           payer_email?: string | null
@@ -3515,6 +3520,7 @@ export type Database = {
           payer_phone?: string | null
           quantity?: number | null
           resulting_payment_id?: string | null
+          sandbox_payment_id?: string | null
           scope_id?: string
           status?: Database["finance"]["Enums"]["payment_intent_status"]
           updated_at?: string
@@ -3539,6 +3545,13 @@ export type Database = {
             columns: ["resulting_payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_intents_sandbox_payment_id_fkey"
+            columns: ["sandbox_payment_id"]
+            isOneToOne: false
+            referencedRelation: "sandbox_payments"
             referencedColumns: ["id"]
           },
         ]
@@ -3698,6 +3711,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sandbox_payments: {
+        Row: {
+          amount: number
+          charge_id: string | null
+          created_at: string
+          currency: string
+          gateway_amount: number | null
+          gateway_currency: string | null
+          gateway_fee: number | null
+          gateway_net_amount: number | null
+          id: string
+          intent_id: string
+          method: Database["finance"]["Enums"]["payment_method"]
+          obligation_id: string | null
+          payer_email: string | null
+          payer_member_id: string | null
+          payer_name: string | null
+          payer_phone: string | null
+          provider: string
+          provider_ref: string | null
+          provider_status: string | null
+          provider_transaction_id: string | null
+          raw_payload: Json
+          scope_id: string
+        }
+        Insert: {
+          amount: number
+          charge_id?: string | null
+          created_at?: string
+          currency: string
+          gateway_amount?: number | null
+          gateway_currency?: string | null
+          gateway_fee?: number | null
+          gateway_net_amount?: number | null
+          id?: string
+          intent_id: string
+          method: Database["finance"]["Enums"]["payment_method"]
+          obligation_id?: string | null
+          payer_email?: string | null
+          payer_member_id?: string | null
+          payer_name?: string | null
+          payer_phone?: string | null
+          provider?: string
+          provider_ref?: string | null
+          provider_status?: string | null
+          provider_transaction_id?: string | null
+          raw_payload?: Json
+          scope_id: string
+        }
+        Update: {
+          amount?: number
+          charge_id?: string | null
+          created_at?: string
+          currency?: string
+          gateway_amount?: number | null
+          gateway_currency?: string | null
+          gateway_fee?: number | null
+          gateway_net_amount?: number | null
+          id?: string
+          intent_id?: string
+          method?: Database["finance"]["Enums"]["payment_method"]
+          obligation_id?: string | null
+          payer_email?: string | null
+          payer_member_id?: string | null
+          payer_name?: string | null
+          payer_phone?: string | null
+          provider?: string
+          provider_ref?: string | null
+          provider_status?: string | null
+          provider_transaction_id?: string | null
+          raw_payload?: Json
+          scope_id?: string
+        }
+        Relationships: []
       }
       tickets: {
         Row: {
@@ -3964,6 +4052,7 @@ export type Database = {
         | "cash"
         | "bank_transfer"
         | "card"
+      payment_mode: "sandbox" | "live"
       payment_source: "auto" | "manual"
     }
     CompositeTypes: {
@@ -4357,6 +4446,7 @@ export const Constants = {
         "bank_transfer",
         "card",
       ],
+      payment_mode: ["sandbox", "live"],
       payment_source: ["auto", "manual"],
     },
   },

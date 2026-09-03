@@ -35,7 +35,7 @@ Measured on 2026-09-03 by applying `supabase/migrations/` and
 | Networks                                           | Legal, Santé, Tech, Education                             |
 | RBAC                                               | 6 roles · 70 permissions · 143 bundles · 30 positions     |
 | `finance.charge_categories`                        | 7                                                         |
-| AGM 2026                                           | 1 group + 7 charges, all `active`                         |
+| AGM 2026                                           | 1 group + 7 charges, all `active`, all closing 2026-11-15 |
 | Members, memberships, payments, expenses, CMS rows | 0                                                         |
 
 Chapters are created by hand in the Admin portal — the seed deliberately
@@ -287,8 +287,9 @@ psql "$SUPABASE_DB_URL" -c \
 ```
 
 Expected: the counts in "What you end up with", and every operational
-count at 0. The AGM ticket's `close_date` is 2026-11-13; the funding
-charges close 2026-11-30.
+count at 0. Every AGM charge closes 2026-11-15 — ticket, attire and all
+four funding tiers. They used to close on three different dates; they were
+aligned on 2026-09-03.
 
 Then in a browser:
 

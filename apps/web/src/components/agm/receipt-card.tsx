@@ -28,6 +28,14 @@ export interface AgmReceiptData {
   readonly createdAt: string;
   /** Payment metadata surfaces buyer-supplied context (measurements, tier). */
   readonly metadata: Record<string, unknown>;
+  /**
+   * True for a sandbox settlement. Renders the same receipt with a
+   * watermark and a banner, because seeing what a real payer sees is the
+   * point of a test run — but a screenshot of one must never be passable
+   * as proof of payment. No token behind it will ever verify: sandbox
+   * settlements mint none.
+   */
+  readonly isTest?: boolean;
 }
 
 interface Props {
@@ -86,7 +94,32 @@ const KIND_HEADING: Record<AgmReceiptKind, string> = {
 export function ReceiptCard({ receipt, qrSvg }: Props) {
   const heading = KIND_HEADING[receipt.kind];
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 px-5 py-16 md:py-24">
+    <div className="relative mx-auto flex max-w-4xl flex-col gap-6 px-5 py-16 md:py-24">
+      {receipt.isTest && (
+        <>
+          {/* Says so in words, for anyone reading. */}
+          <div className="rounded-xs border-2 border-dashed border-amber-500 bg-amber-50 px-5 py-3 text-center">
+            <p className="text-[13px] font-semibold uppercase tracking-[0.24em] text-amber-800">
+              Test mode — not a real payment
+            </p>
+            <p className="mt-1 text-xs text-amber-700">
+              This is a sandbox transaction. No money moved, nothing was recorded in the accounts,
+              and this document is not a valid receipt.
+            </p>
+          </div>
+
+          {/* And says so across the page, for anyone screenshotting. The
+              watermark survives print, which the banner alone might not. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden"
+          >
+            <span className="-rotate-[24deg] select-none whitespace-nowrap text-[19vw] font-black uppercase leading-none tracking-tighter text-amber-500/15 md:text-[13rem]">
+              Test
+            </span>
+          </div>
+        </>
+      )}
       <div className="flex items-center justify-between gap-4 print:hidden">
         <a
           href="/agm-2026"
