@@ -1,17 +1,8 @@
-import type { Metadata } from 'next';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 
 import { serverEnv } from '@shesa/config/env.server';
 
-export const dynamic = 'force-dynamic';
-
-export const metadata: Metadata = {
-  title: 'Confirming your payment — SHESA',
-  robots: { index: false, follow: false },
-};
-
-interface SettleResponse {
+export interface SettleResponse {
   readonly outcome?: string;
   readonly mode?: 'sandbox' | 'live';
   readonly settlementId?: string;
@@ -25,38 +16,16 @@ interface SettleResponse {
 }
 
 /**
- * Where Tranzak returns the payer's browser after checkout — for every
- * contribution, whether it started on the AGM page, a project or an event.
- * One page, because the work is identical in each case and the only thing
- * that differs is where the payer came from, which the settle result
- * carries back.
+ * Ask the gateway what happened to an intent, and record it if it settled.
  *
- * ─── Why this page verifies rather than waits ──────────────────────────
- * The obvious design is to send the payer straight to their receipt. It
- * does not work: the receipt is keyed on a token minted by the
- * `payments_generate_receipt` trigger, which only fires once the payment
- * row exists — and at the moment the browser comes back, the webhook that
- * would have created it may not have arrived. Pointing `returnUrl` at a
- * receipt would be a race we lose often.
- *
- * So this page settles rather than polls. A payer standing in front of us
- * is a better signal than a notification we are waiting on, and the
- * settlement path is idempotent, so doing it here costs nothing if the
- * webhook already did it. The webhook stays as the backstop for someone
- * who closed the tab on Tranzak's page.
- *
- * Whatever the outcome, this page redirects: to the receipt when the
- * money arrived, to the registration confirmation when it did not.
+ * This runs when a payer lands on `/receipt/{intentId}` straight back from
+ * Tranzak. Settling here rather than waiting for the webhook is the point:
+ * a payer standing in front of us is a better signal than a notification
+ * we are still waiting on, and the settlement path is idempotent, so doing
+ * it twice costs nothing. The webhook remains the backstop for someone who
+ * closed the tab on the gateway's page.
  */
-export default async function AgmPaymentReturnPage({
-  params,
-}: {
-  params: Promise<{ intentId: string }>;
-}) {
-  const { intentId } = await params;
-
-  let result: SettleResponse | null = null;
-
+export async function settlePaymentIntent(intentId: string): Promise<SettleResponse | null> {
   try {
     const res = await fetch(
       `${serverEnv.SUPABASE_URL.replace(/\/+$/, '')}/functions/v1/payments/tranzak-settle`,
@@ -71,35 +40,38 @@ export default async function AgmPaymentReturnPage({
         cache: 'no-store',
       },
     );
-    result = (await res.json().catch(() => null)) as SettleResponse | null;
+    return (await res.json().catch(() => null)) as SettleResponse | null;
   } catch (err) {
     console.error(
       JSON.stringify({
         level: 'error',
-        component: 'web.agm.paymentReturn',
+        component: 'web.receipt.settle',
         message: 'settle call failed',
         intentId,
         error: String(err),
       }),
     );
+    return null;
   }
+}
 
-  const outcome = result?.outcome ?? 'unknown';
-
-  // Paid. Sandbox settlements have no receipt token — they mint no
-  // receipt by design — so they are addressed by their settlement id.
-  if (outcome === 'settled' || outcome === 'already-settled') {
-    if (result?.mode === 'sandbox' && result.settlementId) {
-      redirect(`/agm-2026/receipt/sandbox-${result.settlementId}`);
-    }
-    if (result?.receiptToken) {
-      redirect(`/agm-2026/receipt/${result.receiptToken}`);
-    }
-  }
-
-  // Everything else gets a page rather than a redirect, because the payer
-  // needs to be told something specific.
-  const copy = messageFor(outcome, result);
+/**
+ * What the payer sees when they came back from the gateway and there is no
+ * receipt to show them.
+ *
+ * A receipt is the happy path and it renders instead of this. Everything
+ * else — still confirming, declined, cancelled, held for review — needs
+ * saying in words, because the one thing a payer must never be left with
+ * is a page that cannot tell them whether their money moved.
+ */
+export function PaymentStatus({
+  intentId,
+  result,
+}: {
+  readonly intentId: string;
+  readonly result: SettleResponse | null;
+}) {
+  const copy = messageFor(result?.outcome ?? 'unknown', result);
 
   return (
     <main className="mx-auto flex min-h-[60vh] w-full max-w-xl flex-col justify-center gap-5 px-6 py-20">
@@ -139,7 +111,7 @@ function messageFor(
   switch (outcome) {
     case 'settled':
     case 'already-settled':
-      // Reached only when a live settlement somehow has no receipt token.
+      // Reached only when a settlement somehow has no receipt to show.
       return {
         title: 'Payment received',
         body: 'Thank you — your payment has been recorded. Your receipt is being prepared; the secretariat will send it to you shortly.',
@@ -151,7 +123,7 @@ function messageFor(
           result?.gatewayStatus
             ? ` (${result.gatewayStatus.replaceAll('_', ' ').toLowerCase()})`
             : ''
-        }. Your registration is recorded either way — we will email you the moment the payment clears.`,
+        }. Your details are recorded either way — we will email you the moment it clears.`,
       };
     case 'failed':
       return {
@@ -171,7 +143,7 @@ function messageFor(
     default:
       return {
         title: 'We could not confirm this payment',
-        body: 'Your registration is recorded. If money left your account, the secretariat will find it and be in touch — nothing is lost.',
+        body: 'Your details are recorded. If money left your account, the secretariat will find it and be in touch — nothing is lost.',
       };
   }
 }

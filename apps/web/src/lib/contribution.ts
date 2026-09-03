@@ -220,7 +220,7 @@ export async function submitContribution(input: ContributionInput): Promise<Cont
           paymentMethod: 'pay-now',
           note: input.note?.trim() || undefined,
           description: input.description,
-          returnPath: '/payment/{intentId}',
+          returnPath: '/receipt/{intentId}',
         }),
       },
     );
