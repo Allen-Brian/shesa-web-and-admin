@@ -28,8 +28,12 @@ export function PartnerLogo({
   return (
     <span
       className={`relative grid shrink-0 place-items-center rounded-xs px-2 ${
-        plate ? 'bg-white shadow-[0_2px_10px_rgba(0,0,0,0.25)]' : ''
+        plate ? 'shadow-[0_2px_10px_rgba(0,0,0,0.25)]' : ''
       } ${className}`}
+      /* MTN's current mark is monochrome and is meant to sit on the
+         brand's yellow, so a partner can name the ground its logo needs;
+         everyone else prints on white. */
+      style={plate ? { backgroundColor: partner.plate ?? '#ffffff' } : undefined}
     >
       {partner.logo ? (
         <Image
