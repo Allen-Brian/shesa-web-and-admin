@@ -2,10 +2,17 @@
  * Partner boards, shared by every partner-strip variant so the four
  * designs are compared on identical content.
  *
- * PLACEHOLDER CONTENT. The brands below are targets, not signed
- * partners, and every message is invented copy standing in for what a
- * real partner would supply. Both the artwork and the wording need to
- * come from the partner (and be cleared) before this goes live.
+ * ARTWORK IS NOT IN THE REPO YET. `public/partners/` does not exist, so
+ * every board currently falls back to a wordmark set in the brand
+ * colour. Drop each brand's official file in and set `logo` below and
+ * that board switches to real artwork with no other change. Take the
+ * files from each company's own brand/press page rather than a web
+ * search — usage terms travel with the asset, and a logo used without
+ * permission is a trademark problem, not a design one.
+ *
+ * TAGLINES: only MTN's is the company's own. The other three are plain
+ * descriptions of what the business does, standing in until the real
+ * wording arrives from each partner. They are marked below.
  *
  * There is no partners table yet — when one lands, load these server
  * side and pass them in the way Events / Projects do.
@@ -14,9 +21,9 @@
 export interface Partner {
   readonly name: string;
   /**
-   * Path under `public/partners/`. Until a brand's real artwork is
-   * cleared and dropped in, boards fall back to a wordmark set in the
-   * brand colour, so nothing renders broken.
+   * Path under `public/partners/`, e.g. `/partners/mtn.svg`. Leave unset
+   * until the file is actually there — a path to a missing file renders
+   * a broken image, the wordmark fallback does not.
    */
   readonly logo?: string;
   /** Small tag above the message — product line, campaign, or sector. */
@@ -35,66 +42,38 @@ export interface Partner {
 export const partners: readonly Partner[] = [
   {
     name: 'MTN',
-    tag: 'Mobile Money',
-    message: 'Pay your AGM ticket in seconds with MoMo.',
+    tag: 'Telecommunications',
+    // MTN's own long-standing slogan.
+    message: 'Everywhere you go.',
     bg: '#FFCC00',
     fg: '#0b0b0b',
     chip: '#0b0b0b',
   },
   {
-    name: 'orange',
-    tag: 'Orange Money',
-    message: 'Send it home from anywhere in the world.',
-    bg: '#FF7900',
-    fg: '#ffffff',
-    chip: '#FF7900',
-  },
-  {
-    name: 'UBA',
-    tag: "Africa's global bank",
-    message: 'Open a diaspora account without leaving your city.',
-    bg: '#D2232A',
-    fg: '#ffffff',
-    chip: '#D2232A',
-  },
-  {
-    name: 'Access Bank',
-    tag: 'AccessMore',
-    message: 'Banking that follows you home and back again.',
-    bg: '#00478F',
-    fg: '#ffffff',
-    chip: '#00478F',
-  },
-  {
-    name: 'Ecobank',
-    tag: 'Ecobank Xpress',
-    message: 'One app across thirty-three African markets.',
-    bg: '#00A651',
-    fg: '#ffffff',
-    chip: '#00874A',
-  },
-  {
     name: 'CAMTEL',
-    tag: 'Blue Home Fibre',
-    message: 'Fibre fast enough for the whole compound.',
+    tag: 'Telecommunications',
+    // PLACEHOLDER — factual description, not CAMTEL's own wording.
+    message: "Cameroon's national telecommunications operator.",
     bg: '#00AEEF',
     fg: '#04263a',
     chip: '#0079A8',
   },
   {
-    name: 'Afriland First Bank',
-    tag: 'SME banking',
-    message: 'Growth finance for alumni-run businesses.',
-    bg: '#0E3B2E',
+    name: 'Pamol',
+    tag: 'Agro-industry',
+    // PLACEHOLDER — factual description, not Pamol's own wording.
+    message: 'Palm oil grown and milled in the South West.',
+    bg: '#0E5B34',
     fg: '#ffffff',
-    chip: '#0E3B2E',
+    chip: '#0E5B34',
   },
   {
-    name: 'Guinness',
-    tag: 'Proud backer',
-    message: 'Behind the assembly, and the reunion after it.',
-    bg: '#101010',
-    fg: '#F2D08A',
-    chip: '#101010',
+    name: 'betPawa',
+    tag: 'Sports betting',
+    // PLACEHOLDER — factual description, not betPawa's own wording.
+    message: 'Sports betting across Africa.',
+    bg: '#1B7A3E',
+    fg: '#ffffff',
+    chip: '#1B7A3E',
   },
 ] as const;

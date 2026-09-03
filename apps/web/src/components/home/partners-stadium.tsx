@@ -9,8 +9,14 @@ import { partners, type Partner } from './partners-data';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
-/** Second rail runs a different order so the two never mirror. */
-const secondRail = [...partners.slice(4), ...partners.slice(0, 4)];
+/**
+ * Second rail runs a different order so the two never mirror. Rotated
+ * by half the list rather than a fixed four, which with the current
+ * four partners would have rotated by the whole list and produced two
+ * identical rails.
+ */
+const offset = Math.floor(partners.length / 2);
+const secondRail = [...partners.slice(offset), ...partners.slice(0, offset)];
 
 /**
  * VARIANT B — Stadium bowl.

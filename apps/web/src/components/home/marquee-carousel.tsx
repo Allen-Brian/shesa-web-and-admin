@@ -35,7 +35,20 @@ export function MarqueeCarousel<T>({
   maskImage = 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
   trackClassName = 'gap-5 md:gap-6',
 }: MarqueeCarouselProps<T>) {
-  const doubled = useMemo(() => [...items, ...items], [items]);
+  /**
+   * The track translates by -50%, so it loops seamlessly only when the
+   * two halves are identical AND one half is wider than the viewport —
+   * otherwise the tail of the list clears the screen before the loop
+   * restarts and leaves a gap. A short list (the partner boards are
+   * four) is therefore repeated until each half carries at least eight
+   * items. Lists of eight or more are untouched, still one copy per
+   * half, exactly as before.
+   */
+  const track = useMemo(() => {
+    if (items.length === 0) return [];
+    const perHalf = Math.max(1, Math.ceil(8 / items.length));
+    return Array.from({ length: perHalf * 2 }, () => items).flat();
+  }, [items]);
 
   return (
     <div
@@ -48,7 +61,7 @@ export function MarqueeCarousel<T>({
         className={`marquee-track flex w-max ${reverse ? 'marquee-track-reverse' : ''} ${trackClassName}`}
         style={{ ['--marquee-duration' as string]: `${duration}s` }}
       >
-        {doubled.map((item, i) => (
+        {track.map((item, i) => (
           <li key={i} className="shrink-0" aria-hidden={i >= items.length}>
             {renderItem(item, i % items.length)}
           </li>
