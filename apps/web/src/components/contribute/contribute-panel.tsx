@@ -168,8 +168,12 @@ export function ContributePanel({ contribution, subject, action }: Props) {
         </button>
       </div>
 
+      {/* Said here rather than left as a surprise at checkout: the payer
+          sees a figure on this form and a slightly larger one on the
+          gateway's page, and the difference should not need explaining. */}
       <p className="text-[11px] leading-relaxed text-muted-foreground">
-        You will choose how to pay — Mobile Money, card or bank — on the next screen.
+        You will choose how to pay — Mobile Money, card or bank — on the next screen, where a small
+        transaction fee is added so the full amount reaches SHESA.
       </p>
     </form>
   );

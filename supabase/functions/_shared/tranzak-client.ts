@@ -228,6 +228,19 @@ export interface CreateRequestInput {
    * a dashboard change cannot silently redirect settlements elsewhere.
    */
   readonly callbackUrl?: string;
+  /**
+   * How much of the gateway's fee the payer carries, 0–100.
+   *
+   * At 0 — Tranzak's default — the fee comes out of what we asked for: a
+   * 20 000 charge settles 19 500 into the merchant account. That is wrong
+   * for a ticket priced at 20 000, because the organisation is owed 20 000
+   * and quietly receives less. At 100 the fee is added on top and the full
+   * amount arrives.
+   *
+   * `amount` stays the figure we asked for either way, so reconciliation
+   * is unaffected — verified against the sandbox.
+   */
+  readonly payerFeePercentage?: number;
 }
 
 /**

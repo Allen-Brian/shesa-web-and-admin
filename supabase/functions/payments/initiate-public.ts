@@ -46,7 +46,7 @@ import {
 import { buildContext } from '../_shared/request-context.ts';
 import { createServiceRoleClient } from '../_shared/supabase-client.ts';
 import { createPaymentRequest } from '../_shared/tranzak-client.ts';
-import { resolveTranzakConfig } from '../_shared/tranzak-config.ts';
+import { PAYER_CARRIES_FEE_PERCENT, resolveTranzakConfig } from '../_shared/tranzak-config.ts';
 import { isServiceRole } from '../_shared/service-role-auth.ts';
 import { parseJson } from '../_shared/validation.ts';
 
@@ -279,6 +279,9 @@ export async function initiatePublicPayment(req: Request): Promise<Response> {
         returnUrl: `${config.returnUrlBase}${input.returnPath.replace('{intentId}', intentId)}`,
         cancelUrl: `${config.returnUrlBase}${input.returnPath.replace('{intentId}', intentId)}`,
         callbackUrl: config.callbackUrl,
+        // The organisation is owed the full amount; the gateway's cut goes
+        // on top rather than coming out of it.
+        payerFeePercentage: PAYER_CARRIES_FEE_PERCENT,
       },
       config,
     );

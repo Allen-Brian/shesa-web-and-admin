@@ -33,6 +33,24 @@
 export type TranzakMode = 'sandbox' | 'live';
 
 /**
+ * Who carries the gateway's cut. 100 = the payer.
+ *
+ * Tranzak defaults to 0, which takes the fee out of the amount requested:
+ * ask for 20 000 and 19 500 arrives. For a priced item that is simply
+ * wrong — a 20 000 ticket is 20 000 owed to the organisation, and a
+ * silent 2.5% shortfall on every transaction is the kind of gap that only
+ * surfaces at reconciliation months later.
+ *
+ * The payer sees the fee added at checkout before they confirm, so nothing
+ * is hidden from them.
+ *
+ * Worth revisiting per charge one day: an organisation may prefer to
+ * absorb the fee on donations, where the payer chose the figure and being
+ * charged 10 250 for a 10 000 gift reads oddly.
+ */
+export const PAYER_CARRIES_FEE_PERCENT = 100;
+
+/**
  * Fixed per mode, deliberately not an environment variable.
  * https://docs.developer.tranzak.me/ — "All Tranzak API endpoints must be
  * accessed via HTTPS."
