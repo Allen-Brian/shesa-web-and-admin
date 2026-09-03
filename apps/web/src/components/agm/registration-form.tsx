@@ -30,7 +30,7 @@ export function RegistrationForm({ initialError }: Props) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [paymentOption, setPaymentOption] = useState<PaymentOption>('mtn-momo');
+  const [paymentOption, setPaymentOption] = useState<PaymentOption>('pay-now');
   const [error, setError] = useState(initialError ?? '');
 
   const total = AGM_TICKET_UNIT_PRICE_XAF * Math.max(1, quantity);

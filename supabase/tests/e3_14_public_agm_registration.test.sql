@@ -64,7 +64,7 @@ SET LOCAL search_path = pgtap, public, audit, core, finance, cms, auth;
 
 SELECT matches(
   (SELECT reference FROM cms.submit_agm_registration(
-     'ticket', 'Ndifon Peter', '677123456', 20000, 'mtn-momo',
+     'ticket', 'Ndifon Peter', '677123456', 20000, 'pay-now',
      'peter@example.com', 1, NULL, NULL)),
   '^AGM-[0-9A-F]{10}$',
   'anon can submit an AGM registration and receives a well-formed reference'

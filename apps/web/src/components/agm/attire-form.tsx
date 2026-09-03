@@ -37,7 +37,7 @@ export function AttireForm({ initialError }: Props) {
   const [phone, setPhone] = useState('');
   const [size, setSize] = useState<AttireSize>('M');
   const [quantity, setQuantity] = useState(1);
-  const [paymentOption, setPaymentOption] = useState<PaymentOption>('mtn-momo');
+  const [paymentOption, setPaymentOption] = useState<PaymentOption>('pay-now');
   const [error, setError] = useState(initialError ?? '');
 
   const total = AGM_ATTIRE_UNIT_PRICE_XAF * Math.max(1, quantity);

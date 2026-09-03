@@ -57,7 +57,7 @@ interface IntentRow {
   readonly payer_member_id: string | null;
   readonly amount: number;
   readonly currency: string;
-  readonly method: string;
+  readonly method: string | null;
   readonly status: string;
   readonly mode: 'sandbox' | 'live';
   readonly resulting_payment_id: string | null;
@@ -65,13 +65,16 @@ interface IntentRow {
   readonly payer_name: string | null;
   readonly payer_email: string | null;
   readonly payer_phone: string | null;
+  readonly payer_location: string | null;
+  readonly quantity: number | null;
+  readonly note: string | null;
   readonly metadata: Record<string, unknown> | null;
 }
 
 const INTENT_COLUMNS =
   'id, obligation_id, charge_id, scope_id, payer_member_id, amount, currency, method, ' +
   'status, mode, resulting_payment_id, sandbox_payment_id, payer_name, payer_email, ' +
-  'payer_phone, metadata';
+  'payer_phone, payer_location, quantity, note, metadata';
 
 function log(level: 'info' | 'warn' | 'error', message: string, extra: Record<string, unknown>) {
   console[level === 'info' ? 'log' : level](
@@ -97,6 +100,174 @@ function intentStatusFor(gatewayStatus: string): 'succeeded' | 'failed' | 'cance
     default:
       return null;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * What the payment was for, and what it was paid with
+ * ══════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Tranzak names methods for people ("MTN Momo"), we store an enum. This
+ * maps the gateway's answer onto ours.
+ *
+ * The gateway's answer is the truthful one: the payer chooses again on
+ * Tranzak's page and can pick something other than what they told our
+ * form. Returns null when it is a method our enum has no name for, in
+ * which case the intent's own method stands and the gateway's raw string
+ * is kept in metadata either way.
+ */
+function methodFromGateway(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const s = raw.toLowerCase();
+  if (s.includes('mtn')) return 'mtn_momo';
+  if (s.includes('orange')) return 'orange_money';
+  if (s.includes('card') || s.includes('visa') || s.includes('master')) return 'card';
+  if (s.includes('bank') || s.includes('transfer')) return 'bank_transfer';
+  if (s.includes('cash')) return 'cash';
+  return null;
+}
+
+/**
+ * The method to record on a settlement.
+ *
+ * The gateway's answer wins, then whatever the intent knew, then `card`
+ * as the last resort — `finance.payments.method` is NOT NULL and a
+ * settlement that reached this point is real money that must be recorded
+ * whatever we call it. The fallback is logged, because it means Tranzak
+ * named a method `methodFromGateway` does not recognise and the mapping
+ * needs a case adding.
+ */
+function settledMethod(intent: IntentRow, details: TranzakRequest): string {
+  const fromGateway = methodFromGateway(details.payer?.paymentMethod);
+  if (fromGateway) return fromGateway;
+  if (intent.method) return intent.method;
+  log('warn', 'could not name the payment method; defaulting', {
+    intentId: intent.id,
+    gatewayMethod: details.payer?.paymentMethod ?? null,
+  });
+  return 'card';
+}
+
+interface PaymentReason {
+  readonly charge_name: string | null;
+  readonly charge_shape: string | null;
+  readonly group_name: string | null;
+  readonly event_id: string | null;
+  readonly event_name: string | null;
+}
+
+/**
+ * Resolve what a payment was for, denormalised onto the record.
+ *
+ * Denormalised on purpose. A payment is immutable and outlives the thing
+ * that occasioned it: a charge can be renamed, an event deleted, a group
+ * archived. A row that says only `charge_id` becomes unreadable the day
+ * that charge goes away, and a finance record nobody can explain is
+ * worse than no record.
+ */
+async function resolveReason(chargeId: string | null): Promise<PaymentReason> {
+  const empty: PaymentReason = {
+    charge_name: null,
+    charge_shape: null,
+    group_name: null,
+    event_id: null,
+    event_name: null,
+  };
+  if (!chargeId) return empty;
+
+  const service = createServiceRoleClient();
+
+  const { data: chargeRaw } = await service
+    .schema('finance' as never)
+    .from('charges' as never)
+    .select('id, name, shape, group_id')
+    .eq('id', chargeId)
+    .maybeSingle();
+
+  const charge = chargeRaw as {
+    id: string;
+    name: string;
+    shape: string;
+    group_id: string | null;
+  } | null;
+  if (!charge) return empty;
+
+  const [{ data: groupRaw }, { data: eventRaw }] = await Promise.all([
+    charge.group_id
+      ? service
+          .schema('finance' as never)
+          .from('groups' as never)
+          .select('name')
+          .eq('id', charge.group_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    service
+      .schema('exco' as never)
+      .from('events' as never)
+      .select('id, name')
+      .eq('contribution_charge_id', chargeId)
+      .maybeSingle(),
+  ]);
+
+  const event = eventRaw as { id: string; name: string } | null;
+
+  return {
+    charge_name: charge.name,
+    charge_shape: charge.shape,
+    group_name: (groupRaw as { name: string } | null)?.name ?? null,
+    event_id: event?.id ?? null,
+    event_name: event?.name ?? null,
+  };
+}
+
+/**
+ * The metadata every settlement carries: who paid, what for, and what the
+ * gateway said.
+ *
+ * The first half of that used to be missing entirely. A live settlement
+ * wrote gateway keys and nothing else, while the Transactions page reads
+ * `payer_name`, `payer_email`, `payer_phone`, `payer_location` and `note`
+ * — so every gateway payment displayed as "Anonymous" with no contact
+ * details and no reason. The sandbox path carried them in real columns,
+ * which made test data richer than production.
+ */
+async function settlementMetadata(
+  intent: IntentRow,
+  details: TranzakRequest,
+): Promise<Record<string, unknown>> {
+  const reason = await resolveReason(intent.charge_id);
+  const meta = (intent.metadata ?? {}) as Record<string, unknown>;
+
+  return {
+    intent_id: intent.id,
+
+    // ── From the form ──
+    payer_name: intent.payer_name,
+    payer_email: intent.payer_email,
+    payer_phone: intent.payer_phone,
+    payer_location: intent.payer_location,
+    quantity: intent.quantity,
+    note: intent.note,
+    source: meta.source ?? null,
+    agm_reference: meta.agm_reference ?? null,
+
+    // ── What it was for ──
+    ...reason,
+
+    // ── From the gateway ──
+    provider: 'tranzak',
+    provider_ref: details.requestId,
+    provider_transaction_id: details.transactionId ?? null,
+    gateway_status: details.status,
+    gateway_amount: details.amount,
+    gateway_currency: details.currencyCode,
+    gateway_fee: details.merchant?.fee ?? null,
+    gateway_net_amount: details.merchant?.netAmountReceived ?? null,
+    gateway_method: details.payer?.paymentMethod ?? null,
+    gateway_payer_account: details.payer?.accountId ?? null,
+    /** What the payer told our form, kept for comparison. */
+    requested_method: intent.method,
+  };
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -278,7 +449,7 @@ async function settleSandbox(intent: IntentRow, details: TranzakRequest): Promis
       obligation_id: intent.obligation_id,
       amount: intent.amount,
       currency: intent.currency,
-      method: intent.method,
+      method: settledMethod(intent, details),
       payer_member_id: intent.payer_member_id,
       payer_name: intent.payer_name,
       payer_email: intent.payer_email,
@@ -291,7 +462,13 @@ async function settleSandbox(intent: IntentRow, details: TranzakRequest): Promis
       gateway_currency: details.currencyCode,
       gateway_fee: details.merchant?.fee ?? null,
       gateway_net_amount: details.merchant?.netAmountReceived ?? null,
-      raw_payload: details as unknown as Record<string, unknown>,
+      // The same envelope the live path writes, so a sandbox run shows
+      // exactly what production will. `raw_payload` keeps the gateway's
+      // reply verbatim alongside it for debugging.
+      raw_payload: {
+        ...(await settlementMetadata(intent, details)),
+        gateway_response: details as unknown as Record<string, unknown>,
+      },
     } as never)
     .select('id')
     .maybeSingle();
@@ -347,6 +524,8 @@ async function settleSandbox(intent: IntentRow, details: TranzakRequest): Promis
 async function settleLive(intent: IntentRow, details: TranzakRequest): Promise<SettleResult> {
   const service = createServiceRoleClient();
 
+  const metadata = await settlementMetadata(intent, details);
+
   const { data, error } = await service
     .schema('finance' as never)
     .from('payments' as never)
@@ -357,22 +536,13 @@ async function settleLive(intent: IntentRow, details: TranzakRequest): Promise<S
       payer_member_id: intent.payer_member_id,
       amount: intent.amount,
       currency: intent.currency,
-      method: intent.method,
+      // What the payer actually used, not what they told our form.
+      method: settledMethod(intent, details),
       source: 'auto',
       // No recorded_by: nobody keyed this in. The gateway did it, and the
       // provenance lives in external_ref and metadata.
       external_ref: details.requestId,
-      metadata: {
-        intent_id: intent.id,
-        provider: 'tranzak',
-        provider_ref: details.requestId,
-        provider_transaction_id: details.transactionId ?? null,
-        gateway_status: details.status,
-        gateway_amount: details.amount,
-        gateway_currency: details.currencyCode,
-        gateway_fee: details.merchant?.fee ?? null,
-        gateway_net_amount: details.merchant?.netAmountReceived ?? null,
-      },
+      metadata,
     } as never)
     .select('id')
     .maybeSingle();

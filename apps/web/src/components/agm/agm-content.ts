@@ -241,11 +241,20 @@ export function tierForAmount(amountXaf: number): AgmFundingTier['key'] {
   return 'platinum';
 }
 
+/**
+ * How the visitor wants to settle — not *which* payment method.
+ *
+ * The method question is gone. It used to list MTN, Orange, card and bank
+ * transfer, and then Tranzak's checkout asked again; the two answers could
+ * disagree, and the one that mattered was always Tranzak's. So the payer
+ * picks their method once, on the gateway's page, and we record what they
+ * actually used.
+ *
+ * What is left is the one thing Tranzak cannot answer: whether they are
+ * paying at all right now, or handing cash to the secretariat on the day.
+ */
 export const PAYMENT_OPTIONS = [
-  { value: 'mtn-momo', label: 'MTN Mobile Money' },
-  { value: 'orange-money', label: 'Orange Money' },
-  { value: 'card', label: 'Card (Visa / MasterCard)' },
-  { value: 'bank-transfer', label: 'Bank transfer' },
+  { value: 'pay-now', label: 'Pay now (Mobile Money, card, or bank)' },
   { value: 'cash-on-site', label: 'Pay on arrival' },
 ] as const;
 

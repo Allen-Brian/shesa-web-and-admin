@@ -34,7 +34,7 @@ export function FundingForm({ initialError }: Props) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [note, setNote] = useState('');
-  const [paymentOption, setPaymentOption] = useState<PaymentOption>('mtn-momo');
+  const [paymentOption, setPaymentOption] = useState<PaymentOption>('pay-now');
   const [error, setError] = useState(initialError ?? '');
 
   const derivedTier = useMemo(() => (amountXaf > 0 ? tierForAmount(amountXaf) : null), [amountXaf]);

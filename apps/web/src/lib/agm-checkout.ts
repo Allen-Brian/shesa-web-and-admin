@@ -19,6 +19,9 @@
  */
 
 import { serverEnv } from '@shesa/config/env.server';
+import { createServiceRoleClient } from '@shesa/supabase/service-role';
+
+import { getServerClient } from './supabase-server';
 
 /** Charges seeded by `supabase/seed.sql`, section 5.2. */
 export const AGM_CHARGE_IDS = {
@@ -54,6 +57,43 @@ export interface CheckoutInput {
   readonly description: string;
 }
 
+/**
+ * The member behind the person paying, when there is one.
+ *
+ * The public site has no sign-in of its own, but the session cookie is
+ * scoped to the apex domain, so a member signed in on the admin app is
+ * recognised here too. When we can identify them the payment attaches to
+ * their member record and counts on their profile; when we cannot — which
+ * is most public traffic — it stays a guest payment carrying only the
+ * name, email and phone they typed.
+ *
+ * The lookup runs service-role because `core.member_accounts` is not
+ * readable by `anon`, and it is keyed on an id taken from the verified
+ * session rather than from anything the caller sent.
+ */
+async function signedInMemberId(): Promise<string | null> {
+  try {
+    const supabase = await getServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data } = await createServiceRoleClient()
+      .schema('core')
+      .from('member_accounts')
+      .select('member_id')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    return (data as { member_id: string } | null)?.member_id ?? null;
+  } catch {
+    // Never block a payment over this. A guest payment is a complete
+    // record; an unattributed one is a smaller problem than a failed one.
+    return null;
+  }
+}
+
 export type CheckoutResult =
   | { readonly ok: true; readonly checkoutUrl: string; readonly intentId: string }
   | { readonly ok: false; readonly message: string };
@@ -79,6 +119,7 @@ export async function openAgmCheckout(input: CheckoutInput): Promise<CheckoutRes
       },
       body: JSON.stringify({
         chargeId: input.chargeId,
+        payerMemberId: await signedInMemberId(),
         quantity: input.quantity,
         amountXaf: input.amountXaf,
         fullName: input.fullName.trim(),

@@ -32,6 +32,7 @@ const KIND_LABEL: Record<Registration['kind'], string> = {
 };
 
 const METHOD_LABEL: Record<string, string> = {
+  'pay-now': 'Paid online',
   'mtn-momo': 'MTN Mobile Money',
   'orange-money': 'Orange Money',
   card: 'Card (Visa / MasterCard)',

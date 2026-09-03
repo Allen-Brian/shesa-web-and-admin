@@ -47,12 +47,23 @@ import { secretsMatch } from '../_shared/worker-auth.ts';
 import { parseJson } from '../_shared/validation.ts';
 
 /**
- * The gateway takes over from here, so the method the visitor picked on
- * our form is recorded on the intent and then chosen again on Tranzak's
- * page. `cash-on-site` never reaches this endpoint — the web action keeps
- * that flow entirely off the gateway.
+ * What the visitor chose to do, mapped onto an intent method.
+ *
+ * `pay-now` maps to null — not "unknown" as a value, but genuinely not
+ * chosen yet. The payer picks their method on Tranzak's page and
+ * settlement records what they actually used. Inventing a provisional
+ * value here would show Finance a method that later changes.
+ *
+ * The four named methods are kept because older links and any integration
+ * still posting them should keep working; they are simply a more specific
+ * answer to the same question.
+ *
+ * `cash-on-site` is absent on purpose — the web action never sends it
+ * here, and if something did, refusing is the right answer: there is no
+ * gateway payment to open.
  */
-const FORM_METHOD_TO_ENUM: Record<string, string> = {
+const FORM_CHOICE_TO_METHOD: Record<string, string | null> = {
+  'pay-now': null,
   'mtn-momo': 'mtn_momo',
   'orange-money': 'orange_money',
   card: 'card',
@@ -65,6 +76,11 @@ const MAX_DONATION_XAF = 50_000_000;
 const inputSchema = z
   .object({
     chargeId: z.string().uuid(),
+    /**
+     * Resolved by the caller from a verified session, never sent by a
+     * browser. `apps/web` is the only caller and holds the service key.
+     */
+    payerMemberId: z.string().uuid().nullable().optional(),
     quantity: z.number().int().min(1).max(20).optional(),
     /** Donations only — ignored for ticketed charges, which are priced here. */
     amountXaf: z.number().positive().max(MAX_DONATION_XAF).optional(),
@@ -103,15 +119,15 @@ export async function initiatePublicPayment(req: Request): Promise<Response> {
   if (!parsed.ok) return withCors(req, parsed.response);
   const input = parsed.data;
 
-  const method = FORM_METHOD_TO_ENUM[input.paymentMethod];
-  if (!method) {
+  if (!(input.paymentMethod in FORM_CHOICE_TO_METHOD)) {
     return withCors(
       req,
       validationError('Unsupported payment method', ctx.traceId, {
-        paymentMethod: `"${input.paymentMethod}" is not a gateway method.`,
+        paymentMethod: `"${input.paymentMethod}" cannot open a gateway payment.`,
       }),
     );
   }
+  const method = FORM_CHOICE_TO_METHOD[input.paymentMethod] ?? null;
 
   const service = createServiceRoleClient();
 
@@ -199,6 +215,7 @@ export async function initiatePublicPayment(req: Request): Promise<Response> {
     .insert({
       charge_id: charge.id,
       scope_id: charge.scope_id,
+      payer_member_id: input.payerMemberId ?? null,
       amount,
       currency: charge.currency,
       method,
