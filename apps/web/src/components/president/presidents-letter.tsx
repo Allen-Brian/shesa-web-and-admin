@@ -314,12 +314,17 @@ function Signature() {
 
   return (
     <div className="relative mt-3 inline-block">
+      {/* The vertical padding is what keeps ascenders and descenders
+          inside the clip box. `inset()` percentages must stay >= 0 —
+          negative values are dropped outright by some engines, which
+          left the name permanently hidden on desktop while mobile
+          happened to tolerate them. */}
       <motion.p
-        className="font-script whitespace-nowrap leading-none text-[#2f2418]"
+        className="font-script whitespace-nowrap py-1.5 leading-none text-[#2f2418]"
         style={{ fontSize: 'clamp(1.35rem, 3.6vw, 2rem)' }}
-        initial={reduce ? undefined : { clipPath: 'inset(-30% 100% -30% 0)' }}
-        whileInView={reduce ? undefined : { clipPath: 'inset(-30% 0% -30% 0)' }}
-        viewport={{ once: true, amount: 0.9 }}
+        initial={reduce ? undefined : { clipPath: 'inset(0 100% 0 0)' }}
+        whileInView={reduce ? undefined : { clipPath: 'inset(0 0% 0 0)' }}
+        viewport={{ once: true, amount: 0.5 }}
         transition={{ duration, ease: 'linear' }}
       >
         {A.signatory.name}
@@ -327,24 +332,26 @@ function Signature() {
 
       {reduce ? null : (
         <motion.span
+          /* Below the line, nib turned up so the tip meets the letters
+             it is laying down. */
           aria-hidden
-          className="absolute -top-6 left-0 text-primary md:-top-7"
-          initial={{ left: '0%', opacity: 0, rotate: -8 }}
+          className="absolute top-full left-0 -mt-2 text-primary"
+          initial={{ left: '0%', opacity: 0 }}
           whileInView={{
             left: '100%',
             opacity: [0, 1, 1, 0],
-            rotate: [-8, -4, -10, -6, -8],
-            y: [0, -2, 1, -1, 0],
+            y: [0, 2, -1, 1, 0],
           }}
-          viewport={{ once: true, amount: 0.9 }}
+          viewport={{ once: true, amount: 0.5 }}
           transition={{
             left: { duration, ease: 'linear' },
             opacity: { duration, times: [0, 0.04, 0.92, 1] },
-            rotate: { duration, ease: 'easeInOut' },
             y: { duration, ease: 'easeInOut' },
           }}
         >
-          <PenTool className="h-6 w-6 -scale-x-100 md:h-7 md:w-7" />
+          {/* Rotated on the icon rather than the animated wrapper, so the
+              nib's offset stays fixed while the wrapper travels. */}
+          <PenTool className="h-6 w-6 translate-x-[-62%] rotate-170 md:h-7 md:w-7" />
         </motion.span>
       )}
     </div>
