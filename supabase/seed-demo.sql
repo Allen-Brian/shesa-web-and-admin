@@ -663,8 +663,20 @@ END $$;
 -- =============================================================================
 -- Section 5. A year of finance activity
 -- =============================================================================
--- 6.0 Clean slate — wipe every finance row before reseeding
+-- 6.0 Clean slate — wipe the DEMO's finance rows before reseeding
 -------------------------------------------------------------------------------
+-- This used to truncate `finance.charges` and `finance.groups` too, from when
+-- one seed owned all finance data. After the 2026-09-02 split it destroyed the
+-- AGM 2026 group and its seven charges that `seed.sql` had just created three
+-- sections earlier — silently, because TRUNCATE succeeds on rows it was never
+-- meant to touch. Every local database came up with no AGM catalogue, so the
+-- public /agm-2026 forms had nothing to attach a payment to.
+--
+-- The transactional tables are still truncated wholesale: they are demo-owned
+-- and empty in a fresh production seed. The catalogue is then cleared by
+-- DELETE with a predicate, so the bootstrap survives and the demo still gets
+-- its clean slate. `charge_targets`, `contribution_extensions`, `exceptions`
+-- and `charge_amount_versions` cascade off the charge delete.
 
 TRUNCATE
   finance.reconciliations,
@@ -676,13 +688,21 @@ TRUNCATE
   finance.exceptions,
   finance.expenses,
   finance.expense_settings,
-  finance.charges,
-  finance.groups,
   finance.receipt_verifications,
   finance.payment_intents,
+  finance.sandbox_payments,
   finance.ledger_entries,
   finance.treasury_balances
 RESTART IDENTITY CASCADE;
+
+-- Everything outside the AGM group is demo catalogue. Charges go first:
+-- `charges.group_id` is ON DELETE SET NULL, so removing groups first would
+-- orphan them out of the predicate.
+DELETE FROM finance.charges
+ WHERE group_id IS DISTINCT FROM '88888888-2026-0000-0000-000000000001';
+
+DELETE FROM finance.groups
+ WHERE id <> '88888888-2026-0000-0000-000000000001';
 
 -------------------------------------------------------------------------------
 -- 6.1 Two charges: one Individual, one Group
