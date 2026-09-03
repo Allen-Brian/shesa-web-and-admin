@@ -135,7 +135,11 @@ export function MainOrgan({ tiers }: MainOrganProps) {
 
 function LeaderCard({ leader }: { readonly leader: Leader }) {
   return (
-    <article className="relative block">
+    /* Anchor target for the home-page strip, which links here rather
+       than to a per-leader page: the CMS holds only name, position,
+       location, and photo, so a detail route would repeat this card and
+       add nothing. `scroll-mt` clears the fixed nav on landing. */
+    <article id={`leader-${leader.slug}`} className="relative block scroll-mt-28">
       <div className="relative aspect-4/5 overflow-hidden rounded-xs">
         <Image
           src={leader.photo}

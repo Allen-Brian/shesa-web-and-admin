@@ -105,7 +105,14 @@ export function Leadership({ leaders }: LeadershipProps) {
 
 function LeaderCard({ leader }: { readonly leader: Leader }) {
   return (
-    <Link href={`/leadership/${leader.slug}`} className="group relative block">
+    /* Lands on this person's card on the leadership page. There is no
+       /leadership/{id} route and there should not be: the CMS stores
+       only what this card already shows, so a detail page would be an
+       empty room. */
+    <Link
+      href={`/leadership#leader-${leader.slug}`}
+      className="group relative block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+    >
       <div className="relative aspect-4/5 overflow-hidden rounded-xs">
         <Image
           src={leader.photo}
