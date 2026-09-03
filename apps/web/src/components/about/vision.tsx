@@ -120,7 +120,7 @@ export function Vision() {
 function PrimaryCta() {
   return (
     <Link
-      href="/agm-2026/support"
+      href="/agm-2026"
       className="group relative inline-flex items-center gap-3 overflow-hidden rounded-xs bg-primary px-9 py-4 text-sm font-medium tracking-wide text-primary-foreground shadow-[0_20px_60px_-15px_rgba(139,21,51,0.7)] transition-all duration-500 hover:-translate-y-0.5 hover:shadow-[0_25px_75px_-15px_rgba(139,21,51,0.95)] md:px-11 md:py-5 md:text-base"
     >
       <span

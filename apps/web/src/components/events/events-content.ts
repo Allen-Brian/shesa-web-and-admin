@@ -32,6 +32,12 @@ export type SiteEvent = {
   readonly featured?: boolean;
   /** Slug of the gallery album that documents this event, if any. */
   readonly albumSlug?: string;
+  /**
+   * The finance charge this event collects into, or null when it is not
+   * accepting contributions. Distinct from `ticketUrl`, which points at an
+   * external checkout this system never sees.
+   */
+  readonly contributionChargeId: string | null;
   /** Optional flyer / poster images. */
   readonly flyers?: readonly string[];
   /** Optional programme, chronologically. */

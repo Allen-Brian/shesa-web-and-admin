@@ -7,7 +7,7 @@ import { serverEnv } from '@shesa/config/env.server';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Confirming your payment — SHESA AGM 2026',
+  title: 'Confirming your payment — SHESA',
   robots: { index: false, follow: false },
 };
 
@@ -18,10 +18,18 @@ interface SettleResponse {
   readonly receiptToken?: string;
   readonly gatewayStatus?: string;
   readonly reason?: string;
+  readonly chargeName?: string | null;
+  readonly subjectName?: string | null;
+  /** Derived server-side from the intent's charge — never from the URL. */
+  readonly backHref?: string | null;
 }
 
 /**
- * Where Tranzak returns the payer's browser after checkout.
+ * Where Tranzak returns the payer's browser after checkout — for every
+ * contribution, whether it started on the AGM page, a project or an event.
+ * One page, because the work is identical in each case and the only thing
+ * that differs is where the payer came from, which the settle result
+ * carries back.
  *
  * ─── Why this page verifies rather than waits ──────────────────────────
  * The obvious design is to send the payer straight to their receipt. It
@@ -96,14 +104,23 @@ export default async function AgmPaymentReturnPage({
   return (
     <main className="mx-auto flex min-h-[60vh] w-full max-w-xl flex-col justify-center gap-5 px-6 py-20">
       <h1 className="text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h1>
+      {result?.chargeName && (
+        <p className="-mt-2 text-sm text-muted-foreground">
+          {result.chargeName}
+          {result.subjectName ? ` · ${result.subjectName}` : ''}
+        </p>
+      )}
       <p className="text-base leading-relaxed text-muted-foreground">{copy.body}</p>
 
+      {/* `backHref` is resolved from the intent's charge inside the Edge
+          Function. Taking it from the URL would make this an open redirect
+          on a page anyone can load. */}
       <div className="flex flex-wrap gap-3 pt-2">
         <Link
-          href="/agm-2026"
+          href={result?.backHref ?? '/'}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
         >
-          Back to AGM 2026
+          {result?.subjectName ? `Back to ${result.subjectName}` : 'Back to the site'}
         </Link>
       </div>
 
@@ -139,12 +156,12 @@ function messageFor(
     case 'failed':
       return {
         title: 'That payment did not go through',
-        body: 'Nothing was charged. Your registration is still recorded, so you can try again from the AGM page or pay on arrival.',
+        body: 'Nothing was charged. Your details are still recorded, so you can try again or arrange to pay another way.',
       };
     case 'cancelled':
       return {
         title: 'Payment cancelled',
-        body: 'Nothing was charged. Your registration is still recorded — you can pay later or on arrival.',
+        body: 'Nothing was charged. Your details are still recorded — you can pay later or arrange another way.',
       };
     case 'mismatch':
       return {

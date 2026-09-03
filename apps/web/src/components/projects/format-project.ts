@@ -17,6 +17,8 @@ export interface RawProject {
   readonly funding_currency: string | null;
   readonly milestones: unknown;
   readonly impact_stats: unknown;
+  /** The finance charge this project raises into; null when not accepting. */
+  readonly contribution_charge_id?: string | null;
 }
 
 const PLACEHOLDER_BANNER = '/hero_one.jpg';
@@ -94,6 +96,7 @@ export function formatProject(raw: RawProject, categoryNames: readonly string[])
     id: raw.id,
     slug: raw.slug,
     title: raw.title,
+    contributionChargeId: raw.contribution_charge_id ?? null,
     category: categoryNames[0] ?? 'Uncategorised',
     categories: categoryNames,
     status: raw.status,

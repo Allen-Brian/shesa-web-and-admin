@@ -130,7 +130,7 @@ export async function openAgmCheckout(input: CheckoutInput): Promise<CheckoutRes
         description: input.description,
         // `{intentId}` is substituted by the Edge Function, which is the
         // only side that knows the id it just created.
-        returnPath: '/agm-2026/payment/{intentId}',
+        returnPath: '/payment/{intentId}',
       }),
     });
 

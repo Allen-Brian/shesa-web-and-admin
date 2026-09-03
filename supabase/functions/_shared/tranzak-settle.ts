@@ -47,6 +47,10 @@ export interface SettleResult {
   readonly receiptToken?: string;
   readonly gatewayStatus?: string;
   readonly reason?: string;
+  /** Human name for what was paid for, and where to send the payer back. */
+  readonly chargeName?: string | null;
+  readonly subjectName?: string | null;
+  readonly backHref?: string | null;
 }
 
 interface IntentRow {
@@ -154,6 +158,13 @@ interface PaymentReason {
   readonly group_name: string | null;
   readonly event_id: string | null;
   readonly event_name: string | null;
+  /**
+   * Where on the public site this payment came from, derived here rather
+   * than accepted from the caller. The return page needs somewhere to
+   * send the payer back to, and a caller-supplied URL would be an open
+   * redirect on a page that anyone can reach.
+   */
+  readonly public_href: string | null;
 }
 
 /**
@@ -172,6 +183,7 @@ async function resolveReason(chargeId: string | null): Promise<PaymentReason> {
     group_name: null,
     event_id: null,
     event_name: null,
+    public_href: null,
   };
   if (!chargeId) return empty;
 
@@ -192,31 +204,56 @@ async function resolveReason(chargeId: string | null): Promise<PaymentReason> {
   } | null;
   if (!charge) return empty;
 
-  const [{ data: groupRaw }, { data: eventRaw }] = await Promise.all([
-    charge.group_id
-      ? service
-          .schema('finance' as never)
-          .from('groups' as never)
-          .select('name')
-          .eq('id', charge.group_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-    service
-      .schema('exco' as never)
-      .from('events' as never)
-      .select('id, name')
-      .eq('contribution_charge_id', chargeId)
-      .maybeSingle(),
-  ]);
+  const [{ data: groupRaw }, { data: eventRaw }, { data: projectRaw }, { data: siteEventRaw }] =
+    await Promise.all([
+      charge.group_id
+        ? service
+            .schema('finance' as never)
+            .from('groups' as never)
+            .select('name, slug')
+            .eq('id', charge.group_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      service
+        .schema('exco' as never)
+        .from('events' as never)
+        .select('id, name')
+        .eq('contribution_charge_id', chargeId)
+        .maybeSingle(),
+      service
+        .schema('cms' as never)
+        .from('projects' as never)
+        .select('slug, title')
+        .eq('contribution_charge_id', chargeId)
+        .maybeSingle(),
+      service
+        .schema('cms' as never)
+        .from('site_events' as never)
+        .select('slug, title')
+        .eq('contribution_charge_id', chargeId)
+        .maybeSingle(),
+    ]);
 
+  const group = groupRaw as { name: string; slug: string } | null;
   const event = eventRaw as { id: string; name: string } | null;
+  const project = projectRaw as { slug: string; title: string } | null;
+  const siteEvent = siteEventRaw as { slug: string; title: string } | null;
 
   return {
     charge_name: charge.name,
     charge_shape: charge.shape,
-    group_name: (groupRaw as { name: string } | null)?.name ?? null,
+    group_name: group?.name ?? null,
     event_id: event?.id ?? null,
-    event_name: event?.name ?? null,
+    // The public entity's own title is the better name for a receipt than
+    // the charge's, which tends to be an accounting label.
+    event_name: siteEvent?.title ?? event?.name ?? project?.title ?? null,
+    public_href: project
+      ? `/projects/${project.slug}`
+      : siteEvent
+        ? `/events/${siteEvent.slug}`
+        : group?.slug === 'agm-2026'
+          ? '/agm-2026'
+          : null,
   };
 }
 
@@ -312,7 +349,7 @@ export async function settleFromIntentId(intentId: string): Promise<SettleResult
   const intent = data as IntentRow | null;
   if (!intent) return { outcome: 'unknown-intent' };
 
-  const already = terminalResult(intent);
+  const already = await terminalResult(intent);
   if (already) return already;
 
   const requestId = (intent.metadata ?? {})['provider_ref'];
@@ -331,19 +368,51 @@ export async function settleFromIntentId(intentId: string): Promise<SettleResult
  * ══════════════════════════════════════════════════════════════════════ */
 
 /** An intent that has already reached a terminal state answers from itself. */
-function terminalResult(intent: IntentRow): SettleResult | null {
+async function terminalResult(intent: IntentRow): Promise<SettleResult | null> {
   if (intent.status === 'succeeded') {
+    // A live settlement's receipt token is looked up rather than assumed:
+    // the payer may be returning long after the webhook already settled,
+    // and without it they land on a page with nowhere to go.
+    let receiptToken: string | undefined;
+    if (intent.mode === 'live' && intent.resulting_payment_id) {
+      const { data } = await createServiceRoleClient()
+        .schema('finance' as never)
+        .from('receipt_verifications' as never)
+        .select('token')
+        .eq('payment_id', intent.resulting_payment_id)
+        .maybeSingle();
+      receiptToken = (data as { token: string } | null)?.token;
+    }
     return {
       outcome: 'already-settled',
       intentId: intent.id,
       mode: intent.mode,
       settlementId: intent.resulting_payment_id ?? intent.sandbox_payment_id ?? undefined,
+      receiptToken,
+      ...(await contextFor(intent)),
     };
   }
   if (intent.status === 'failed' || intent.status === 'cancelled') {
-    return { outcome: intent.status, intentId: intent.id, mode: intent.mode };
+    return {
+      outcome: intent.status,
+      intentId: intent.id,
+      mode: intent.mode,
+      ...(await contextFor(intent)),
+    };
   }
   return null;
+}
+
+/** The context a return page needs, whatever the outcome turns out to be. */
+async function contextFor(
+  intent: IntentRow,
+): Promise<Pick<SettleResult, 'chargeName' | 'subjectName' | 'backHref'>> {
+  const reason = await resolveReason(intent.charge_id);
+  return {
+    chargeName: reason.charge_name,
+    subjectName: reason.event_name ?? reason.group_name,
+    backHref: reason.public_href,
+  };
 }
 
 async function settleIntent(
@@ -374,7 +443,7 @@ async function settleIntent(
     return { outcome: 'unknown-intent', gatewayStatus: details.status };
   }
 
-  const already = terminalResult(intent);
+  const already = await terminalResult(intent);
   if (already) return already;
 
   const mapped = intentStatusFor(details.status);
@@ -385,6 +454,7 @@ async function settleIntent(
       intentId: intent.id,
       mode: intent.mode,
       gatewayStatus: details.status,
+      ...(await contextFor(intent)),
     };
   }
 
@@ -403,6 +473,7 @@ async function settleIntent(
       intentId: intent.id,
       mode: intent.mode,
       gatewayStatus: details.status,
+      ...(await contextFor(intent)),
     };
   }
 
@@ -428,6 +499,7 @@ async function settleIntent(
       intentId: intent.id,
       mode: intent.mode,
       reason: agreement.reason,
+      ...(await contextFor(intent)),
     };
   }
 
@@ -518,7 +590,13 @@ async function settleSandbox(intent: IntentRow, details: TranzakRequest): Promis
     requestId: details.requestId,
   });
 
-  return { outcome: 'settled', intentId: intent.id, mode: 'sandbox', settlementId };
+  return {
+    outcome: 'settled',
+    intentId: intent.id,
+    mode: 'sandbox',
+    settlementId,
+    ...(await contextFor(intent)),
+  };
 }
 
 async function settleLive(intent: IntentRow, details: TranzakRequest): Promise<SettleResult> {
@@ -618,5 +696,6 @@ async function settleLive(intent: IntentRow, details: TranzakRequest): Promise<S
     mode: 'live',
     settlementId: paymentId,
     receiptToken: (verification as { token: string } | null)?.token,
+    ...(await contextFor(intent)),
   };
 }

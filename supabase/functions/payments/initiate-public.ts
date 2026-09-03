@@ -90,6 +90,8 @@ const inputSchema = z
     paymentMethod: z.string().min(1).max(40),
     /** `cms.agm_registrations.reference`, so the two records can be joined. */
     reference: z.string().max(60).optional(),
+    /** Free text from the payer — "in memory of…", "from the Douala chapter". */
+    note: z.string().max(500).optional(),
     description: z.string().min(1).max(200),
     /** Path the payer returns to; joined onto the configured origin. */
     returnPath: z.string().startsWith('/').max(300),
@@ -225,6 +227,7 @@ export async function initiatePublicPayment(req: Request): Promise<Response> {
       payer_name: input.fullName.trim(),
       payer_email: input.email?.trim() || null,
       payer_phone: input.phone.trim(),
+      note: input.note?.trim() || null,
       metadata: {
         provider: 'tranzak',
         source: 'public_agm_form',

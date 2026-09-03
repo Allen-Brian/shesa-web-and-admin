@@ -22,6 +22,13 @@ export type Project = {
   readonly id: string;
   readonly slug: string;
   readonly title: string;
+  /**
+   * The finance charge this project raises into, or null when it is not
+   * accepting contributions. The public page derives its Contribute form
+   * from whether that charge is open, so there is no second flag to fall
+   * out of step with where the money goes.
+   */
+  readonly contributionChargeId: string | null;
   /** First joined category name, displayed as the primary tag. */
   readonly category: string;
   /** All joined category names for filter chips + related lookups. */

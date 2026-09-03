@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { ContributePanel } from '@/components/contribute/contribute-panel';
+import { contributeAction } from '@/components/contribute/contribute-action';
+import { loadPublicContribution } from '@/lib/contribution';
+
 import type { SiteEvent } from '@/components/events/events-content';
 import { EventDetail } from '@/components/events/event-detail';
 import { formatEvent, type RawSiteEvent } from '@/components/events/format-event';
@@ -35,7 +39,7 @@ async function loadAllEvents(): Promise<readonly SiteEvent[]> {
       .schema('cms')
       .from('site_events')
       .select(
-        'id, slug, title, short_description, description_html, banner_url, starts_at, ends_at, location, city, is_featured, has_ticketing, ticket_url, ticket_price, ticket_currency, flyers, program, album_slug',
+        'id, slug, title, short_description, description_html, banner_url, starts_at, ends_at, location, city, is_featured, has_ticketing, ticket_url, ticket_price, ticket_currency, flyers, program, album_slug, contribution_charge_id',
       )
       .order('starts_at', { ascending: true }),
     supabase.schema('cms').from('site_event_categories').select('id, name'),
@@ -104,5 +108,22 @@ export default async function EventPage({ params }: { readonly params: Promise<P
   const pool = event.upcoming ? list.filter((e) => e.upcoming) : list;
   const related = pool.filter((e) => e.id !== event.id).slice(0, 3);
 
-  return <EventDetail event={enrichedEvent} related={related} />;
+  // Null unless this event points at a charge that is open right now.
+  const contribution = await loadPublicContribution(event.contributionChargeId);
+
+  return (
+    <EventDetail
+      event={enrichedEvent}
+      related={related}
+      contribute={
+        contribution ? (
+          <ContributePanel
+            contribution={contribution}
+            subject={event.title}
+            action={contributeAction}
+          />
+        ) : null
+      }
+    />
+  );
 }

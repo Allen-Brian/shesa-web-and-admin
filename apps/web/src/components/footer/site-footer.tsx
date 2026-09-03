@@ -34,7 +34,7 @@ const engageLinks = [
 
 const involveLinks = [
   { label: 'AGM 2026', href: '/agm-2026' },
-  { label: 'Support The Movement', href: '/agm-2026/support' },
+  { label: 'Support The Movement', href: '/agm-2026' },
   { label: 'Sponsors', href: '/sponsors' },
   { label: 'Contact Us', href: '/contact' },
 ] as const;

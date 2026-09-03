@@ -714,6 +714,7 @@ export type Database = {
       projects: {
         Row: {
           banner_url: string | null
+          contribution_charge_id: string | null
           created_at: string
           description_html: string
           funding_currency: string | null
@@ -734,6 +735,7 @@ export type Database = {
         }
         Insert: {
           banner_url?: string | null
+          contribution_charge_id?: string | null
           created_at?: string
           description_html?: string
           funding_currency?: string | null
@@ -754,6 +756,7 @@ export type Database = {
         }
         Update: {
           banner_url?: string | null
+          contribution_charge_id?: string | null
           created_at?: string
           description_html?: string
           funding_currency?: string | null
@@ -833,6 +836,7 @@ export type Database = {
           album_slug: string | null
           banner_url: string | null
           city: string | null
+          contribution_charge_id: string | null
           created_at: string
           description_html: string
           ends_at: string | null
@@ -855,6 +859,7 @@ export type Database = {
           album_slug?: string | null
           banner_url?: string | null
           city?: string | null
+          contribution_charge_id?: string | null
           created_at?: string
           description_html?: string
           ends_at?: string | null
@@ -877,6 +882,7 @@ export type Database = {
           album_slug?: string | null
           banner_url?: string | null
           city?: string | null
+          contribution_charge_id?: string | null
           created_at?: string
           description_html?: string
           ends_at?: string | null
@@ -3457,7 +3463,7 @@ export type Database = {
           failure_reason: string | null
           id: string
           metadata: Json
-          method: Database["finance"]["Enums"]["payment_method"]
+          method: Database["finance"]["Enums"]["payment_method"] | null
           mode: Database["finance"]["Enums"]["payment_mode"]
           note: string | null
           obligation_id: string | null
@@ -3483,7 +3489,7 @@ export type Database = {
           failure_reason?: string | null
           id?: string
           metadata?: Json
-          method: Database["finance"]["Enums"]["payment_method"]
+          method?: Database["finance"]["Enums"]["payment_method"] | null
           mode: Database["finance"]["Enums"]["payment_mode"]
           note?: string | null
           obligation_id?: string | null
@@ -3509,7 +3515,7 @@ export type Database = {
           failure_reason?: string | null
           id?: string
           metadata?: Json
-          method?: Database["finance"]["Enums"]["payment_method"]
+          method?: Database["finance"]["Enums"]["payment_method"] | null
           mode?: Database["finance"]["Enums"]["payment_mode"]
           note?: string | null
           obligation_id?: string | null
@@ -3978,6 +3984,18 @@ export type Database = {
           income_sum: number
           opening_balance: number
           scope_id: string
+        }[]
+      }
+      public_contribution: {
+        Args: { p_charge_id: string }
+        Returns: {
+          base_amount: number
+          charge_id: string
+          close_date: string
+          currency: string
+          is_open: boolean
+          name: string
+          shape: string
         }[]
       }
       resolve_exception_for_charge: {

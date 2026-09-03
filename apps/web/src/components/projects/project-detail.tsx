@@ -32,6 +32,12 @@ const revealLine: Variants = {
 interface Props {
   readonly project: Project;
   /**
+   * The contribute form, when this project has an open charge. Passed as a
+   * node rather than data so the panel stays one component shared with
+   * events and anything else that grows a charge later.
+   */
+  readonly contribute?: React.ReactNode;
+  /**
    * Optional related-project list, the server page pre-picks up to
    * three same-category siblings so this component doesn't have to
    * hold a reference to the full CMS.
@@ -39,11 +45,11 @@ interface Props {
   readonly related?: readonly Project[];
 }
 
-export function ProjectDetail({ project, related = [] }: Props) {
+export function ProjectDetail({ project, related = [], contribute }: Props) {
   return (
     <>
       <ProjectHero project={project} />
-      <ProjectBody project={project} />
+      <ProjectBody project={project} contribute={contribute} />
       {project.milestones && project.milestones.length > 0 && (
         <MilestonesSection milestones={project.milestones} />
       )}
@@ -145,7 +151,13 @@ function ProjectHero({ project }: { readonly project: Project }) {
   );
 }
 
-function ProjectBody({ project }: { readonly project: Project }) {
+function ProjectBody({
+  project,
+  contribute,
+}: {
+  readonly project: Project;
+  readonly contribute?: React.ReactNode;
+}) {
   const pct =
     project.funding && project.funding.target > 0
       ? Math.min(100, Math.round((project.funding.raised / project.funding.target) * 100))
@@ -288,20 +300,14 @@ function ProjectBody({ project }: { readonly project: Project }) {
                 </div>
               )}
 
+              {/* The Support button used to link to /projects/[slug]/support,
+                  a route that does not exist — a dead link on every project
+                  page. It is replaced by the real contribute form, which
+                  renders only when this project has an open charge. When it
+                  has none there is nothing to click, which is the honest
+                  rendering of "not accepting contributions". */}
               <div className="flex flex-col gap-3 rounded-xs border border-black/10 bg-white p-6">
-                <Link
-                  href={`/projects/${project.slug}/support`}
-                  className="group inline-flex items-center justify-center gap-3 rounded-xs bg-primary px-5 py-3.5 text-sm font-medium tracking-wide text-white transition-all duration-500 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-12px_rgba(139,21,51,0.35)]"
-                >
-                  <HeartIcon />
-                  <span>Support this project</span>
-                  <span
-                    aria-hidden
-                    className="grid h-6 w-6 place-items-center rounded-xs bg-white/20 transition-transform duration-500 group-hover:translate-x-1"
-                  >
-                    →
-                  </span>
-                </Link>
+                {contribute}
                 <Link
                   href="/contact"
                   className="inline-flex items-center justify-center gap-2 rounded-xs border border-black/15 bg-white px-5 py-3 text-[13.5px] font-medium tracking-wide text-black transition-colors hover:border-primary hover:text-primary"
@@ -575,14 +581,6 @@ function UserIcon() {
     >
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
-
-function HeartIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
     </svg>
   );
 }

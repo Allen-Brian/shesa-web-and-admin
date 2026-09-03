@@ -19,6 +19,8 @@ export interface RawSiteEvent {
   readonly flyers: unknown;
   readonly program: unknown;
   readonly album_slug: string | null;
+  /** The finance charge this event collects into; null when not accepting. */
+  readonly contribution_charge_id?: string | null;
 }
 
 const PLACEHOLDER_BANNER = '/hero_one.jpg';
@@ -107,6 +109,7 @@ export function formatEvent(raw: RawSiteEvent, categoryNames: readonly string[])
     upcoming: starts.getTime() > Date.now(),
     featured: raw.is_featured,
     albumSlug: raw.album_slug ?? undefined,
+    contributionChargeId: raw.contribution_charge_id ?? null,
     flyers: flyers.length > 0 ? flyers : undefined,
     program: program.length > 0 ? program : undefined,
     extendedDescription: paras.length > 1 ? paras.slice(1) : undefined,

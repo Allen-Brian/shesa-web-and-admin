@@ -396,7 +396,7 @@ function SupportButton() {
     <div className="relative rounded-xs">
       <span className="border-beam-halo" aria-hidden />
       <Link
-        href="/agm-2026/support"
+        href="/agm-2026"
         className="group relative inline-flex items-center gap-3 overflow-hidden rounded-xs bg-primary px-10 py-5 text-sm font-medium tracking-wide text-primary-foreground shadow-[0_20px_60px_-15px_rgba(139,21,51,0.6)] transition-transform duration-500 hover:-translate-y-0.5 md:px-12 md:py-5 md:text-base"
       >
         <span className="border-beam" aria-hidden />

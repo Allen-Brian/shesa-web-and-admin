@@ -87,9 +87,15 @@ interface Props {
    * this component doesn't have to know about the full CMS.
    */
   readonly related?: readonly SiteEvent[];
+  /**
+   * The contribute form, when this event has an open charge. A node
+   * rather than data, so the panel stays one component shared with
+   * projects and the AGM.
+   */
+  readonly contribute?: React.ReactNode;
 }
 
-export function EventDetail({ event, related = [] }: Props) {
+export function EventDetail({ event, related = [], contribute }: Props) {
   const [days, setDays] = useState<number | null>(null);
 
   useEffect(() => {
@@ -99,7 +105,7 @@ export function EventDetail({ event, related = [] }: Props) {
   return (
     <>
       <EventHero event={event} days={days} />
-      <EventBody event={event} />
+      <EventBody event={event} contribute={contribute} />
       {event.featured && event.program && event.program.length > 0 && (
         <ProgrammeSection program={event.program} />
       )}
@@ -226,7 +232,13 @@ function EventHero({ event, days }: { readonly event: SiteEvent; readonly days: 
   );
 }
 
-function EventBody({ event }: { readonly event: SiteEvent }) {
+function EventBody({
+  event,
+  contribute,
+}: {
+  readonly event: SiteEvent;
+  readonly contribute?: React.ReactNode;
+}) {
   return (
     <section className="relative bg-white py-20 md:py-28">
       <div className="mx-auto max-w-350 px-5 md:px-8 lg:px-12">
@@ -307,7 +319,7 @@ function EventBody({ event }: { readonly event: SiteEvent }) {
           <aside className="md:col-span-4">
             <div className="sticky top-28 space-y-6">
               <EventCard event={event} />
-              <ActionCard event={event} />
+              <ActionCard event={event} contribute={contribute} />
             </div>
           </aside>
         </div>
@@ -379,7 +391,13 @@ function EventCard({ event }: { readonly event: SiteEvent }) {
   );
 }
 
-function ActionCard({ event }: { readonly event: SiteEvent }) {
+function ActionCard({
+  event,
+  contribute,
+}: {
+  readonly event: SiteEvent;
+  readonly contribute?: React.ReactNode;
+}) {
   const share = async () => {
     if (typeof navigator === 'undefined') return;
     if ('share' in navigator) {
@@ -398,20 +416,10 @@ function ActionCard({ event }: { readonly event: SiteEvent }) {
 
   return (
     <div className="flex flex-col gap-3 rounded-xs border border-black/10 bg-white p-5 md:p-6">
-      {event.upcoming && (
-        <button
-          type="button"
-          className="group inline-flex items-center justify-center gap-3 rounded-xs bg-primary px-5 py-3.5 text-sm font-medium tracking-wide text-white transition-all duration-500 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-12px_rgba(139,21,51,0.35)]"
-        >
-          <span>Register interest</span>
-          <span
-            aria-hidden
-            className="grid h-6 w-6 place-items-center rounded-xs bg-white/20 transition-transform duration-500 group-hover:translate-x-1"
-          >
-            →
-          </span>
-        </button>
-      )}
+      {/* The contribute form when this event has an open charge. It stands
+          in for a "Register interest" button that was a `<button>` with no
+          handler — it looked live and did nothing on every event page. */}
+      {contribute}
       {event.albumSlug && (
         <Link
           href={`/gallery/${event.albumSlug}`}
