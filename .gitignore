@@ -64,3 +64,6 @@ supabase/seed-overrides.sql
 
 # Misc caches
 .cache/
+
+# Pre-cutover database exports — contain live data, never commit.
+backup-*/

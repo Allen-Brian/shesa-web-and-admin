@@ -23,16 +23,61 @@
 -- only way to reach it from an Edge Function.
 
 DO $$
+DECLARE
+  q_name  text;
+  rel     text;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pgmq') THEN
     RAISE NOTICE 'pgmq not installed; skipping queue creation.';
     RETURN;
   END IF;
 
-  PERFORM pgmq.create('notification_dispatch');
-  PERFORM pgmq.create('email_send');
-  PERFORM pgmq.create('sms_send');
-  PERFORM pgmq.create('audit_background');
+  FOREACH q_name IN ARRAY
+    ARRAY['notification_dispatch', 'email_send', 'sms_send', 'audit_background']
+  LOOP
+    -- `supabase db reset --linked` drops the application schemas but leaves
+    -- `pgmq` standing, and it does not leave it whole. On the 2026-09-03
+    -- cutover it emptied `pgmq.meta` and dropped the queues' sequences while
+    -- the `q_*` and `a_*` tables survived. `pgmq.create()` then finds its
+    -- table already there, skips creating it, and dies on
+    -- `ALTER EXTENSION pgmq ADD SEQUENCE pgmq.q_<name>_msg_id_seq` — a
+    -- sequence that no longer exists — taking the whole migration with it.
+    --
+    -- A queue absent from `pgmq.meta` is not a queue, whatever tables are
+    -- lying around, so clear the wreckage before creating it. The tables
+    -- dropped here are empty by construction: pgmq cannot read or write a
+    -- queue it has no meta row for.
+    --
+    -- The tables may still be extension members, in which case DROP TABLE is
+    -- refused outright, so they are released from the extension first. That
+    -- release is attempted per-relation and its failure ignored, because
+    -- "not a member" is the normal case and is not an error worth stopping
+    -- a baseline for.
+    IF NOT EXISTS (SELECT 1 FROM pgmq.meta m WHERE m.queue_name = q_name) THEN
+      FOREACH rel IN ARRAY ARRAY['q_' || q_name, 'a_' || q_name]
+      LOOP
+        IF EXISTS (
+          SELECT 1 FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+           WHERE n.nspname = 'pgmq' AND c.relname = rel
+        ) THEN
+          BEGIN
+            EXECUTE format('ALTER EXTENSION pgmq DROP TABLE pgmq.%I', rel);
+          EXCEPTION
+            WHEN OTHERS THEN NULL;
+          END;
+          BEGIN
+            EXECUTE format('ALTER EXTENSION pgmq DROP SEQUENCE pgmq.%I', rel || '_msg_id_seq');
+          EXCEPTION
+            WHEN OTHERS THEN NULL;
+          END;
+          EXECUTE format('DROP TABLE IF EXISTS pgmq.%I CASCADE', rel);
+        END IF;
+      END LOOP;
+    END IF;
+
+    PERFORM pgmq.create(q_name);
+  END LOOP;
 
   REVOKE ALL ON ALL FUNCTIONS IN SCHEMA pgmq FROM PUBLIC;
   GRANT USAGE ON SCHEMA pgmq TO service_role;
