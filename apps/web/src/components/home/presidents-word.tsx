@@ -4,6 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 
+import { PRESIDENTS_ADDRESS } from '@/components/president/presidents-address-content';
+
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 const fadeUp: Variants = {
@@ -40,7 +42,7 @@ export function PresidentsWord() {
             <div className="relative aspect-4/5 overflow-hidden rounded-md">
               <Image
                 src="/president_one.jpg"
-                alt="President of the SHESA Alumni"
+                alt={`${PRESIDENTS_ADDRESS.signatory.name}, President General of SHESA`}
                 fill
                 sizes="(min-width: 768px) 40vw, 100vw"
                 quality={75}
@@ -56,10 +58,10 @@ export function PresidentsWord() {
               <figcaption className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 text-white md:p-6">
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-white/80">
-                    President
+                    SHESA
                   </p>
                   <p className="mt-1 font-heading text-lg font-light tracking-tight md:text-xl">
-                    National Chapter, SHESA
+                    President General
                   </p>
                 </div>
               </figcaption>
@@ -74,7 +76,7 @@ export function PresidentsWord() {
               variants={fadeUp}
               className="font-heading text-sm font-medium uppercase tracking-[0.28em] text-primary"
             >
-              A Word From The President
+              A Word From The President General
             </motion.p>
 
             <motion.h2
@@ -105,10 +107,7 @@ export function PresidentsWord() {
                 &ldquo;
               </span>
               <p className="text-[17px] leading-[1.75] text-black/75 md:text-[19px]">
-                We inherited more than a brotherhood, we inherited a promise. The Shesa we want is
-                not a memory of what was, but a living force: one that lifts every graduate,
-                strengthens every school, and answers every call our community makes on us. Our
-                task, in this era, is to make the promise louder than the memory.
+                {PRESIDENTS_ADDRESS.excerpt}
               </p>
             </motion.blockquote>
 
@@ -123,14 +122,16 @@ export function PresidentsWord() {
                 <span className="h-px w-10 bg-primary" />
                 <div>
                   <p className="font-heading text-sm font-medium tracking-wide text-black">
-                    The President
+                    {PRESIDENTS_ADDRESS.signatory.name}
                   </p>
-                  <p className="text-xs uppercase tracking-[0.24em] text-black/50">SHESA Alumni</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-black/50">
+                    {PRESIDENTS_ADDRESS.signatory.title}, SHESA
+                  </p>
                 </div>
               </div>
 
               <Link
-                href="/about#presidents-address"
+                href="/presidents-address"
                 className="group ml-auto inline-flex items-center gap-3 text-sm font-medium text-black transition-colors hover:text-primary"
               >
                 Read the full address

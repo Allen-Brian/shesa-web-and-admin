@@ -1,0 +1,304 @@
+'use client';
+
+import Image from 'next/image';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+
+import { PRESIDENTS_ADDRESS as A } from './presidents-address-content';
+
+const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
+
+/**
+ * The President General's address, set as a medieval letter: a single
+ * parchment sheet on a dark desk, deckled top and bottom edges, an
+ * illuminated drop cap, a rubricated creed, and a wax seal beside the
+ * signature.
+ *
+ * The serif is the platform stack rather than a webfont — the repo
+ * self-hosts its faces (see app/fonts.css) and none of the three is a
+ * text serif, so Georgia/Times keeps the letter looking like a letter
+ * without adding a download or breaking the offline-reproducible font
+ * layer. Anton (`font-display`) sets the drop cap; Caveat
+ * (`font-script`) signs it.
+ */
+const serif = "Georgia, 'Iowan Old Style', 'Times New Roman', serif";
+
+/** Torn edge — an irregular polygon, mirrored top and bottom. */
+const DECKLE =
+  'polygon(0% 1.2%, 4% 0.3%, 9% 1.1%, 14% 0.2%, 20% 1.0%, 26% 0.2%, 32% 1.2%, 38% 0.3%, 45% 1.1%, 52% 0.2%, 58% 1.2%, 64% 0.4%, 70% 1.1%, 77% 0.2%, 83% 1.2%, 89% 0.3%, 95% 1.1%, 100% 0.4%, 100% 99.6%, 95% 98.9%, 89% 99.7%, 83% 98.8%, 77% 99.8%, 70% 98.9%, 64% 99.6%, 58% 98.8%, 52% 99.8%, 45% 98.9%, 38% 99.7%, 32% 98.8%, 26% 99.8%, 20% 99.0%, 14% 99.8%, 9% 98.9%, 4% 99.7%, 0% 98.8%)';
+
+export function PresidentsLetter() {
+  return (
+    <section className="relative overflow-hidden bg-[#1a1310] py-16 md:py-24">
+      <DeskBackdrop />
+
+      <div className="relative mx-auto max-w-4xl px-4 sm:px-6 md:px-8">
+        <motion.article
+          initial={{ opacity: 0, y: 28 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, ease }}
+          className="relative px-6 py-14 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)] sm:px-10 md:px-16 md:py-20 lg:px-24"
+          style={{
+            clipPath: DECKLE,
+            background:
+              'radial-gradient(120% 80% at 50% 0%, #fbf3e0 0%, #f3e6cb 45%, #e8d7b4 100%)',
+            color: '#3a2c1c',
+            fontFamily: serif,
+          }}
+        >
+          <Foxing />
+
+          <header className="relative text-center">
+            <Image
+              src="/shesa.png"
+              alt=""
+              width={80}
+              height={80}
+              className="mx-auto h-14 w-auto object-contain opacity-90 md:h-16"
+            />
+
+            <p
+              className="mt-6 text-[10px] font-semibold uppercase text-[#8a6b3f] md:text-[11px]"
+              style={{ letterSpacing: '0.42em' }}
+            >
+              From the desk of the President General
+            </p>
+
+            <h1
+              className="mx-auto mt-5 max-w-2xl uppercase leading-[1.35] text-[#4a2418]"
+              style={{
+                fontFamily: serif,
+                fontSize: 'clamp(1.05rem, 2.2vw, 1.6rem)',
+                letterSpacing: '0.12em',
+                fontWeight: 700,
+              }}
+            >
+              {A.title}
+            </h1>
+
+            <Flourish />
+          </header>
+
+          <div className="relative mt-10 md:mt-12">
+            <p
+              className="text-[1.05rem] italic md:text-[1.15rem]"
+              style={{ letterSpacing: '0.01em' }}
+            >
+              {A.salutation}
+            </p>
+
+            {A.paragraphs.map((text, i) => (
+              <p
+                key={i}
+                className="mt-5 text-[1rem] leading-[1.95] md:mt-6 md:text-[1.075rem]"
+                style={{ textAlign: 'justify', hyphens: 'auto' }}
+              >
+                {i === 0 ? (
+                  <>
+                    <span
+                      aria-hidden
+                      className="font-display float-left mr-3 mt-1 leading-[0.8] text-primary"
+                      style={{ fontSize: '3.6em', letterSpacing: '-0.02em' }}
+                    >
+                      {text.charAt(0)}
+                    </span>
+                    {text.slice(1)}
+                  </>
+                ) : (
+                  text
+                )}
+              </p>
+            ))}
+
+            {/* The creed, rubricated the way a medieval scribe marked
+                the passage that mattered most. */}
+            <div className="mt-9 border-y border-[#c9ab77]/60 py-7 text-center md:mt-11 md:py-8">
+              <p className="text-[0.95rem] italic text-[#6b5233] md:text-[1rem]">{A.creed.lead}</p>
+              <p
+                className="mt-3 uppercase leading-[1.45] text-primary"
+                style={{
+                  fontFamily: serif,
+                  fontSize: 'clamp(1.05rem, 2.4vw, 1.5rem)',
+                  letterSpacing: '0.14em',
+                  fontWeight: 700,
+                }}
+              >
+                {A.creed.line}
+              </p>
+              <p className="mx-auto mt-4 max-w-xl text-[0.95rem] leading-[1.85] md:text-[1rem]">
+                {A.creed.tail}
+              </p>
+            </div>
+
+            {A.closingParagraphs.map((text, i) => (
+              <p
+                key={i}
+                className="mt-6 text-[1rem] leading-[1.95] md:text-[1.075rem]"
+                style={{ textAlign: 'justify', hyphens: 'auto' }}
+              >
+                {text}
+              </p>
+            ))}
+
+            <p
+              className="mt-9 text-center text-[1.05rem] italic text-[#4a2418] md:text-[1.2rem]"
+              style={{ letterSpacing: '0.02em' }}
+            >
+              {A.refrain}
+            </p>
+          </div>
+
+          <footer className="relative mt-12 flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between md:mt-14">
+            <div>
+              <p className="text-[1rem] italic md:text-[1.05rem]">{A.valediction}</p>
+              <p
+                className="font-script mt-3 leading-none text-[#2f2418]"
+                style={{ fontSize: 'clamp(2rem, 5vw, 2.9rem)' }}
+              >
+                {A.signatory.name}
+              </p>
+              <span aria-hidden className="mt-3 block h-px w-56 max-w-full bg-[#b3915d]" />
+              <p
+                className="mt-3 text-[11px] font-semibold uppercase text-[#6b5233]"
+                style={{ letterSpacing: '0.3em' }}
+              >
+                {A.signatory.title}
+              </p>
+              <p
+                className="mt-1 text-[11px] uppercase text-[#8a6b3f]"
+                style={{ letterSpacing: '0.3em' }}
+              >
+                {A.signatory.organisation}
+              </p>
+            </div>
+
+            <WaxSeal />
+          </footer>
+        </motion.article>
+
+        <div className="mt-10 flex justify-center md:mt-12">
+          <Link
+            href="/"
+            className="group inline-flex items-center gap-3 text-sm font-medium tracking-wide text-[#e8d7b4] transition-colors duration-500 hover:text-white"
+          >
+            <span
+              aria-hidden
+              className="grid h-8 w-8 place-items-center rounded-xs border border-[#e8d7b4]/30 transition-transform duration-500 group-hover:-translate-x-1"
+            >
+              ←
+            </span>
+            Back home
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Dark desk the sheet rests on — worn leather, lit from above. */
+function DeskBackdrop() {
+  return (
+    <>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(70% 50% at 50% 0%, rgba(139,21,51,0.22) 0%, transparent 60%), radial-gradient(90% 70% at 50% 100%, rgba(0,0,0,0.6) 0%, transparent 70%)',
+        }}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.35] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.4 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>\")",
+          backgroundSize: '180px 180px',
+        }}
+      />
+    </>
+  );
+}
+
+/** Age spots and fibre on the parchment. */
+function Foxing() {
+  return (
+    <>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.5] mix-blend-multiply"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml;utf8,<svg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.42  0 0 0 0 0.22  0 0 0 0.18 0'/></filter><rect width='300' height='300' filter='url(%23p)'/></svg>\")",
+          backgroundSize: '300px 300px',
+        }}
+      />
+      {/* Shadowed edges, as if the sheet curls away from the desk. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(120,88,45,0.22) 100%)',
+        }}
+      />
+    </>
+  );
+}
+
+/** Ornamental rule under the heading. */
+function Flourish() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 240 24"
+      className="mx-auto mt-7 h-5 w-52"
+      style={{ color: '#b3915d' }}
+      fill="none"
+    >
+      <path d="M4 12h78M158 12h78" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+      <path
+        d="M120 4c-6 0-9 3.6-9 8s3 8 9 8 9-3.6 9-8-3-8-9-8z"
+        stroke="currentColor"
+        strokeWidth="1"
+      />
+      <path
+        d="M111 12c-5 0-8-2.4-11-4.6M129 12c5 0 8-2.4 11-4.6M111 12c-5 0-8 2.4-11 4.6M129 12c5 0 8 2.4 11 4.6"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <circle cx="120" cy="12" r="2" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Wax seal pressed beside the signature. */
+function WaxSeal() {
+  return (
+    <div
+      aria-hidden
+      className="relative h-28 w-28 shrink-0 self-center sm:self-end md:h-32 md:w-32"
+      style={{ transform: 'rotate(-8deg)' }}
+    >
+      <span
+        className="absolute inset-0 rounded-full shadow-[0_10px_24px_-8px_rgba(60,10,25,0.7)]"
+        style={{
+          background: 'radial-gradient(60% 60% at 35% 30%, #a82342 0%, #8b1533 45%, #6d0f27 100%)',
+          clipPath:
+            'polygon(50% 0%, 63% 6%, 76% 4%, 85% 14%, 96% 22%, 97% 36%, 100% 50%, 96% 63%, 96% 77%, 85% 85%, 77% 96%, 63% 96%, 50% 100%, 37% 96%, 23% 97%, 14% 86%, 4% 77%, 3% 63%, 0% 50%, 4% 37%, 3% 23%, 15% 14%, 23% 4%, 37% 3%)',
+        }}
+      />
+      <span
+        className="absolute inset-[14%] rounded-full border border-white/25"
+        style={{ boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.45)' }}
+      />
+      <span
+        className="absolute inset-0 grid place-items-center text-[10px] font-semibold uppercase text-white/90"
+        style={{ letterSpacing: '0.22em' }}
+      >
+        SHESA
+      </span>
+    </div>
+  );
+}
