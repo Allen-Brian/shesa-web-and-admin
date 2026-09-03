@@ -157,17 +157,20 @@ max_indexes = 5
 [auth]
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
-# in emails. Set to the central auth app — that's where every magic-link / recovery email lands.
-site_url = "http://auth.shesa.test"
+# in emails. Every recovery / invite email lands on the admin app, which is where the only
+# sign-in surface lives — `apps/auth` was retired by the Phase 2 pivot (ADR-0040) and this
+# pointed at it, on a port nothing serves, until 2026-09-03.
+site_url = "http://localhost:3002"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of URLs (glob-supported) that auth providers are permitted to redirect to post
 # authentication. Covers the Caddy-fronted hostname AND the direct-to-container fallback so
-# devs running `pnpm --filter @shesa/auth dev` outside Docker also work.
+# a dev running `pnpm --filter @shesa/admin dev` outside Docker also works. Port 3002 is
+# admin's; the retired auth app's 3001 entries are gone.
 additional_redirect_urls = [
-  "http://auth.shesa.test/**",
-  "http://127.0.0.1:3001/**",
-  "http://localhost:3001/**",
+  "http://admin.shesa.test:3002/**",
+  "http://127.0.0.1:3002/**",
+  "http://localhost:3002/**",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
@@ -181,16 +184,31 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
-enable_signup = true
+#
+# FALSE, and it matters. Shesa is invite-only: every account is created by
+# `supabase/functions/members/send-invite.ts` calling
+# `auth.admin.inviteUserByEmail` under service_role, and there is no sign-up
+# route anywhere in `apps/admin/src/app/(auth)/` — only login, logout,
+# forgot-password, reset-password and callback. Nothing in the product calls
+# `signUp()`. Left open, `POST /auth/v1/signup` with the public anon key
+# creates an unbounded number of accounts and burns the email rate limit.
+#
+# NOTE: the linked project reported `disable_signup: false` on 2026-09-03,
+# i.e. production is still open. This file does not propagate on its own —
+# see the [remotes.production] block below and `supabase config push`.
+enable_signup = false
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-minimum_password_length = 6
+# 8 to agree with the reset-password form, which has always enforced 8 client-side while Auth
+# accepted 6 — so a password set through a direct API call could be weaker than one set through
+# the UI.
+minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
-password_requirements = ""
+password_requirements = "lower_upper_letters_digits"
 
 # Configure passkey sign-ins.
 # [auth.passkey]
@@ -226,7 +244,11 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
-enable_signup = true
+# Email is the only enabled provider, so this is the same door as the
+# top-level `enable_signup`. Closed at both. `auth.admin.inviteUserByEmail`
+# runs under service_role and is unaffected — that is the one path that
+# creates accounts here.
+enable_signup = false
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
@@ -426,3 +448,33 @@ enabled = true
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Per-remote overrides
+# ══════════════════════════════════════════════════════════════════════
+# `supabase config push --project-ref <ref>` sends this file's settings to
+# a hosted project. Everything above is written for the LOCAL stack, so a
+# bare push would set production's `site_url` to `http://localhost:3002`
+# and break every recovery and invite email. This block is what makes the
+# push safe: values here replace the ones above when the target ref
+# matches.
+#
+# Nothing has ever been pushed — the hosted project's auth settings were
+# configured by hand in the dashboard and had drifted from this file. On
+# 2026-09-03 `GET /auth/v1/settings` on the live project reported
+# `disable_signup: false`, i.e. open self-registration on an invite-only
+# platform. See docs/runbooks/prod-database-reset.md for the cutover step.
+
+[remotes.production]
+project_id = "pvedpfhlzojavgbqhmcu"
+
+[remotes.production.auth]
+site_url = "https://admin.shesaconnect.com"
+additional_redirect_urls = ["https://admin.shesaconnect.com/**"]
+enable_signup = false
+minimum_password_length = 8
+password_requirements = "lower_upper_letters_digits"
+
+[remotes.production.auth.email]
+enable_signup = false
