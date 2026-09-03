@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 import { PenTool } from 'lucide-react';
+import { useState } from 'react';
 
 import { PRESIDENTS_ADDRESS as A } from './presidents-address-content';
 
@@ -310,39 +311,48 @@ function CurlShadows() {
  */
 function Signature() {
   const reduce = useReducedMotion();
+  const [writing, setWriting] = useState(false);
   const duration = 2.4;
 
   return (
     <div className="relative mt-3 inline-block">
-      {/* The vertical padding is what keeps ascenders and descenders
-          inside the clip box. `inset()` percentages must stay >= 0 —
-          negative values are dropped outright by some engines, which
-          left the name permanently hidden on desktop while mobile
-          happened to tolerate them. */}
+      {/* The name is never hidden by default: no `initial` clip, and the
+          wipe is a keyframe pair that only exists once `writing` is set.
+          An earlier version parked the paragraph at `inset(... 100% ...)`
+          and relied on the viewport callback to open it, so anything that
+          stopped that callback firing left the signature invisible — which
+          is what happened on desktop. Now a failed trigger costs the
+          animation, not the signature.
+
+          The vertical padding gives Caveat's ascenders and descenders room
+          inside the clip box; `inset()` percentages must stay >= 0, since
+          negative values are dropped outright by some engines. */}
       <motion.p
         className="font-script whitespace-nowrap py-1.5 leading-none text-[#2f2418]"
         style={{ fontSize: 'clamp(1.35rem, 3.6vw, 2rem)' }}
-        initial={reduce ? undefined : { clipPath: 'inset(0 100% 0 0)' }}
-        whileInView={reduce ? undefined : { clipPath: 'inset(0 0% 0 0)' }}
-        viewport={{ once: true, amount: 0.5 }}
+        initial={false}
+        viewport={{ once: true, amount: 0.3 }}
+        onViewportEnter={() => {
+          if (!reduce) setWriting(true);
+        }}
+        animate={writing ? { clipPath: ['inset(0 100% 0 0)', 'inset(0 0% 0 0)'] } : undefined}
         transition={{ duration, ease: 'linear' }}
       >
         {A.signatory.name}
       </motion.p>
 
-      {reduce ? null : (
+      {writing ? (
         <motion.span
           /* Below the line, nib turned up so the tip meets the letters
              it is laying down. */
           aria-hidden
           className="absolute top-full left-0 -mt-2 text-primary"
           initial={{ left: '0%', opacity: 0 }}
-          whileInView={{
+          animate={{
             left: '100%',
             opacity: [0, 1, 1, 0],
             y: [0, 2, -1, 1, 0],
           }}
-          viewport={{ once: true, amount: 0.5 }}
           transition={{
             left: { duration, ease: 'linear' },
             opacity: { duration, times: [0, 0.04, 0.92, 1] },
@@ -353,7 +363,7 @@ function Signature() {
               nib's offset stays fixed while the wrapper travels. */}
           <PenTool className="h-6 w-6 translate-x-[-62%] rotate-170 md:h-7 md:w-7" />
         </motion.span>
-      )}
+      ) : null}
     </div>
   );
 }
