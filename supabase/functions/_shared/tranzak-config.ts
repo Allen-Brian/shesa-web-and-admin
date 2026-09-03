@@ -132,7 +132,12 @@ export function resolveTranzakConfig(): TranzakConfig {
   const appId = required(`${prefix}_APP_ID`);
   const appKey = required(`${prefix}_APP_KEY`);
   const webhookAuthKey = required(`${prefix}_WEBHOOK_AUTH_KEY`);
-  const returnUrlBase = required('TRANZAK_RETURN_URL_BASE').replace(/\/+$/, '');
+  // Trailing dots as well as slashes. `https://www.shesaconnect.com.` is a
+  // valid fully-qualified name and curl follows it happily, but browsers
+  // can reject it on the TLS name match — so a stray full stop typed into
+  // the secret becomes a payer stranded on a certificate error after
+  // paying. Cheap to normalise, expensive to debug.
+  const returnUrlBase = required('TRANZAK_RETURN_URL_BASE').replace(/[./]+$/, '');
 
   // Our own webhook endpoint. SUPABASE_URL is injected into every Edge
   // Function by the runtime, so the default is always right for whichever

@@ -34,6 +34,11 @@ export interface PromoCampaign {
   readonly image: string;
   readonly cta: { readonly label: string; readonly href: string };
   readonly secondary?: { readonly label: string; readonly href: string };
+  /**
+   * Route prefixes the flyer stays off. A prefix suppresses the path
+   * itself and everything beneath it.
+   */
+  readonly suppressedPaths: readonly string[];
 }
 
 export const ACTIVE_PROMO: PromoCampaign = {
@@ -72,4 +77,11 @@ export const ACTIVE_PROMO: PromoCampaign = {
   image: '/hero_two.jpg',
   cta: { label: 'Get your ticket', href: '/agm-2026#register' },
   secondary: { label: 'See the full programme', href: '/agm-2026' },
+  /**
+   * The whole AGM subtree — landing page, sponsor pitch, confirmation
+   * and receipt — plus the standalone receipt. Advertising the AGM to
+   * someone already reading about it is noise, and interrupting a
+   * payment confirmation with a modal is worse than noise.
+   */
+  suppressedPaths: ['/agm-2026', '/receipt'],
 };

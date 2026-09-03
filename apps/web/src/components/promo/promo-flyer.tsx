@@ -14,6 +14,17 @@ import { ACTIVE_PROMO } from './promo-config';
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 /**
+ * True on a barred route: an exact match on a suppressed prefix, or any
+ * path beneath it. The `/` check keeps a prefix from swallowing an
+ * unrelated sibling — `/receipt` must not silence `/receipts-policy`.
+ */
+function isSuppressed(pathname: string): boolean {
+  return ACTIVE_PROMO.suppressedPaths.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+/**
  * Event flyer. Shown once on each page the visitor opens — no timers,
  * no tally: the route is the trigger. Landing on the site opens it, and
  * so does every navigation after that, once per page.
@@ -37,9 +48,14 @@ export function PromoFlyer() {
 
   const dismiss = useCallback(() => setOpen(false), []);
 
-  // One showing per page opened.
+  // One showing per page opened, on the pages that want it.
   useEffect(() => {
     if (!ACTIVE_PROMO.active) return;
+    if (isSuppressed(pathname)) {
+      // Navigating from a page that had it open onto one that bars it.
+      setOpen(false);
+      return;
+    }
     setOpen(true);
   }, [pathname]);
 
