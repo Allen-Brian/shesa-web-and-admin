@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { MapPin, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { startLenis, stopLenis } from '@/components/lenis-provider';
@@ -13,16 +14,14 @@ import { ACTIVE_PROMO } from './promo-config';
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 /**
- * Event flyer. The run restarts every time the site is opened: the
- * first showing lands `delayMs` after the page loads, and each later
- * one `repeatAfterMs` after the previous was dismissed, up to
- * `maxShows` per visit.
+ * Event flyer. Shown once on each page the visitor opens — no timers,
+ * no tally: the route is the trigger. Landing on the site opens it, and
+ * so does every navigation after that, once per page.
  *
- * The tally is deliberately in-memory rather than in localStorage —
- * the campaign is meant to greet every arrival, so a fresh load starts
- * a fresh run. Client-side navigation keeps this component mounted, so
- * browsing between pages continues the same run instead of restarting
- * it.
+ * Keyed on the pathname rather than a mount, because this lives in the
+ * root layout and client-side navigation never remounts it. Query and
+ * hash changes are not pathname changes, so in-page links (the AGM form
+ * anchors) don't re-open it.
  *
  * Built as a ticket stub rather than a dialog box — a full poster half
  * on the left, the details torn off along a perforation on the right.
@@ -34,29 +33,15 @@ export function PromoFlyer() {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  /** Showings used so far this visit. */
-  const [shown, setShown] = useState(0);
+  const pathname = usePathname();
 
   const dismiss = useCallback(() => setOpen(false), []);
 
-  // Queue the next showing: the first `delayMs` after the page loads,
-  // each later one `repeatAfterMs` after the previous was dismissed.
-  // Bailing out while `open` is what makes the gap count from the
-  // dismissal — the timer for showing N+1 only starts once showing N
-  // is off the screen, so time spent reading the flyer is not counted.
+  // One showing per page opened.
   useEffect(() => {
-    if (!ACTIVE_PROMO.active || open) return;
-    if (shown >= ACTIVE_PROMO.maxShows) return;
-
-    const wait = shown === 0 ? ACTIVE_PROMO.delayMs : ACTIVE_PROMO.repeatAfterMs;
-
-    const id = window.setTimeout(() => {
-      setShown((n) => n + 1);
-      setOpen(true);
-    }, wait);
-
-    return () => window.clearTimeout(id);
-  }, [open, shown]);
+    if (!ACTIVE_PROMO.active) return;
+    setOpen(true);
+  }, [pathname]);
 
   // Freeze the page, take focus, and listen for Escape while open.
   useEffect(() => {

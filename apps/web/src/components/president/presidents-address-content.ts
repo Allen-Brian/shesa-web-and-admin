@@ -39,7 +39,11 @@ export const PRESIDENTS_ADDRESS = {
     organisation: 'SHESA',
   },
 
-  /** Opening lines carried on the home page above "read the full address". */
+  /**
+   * Carried on the home page above "read the full address" — the
+   * opening paragraph plus the call that follows it, lifted verbatim
+   * so the summary is the address's own words.
+   */
   excerpt:
-    'The time has come for SHESA to rise to the full measure of its potential. This is a defining moment to consolidate our Association into a strong, united, and professionally influential global institution, one that transforms our collective identity into collective opportunity, excellence, and impact.',
+    'The time has come for SHESA to rise to the full measure of its potential. This is a defining moment to consolidate our Association into a strong, united, and professionally influential global institution, one that transforms our collective identity into collective opportunity, excellence, and impact. This is the moment for every SHESAN to move from belonging to building. Let us join hands to create a powerful professional network, a career oasis where every SHESAN can find mentorship, opportunities, collaboration, knowledge, and the support to thrive.',
 } as const;

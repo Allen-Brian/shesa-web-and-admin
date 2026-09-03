@@ -29,7 +29,12 @@ const DECKLE =
 
 export function PresidentsLetter() {
   return (
-    <section className="relative overflow-hidden bg-[#1a1310] py-16 md:py-24">
+    <section
+      /* Dark ground behind a fixed nav — without this the nav renders
+         its dark-on-light palette and disappears into the desk. */
+      data-nav-dark
+      className="relative overflow-hidden bg-[#1a1310] py-16 md:py-24"
+    >
       <DeskBackdrop />
 
       <div className="relative mx-auto max-w-4xl px-4 sm:px-6 md:px-8">
@@ -49,13 +54,25 @@ export function PresidentsLetter() {
           <Foxing />
 
           <header className="relative text-center">
-            <Image
-              src="/shesa.png"
-              alt=""
-              width={80}
-              height={80}
-              className="mx-auto h-14 w-auto object-contain opacity-90 md:h-16"
-            />
+            {/* Portrait medallion, the way an illuminated letter carries
+                the likeness of its author. */}
+            <div
+              className="relative mx-auto h-24 w-24 rounded-full p-[3px] md:h-28 md:w-28"
+              style={{
+                background: 'linear-gradient(145deg, #d8b878 0%, #a37c3c 50%, #d8b878 100%)',
+                boxShadow: '0 10px 26px -10px rgba(60,40,15,0.7)',
+              }}
+            >
+              <div className="relative h-full w-full overflow-hidden rounded-full border border-[#f3e6cb]">
+                <Image
+                  src="/president_one.jpg"
+                  alt={`${A.signatory.name}, ${A.signatory.title} of ${A.signatory.organisation}`}
+                  fill
+                  sizes="112px"
+                  className="object-cover object-top"
+                />
+              </div>
+            </div>
 
             <p
               className="mt-6 text-[10px] font-semibold uppercase text-[#8a6b3f] md:text-[11px]"

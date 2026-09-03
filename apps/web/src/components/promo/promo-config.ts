@@ -34,12 +34,6 @@ export interface PromoCampaign {
   readonly image: string;
   readonly cta: { readonly label: string; readonly href: string };
   readonly secondary?: { readonly label: string; readonly href: string };
-  /** Delay before the flyer first appears, so the page paints first. */
-  readonly delayMs: number;
-  /** How many times the flyer appears per visit to the site. */
-  readonly maxShows: number;
-  /** Gap between showings, measured from when the previous was closed. */
-  readonly repeatAfterMs: number;
 }
 
 export const ACTIVE_PROMO: PromoCampaign = {
@@ -78,7 +72,4 @@ export const ACTIVE_PROMO: PromoCampaign = {
   image: '/hero_two.jpg',
   cta: { label: 'Get your ticket', href: '/agm-2026#register' },
   secondary: { label: 'See the full programme', href: '/agm-2026' },
-  delayMs: 1200,
-  maxShows: 2,
-  repeatAfterMs: 60 * 1000,
 };
