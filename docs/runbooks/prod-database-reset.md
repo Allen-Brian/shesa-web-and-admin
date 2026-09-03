@@ -52,7 +52,13 @@ creates none.
   `pnpm exec supabase …`).
 - **Access token** for the Supabase account that owns the project:
   Account → Access Tokens on supabase.com.
-- **Project ref** for the prod project — `pvedpfhlzojavgbqhmcu`.
+- **Project ref** — `pvedpfhlzojavgbqhmcu`. Read this twice: the account
+  holds **two** projects and their names are the wrong way round.
+  `pvedpfhlzojavgbqhmcu` is named _"SHESA Connect (Staging)"_ and is the
+  live one — it is what `.env.production` points at, what the CLI is
+  linked to, and what serves shesaconnect.com. `caecsutsqeaensuqtegs` is
+  named _"SHESA Connect (Prod)"_, has been `INACTIVE` since 2026-07-08,
+  and its API does not answer. **Never act on the name.**
 - **DB password** for the prod project's Postgres role. Rotate it as
   step 1.
 - **Local shell** at the repo root — this runbook uses relative paths.
@@ -158,31 +164,87 @@ Expected output: a quiet run with a handful of `INSERT 0 N` lines. Any
 **Do not run `supabase/seed-demo.sql` against production.** It exists
 only for local development.
 
-### 7. Push the auth configuration
+### 7. Fix the auth configuration
 
-`config.toml` does not propagate on its own, and the hosted project's
-auth settings were configured by hand and had drifted. On 2026-09-03 the
-live project reported `disable_signup: false` — open self-registration
-on an invite-only platform, where every real account is created by
-`auth.admin.inviteUserByEmail` and no sign-up route exists in the app.
+`config.toml` does not propagate on its own. The hosted project's auth
+settings were configured by hand and had drifted badly — on 2026-09-03,
+before the cutover, the live project reported:
+
+| Setting                        | Was                     | Why it mattered                                                                                                  |
+| ------------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `disable_signup`               | `false`                 | Open self-registration on an invite-only platform, reachable with the anon key.                                  |
+| `site_url`                     | `http://localhost:3000` | **Every invite and recovery email built links to localhost.** Nobody could accept an invite or reset a password. |
+| `uri_allow_list`               | `""`                    | No redirect target was permitted, so `redirectTo` always fell back to site_url.                                  |
+| `password_min_length`          | `6`                     | The reset-password form has always required 8.                                                                   |
+| `password_required_characters` | none                    | —                                                                                                                |
+
+**Do not use `supabase config push` for this.** It sends far more than
+the auth block — `[db.pooler]`, `[storage]`, `[api]` and
+`[db.network_restrictions]` all go with it, and this repo's values for
+those describe the _local_ stack. `[db.pooler] enabled = false` alone is
+enough to be alarming when `SUPABASE_DB_URL` points at the pooler.
+
+Patch only the auth block, through the Management API:
 
 ```bash
-pnpm exec supabase config push --project-ref pvedpfhlzojavgbqhmcu
+SB=$(security find-generic-password -s "Supabase CLI" -w)   # macOS keychain; or use your own PAT
+REF=pvedpfhlzojavgbqhmcu
+
+# Record the current state first — this is your rollback.
+curl -s -H "Authorization: Bearer $SB" \
+  "https://api.supabase.com/v1/projects/$REF/config/auth" > auth-config-before.json
+
+curl -s -X PATCH -H "Authorization: Bearer $SB" -H "Content-Type: application/json" \
+  -d '{
+    "disable_signup": true,
+    "site_url": "https://admin.shesaconnect.com",
+    "uri_allow_list": "https://admin.shesaconnect.com/**,https://shesa-admin-staging.vercel.app/**",
+    "password_min_length": 8,
+    "password_required_characters": "abcdefghijklmnopqrstuvwxyz:ABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789"
+  }' \
+  "https://api.supabase.com/v1/projects/$REF/config/auth"
 ```
 
-The `[remotes.production]` block at the bottom of `config.toml` replaces
-the local `site_url` and redirect URLs with the production ones, so the
-push is safe. Verify afterwards:
+The allow list carries both admin origins deliberately: the custom domain
+is what people see, and `NEXT_PUBLIC_ADMIN_APP_URL` in `.env.production`
+still points at the Vercel one, so a `redirectTo` can legitimately be
+either.
+
+Verify — signup closed, and an invite link that actually goes somewhere:
 
 ```bash
-curl -s -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
-  https://pvedpfhlzojavgbqhmcu.supabase.co/auth/v1/settings | jq .disable_signup
+curl -s -H "apikey: $ANON" https://$REF.supabase.co/auth/v1/settings | jq .disable_signup
 # expect: true
+
+curl -s -X POST -H "apikey: $ANON" -H "Content-Type: application/json" \
+  -d '{"email":"probe@example.com","password":"ProbePassw0rd"}' \
+  https://$REF.supabase.co/auth/v1/signup
+# expect: 422 signup_disabled
+
+# The admin path must still work — generate_link creates the user without
+# sending mail. Note `redirect_to` is TOP LEVEL on the REST API; nesting it
+# under `options` (the supabase-js convention) is silently ignored.
+curl -s -X POST -H "apikey: $SR" -H "Authorization: Bearer $SR" -H "Content-Type: application/json" \
+  -d '{"type":"invite","email":"probe@shesaconnect.com","redirect_to":"https://admin.shesaconnect.com/callback"}' \
+  https://$REF.supabase.co/auth/v1/admin/generate_link
+# expect: 200, and redirect_to echoed back unchanged
 ```
 
-Then confirm invites still work — sign in as `admin@` and send one. The
-signup toggle does not affect `auth.admin.*`, but verify rather than
-assume.
+Delete any probe user afterwards:
+`DELETE /auth/v1/admin/users/{id}` with the service-role key.
+
+### 7b. Drop pgtap
+
+`20260902130000_baseline_extensions.sql` skips pgtap when the GUC
+`app.environment` is `'production'` — but **that guard cannot fire on a
+hosted project.** Supabase's `postgres` role is not a superuser, so both
+`ALTER DATABASE postgres SET app.environment` and the `ALTER ROLE … IN
+DATABASE` form are refused. pgtap therefore installs, and has to be
+removed by hand:
+
+```bash
+psql "$SUPABASE_DB_URL" -c "DROP EXTENSION IF EXISTS pgtap CASCADE; DROP SCHEMA IF EXISTS pgtap CASCADE;"
+```
 
 ### 8. Push migrations to `origin/master` (if not already there)
 
@@ -241,16 +303,18 @@ Then in a browser:
 
 ## If it goes wrong
 
-| Symptom                                                       | Cause                                                                                                    | Fix                                                                                             |
-| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `permission denied for schema core` on step 5                 | Wrong Supabase account, or `link` targets a project you don't own.                                       | `supabase logout`, log back in with the right account, re-run `link`.                           |
-| `psql: FATAL: password authentication failed` on step 6       | DB password rotated in Supabase but not in your shell's connection string.                               | Rebuild `SUPABASE_DB_URL` with the new password.                                                |
-| `ERROR: relation "finance.groups" does not exist` in the seed | Migrations didn't finish — likely `--no-seed` was omitted and the CLI aborted partway.                   | Re-run step 5 with `--no-seed`, then step 6.                                                    |
-| `ERROR: no mainstream scope configured` in the seed           | Section 1 of `seed.sql` didn't insert the mainstream scope; the trigger on `finance.groups` requires it. | Check Section 1 ran. This is also the failure the pre-baseline migration chain used to hit.     |
-| Every insert prints `INSERT 0 0`                              | The seed re-ran on an already-seeded database (idempotency working).                                     | Safe re-run signal, not a failure. Nothing was clobbered.                                       |
-| 160 members appear after seeding                              | `seed-demo.sql` was run against production.                                                              | Reset and start again from step 5. Do not try to delete the demo rows by hand.                  |
-| First login says "Invalid email or password"                  | Mistyped, or the password was changed after seeding.                                                     | Supabase → Auth → Users → the row → Send password reset.                                        |
-| Public AGM form errors with "AGM 2026 is not open yet"        | The charge's `close_date` is in the past for the server's clock.                                         | Check the server clock. If the deadline really passed, edit `close_date` via Finance → Charges. |
+| Symptom                                                            | Cause                                                                                                                                                                         | Fix                                                                                                                                                                                                          |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `permission denied for schema core` on step 5                      | Wrong Supabase account, or `link` targets a project you don't own.                                                                                                            | `supabase logout`, log back in with the right account, re-run `link`.                                                                                                                                        |
+| `psql: FATAL: password authentication failed` on step 6            | DB password rotated in Supabase but not in your shell's connection string.                                                                                                    | Rebuild `SUPABASE_DB_URL` with the new password.                                                                                                                                                             |
+| `ERROR: relation "finance.groups" does not exist` in the seed      | Migrations didn't finish — likely `--no-seed` was omitted and the CLI aborted partway.                                                                                        | Re-run step 5 with `--no-seed`, then step 6.                                                                                                                                                                 |
+| `ERROR: no mainstream scope configured` in the seed                | Section 1 of `seed.sql` didn't insert the mainstream scope; the trigger on `finance.groups` requires it.                                                                      | Check Section 1 ran. This is also the failure the pre-baseline migration chain used to hit.                                                                                                                  |
+| Every insert prints `INSERT 0 0`                                   | The seed re-ran on an already-seeded database (idempotency working).                                                                                                          | Safe re-run signal, not a failure. Nothing was clobbered.                                                                                                                                                    |
+| `ALTER EXTENSION pgmq ADD SEQUENCE … does not exist` on step 5     | The reset left pgmq's `q_*`/`a_*` tables standing but emptied `pgmq.meta` and dropped their sequences. `pgmq.create()` then skips the table and dies on the missing sequence. | Already handled — `20260902130200_baseline_platform.sql` clears orphaned queue tables before creating. If it recurs, the queue tables are empty by definition; detach them from the extension and drop them. |
+| CLI ends with `Failed to read certificate … pgdelta-target-ca.crt` | A post-migration step in the CLI, not the migration.                                                                                                                          | Check `supabase_migrations.schema_migrations` — if every version is recorded, the reset succeeded. It did on 2026-09-03.                                                                                     |
+| 160 members appear after seeding                                   | `seed-demo.sql` was run against production.                                                                                                                                   | Reset and start again from step 5. Do not try to delete the demo rows by hand.                                                                                                                               |
+| First login says "Invalid email or password"                       | Mistyped, or the password was changed after seeding.                                                                                                                          | Supabase → Auth → Users → the row → Send password reset.                                                                                                                                                     |
+| Public AGM form errors with "AGM 2026 is not open yet"             | The charge's `close_date` is in the past for the server's clock.                                                                                                              | Check the server clock. If the deadline really passed, edit `close_date` via Finance → Charges.                                                                                                              |
 
 ## Rollback
 
