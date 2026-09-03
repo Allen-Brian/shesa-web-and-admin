@@ -5,7 +5,7 @@ import { Building2, CreditCard } from 'lucide-react';
 
 import { Button, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
-import { ObligationStatusBadge } from './status-badge';
+import { ObligationStatusBadge } from './obligation-status-badge';
 import { ProgressCell } from './progress-cell';
 import { formatRecurrence } from '@/lib/format/recurrence';
 import type { ObligationRow, SerialRow } from './types';

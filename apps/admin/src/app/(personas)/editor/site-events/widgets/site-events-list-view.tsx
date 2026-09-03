@@ -20,7 +20,7 @@ import {
 } from '@shesa/ui';
 
 import { deleteSiteEvents } from '../actions/site-events';
-import { CategoryManagerDialog } from './category-manager-dialog';
+import { SiteEventCategoryManagerDialog } from './site-event-category-manager-dialog';
 import type { CategoryRow, SiteEventRow } from './types';
 import { useEventColumns, type EventSerialRow } from './use-event-columns';
 
@@ -152,7 +152,7 @@ export function SiteEventsListView({ events, categories }: Props) {
         onRowClicked={(e) => e.data && router.push(`/editor/site-events/${e.data.id}/edit`)}
       />
 
-      <CategoryManagerDialog
+      <SiteEventCategoryManagerDialog
         open={manageOpen}
         onOpenChange={setManageOpen}
         categories={categories}

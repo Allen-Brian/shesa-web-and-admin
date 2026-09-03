@@ -25,8 +25,8 @@ import { createArticle, deleteArticle, updateArticle } from '../actions/articles
 import type { ArticleInput } from '../actions/types';
 import { ArticleBannerPicker } from './article-banner-picker';
 import { AuthorPhotoPicker } from './author-photo-picker';
-import { CategoryManagerDialog } from './category-manager-dialog';
-import { CategoryPicker } from './category-picker';
+import { ArticleCategoryManagerDialog } from './article-category-manager-dialog';
+import { TaxonomyPicker } from '@/components/taxonomy/taxonomy-picker';
 import { slugify } from '@shesa/domain/utils';
 import type { ArticleRow, ArticleStatus, CategoryRow } from './types';
 
@@ -266,11 +266,13 @@ export function ArticleForm({ categories, editing }: Props) {
             </div>
           </label>
 
-          <CategoryPicker
-            categories={categories}
+          <TaxonomyPicker
+            label="Categories"
+            rows={categories}
             selectedIds={categoryIds}
             onToggle={toggleCategory}
             onManage={() => setManageOpen(true)}
+            emptyHint="No categories yet — open Manage to create some (e.g. News, Announcement)."
           />
 
           <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-3">
@@ -300,7 +302,7 @@ export function ArticleForm({ categories, editing }: Props) {
         </aside>
       </div>
 
-      <CategoryManagerDialog
+      <ArticleCategoryManagerDialog
         open={manageOpen}
         onOpenChange={setManageOpen}
         categories={categories}

@@ -13,8 +13,8 @@ import {
   type RowClickedEvent,
 } from '@shesa/ui';
 
-import { FilterChips } from '@/components/memberships/filter-chips';
-import { FilterDropdown } from '@/components/memberships/filter-dropdown';
+import { FilterChips } from '@/components/filters/filter-chips';
+import { FilterDropdown } from '@/components/filters/filter-dropdown';
 import { useFilterState } from '@/lib/memberships/filter-state';
 
 import { setEngagement } from '../../../engagement-actions';

@@ -12,6 +12,11 @@ const STYLES: Record<string, string> = {
 /**
  * Coloured status pill for a charge row. Matches the Obligations-page
  * badge conventions so the two surfaces feel like one dashboard.
+ *
+ * Deliberately not shared with `finance/charges`' badge of the same
+ * name: that one renders `archived` in destructive red and this one in
+ * muted grey. Reconciling them is a design decision about what archived
+ * should look like, not a refactor.
  */
 export function ChargeStatusBadge({ status }: { readonly status: string }) {
   return (

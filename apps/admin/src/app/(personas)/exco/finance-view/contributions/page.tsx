@@ -2,7 +2,7 @@ import { Target } from 'lucide-react';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import { ExcoContributionsView, type ContributionRow } from './widgets/contributions-view';
+import { ExcoContributionsView, type ContributionRow } from './widgets/exco-contributions-view';
 
 export const dynamic = 'force-dynamic';
 

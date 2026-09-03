@@ -10,8 +10,8 @@ import { QuillEditor } from '@/components/rich-editor/quill-editor';
 
 import { createSiteEvent, deleteSiteEvent, updateSiteEvent } from '../actions/site-events';
 import type { SiteEventInput } from '../actions/types';
-import { CategoryManagerDialog } from './category-manager-dialog';
-import { CategoryPicker } from './category-picker';
+import { SiteEventCategoryManagerDialog } from './site-event-category-manager-dialog';
+import { TaxonomyPicker } from '@/components/taxonomy/taxonomy-picker';
 import { EventBannerPicker } from './event-banner-picker';
 import { FlyersEditor } from './flyers-editor';
 import { ProgramEditor } from './program-editor';
@@ -299,11 +299,13 @@ export function SiteEventForm({ categories, editing }: Props) {
             </div>
           </label>
 
-          <CategoryPicker
-            categories={categories}
+          <TaxonomyPicker
+            label="Categories"
+            rows={categories}
             selectedIds={categoryIds}
             onToggle={toggleCategory}
             onManage={() => setManageOpen(true)}
+            emptyHint="No categories yet — open Manage to create some (Reunion, Ceremony, …)."
           />
 
           {/* Ticketing panel (opt-in) */}
@@ -370,7 +372,7 @@ export function SiteEventForm({ categories, editing }: Props) {
         </aside>
       </div>
 
-      <CategoryManagerDialog
+      <SiteEventCategoryManagerDialog
         open={manageOpen}
         onOpenChange={setManageOpen}
         categories={categories}

@@ -5,52 +5,55 @@ import { Layers } from 'lucide-react';
 
 import { Button } from '@shesa/ui';
 
-import type { CategoryRow } from './types';
+import type { TaxonomyRow } from './taxonomy-types';
 
 interface Props {
-  readonly categories: readonly CategoryRow[];
+  readonly label: string;
+  readonly rows: readonly TaxonomyRow[];
   readonly selectedIds: readonly string[];
   readonly onToggle: (id: string) => void;
   readonly onManage: () => void;
+  /**
+   * Shown in place of the chips when nothing exists yet. Surfaces name
+   * their own examples, which is the whole difference between the four
+   * copies this replaces.
+   */
+  readonly emptyHint: string;
 }
 
-/**
- * Multi-select category chips for the article form. Click a chip to
- * toggle inclusion; "Manage" opens the compact dialog that mirrors
- * the Leadership sectors manager.
- */
-export function CategoryPicker({ categories, selectedIds, onToggle, onManage }: Props) {
+/** Multi-select chips over a taxonomy, with a shortcut into its manager. */
+export function TaxonomyPicker({ label, rows, selectedIds, onToggle, onManage, emptyHint }: Props) {
   const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-foreground">Categories</span>
+        <span className="text-sm font-medium text-foreground">{label}</span>
         <Button type="button" variant="ghost" size="sm" onClick={onManage}>
           <Layers className="h-3.5 w-3.5" />
           Manage
         </Button>
       </div>
-      {categories.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="rounded-md border border-dashed border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-          No categories yet — open Manage to create some (e.g. News, Announcement).
+          {emptyHint}
         </p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
-          {categories.map((c) => {
-            const isOn = selected.has(c.id);
+          {rows.map((row) => {
+            const isOn = selected.has(row.id);
             return (
               <button
-                key={c.id}
+                key={row.id}
                 type="button"
-                onClick={() => onToggle(c.id)}
+                onClick={() => onToggle(row.id)}
                 className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                   isOn
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground'
                 }`}
               >
-                {c.name}
+                {row.name}
               </button>
             );
           })}

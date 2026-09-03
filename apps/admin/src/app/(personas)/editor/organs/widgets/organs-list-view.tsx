@@ -20,7 +20,7 @@ import {
 } from '@shesa/ui';
 
 import { deleteOrgans } from '../actions/organs';
-import { SectorManagerDialog } from './sector-manager-dialog';
+import { OrganSectorManagerDialog } from './organ-sector-manager-dialog';
 import type { OrganRow, SectorRow } from './types';
 import { useOrganColumns, type OrganSerialRow } from './use-organ-columns';
 
@@ -142,7 +142,7 @@ export function OrgansListView({ organs, sectors }: Props) {
         onRowClicked={(e) => e.data && router.push(`/editor/organs/${e.data.id}/edit`)}
       />
 
-      <SectorManagerDialog open={manageOpen} onOpenChange={setManageOpen} sectors={sectors} />
+      <OrganSectorManagerDialog open={manageOpen} onOpenChange={setManageOpen} sectors={sectors} />
 
       <ConfirmDialog
         open={confirmMulti.length > 0}

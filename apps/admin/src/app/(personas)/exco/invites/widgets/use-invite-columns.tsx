@@ -5,7 +5,7 @@ import { RefreshCcw } from 'lucide-react';
 
 import { Button, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
-import { StatusBadge } from './status-badge';
+import { InviteStatusBadge } from './invite-status-badge';
 import type { ClaimStatus, SerialRow } from './types';
 
 interface UseInviteColumnsArgs {
@@ -55,7 +55,7 @@ export function useInviteColumns({ pending, onResend }: UseInviteColumnsArgs): C
         field: 'claimStatus',
         width: 130,
         cellRenderer: (p: ICellRendererParams<SerialRow, string>) => (
-          <StatusBadge
+          <InviteStatusBadge
             status={(p.value as ClaimStatus) ?? null}
             error={p.data?.inviteError ?? null}
           />

@@ -7,7 +7,7 @@ import type { ColDef, ICellRendererParams } from '@shesa/ui';
 import { ChargeAmountCell } from './amount-cell';
 import { formatRecurrence } from '@/lib/format/recurrence';
 import { ChargeNameCell } from './name-cell';
-import { ChargeStatusBadge } from './status-badge';
+import { ChargeStatusBadge } from './charge-status-badge';
 import type { SerialRow } from './types';
 
 /**

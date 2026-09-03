@@ -2,7 +2,7 @@ import { BadgeDollarSign } from 'lucide-react';
 
 import { getServerClient } from '@/lib/supabase-server';
 
-import { ExcoChargesView, type ChargeRow } from './widgets/charges-view';
+import { ExcoChargesView, type ChargeRow } from './widgets/exco-charges-view';
 
 export const dynamic = 'force-dynamic';
 

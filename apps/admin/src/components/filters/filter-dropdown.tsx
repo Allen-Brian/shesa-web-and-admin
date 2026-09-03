@@ -12,42 +12,41 @@ export interface FilterOption {
   readonly label: string;
 }
 
-export interface FilterDimensionConfig {
-  readonly dimension: string;
+export interface FilterDimensionConfig<TDim extends string = string> {
+  readonly dimension: TDim;
   readonly label: string;
   readonly options: readonly FilterOption[];
   readonly Icon?: (props: { className?: string }) => ReactNode;
 }
 
-interface FilterDropdownProps {
-  readonly dimensions: readonly FilterDimensionConfig[];
-  readonly values: FilterValues;
-  readonly onApply: (next: FilterValues) => void;
+interface FilterDropdownProps<TDim extends string> {
+  readonly dimensions: readonly FilterDimensionConfig<TDim>[];
+  readonly values: FilterValues<TDim>;
+  readonly onApply: (next: FilterValues<TDim>) => void;
   readonly onClearAll: () => void;
   readonly activeCount: number;
 }
 
 /**
- * Shared filter dropdown — the two-pane category → value picker used
- * across every table filter in the admin. Kept generic (dimensions
- * are keyed by plain strings) so any callsite can define its own
- * dimension set without changes here. Membership tables keep their
- * own dedicated copy for now; every new table (Charges first) uses
- * this shared one.
+ * The two-pane category → value picker behind every table filter in
+ * the admin — Members, the Manage Membership tabs, cluster details,
+ * Charges. Generic over the dimension key so a caller can hand it
+ * either a plain-string set or its own union, which is what let the
+ * memberships fork fold back into this file.
  *
  * Local draft is committed to the parent's URL-backed values only on
  * Apply. Reset drops everything and closes.
  */
-export function FilterDropdown({
+export function FilterDropdown<TDim extends string = string>({
   dimensions,
   values,
   onApply,
   onClearAll,
   activeCount,
-}: FilterDropdownProps) {
+}: FilterDropdownProps<TDim>) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<FilterValues>(values);
-  const [selectedDim, setSelectedDim] = useState<string | null>(dimensions[0]?.dimension ?? null);
+  const [draft, setDraft] = useState<FilterValues<TDim>>(values);
+  const [selectedDim, setSelectedDim] = useState<TDim | null>(dimensions[0]?.dimension ?? null);
 
   useEffect(() => {
     if (open) {
@@ -56,7 +55,7 @@ export function FilterDropdown({
     }
   }, [open, values, dimensions]);
 
-  const toggle = (dim: string, value: string) => {
+  const toggle = (dim: TDim, value: string) => {
     setDraft((prev) => {
       const current = (prev[dim] ?? []) as readonly string[];
       const has = current.includes(value);
@@ -170,7 +169,7 @@ function ValueList({
   selected,
   onToggle,
 }: {
-  readonly config: FilterDimensionConfig;
+  readonly config: FilterDimensionConfig<string>;
   readonly selected: readonly string[];
   readonly onToggle: (value: string) => void;
 }) {

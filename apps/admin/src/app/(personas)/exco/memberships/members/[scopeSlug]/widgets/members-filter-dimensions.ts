@@ -1,4 +1,5 @@
-import type { FilterDimensionConfig } from '@/components/memberships/filter-dropdown';
+import type { FilterDimensionConfig } from '@/components/filters/filter-dropdown';
+import type { FilterDimension } from '@/lib/memberships/filter-state';
 
 import { sortedUnique } from './members-table-helpers';
 import { ENGAGEMENT_TIERS } from './members-table-types';
@@ -12,8 +13,8 @@ import type { MembersPageRow } from './members-page';
 export function buildMembersFilterDimensions(
   rows: readonly MembersPageRow[],
   isBranch: boolean,
-): FilterDimensionConfig[] {
-  const configs: FilterDimensionConfig[] = [];
+): FilterDimensionConfig<FilterDimension>[] {
+  const configs: FilterDimensionConfig<FilterDimension>[] = [];
 
   configs.push({
     dimension: 'batch',

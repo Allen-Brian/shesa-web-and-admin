@@ -12,7 +12,7 @@ import type { FilterDimensionConfig } from '@/components/filters/filter-dropdown
 export const CHARGES_FILTER_DIMENSIONS = ['type', 'shape', 'status'] as const;
 export type ChargesFilterDim = (typeof CHARGES_FILTER_DIMENSIONS)[number];
 
-export const CHARGES_FILTER_CONFIG: readonly FilterDimensionConfig[] = [
+export const CHARGES_FILTER_CONFIG: readonly FilterDimensionConfig<ChargesFilterDim>[] = [
   {
     dimension: 'type',
     label: 'Type',

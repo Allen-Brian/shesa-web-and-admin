@@ -20,7 +20,7 @@ import {
 } from '@shesa/ui';
 
 import { deleteAlbums } from '../actions/albums';
-import { CategoryManagerDialog } from './category-manager-dialog';
+import { AlbumCategoryManagerDialog } from './album-category-manager-dialog';
 import type { AlbumRow, CategoryRow, LinkableEvent } from './types';
 import { useAlbumColumns, type AlbumSerialRow } from './use-album-columns';
 
@@ -149,7 +149,7 @@ export function AlbumsListView({ albums, categories, events }: Props) {
         onRowClicked={(e) => e.data && router.push(`/editor/gallery/${e.data.id}/edit`)}
       />
 
-      <CategoryManagerDialog
+      <AlbumCategoryManagerDialog
         open={manageOpen}
         onOpenChange={setManageOpen}
         categories={categories}

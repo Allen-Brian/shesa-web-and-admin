@@ -1,76 +1,19 @@
 'use server';
 
-import { clientEnv } from '@shesa/config/env.client';
-import { createServiceRoleClient } from '@shesa/supabase/service-role';
-
-import { deletePublicObject, requireMediaPermission } from '@/lib/media/public-media';
-
-const ALLOWED_IMAGE_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/avif',
-  'image/svg+xml',
-]);
-const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+import { deletePublicObject, LOGO, uploadPublicObject } from '@/lib/media/public-media';
 
 const BUCKET = 'cms-media';
-
-interface UploadOk {
-  readonly ok: true;
-  readonly url: string;
-  readonly path: string;
-}
-interface ActionErr {
-  readonly ok: false;
-  readonly message: string;
-}
+const PREFIX = 'organs';
 
 /**
- * Upload an organ-scoped logo. Path convention:
- * `organs/{user_id}/{ts}-{name}`. SVG is allowed here because organ
- * logos are typically vector marks — they still land in the same
- * public `cms-media` bucket.
+ * Organ logo. Uses LOGO rather than IMAGE: SVG is wanted here (logos are
+ * often vector) and the ceiling is 3 MB rather than 5.
  */
-export async function uploadOrganLogo(formData: FormData): Promise<UploadOk | ActionErr> {
-  const auth = await requireMediaPermission();
-  if (!auth.ok) return auth;
-  const user = { id: auth.userId };
-
-  const file = formData.get('file');
-  if (!(file instanceof File)) return { ok: false, message: 'No file supplied.' };
-  if (file.size === 0) return { ok: false, message: 'File is empty.' };
-  if (file.size > MAX_IMAGE_BYTES) {
-    return { ok: false, message: 'Logo must be under 3 MB.' };
-  }
-  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    return {
-      ok: false,
-      message: `Unsupported file type "${file.type}". Use JPEG, PNG, WebP, AVIF, or SVG.`,
-    };
-  }
-
-  const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 80);
-  const path = `organs/${user.id}/${Date.now()}-${cleanName}`;
-
-  const serviceClient = createServiceRoleClient();
-  const { error: upErr } = await serviceClient.storage.from(BUCKET).upload(path, file, {
-    contentType: file.type,
-    cacheControl: '3600',
-    upsert: false,
-  });
-  if (upErr) return { ok: false, message: upErr.message ?? 'Could not upload the logo.' };
-
-  const publicBase = clientEnv.NEXT_PUBLIC_SUPABASE_URL.replace(/\/+$/, '');
-  const url = `${publicBase}/storage/v1/object/public/${BUCKET}/${path}`;
-  return { ok: true, url, path };
+export async function uploadOrganLogo(formData: FormData) {
+  return uploadPublicObject({ formData, bucket: BUCKET, prefix: PREFIX, accepts: [LOGO] });
 }
 
-/** Best-effort delete of an organ-scoped logo. Silent on failure. */
+/** Best-effort delete. Silent on a stale or foreign URL. */
 export async function deleteOrganLogo(publicUrl: string): Promise<void> {
-  await deletePublicObject({
-    publicUrl,
-    bucket: BUCKET,
-    prefix: 'organs',
-  });
+  await deletePublicObject({ publicUrl, bucket: BUCKET, prefix: PREFIX });
 }

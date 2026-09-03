@@ -8,10 +8,10 @@ import type { FilterValues } from '@/lib/filters/use-filter-state';
 
 import type { FilterDimensionConfig } from './filter-dropdown';
 
-interface FilterChipsProps {
-  readonly values: FilterValues;
-  readonly dimensions: readonly FilterDimensionConfig[];
-  readonly onRemove: (dim: string, value: string) => void;
+interface FilterChipsProps<TDim extends string> {
+  readonly values: FilterValues<TDim>;
+  readonly dimensions: readonly FilterDimensionConfig<TDim>[];
+  readonly onRemove: (dim: TDim, value: string) => void;
   readonly onClearAll: () => void;
 }
 
@@ -21,11 +21,16 @@ interface FilterChipsProps {
  * value; a "Clear all" button appears when two or more chips render.
  * Renders nothing when no filters are set so the toolbar stays clean.
  */
-export function FilterChips({ values, dimensions, onRemove, onClearAll }: FilterChipsProps) {
+export function FilterChips<TDim extends string = string>({
+  values,
+  dimensions,
+  onRemove,
+  onClearAll,
+}: FilterChipsProps<TDim>) {
   const configByDim = new Map(dimensions.map((d) => [d.dimension, d]));
 
-  const chips: { dim: string; value: string; label: string; dimLabel: string }[] = [];
-  for (const [dim, list] of Object.entries(values)) {
+  const chips: { dim: TDim; value: string; label: string; dimLabel: string }[] = [];
+  for (const [dim, list] of Object.entries(values) as [TDim, readonly string[] | undefined][]) {
     if (!list) continue;
     const config = configByDim.get(dim);
     if (!config) continue;

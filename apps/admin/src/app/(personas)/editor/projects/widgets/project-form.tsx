@@ -24,8 +24,8 @@ import { QuillEditor } from '@/components/rich-editor/quill-editor';
 
 import { createProject, deleteProject, updateProject } from '../actions/projects';
 import type { ProjectInput } from '../actions/types';
-import { CategoryManagerDialog } from './category-manager-dialog';
-import { CategoryPicker } from './category-picker';
+import { ProjectCategoryManagerDialog } from './project-category-manager-dialog';
+import { TaxonomyPicker } from '@/components/taxonomy/taxonomy-picker';
 import { ImpactEditor } from './impact-editor';
 import { MilestonesEditor } from './milestones-editor';
 import { ProjectBannerPicker } from './project-banner-picker';
@@ -287,11 +287,13 @@ export function ProjectForm({ categories, editing }: Props) {
             </div>
           </label>
 
-          <CategoryPicker
-            categories={categories}
+          <TaxonomyPicker
+            label="Categories"
+            rows={categories}
             selectedIds={categoryIds}
             onToggle={toggleCategory}
             onManage={() => setManageOpen(true)}
+            emptyHint="No categories yet — open Manage to create some (Education, Health, …)."
           />
 
           <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-3">
@@ -375,7 +377,7 @@ export function ProjectForm({ categories, editing }: Props) {
         </aside>
       </div>
 
-      <CategoryManagerDialog
+      <ProjectCategoryManagerDialog
         open={manageOpen}
         onOpenChange={setManageOpen}
         categories={categories}

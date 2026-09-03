@@ -20,6 +20,7 @@
  * ────────────────────────────────────────────────────────────────────
  */
 
+import { clientEnv } from '@shesa/config/env.client';
 import { createServiceRoleClient } from '@shesa/supabase/service-role';
 
 import { getServerClient } from '@/lib/supabase-server';
@@ -106,8 +107,9 @@ export function derivePublicObjectPath(
   // Traversal and absolute-path guards.
   if (path.includes('..') || path.startsWith('/')) return null;
 
-  // Must sit under the surface that owns it.
-  if (!path.startsWith(`${prefix}/`)) return null;
+  // Must sit under the surface that owns it. An empty prefix means the
+  // bucket has no surface folder, so there is nothing further to check.
+  if (prefix && !path.startsWith(`${prefix}/`)) return null;
 
   return path;
 }
@@ -145,4 +147,141 @@ export async function deletePublicObject(args: {
 
   const serviceClient = createServiceRoleClient();
   await serviceClient.storage.from(args.bucket).remove([path]);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * Uploads
+ * ══════════════════════════════════════════════════════════════════════
+ * Nine upload actions across seven surfaces were the same forty lines
+ * with a different prefix and a different error string. They are now
+ * one call each.
+ */
+
+/** One acceptable class of file for an upload: what it is, and its ceiling. */
+export interface MediaKind {
+  /** Returned to the caller so a mixed-media picker can branch on it. */
+  readonly kind: string;
+  readonly mimeTypes: ReadonlySet<string>;
+  readonly maxBytes: number;
+  /** Used in the size error: "Image must be under 5 MB." */
+  readonly noun: string;
+  /** Used in the type error: "Use JPEG, PNG, WebP, or AVIF." */
+  readonly accepts: string;
+}
+
+const MB = 1024 * 1024;
+
+export const IMAGE: MediaKind = {
+  kind: 'photo',
+  mimeTypes: new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']),
+  maxBytes: 5 * MB,
+  noun: 'Image',
+  accepts: 'JPEG, PNG, WebP, or AVIF',
+};
+
+/** Logos, where SVG is wanted and the ceiling is lower. */
+export const LOGO: MediaKind = {
+  ...IMAGE,
+  mimeTypes: new Set([...IMAGE.mimeTypes, 'image/svg+xml']),
+  maxBytes: 3 * MB,
+  noun: 'Logo',
+  accepts: 'JPEG, PNG, WebP, AVIF, or SVG',
+};
+
+export const VIDEO: MediaKind = {
+  kind: 'video',
+  mimeTypes: new Set(['video/mp4', 'video/webm', 'video/quicktime']),
+  maxBytes: 100 * MB,
+  noun: 'Video',
+  accepts: 'MP4, WebM, or MOV',
+};
+
+export const AUDIO: MediaKind = {
+  kind: 'audio',
+  mimeTypes: new Set([
+    'audio/mpeg', // .mp3
+    'audio/mp3',
+    'audio/wav',
+    'audio/wave',
+    'audio/x-wav',
+    'audio/ogg',
+    'audio/webm',
+    'audio/aac',
+    'audio/mp4', // .m4a
+  ]),
+  maxBytes: 50 * MB,
+  noun: 'Audio',
+  accepts: 'MP3, WAV, OGG, or M4A',
+};
+
+export interface UploadOk {
+  readonly ok: true;
+  readonly url: string;
+  readonly path: string;
+  /** Which `MediaKind` matched — lets a mixed picker pick its insert. */
+  readonly kind: string;
+}
+
+export type UploadResult = UploadOk | MediaAuthErr;
+
+/**
+ * Authorize, validate, and upload one file to a public bucket.
+ *
+ * Object path is `{prefix}/{uploader_id}/{timestamp}-{sanitised-name}`,
+ * so uploads are attributable and orphans are reapable by prefix.
+ *
+ * A note on `file.type`: it is the browser-declared MIME from the
+ * multipart part, not a content sniff, so the allow-list constrains
+ * honest clients rather than hostile ones. The real boundary is the
+ * permission check above it and the bucket's own size limit below.
+ */
+export async function uploadPublicObject(args: {
+  readonly formData: FormData;
+  readonly bucket: string;
+  readonly prefix: string;
+  readonly accepts: readonly MediaKind[];
+  readonly permissionKey?: string;
+}): Promise<UploadResult> {
+  const auth = await requireMediaPermission(args.permissionKey);
+  if (!auth.ok) return auth;
+
+  const file = args.formData.get('file');
+  if (!(file instanceof File)) return { ok: false, message: 'No file supplied.' };
+  if (file.size === 0) return { ok: false, message: 'File is empty.' };
+
+  const match = args.accepts.find((k) => k.mimeTypes.has(file.type));
+  if (!match) {
+    const wanted = args.accepts.map((k) => k.accepts).join('; or ');
+    return { ok: false, message: `Unsupported file type "${file.type}". Use ${wanted}.` };
+  }
+  if (file.size > match.maxBytes) {
+    const mb = Math.round(match.maxBytes / MB);
+    return { ok: false, message: `${match.noun} must be under ${mb} MB.` };
+  }
+
+  const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 80);
+  // An empty prefix means the bucket is uploader-scoped with no surface
+  // folder (event-advert-images). Joining unconditionally would give the
+  // object a leading slash.
+  const folder = args.prefix ? `${args.prefix}/${auth.userId}` : auth.userId;
+  const path = `${folder}/${Date.now()}-${cleanName}`;
+
+  const serviceClient = createServiceRoleClient();
+  const { error } = await serviceClient.storage.from(args.bucket).upload(path, file, {
+    contentType: file.type,
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (error) return { ok: false, message: error.message ?? 'Could not upload the file.' };
+
+  // Built from the browser-facing origin rather than the Storage SDK's
+  // getPublicUrl: in local Docker the server reaches Supabase over an
+  // internal hostname, which getPublicUrl would bake into the URL.
+  const publicBase = clientEnv.NEXT_PUBLIC_SUPABASE_URL.replace(/\/+$/, '');
+  return {
+    ok: true,
+    url: `${publicBase}/storage/v1/object/public/${args.bucket}/${path}`,
+    path,
+    kind: match.kind,
+  };
 }

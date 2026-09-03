@@ -20,7 +20,7 @@ import {
 } from '@shesa/ui';
 
 import { deleteProjects } from '../actions/projects';
-import { CategoryManagerDialog } from './category-manager-dialog';
+import { ProjectCategoryManagerDialog } from './project-category-manager-dialog';
 import type { CategoryRow, ProjectRow, ProjectStatus } from './types';
 import { useProjectColumns, type ProjectSerialRow } from './use-project-columns';
 
@@ -149,7 +149,7 @@ export function ProjectsListView({ projects, categories }: Props) {
         onRowClicked={(e) => e.data && router.push(`/editor/projects/${e.data.id}/edit`)}
       />
 
-      <CategoryManagerDialog
+      <ProjectCategoryManagerDialog
         open={manageOpen}
         onOpenChange={setManageOpen}
         categories={categories}

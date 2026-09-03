@@ -9,7 +9,7 @@ import { Button, ConfirmDialog, Input, Label, Textarea, toast } from '@shesa/ui'
 import { createOrgan, deleteOrgan, updateOrgan } from '../actions/organs';
 import type { OrganInput } from '../actions/types';
 import { OrganLogoPicker } from './organ-logo-picker';
-import { SectorManagerDialog } from './sector-manager-dialog';
+import { OrganSectorManagerDialog } from './organ-sector-manager-dialog';
 import { SectorSelect } from './sector-select';
 import { slugify } from '@shesa/domain/utils';
 import type { OrganRow, SectorRow } from './types';
@@ -302,7 +302,7 @@ export function OrganForm({ sectors, editing }: Props) {
         </aside>
       </div>
 
-      <SectorManagerDialog open={manageOpen} onOpenChange={setManageOpen} sectors={sectors} />
+      <OrganSectorManagerDialog open={manageOpen} onOpenChange={setManageOpen} sectors={sectors} />
 
       <ConfirmDialog
         open={confirmDelete}

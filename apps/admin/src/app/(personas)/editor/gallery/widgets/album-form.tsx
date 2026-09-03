@@ -9,8 +9,8 @@ import { Button, ConfirmDialog, Input, Label, Textarea, toast } from '@shesa/ui'
 import { createAlbum, deleteAlbum, updateAlbum } from '../actions/albums';
 import type { AlbumInput } from '../actions/types';
 import { AlbumCoverPicker } from './album-cover-picker';
-import { CategoryManagerDialog } from './category-manager-dialog';
-import { CategoryPicker } from './category-picker';
+import { AlbumCategoryManagerDialog } from './album-category-manager-dialog';
+import { TaxonomyPicker } from '@/components/taxonomy/taxonomy-picker';
 import { EventLinker } from './event-linker';
 import { MediaGridEditor } from './media-grid-editor';
 import { slugify } from '@shesa/domain/utils';
@@ -228,16 +228,18 @@ export function AlbumForm({ categories, events, editing, media = [] }: Props) {
 
           <EventLinker events={events} value={linkedEventId} onChange={setLinkedEventId} />
 
-          <CategoryPicker
-            categories={categories}
+          <TaxonomyPicker
+            label="Categories"
+            rows={categories}
             selectedIds={categoryIds}
             onToggle={toggleCategory}
             onManage={() => setManageOpen(true)}
+            emptyHint="No categories yet — open Manage to create some (AGM, Homecoming, Ceremony, …)."
           />
         </aside>
       </div>
 
-      <CategoryManagerDialog
+      <AlbumCategoryManagerDialog
         open={manageOpen}
         onOpenChange={setManageOpen}
         categories={categories}

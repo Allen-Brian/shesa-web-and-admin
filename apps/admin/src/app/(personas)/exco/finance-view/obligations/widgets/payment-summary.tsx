@@ -1,6 +1,6 @@
 'use client';
 
-import { ObligationStatusBadge } from './status-badge';
+import { ObligationStatusBadge } from './obligation-status-badge';
 import { SummaryStat } from './summary-stat';
 import type { PaymentDraft } from './types';
 

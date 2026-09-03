@@ -16,7 +16,7 @@ import {
 
 import { deleteMainstreamLeaders } from '../actions/mainstream-leaders';
 import { MainstreamLeaderDialog } from './mainstream-leader-dialog';
-import { SectorsManagerDialog } from './sectors-manager-dialog';
+import { LeadershipSectorManagerDialog } from './leadership-sector-manager-dialog';
 import type { MainstreamLeaderRow, SectorRow } from './types';
 import { useMainstreamColumns, type MainstreamSerialRow } from './use-mainstream-columns';
 
@@ -136,7 +136,11 @@ export function MainstreamTab({ sectors }: Props) {
         />
       )}
 
-      <SectorsManagerDialog open={sectorsOpen} onOpenChange={setSectorsOpen} sectors={sectors} />
+      <LeadershipSectorManagerDialog
+        open={sectorsOpen}
+        onOpenChange={setSectorsOpen}
+        sectors={sectors}
+      />
 
       {leaderDialog && sectors.length > 0 && (
         <MainstreamLeaderDialog

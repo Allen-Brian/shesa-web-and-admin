@@ -1,73 +1,25 @@
 'use server';
 
-import { clientEnv } from '@shesa/config/env.client';
-import { createServiceRoleClient } from '@shesa/supabase/service-role';
-
-import { requireMediaPermission } from '@/lib/media/public-media';
-
-const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // matches the bucket file_size_limit
+import { IMAGE, uploadPublicObject } from '@/lib/media/public-media';
 
 /**
- * Upload a single advert image for an event. Called from the
- * EventImagesPicker's onChange. Returns a public CDN URL the form
- * embeds into the hidden `advertImageUrlsJson` payload.
+ * Advert image for a governance event — the first upload becomes the
+ * detail page's hero, the rest form its gallery.
  *
- * Auth model: the caller must hold `event.create` at some scope — the
- * same permission the events/create Edge Function requires. Being
- * merely signed in is not enough: this action opens a service-role
- * client, so it is the only boundary in front of a public bucket.
- * Uploads land in an uploader-scoped folder, so a caller can only
- * overwrite their own path; unreferenced uploads are reap candidates
- * for a scheduled cleanup job.
+ * Gated on `event.create` rather than `cms.edit`: this is an Exco
+ * surface, and it is the same permission the events/create edge function
+ * requires. Being merely signed in is not enough — the action opens a
+ * service-role client, so it is the only boundary in front of a public
+ * bucket.
  */
-export async function uploadEventAdvertImage(
-  formData: FormData,
-): Promise<{ ok: true; url: string; path: string } | { ok: false; message: string }> {
-  const auth = await requireMediaPermission('event.create');
-  if (!auth.ok) return auth;
-  const user = { id: auth.userId };
-
-  const file = formData.get('file');
-  if (!(file instanceof File)) return { ok: false, message: 'No file supplied.' };
-  if (file.size === 0) return { ok: false, message: 'File is empty.' };
-  if (file.size > MAX_IMAGE_BYTES) {
-    return { ok: false, message: 'Image must be under 5 MB.' };
-  }
-  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    return {
-      ok: false,
-      message: `Unsupported file type "${file.type}". Use JPEG, PNG, WebP, or AVIF.`,
-    };
-  }
-
-  // Path convention: {user_id}/{timestamp}-{sanitized-name}
-  const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 80);
-  const path = `${user.id}/${Date.now()}-${cleanName}`;
-
-  const serviceClient = createServiceRoleClient();
-  const { error: upErr } = await serviceClient.storage
-    .from('event-advert-images')
-    .upload(path, file, {
-      contentType: file.type,
-      cacheControl: '3600',
-      upsert: false,
-    });
-
-  if (upErr) {
-    return {
-      ok: false,
-      message: upErr.message ?? 'Could not upload the image.',
-    };
-  }
-
-  // Build the URL from the client-facing base rather than the
-  // Storage SDK's getPublicUrl. In local Docker dev the admin server
-  // reaches Supabase over an internal hostname (host.docker.internal),
-  // and getPublicUrl would bake that into the URL — unreachable from
-  // the browser. NEXT_PUBLIC_SUPABASE_URL is always the browser-facing
-  // origin, on every environment.
-  const publicBase = clientEnv.NEXT_PUBLIC_SUPABASE_URL.replace(/\/+$/, '');
-  const url = `${publicBase}/storage/v1/object/public/event-advert-images/${path}`;
-  return { ok: true, url, path };
+export async function uploadEventAdvertImage(formData: FormData) {
+  return uploadPublicObject({
+    formData,
+    bucket: 'event-advert-images',
+    // This bucket is uploader-scoped with no surface prefix, so the
+    // path guard keys on the uploader's own id.
+    prefix: '',
+    accepts: [IMAGE],
+    permissionKey: 'event.create',
+  });
 }

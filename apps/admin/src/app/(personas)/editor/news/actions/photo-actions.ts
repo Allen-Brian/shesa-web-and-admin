@@ -1,76 +1,19 @@
 'use server';
 
-import { clientEnv } from '@shesa/config/env.client';
-import { createServiceRoleClient } from '@shesa/supabase/service-role';
-
-import { deletePublicObject, requireMediaPermission } from '@/lib/media/public-media';
-
-const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+import { deletePublicObject, IMAGE, uploadPublicObject } from '@/lib/media/public-media';
 
 const BUCKET = 'cms-media';
-
-interface UploadOk {
-  readonly ok: true;
-  readonly url: string;
-  readonly path: string;
-}
-interface ActionErr {
-  readonly ok: false;
-  readonly message: string;
-}
+const PREFIX = 'news';
 
 /**
- * Upload a news-scoped image (article banner, inline body picture from
- * the Quill editor, author avatar). Path convention:
- *   `news/{user_id}/{ts}-{sanitized-name}`
- * Same bucket and same validation as the Leadership photo upload —
- * kept as a separate action so the news pieces have a clean import
- * surface and the reap-cleanup logic can key off the `news/` prefix.
+ * Article banner, author avatar, or an inline picture from the rich
+ * editor. Path prefix `news/` so the orphan reap can key off it.
  */
-export async function uploadArticleImage(formData: FormData): Promise<UploadOk | ActionErr> {
-  const auth = await requireMediaPermission();
-  if (!auth.ok) return auth;
-  const user = { id: auth.userId };
-
-  const file = formData.get('file');
-  if (!(file instanceof File)) return { ok: false, message: 'No file supplied.' };
-  if (file.size === 0) return { ok: false, message: 'File is empty.' };
-  if (file.size > MAX_IMAGE_BYTES) {
-    return { ok: false, message: 'Image must be under 5 MB.' };
-  }
-  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    return {
-      ok: false,
-      message: `Unsupported file type "${file.type}". Use JPEG, PNG, WebP, or AVIF.`,
-    };
-  }
-
-  const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 80);
-  const path = `news/${user.id}/${Date.now()}-${cleanName}`;
-
-  const serviceClient = createServiceRoleClient();
-  const { error: upErr } = await serviceClient.storage.from(BUCKET).upload(path, file, {
-    contentType: file.type,
-    cacheControl: '3600',
-    upsert: false,
-  });
-  if (upErr) return { ok: false, message: upErr.message ?? 'Could not upload the image.' };
-
-  const publicBase = clientEnv.NEXT_PUBLIC_SUPABASE_URL.replace(/\/+$/, '');
-  const url = `${publicBase}/storage/v1/object/public/${BUCKET}/${path}`;
-  return { ok: true, url, path };
+export async function uploadArticleImage(formData: FormData) {
+  return uploadPublicObject({ formData, bucket: BUCKET, prefix: PREFIX, accepts: [IMAGE] });
 }
 
-/**
- * Best-effort delete of an article-scoped image. Silent — a stale
- * blob is preferable to a failed save; the reap job under the `news/`
- * prefix handles orphans.
- */
+/** Best-effort delete. Silent on a stale or foreign URL. */
 export async function deleteArticleImage(publicUrl: string): Promise<void> {
-  await deletePublicObject({
-    publicUrl,
-    bucket: BUCKET,
-    prefix: 'news',
-  });
+  await deletePublicObject({ publicUrl, bucket: BUCKET, prefix: PREFIX });
 }

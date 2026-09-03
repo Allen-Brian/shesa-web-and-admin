@@ -20,7 +20,7 @@ const LABELS: Record<ClaimStatus, string> = {
   disabled: 'Disabled',
 };
 
-interface StatusBadgeProps {
+interface InviteStatusBadgeProps {
   readonly status: ClaimStatus | null;
   readonly error: string | null;
 }
@@ -30,7 +30,7 @@ interface StatusBadgeProps {
  * Auth admin API error it takes priority over the claim status so
  * failed rows stay visually loud.
  */
-export function StatusBadge({ status, error }: StatusBadgeProps) {
+export function InviteStatusBadge({ status, error }: InviteStatusBadgeProps) {
   if (error) {
     return (
       <Badge

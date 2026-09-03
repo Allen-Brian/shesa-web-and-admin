@@ -20,7 +20,7 @@ import {
 } from '@shesa/ui';
 
 import { deleteArticles } from '../actions/articles';
-import { CategoryManagerDialog } from './category-manager-dialog';
+import { ArticleCategoryManagerDialog } from './article-category-manager-dialog';
 import type { ArticleRow, ArticleStatus, CategoryRow } from './types';
 import { useArticleColumns, type ArticleSerialRow } from './use-article-columns';
 
@@ -153,7 +153,7 @@ export function NewsListView({ articles, categories }: Props) {
         onRowClicked={(e) => e.data && router.push(`/editor/news/${e.data.id}/edit`)}
       />
 
-      <CategoryManagerDialog
+      <ArticleCategoryManagerDialog
         open={manageOpen}
         onOpenChange={setManageOpen}
         categories={categories}
