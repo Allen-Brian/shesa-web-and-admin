@@ -27,6 +27,10 @@
  * this reachable with the anon key that shipped in the browser bundle,
  * the throttle would be one `curl` away from irrelevant and anyone could
  * make us open unbounded gateway requests.
+ *
+ * The check reads the caller's `role` claim rather than comparing its key
+ * against an env var — see `_shared/service-role-auth.ts` for why the
+ * first version of that broke in production.
  */
 
 import { z } from 'npm:zod@3.24.1';
@@ -43,7 +47,7 @@ import { buildContext } from '../_shared/request-context.ts';
 import { createServiceRoleClient } from '../_shared/supabase-client.ts';
 import { createPaymentRequest } from '../_shared/tranzak-client.ts';
 import { resolveTranzakConfig } from '../_shared/tranzak-config.ts';
-import { secretsMatch } from '../_shared/worker-auth.ts';
+import { isServiceRole } from '../_shared/service-role-auth.ts';
 import { parseJson } from '../_shared/validation.ts';
 
 /**
@@ -112,8 +116,7 @@ interface ChargeRow {
 export async function initiatePublicPayment(req: Request): Promise<Response> {
   const ctx = await buildContext(req);
 
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  if (!ctx.jwt || !serviceKey || !(await secretsMatch(ctx.jwt, serviceKey))) {
+  if (!(await isServiceRole(ctx.jwt))) {
     return withCors(req, unauthorized(ctx.traceId));
   }
 
