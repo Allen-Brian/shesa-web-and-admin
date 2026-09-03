@@ -54,22 +54,28 @@ export function PresidentsLetter() {
           <Foxing />
 
           <header className="relative text-center">
-            {/* Portrait medallion, the way an illuminated letter carries
-                the likeness of its author. */}
+            {/* Crest medallion — the seal of the house at the head of
+                the letter, gilt-ringed on a parchment ground. */}
             <div
-              className="relative mx-auto h-24 w-24 rounded-full p-[3px] md:h-28 md:w-28"
+              className="relative mx-auto h-24 w-24 rounded-full p-0.75 md:h-28 md:w-28"
               style={{
                 background: 'linear-gradient(145deg, #d8b878 0%, #a37c3c 50%, #d8b878 100%)',
                 boxShadow: '0 10px 26px -10px rgba(60,40,15,0.7)',
               }}
             >
-              <div className="relative h-full w-full overflow-hidden rounded-full border border-[#f3e6cb]">
+              <div
+                className="grid h-full w-full place-items-center rounded-full border border-[#f3e6cb]"
+                style={{
+                  background:
+                    'radial-gradient(70% 70% at 50% 35%, #fdf7e9 0%, #f3e6cb 70%, #e8d7b4 100%)',
+                }}
+              >
                 <Image
-                  src="/president_one.jpg"
-                  alt={`${A.signatory.name}, ${A.signatory.title} of ${A.signatory.organisation}`}
-                  fill
-                  sizes="112px"
-                  className="object-cover object-top"
+                  src="/shesa.png"
+                  alt="SHESA"
+                  width={96}
+                  height={96}
+                  className="h-14 w-auto object-contain md:h-16"
                 />
               </div>
             </div>
