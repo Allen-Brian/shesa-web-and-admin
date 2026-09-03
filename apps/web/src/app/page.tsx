@@ -37,10 +37,10 @@ export default async function HomePage() {
     <>
       <Hero />
       <Mission />
-      <Stats />
+      <PresidentsWord />
       <AgmCta />
       <PartnershipCta />
-      <PresidentsWord />
+      <Stats />
       <StrategicPlanCta />
       <Events events={events} />
       <Projects projects={projects} />

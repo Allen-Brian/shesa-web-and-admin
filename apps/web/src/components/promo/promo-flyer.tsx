@@ -70,6 +70,12 @@ export function PromoFlyer() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4, ease }}
           className="fixed inset-0 z-100 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/75 p-3 backdrop-blur-md sm:p-6 md:items-center md:p-10"
+          /* A tap anywhere closes the flyer — the panel deliberately
+             does not stop propagation. On a phone the sheet fills the
+             screen and the close button sits far up in a corner, so
+             requiring a hit on the backdrop or that button made it hard
+             to dismiss. The two links still navigate on their way out,
+             since they dismiss on click themselves. */
           onClick={dismiss}
         >
           <motion.div
@@ -82,7 +88,6 @@ export function PromoFlyer() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: reduce ? 0 : 20, scale: reduce ? 1 : 0.98 }}
             transition={{ duration: 0.6, ease }}
-            onClick={(e) => e.stopPropagation()}
             className="relative my-auto grid w-full max-w-260 overflow-hidden rounded-xs bg-[#08080c] text-white shadow-[0_60px_160px_-30px_rgba(0,0,0,0.95)] outline-none md:grid-cols-2"
           >
             <button
