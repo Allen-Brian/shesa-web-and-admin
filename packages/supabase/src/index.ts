@@ -10,8 +10,9 @@
  *   import { createServiceRoleClient } from '@shesa/supabase/service-role';
  *
  * The service-role client is server-only and must NEVER be imported in
- * browser code — enforced via ESLint `no-restricted-imports` in apps
- * (added in E10).
+ * browser code. Because this barrel re-exports it, the barrel itself is
+ * banned from client components — `shesa/no-server-imports-in-client`
+ * reports it and points at `@shesa/supabase/browser`.
  */
 
 export type { Database } from './types.gen';

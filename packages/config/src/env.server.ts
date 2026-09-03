@@ -4,8 +4,9 @@
  * SECURITY: This file MUST NEVER be imported from client code. Doing so
  * bundles the service-role key, Supabase DB URL, Resend API key, etc.
  * into the browser. The single import path `@shesa/config/env.server`
- * makes this easy to spot in review and to enforce via ESLint
- * `no-restricted-imports` in apps' client trees (added in E10).
+ * makes this easy to spot in review, and `shesa/no-server-imports-in-client`
+ * (in `@shesa/eslint-config/next`) fails the build if any file carrying the
+ * `'use client'` directive imports it.
  *
  * Validated at module load — a missing or malformed server var fails boot
  * rather than surfacing at first runtime use.

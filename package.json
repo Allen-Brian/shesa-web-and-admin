@@ -17,6 +17,8 @@
     "compose:logs": "docker compose -f infra/docker-compose.dev.yml logs -f",
     "lint": "turbo run lint",
     "check:filenames": "node scripts/check-filenames.mjs",
+    "gen:deno-mirrors": "node scripts/gen-deno-mirrors.mjs",
+    "check:deno-mirrors": "node scripts/gen-deno-mirrors.mjs --check",
     "typecheck": "turbo run typecheck",
     "test": "vitest run",
     "test:watch": "vitest",

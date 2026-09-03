@@ -109,6 +109,62 @@ describe('validateImportRow', () => {
     expect(result.errors).toContain('exit_year cannot precede entry_year');
   });
 
+  // ── options.targetBatchScopeId ─────────────────────────────────────
+  // The batch-import flow imports INTO a batch, so the target is implicit
+  // and the spreadsheet's own year column must not be able to override it.
+  // These three cases only reached production code until SEC-19 moved the
+  // Edge Functions onto this module — the option lived in the Deno copy,
+  // which had no tests.
+
+  it('pins the batch to the target and skips the year lookup', () => {
+    const TARGET = 'aaaaaaaa-0000-0000-0000-00000000dead';
+    const result = validateImportRow(
+      {
+        full_name: 'Grace Hopper',
+        email: 'grace@shesa.test',
+        house: 'St Thomas',
+        network: 'Other',
+      },
+      seed,
+      { targetBatchScopeId: TARGET },
+    );
+    expect(result.status).toBe('valid');
+    expect(result.normalized.batch_scope_id).toBe(TARGET);
+  });
+
+  it('does not let batch_entry_year override the target batch', () => {
+    const TARGET = 'aaaaaaaa-0000-0000-0000-00000000dead';
+    const result = validateImportRow(
+      {
+        full_name: 'Grace Hopper',
+        email: 'grace@shesa.test',
+        batch_entry_year: 2010,
+        house: 'St Thomas',
+        network: 'Other',
+      },
+      seed,
+      { targetBatchScopeId: TARGET },
+    );
+    expect(result.normalized.batch_scope_id).toBe(TARGET);
+    // The year is still read — it seeds entry_year, and exit_year from it.
+    expect(result.normalized.entry_year).toBe(2010);
+    expect(result.normalized.exit_year).toBe(2017);
+  });
+
+  it('still requires batch_entry_year when no target is supplied', () => {
+    const result = validateImportRow(
+      {
+        full_name: 'Grace Hopper',
+        email: 'grace@shesa.test',
+        house: 'St Thomas',
+        network: 'Other',
+      },
+      seed,
+    );
+    expect(result.status).toBe('invalid');
+    expect(result.errors).toContain('batch_entry_year is required');
+  });
+
   it('uses batch_entry_year as entry_year default when entry_year is absent', () => {
     const result = validateImportRow(
       {

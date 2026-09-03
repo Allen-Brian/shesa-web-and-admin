@@ -11,10 +11,13 @@
  *   - Supabase Edge Functions
  *   - Node scripts run from CI / a worker container
  *
- * The single-file isolation here is so the ESLint `no-restricted-imports`
- * rule (added in E10) can ban `@shesa/supabase/service-role` from any
- * file under an app's client tree (any client component file living
- * inside `apps/<name>/src/app`, for example) with one path-pattern rule.
+ * The single-file isolation here is what lets one lint rule ban it from
+ * the browser: `shesa/no-server-imports-in-client` (in
+ * `@shesa/eslint-config/next`) reports this specifier in any file carrying
+ * the `'use client'` directive. It fires on the directive rather than on a
+ * path pattern, because in the App Router server and client files share a
+ * tree. It catches direct imports; Next's bundler is the backstop for a
+ * server module pulled in transitively.
  *
  * If you need this in a Server Action: import it directly via the
  * subpath. If you find yourself reaching for it elsewhere — stop, and

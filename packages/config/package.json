@@ -21,10 +21,6 @@
     "./urls": {
       "types": "./src/urls.ts",
       "import": "./src/urls.ts"
-    },
-    "./cors-allowlist": {
-      "types": "./src/cors-allowlist.ts",
-      "import": "./src/cors-allowlist.ts"
     }
   },
   "scripts": {

@@ -1,9 +1,16 @@
 /**
- * Pure row-level validator for Excel member imports.
+ * Pure row-level validator for Excel member imports — the single source.
  *
- * Same function is called by:
- *   - The `upload-member-import` Edge Function (server, on parse).
- *   - The Exco UI's import review screen (client, on inline edit).
+ * `supabase/functions/_shared/import-validation.generated.ts` is emitted
+ * from this file by `pnpm gen:deno-mirrors`, and the two Edge Functions
+ * that validate imports call it. Do not edit the generated file;
+ * `pnpm check:deno-mirrors` fails CI when it stops matching this one.
+ *
+ * That arrangement replaces a hand-kept mirror whose header said "keep in
+ * sync when the template changes". It had already drifted: the Deno copy
+ * grew `options.targetBatchScopeId` and this one never did — and since
+ * nothing outside the Edge Functions imported this module, the copy under
+ * test was not the copy that ran. It is now.
  *
  * Doesn't hit the DB — the `seedContext` supplies the reference sets
  * (batches, houses, networks) needed to resolve labels to scope ids.
@@ -16,26 +23,33 @@
  *   invalid  — at least one error attached
  *   pending  — never returned; that's the DB-default before validation
  *
- * Naming note: `sector` was renamed to `network` on 2026-07-02.
+ * Naming note: `sector` was renamed to `network` on 2026-07-02. The
+ * template column stays `network` (the CSV column name); the DB column is
+ * `members.network_scope_id`.
  */
 
 import { defaultExitYear } from '../members/exit-year';
 
-export type ImportRowInput = {
-  full_name?: string;
-  display_name?: string;
-  email?: string;
-  phone?: string;
-  batch_entry_year?: string | number;
-  house?: string;
-  network?: string;
-  field?: string;
-  entry_year?: string | number;
-  exit_year?: string | number;
-  current_country?: string;
-  current_region_state?: string;
-  current_city?: string;
-};
+/**
+ * Every field is `unknown` because the rows arrive as parsed spreadsheet
+ * cells — a "year" column may hand you a number, a string, or a Date. The
+ * normalizers below are what turn that into something typed.
+ */
+export interface ImportRowInput {
+  full_name?: unknown;
+  display_name?: unknown;
+  email?: unknown;
+  phone?: unknown;
+  batch_entry_year?: unknown;
+  house?: unknown;
+  network?: unknown;
+  field?: unknown;
+  entry_year?: unknown;
+  exit_year?: unknown;
+  current_country?: unknown;
+  current_region_state?: unknown;
+  current_city?: unknown;
+}
 
 export interface SeedContext {
   batchesByYear: Map<number, string>; // year → scope_id
@@ -77,7 +91,24 @@ const normalizeYear = (v: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-export function validateImportRow(raw: ImportRowInput, seed: SeedContext): ValidateRowResult {
+/**
+ * Validate a single import row.
+ *
+ * `options.targetBatchScopeId` — when the caller already knows which batch
+ * the rows belong to (batch-import: the operator is inside a batch, so the
+ * target is implicit), pass its scope_id and the validator skips the year
+ * lookup and pins `batch_scope_id` to the target. A `batch_entry_year`
+ * cell, if present, then only seeds a default `entry_year`; it can no
+ * longer override the batch assignment.
+ *
+ * Omit it (branch / get-or-create flow) and the row's own
+ * `batch_entry_year` resolves the batch.
+ */
+export function validateImportRow(
+  raw: ImportRowInput,
+  seed: SeedContext,
+  options: { targetBatchScopeId?: string | null } = {},
+): ValidateRowResult {
   const errors: string[] = [];
   const normalized: Partial<NormalizedMemberRow> = {};
 
@@ -98,7 +129,9 @@ export function validateImportRow(raw: ImportRowInput, seed: SeedContext): Valid
 
   // Batch — required, must resolve.
   const batchYear = normalizeYear(raw.batch_entry_year);
-  if (batchYear == null) {
+  if (options.targetBatchScopeId) {
+    normalized.batch_scope_id = options.targetBatchScopeId;
+  } else if (batchYear == null) {
     errors.push('batch_entry_year is required');
   } else {
     const batchId = seed.batchesByYear.get(batchYear);

@@ -1,170 +1,35 @@
 /**
- * Shared Excel-import validation logic — server-side mirror of the pure
- * function in `packages/domain/src/imports/validation.ts`.
+ * The Edge Functions' entry point for member-import validation.
  *
- * Deno Edge Functions can't cross the monorepo import boundary into
- * `packages/*`, so this is a hand-kept mirror. Keep in sync when the
- * Phase 1 §7.1 template changes — commitlint won't catch the drift,
- * but a validate-member-import that accepts what the SPA won't will
- * feel like a bug.
+ * The pure row validator is NOT written here — it is generated from
+ * `packages/domain/src/imports/validation.ts` into
+ * `./import-validation.generated.ts` and re-exported below, so the
+ * implementation the Edge Functions run is the implementation
+ * `packages/domain/src/imports/validation.test.ts` covers. See
+ * `scripts/gen-deno-mirrors.mjs`.
+ *
+ * What stays hand-written is `loadSeedContext`: it queries `core.scopes`,
+ * so it belongs on the server side and has no place in a pure domain
+ * module.
  *
  * Naming note: "sector" was renamed to "network" on 2026-07-02. The
- * template column stays `network` (CSV column name); the DB column is
+ * template column stays `network` (the CSV column name); the DB column is
  * `members.network_scope_id`.
  */
 
-export interface SeedContext {
-  batchesByYear: Map<number, string>;
-  housesByName: Map<string, string>;
-  networksByName: Map<string, string>;
-}
+export {
+  DEFAULT_EXIT_YEAR_OFFSET,
+  defaultExitYear,
+  validateImportRow,
+} from './import-validation.generated.ts';
+export type {
+  ImportRowInput,
+  NormalizedMemberRow,
+  SeedContext,
+  ValidateRowResult,
+} from './import-validation.generated.ts';
 
-export interface NormalizedMemberRow {
-  full_name: string;
-  display_name: string | null;
-  email: string | null;
-  phone: string | null;
-  batch_scope_id: string;
-  house_scope_id: string;
-  network_scope_id: string;
-  field: string | null;
-  entry_year: number | null;
-  exit_year: number | null;
-  current_country: string | null;
-  current_region_state: string | null;
-  current_city: string | null;
-}
-
-export interface ImportRowInput {
-  full_name?: unknown;
-  display_name?: unknown;
-  email?: unknown;
-  phone?: unknown;
-  batch_entry_year?: unknown;
-  house?: unknown;
-  network?: unknown;
-  field?: unknown;
-  entry_year?: unknown;
-  exit_year?: unknown;
-  current_country?: unknown;
-  current_region_state?: unknown;
-  current_city?: unknown;
-}
-
-export interface ValidateRowResult {
-  status: 'valid' | 'invalid';
-  errors: string[];
-  normalized: Partial<NormalizedMemberRow>;
-}
-
-const DEFAULT_EXIT_YEAR_OFFSET = 7;
-
-const normalizeKey = (v: string) => v.trim().toLowerCase();
-const normalizeString = (v: unknown): string | null => {
-  if (v == null) return null;
-  const s = String(v).trim();
-  return s.length === 0 ? null : s;
-};
-const normalizeYear = (v: unknown): number | null => {
-  if (v == null || v === '') return null;
-  const n = typeof v === 'number' ? v : parseInt(String(v).trim(), 10);
-  return Number.isFinite(n) ? n : null;
-};
-
-/**
- * Validate a single import row.
- *
- * `options.targetBatchScopeId` — when the caller already knows which
- * batch the rows belong to (e.g. batch-import: the operator is inside
- * a batch, so the target is implicit), pass its scope_id here and the
- * validator skips the `batch_entry_year` check entirely and pins
- * `batch_scope_id` to the target. A `batch_entry_year` cell, if
- * present, is only used to compute a default `entry_year` — it can
- * no longer override the batch assignment.
- *
- * When `targetBatchScopeId` is omitted (branch/get-or-create flow),
- * the row-level `batch_entry_year` resolves the batch as before.
- */
-export function validateImportRow(
-  raw: ImportRowInput,
-  seed: SeedContext,
-  options: { targetBatchScopeId?: string | null } = {},
-): ValidateRowResult {
-  const errors: string[] = [];
-  const normalized: Partial<NormalizedMemberRow> = {};
-
-  const fullName = normalizeString(raw.full_name);
-  if (!fullName) errors.push('full_name is required');
-  else normalized.full_name = fullName;
-
-  const email = normalizeString(raw.email);
-  const phone = normalizeString(raw.phone);
-  if (!email && !phone) errors.push('email or phone is required');
-  normalized.email = email ? email.toLowerCase() : null;
-  normalized.phone = phone;
-
-  normalized.display_name = normalizeString(raw.display_name);
-
-  const batchYear = normalizeYear(raw.batch_entry_year);
-  if (options.targetBatchScopeId) {
-    // Batch is implicit — importing INTO a batch scope. Skip the year
-    // lookup and pin to the target. The year, if given, still seeds
-    // `entry_year` below.
-    normalized.batch_scope_id = options.targetBatchScopeId;
-  } else if (batchYear == null) {
-    errors.push('batch_entry_year is required');
-  } else {
-    const batchId = seed.batchesByYear.get(batchYear);
-    if (!batchId) {
-      errors.push(`batch_entry_year ${batchYear} does not match a seeded batch`);
-    } else {
-      normalized.batch_scope_id = batchId;
-    }
-  }
-
-  const houseName = normalizeString(raw.house);
-  if (!houseName) {
-    errors.push('house is required');
-  } else {
-    const houseId = seed.housesByName.get(normalizeKey(houseName));
-    if (!houseId) errors.push(`house "${houseName}" does not match a seeded house`);
-    else normalized.house_scope_id = houseId;
-  }
-
-  const networkName = normalizeString(raw.network);
-  if (!networkName) {
-    errors.push('network is required');
-  } else {
-    const networkId = seed.networksByName.get(normalizeKey(networkName));
-    if (!networkId) errors.push(`network "${networkName}" does not match a seeded network`);
-    else normalized.network_scope_id = networkId;
-  }
-
-  normalized.field = normalizeString(raw.field);
-  normalized.entry_year = normalizeYear(raw.entry_year) ?? batchYear ?? null;
-  const rawExit = normalizeYear(raw.exit_year);
-  normalized.exit_year =
-    rawExit ??
-    (normalized.entry_year != null ? normalized.entry_year + DEFAULT_EXIT_YEAR_OFFSET : null);
-
-  if (
-    normalized.entry_year != null &&
-    normalized.exit_year != null &&
-    normalized.exit_year < normalized.entry_year
-  ) {
-    errors.push('exit_year cannot precede entry_year');
-  }
-
-  normalized.current_country = normalizeString(raw.current_country);
-  normalized.current_region_state = normalizeString(raw.current_region_state);
-  normalized.current_city = normalizeString(raw.current_city);
-
-  return {
-    status: errors.length === 0 ? 'valid' : 'invalid',
-    errors,
-    normalized,
-  };
-}
+import type { SeedContext } from './import-validation.generated.ts';
 
 /**
  * Build a SeedContext by querying core.scopes. Uses whichever Supabase

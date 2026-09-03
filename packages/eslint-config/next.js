@@ -1,17 +1,25 @@
 /**
- * Shesa ESLint preset for Next.js apps.
- *
- * Adds React + Next-specific rules on top of the base preset.
- * Used by apps/web, apps/auth, apps/exco, apps/finance, apps/connect.
+ * Shesa ESLint preset for Next.js apps — `apps/web` and `apps/admin`.
  *
  *   import shesaNext from '@shesa/eslint-config/next';
  *   export default shesaNext;
  *
- * Note: Next's official `eslint-plugin-next` flat-config support is still
- * stabilizing. We keep this preset minimal in E1 and add the Next plugin
- * rules in E10 (app shells), once Next is actually installed in an app.
+ * On top of the base preset this adds the server/client import firewall
+ * (SEC-11). Next's own `eslint-plugin-next` flat-config support is still
+ * stabilizing, so its rules are not wired in here yet; `next lint` supplies
+ * them at the app level in the meantime.
  */
 
 import base from './index.js';
+import shesaPlugin from './no-server-imports-in-client.js';
 
-export default [...base];
+export default [
+  ...base,
+  {
+    files: ['**/*.{ts,tsx,js,jsx}'],
+    plugins: { shesa: shesaPlugin },
+    rules: {
+      'shesa/no-server-imports-in-client': 'error',
+    },
+  },
+];

@@ -12,19 +12,16 @@
  *   - permission.checked_denied
  *   - (future) payment.recorded, member.transferred, etc.
  *
- * Wiring (apps in E10):
+ * **Status: types only, no wiring.** This module re-exports the `AuditLogger`
+ * contract and nothing else. The implementation it was written for —
+ * `supabaseAuditLogger` from `@shesa/supabase` — was never built, and this
+ * comment used to show a usage example calling it, which read as a working
+ * integration rather than an intention. Nothing imports this module today.
  *
- *   import { supabaseAuditLogger } from '@shesa/supabase';  // (added in E10)
- *   import type { AuditLogger } from '@shesa/domain/audit';
- *
- *   const logger: AuditLogger = supabaseAuditLogger(serverClient);
- *   await logger.log({
- *     action: 'auth.login',
- *     entitySchema: 'auth',
- *     entityTable: 'users',
- *     entityId: user.id,
- *     ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
- *   });
+ * What does write audit rows: the `core.role_assignments` trigger, and
+ * `supabase/functions/_shared/audit.ts` for the Edge Functions that call
+ * `audit.log_event` directly (roles/grant-role). The app-side events listed
+ * above — logins, denied permission checks — are not being recorded.
  */
 
 export type { AuditAction, AuditLogger, AuditLogEvent } from '@shesa/types';

@@ -1,6 +1,8 @@
 import path from 'node:path';
 import type { NextConfig } from 'next';
 
+import { SECURITY_HEADERS } from '../../packages/config/src/security-headers.mjs';
+
 /**
  * `next/image` whitelist. The Site Editor's leader photo picker uploads
  * to the `cms-media` bucket and stores the returned public URL; the
@@ -51,6 +53,16 @@ const nextConfig: NextConfig = {
     '@shesa/ui',
   ],
   reactStrictMode: true,
+
+  /**
+   * SEC-18 — response security headers on every route. The list and the
+   * reasoning live in `@shesa/config/security-headers` so both apps stay
+   * in step.
+   */
+  async headers() {
+    return [{ source: '/:path*', headers: [...SECURITY_HEADERS] }];
+  },
+
   images: {
     remotePatterns: buildImageRemotePatterns(),
   },
