@@ -202,6 +202,14 @@ export const ENV_VARS = [
       "Origin the payer's browser returns to after paying; the code appends the per-transaction path. Distinct from the webhook, which is configured in the Tranzak dashboard and points at an Edge Function. An Edge Function secret, not app env.",
   },
   {
+    name: 'TRANZAK_CALLBACK_URL',
+    scope: 'server',
+    source: 'auto',
+    defaults: { local: '', staging: '', production: '' },
+    description:
+      "Server-to-server notification target sent as `callbackUrl` on request/create. Empty means derive it from SUPABASE_URL, which is the recommended setting — the destination is our own Edge Function, so deriving it cannot drift. Distinct from TRANZAK_RETURN_URL_BASE, which is the payer's browser redirect.",
+  },
+  {
     name: 'NEXT_SERVER_ACTIONS_ENCRYPTION_KEY',
     scope: 'server',
     source: 'auto',

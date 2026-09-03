@@ -220,6 +220,14 @@ export interface CreateRequestInput {
   /** Where the payer's browser lands afterwards. */
   readonly returnUrl: string;
   readonly cancelUrl?: string;
+  /**
+   * Where Tranzak POSTs when the request reaches a terminal state.
+   *
+   * Sent per transaction rather than relying on the dashboard's global
+   * webhook, so a request always carries its own notification target and
+   * a dashboard change cannot silently redirect settlements elsewhere.
+   */
+  readonly callbackUrl?: string;
 }
 
 /**

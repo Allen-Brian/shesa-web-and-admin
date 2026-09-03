@@ -69,16 +69,37 @@ export interface TranzakConfig {
    */
   readonly webhookAuthKey: string;
   /**
-   * Where Tranzak sends the payer's BROWSER once they have paid. Appended
-   * to per transaction, so this is the origin only.
+   * Origin the payer's BROWSER returns to once they have paid.
    *
-   * Not the webhook. The webhook is a server-to-server POST whose URL is
-   * configured in the Tranzak dashboard, and it has to point at an Edge
-   * Function: settlement re-reads the transaction from Tranzak's API, and
-   * the credentials to do that deliberately live only in this runtime.
-   * `apps/web` could not verify a settlement even if it received one.
+   * Only the origin, because the path varies per transaction and belongs
+   * in code — `/agm-2026/confirmation/{reference}` today, the receipt page
+   * once a settlement exists.
+   *
+   * The origin is pinned here rather than taken from the caller for one
+   * reason: Tranzak redirects to whatever `returnUrl` we send, with no
+   * allow-list of its own. The public AGM path is reachable anonymously,
+   * so a caller-supplied URL is an open redirect — a payer completes a
+   * real payment and lands on an attacker's "that failed, try again" page.
+   * (`members/send-invite` does accept a caller `redirectTo`, but only
+   * because Supabase Auth validates it against `uri_allow_list`. Tranzak
+   * offers no equivalent.)
    */
   readonly returnUrlBase: string;
+  /**
+   * Where Tranzak POSTs when a request reaches a terminal state — the
+   * `callbackUrl` field on `request/create`. A per-transaction field, and
+   * separate from the dashboard's global webhook config.
+   *
+   * Defaults to this project's own Edge Function, derived rather than
+   * configured so it cannot drift or point at the wrong project. Override
+   * with TRANZAK_CALLBACK_URL only if the notification has to reach us by
+   * some other route.
+   *
+   * Wherever it points has to be able to re-read the transaction from
+   * Tranzak's API before settling, which means holding these credentials.
+   * `apps/web` deliberately does not, so it cannot be the destination.
+   */
+  readonly callbackUrl: string;
 }
 
 function required(name: string): string {
@@ -113,6 +134,13 @@ export function resolveTranzakConfig(): TranzakConfig {
   const webhookAuthKey = required(`${prefix}_WEBHOOK_AUTH_KEY`);
   const returnUrlBase = required('TRANZAK_RETURN_URL_BASE').replace(/\/+$/, '');
 
+  // Our own webhook endpoint. SUPABASE_URL is injected into every Edge
+  // Function by the runtime, so the default is always right for whichever
+  // project this is running in.
+  const callbackUrl =
+    Deno.env.get('TRANZAK_CALLBACK_URL')?.trim() ||
+    `${required('SUPABASE_URL').replace(/\/+$/, '')}/functions/v1/payments/tranzak-webhook`;
+
   // Rule 2, asserted positively in both directions rather than inferred
   // from one prefix. The sandbox case is the dangerous one — a live key
   // here charges a real payer during a test run.
@@ -129,7 +157,15 @@ export function resolveTranzakConfig(): TranzakConfig {
     );
   }
 
-  return { mode, baseUrl: BASE_URL[mode], appId, appKey, webhookAuthKey, returnUrlBase };
+  return {
+    mode,
+    baseUrl: BASE_URL[mode],
+    appId,
+    appKey,
+    webhookAuthKey,
+    returnUrlBase,
+    callbackUrl,
+  };
 }
 
 /**
