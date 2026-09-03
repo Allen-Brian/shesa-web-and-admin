@@ -65,8 +65,10 @@ export const partners: readonly Partner[] = [
     tag: 'Telecommunications',
     // PLACEHOLDER — factual description, not CAMTEL's own wording.
     message: "Cameroon's national telecommunications operator.",
-    bg: '#00AEEF',
-    fg: '#04263a',
+    // White board: the mark is cyan and now prints straight onto the
+    // board rather than onto a plate, so the board has to be its ground.
+    bg: '#ffffff',
+    fg: '#0b2a3a',
     chip: '#0079A8',
   },
   {

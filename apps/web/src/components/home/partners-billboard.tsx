@@ -114,8 +114,11 @@ export function PartnersBillboard() {
                       'repeating-linear-gradient(90deg, rgba(0,0,0,0.28) 0 1px, transparent 1px 4px), repeating-linear-gradient(0deg, rgba(0,0,0,0.2) 0 1px, transparent 1px 4px)',
                   }}
                 />
+                {/* No plate: the board itself is the partner's ground,
+                    so the mark sits straight on it. */}
                 <PartnerLogo
                   partner={partner}
+                  plate={false}
                   className="h-24 w-52 md:h-28 md:w-64"
                   textClassName="text-[24px] md:text-[30px]"
                 />

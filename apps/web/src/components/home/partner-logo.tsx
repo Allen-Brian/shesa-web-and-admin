@@ -36,13 +36,16 @@ export function PartnerLogo({
       style={plate ? { backgroundColor: partner.plate ?? '#ffffff' } : undefined}
     >
       {partner.logo ? (
+        /* `fill` + object-contain, so any aspect ratio is letterboxed and
+           centred inside the chip. The previous `width`/`height` pair
+           forced a 2:1 box on every mark, which pushed a square logo
+           (CAMTEL's is 592x596) out of the bottom of its chip. */
         <Image
           src={partner.logo}
           alt={partner.name}
-          width={160}
-          height={80}
-          sizes="160px"
-          className="h-auto max-h-[70%] w-auto object-contain"
+          fill
+          sizes="256px"
+          className="object-contain p-1.5"
         />
       ) : (
         <span
