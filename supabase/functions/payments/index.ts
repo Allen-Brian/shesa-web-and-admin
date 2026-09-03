@@ -19,6 +19,10 @@
  *                     available_from; real providers via webhooks.
  *   confirm         — Polls an intent. On success, INSERTs the payment
  *                     row (source='auto') and updates the intent. Idempotent.
+ *   tranzak-settle  — Settles a Tranzak transaction from an identifier,
+ *                     re-reading the gateway before writing anything.
+ *                     Reached by the webhook forwarder and the payer's
+ *                     return page. Idempotent.
  */
 
 import { entityRouter } from '../_shared/entity-router.ts';
@@ -28,6 +32,7 @@ import { initiatePayment } from './initiate.ts';
 import { payOnBehalf } from './pay-on-behalf.ts';
 import { recordManualPayment } from './record-manual.ts';
 import { reversePayment } from './reverse.ts';
+import { tranzakSettle } from './tranzak-settle.ts';
 
 Deno.serve(
   entityRouter({
@@ -36,5 +41,6 @@ Deno.serve(
     reverse: reversePayment,
     initiate: initiatePayment,
     confirm: confirmPayment,
+    'tranzak-settle': tranzakSettle,
   }),
 );
