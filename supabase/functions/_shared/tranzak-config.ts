@@ -13,10 +13,12 @@
  *      Sandbox credentials cannot be pointed at the live host because
  *      there is no setting that would let them.
  *
- *   2. **A live key cannot run in sandbox mode.** This is the one that
- *      charges a real person real money during a test. Tranzak's live
- *      application keys are prefixed `PROD_`; a key carrying that prefix
- *      while the mode says sandbox is a mis-paste, and boot fails.
+ *   2. **A key must belong to the mode it is used in.** Tranzak stamps the
+ *      environment onto the key itself — `SAND_…` and `PROD_…` — so this
+ *      is checked positively in both directions rather than inferred from
+ *      one prefix. The sandbox half is the one that matters most: a live
+ *      key running in sandbox mode charges a real person real money during
+ *      what everyone believes is a test.
  *
  *   3. **The mode must be stated.** No default. Defaulting to `live`
  *      collects money nobody meant to collect; defaulting to `sandbox`
@@ -40,8 +42,15 @@ const BASE_URL: Record<TranzakMode, string> = {
   live: 'https://dsapi.tranzak.me',
 };
 
-/** Prefix Tranzak puts on production application keys. */
-const LIVE_KEY_PREFIX = 'PROD_';
+/**
+ * Tranzak prefixes application keys with their environment. Verified
+ * against a real sandbox key on 2026-09-03 (`SAND_…`); the production
+ * prefix is from the API documentation's example.
+ */
+const KEY_PREFIX: Record<TranzakMode, string> = {
+  sandbox: 'SAND_',
+  live: 'PROD_',
+};
 
 export interface TranzakConfig {
   readonly mode: TranzakMode;
@@ -59,6 +68,17 @@ export interface TranzakConfig {
    * always re-read the transaction from the API before acting.
    */
   readonly webhookAuthKey: string;
+  /**
+   * Where Tranzak sends the payer's BROWSER once they have paid. Appended
+   * to per transaction, so this is the origin only.
+   *
+   * Not the webhook. The webhook is a server-to-server POST whose URL is
+   * configured in the Tranzak dashboard, and it has to point at an Edge
+   * Function: settlement re-reads the transaction from Tranzak's API, and
+   * the credentials to do that deliberately live only in this runtime.
+   * `apps/web` could not verify a settlement even if it received one.
+   */
+  readonly returnUrlBase: string;
 }
 
 function required(name: string): string {
@@ -91,26 +111,25 @@ export function resolveTranzakConfig(): TranzakConfig {
   const appId = required(`${prefix}_APP_ID`);
   const appKey = required(`${prefix}_APP_KEY`);
   const webhookAuthKey = required(`${prefix}_WEBHOOK_AUTH_KEY`);
+  const returnUrlBase = required('TRANZAK_RETURN_URL_BASE').replace(/\/+$/, '');
 
-  // Rule 2, in both directions. The sandbox case is the dangerous one —
-  // a live key here charges a real payer during a test run.
-  const looksLive = appKey.startsWith(LIVE_KEY_PREFIX);
-  if (mode === 'sandbox' && looksLive) {
+  // Rule 2, asserted positively in both directions rather than inferred
+  // from one prefix. The sandbox case is the dangerous one — a live key
+  // here charges a real payer during a test run.
+  const expected = KEY_PREFIX[mode];
+  if (!appKey.startsWith(expected)) {
+    const wrongMode = mode === 'sandbox' ? 'live' : 'sandbox';
+    const consequence =
+      mode === 'sandbox'
+        ? 'a live key in sandbox mode charges real payers'
+        : 'a sandbox key in live mode takes payments that never settle';
     throw new Error(
-      `TRANZAK_SANDBOX_APP_KEY carries the ${LIVE_KEY_PREFIX} prefix Tranzak puts on ` +
-        'production keys. Running a live key in sandbox mode charges real payers. ' +
-        'Refusing to start.',
+      `${prefix}_APP_KEY does not start with "${expected}", so it is not a ${mode} key ` +
+        `— it looks like a ${wrongMode} one. Refusing to start: ${consequence}.`,
     );
   }
-  if (mode === 'live' && !looksLive) {
-    throw new Error(
-      `TRANZAK_LIVE_APP_KEY does not carry the ${LIVE_KEY_PREFIX} prefix Tranzak puts on ` +
-        'production keys, so it is probably a sandbox key. A sandbox key in live mode ' +
-        'takes payments that never settle. Refusing to start.',
-    );
-  }
 
-  return { mode, baseUrl: BASE_URL[mode], appId, appKey, webhookAuthKey };
+  return { mode, baseUrl: BASE_URL[mode], appId, appKey, webhookAuthKey, returnUrlBase };
 }
 
 /**

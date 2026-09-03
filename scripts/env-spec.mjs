@@ -190,6 +190,18 @@ export const ENV_VARS = [
       'Which Tranzak environment payments run against. Recorded on every finance.payment_intents row and it decides where a settlement lands: live → finance.payments (ledger, treasury, receipt, immutable), sandbox → finance.sandbox_payments (inert). Production defaults to sandbox until live credentials exist — flipping it is a deliberate act. The credentials themselves are Edge Function secrets, not app env; see supabase/functions/_shared/tranzak-config.ts.',
   },
   {
+    name: 'TRANZAK_RETURN_URL_BASE',
+    scope: 'server',
+    source: 'auto',
+    defaults: {
+      local: 'http://localhost:3000',
+      staging: 'https://www.shesaconnect.com',
+      production: 'https://www.shesaconnect.com',
+    },
+    description:
+      "Origin the payer's browser returns to after paying; the code appends the per-transaction path. Distinct from the webhook, which is configured in the Tranzak dashboard and points at an Edge Function. An Edge Function secret, not app env.",
+  },
+  {
     name: 'NEXT_SERVER_ACTIONS_ENCRYPTION_KEY',
     scope: 'server',
     source: 'auto',
