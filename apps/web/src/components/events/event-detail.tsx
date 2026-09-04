@@ -106,14 +106,14 @@ export function EventDetail({ event, related = [], contribute }: Props) {
     <>
       <EventHero event={event} days={days} />
       <EventBody event={event} contribute={contribute} />
-      {event.featured && event.program && event.program.length > 0 && (
-        <ProgrammeSection program={event.program} />
-      )}
-      {event.featured && event.flyers && event.flyers.length > 0 && (
+      {/* Shown whenever the editor filled them in. These used to be gated
+          on `featured` as well, so a programme and a set of flyers could
+          be uploaded against an ordinary event and never appear anywhere.
+          The extended description now runs inside the About section
+          instead of a separate block. */}
+      {event.program && event.program.length > 0 && <ProgrammeSection program={event.program} />}
+      {event.flyers && event.flyers.length > 0 && (
         <FlyersSection flyers={event.flyers} title={event.title} />
-      )}
-      {event.featured && event.extendedDescription && event.extendedDescription.length > 0 && (
-        <ExtendedSection paragraphs={event.extendedDescription} />
       )}
       {related.length > 0 && <RelatedEvents events={related} />}
     </>
@@ -265,55 +265,26 @@ function EventBody({
               {event.description}
             </motion.p>
 
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.35 }}
-              variants={fadeUp}
-              custom={2}
-              className="mt-10 space-y-6 text-[15.5px] leading-[1.8] text-black/70"
-            >
-              <p>
-                Doors open one hour before the programme begins. Delegates, chapter presidents, and
-                their guests are warmly welcome. Formal attire is expected unless otherwise
-                indicated in the programme booklet.
-              </p>
-              <p>
-                The organising committee, in coordination with the host branch and the National
-                Secretariat, has laid on transport from the designated hotels to the venue on the
-                morning of the event. Details are shared upon confirmation of attendance.
-              </p>
-              <p>
-                Registration closes 14 days before the event to allow the secretariat to finalise
-                catering, printed materials, and seating.
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.5 }}
-              variants={fadeUp}
-              custom={3}
-              className="mt-12 grid gap-6 sm:grid-cols-2"
-            >
-              <Highlight
-                title="Chapter delegations"
-                body="Every branch and diaspora chapter is invited to send a delegation. Details go out via the SG."
-              />
-              <Highlight
-                title="Registration"
-                body="Register at least two weeks in advance so we can plan accommodation and materials."
-              />
-              <Highlight
-                title="Programme"
-                body="A detailed programme is circulated seven days before the event to all confirmed attendees."
-              />
-              <Highlight
-                title="Media"
-                body="A photo + video crew will document the event. Please advise the SG if you prefer not to appear."
-              />
-            </motion.div>
+            {/* The rest of what the editor wrote. Three paragraphs of
+                invented house copy — doors opening an hour early, coach
+                transport, registration closing at fourteen days — used to
+                sit here on every event, true or not, alongside four
+                hardcoded cards about delegations, registration, programme
+                and media. None of it came from the CMS. */}
+            {event.extendedDescription && event.extendedDescription.length > 0 && (
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.35 }}
+                variants={fadeUp}
+                custom={2}
+                className="mt-10 space-y-6 text-[15.5px] leading-[1.8] text-black/70"
+              >
+                {event.extendedDescription.map((paragraph, i) => (
+                  <p key={i}>{paragraph}</p>
+                ))}
+              </motion.div>
+            )}
           </div>
 
           <aside className="md:col-span-4">
@@ -325,17 +296,6 @@ function EventBody({
         </div>
       </div>
     </section>
-  );
-}
-
-function Highlight({ title, body }: { readonly title: string; readonly body: string }) {
-  return (
-    <div className="rounded-xs border border-black/10 bg-white p-5 md:p-6">
-      <p className="font-heading text-[10.5px] font-semibold uppercase tracking-[0.28em] text-primary">
-        {title}
-      </p>
-      <p className="mt-3 text-[14.5px] leading-[1.7] text-black/65">{body}</p>
-    </div>
   );
 }
 
@@ -418,8 +378,10 @@ function ActionCard({
     <div className="flex flex-col gap-3 rounded-xs border border-black/10 bg-white p-5 md:p-6">
       {/* The contribute form when this event has an open charge. It stands
           in for a "Register interest" button that was a `<button>` with no
-          handler — it looked live and did nothing on every event page. */}
-      {contribute}
+          handler — it looked live and did nothing on every event page.
+          Withheld once the event is past: nobody should be taking money
+          for a gathering that already happened. */}
+      {event.upcoming ? contribute : null}
       {event.albumSlug && (
         <Link
           href={`/gallery/${event.albumSlug}`}
@@ -448,26 +410,30 @@ function ActionCard({
           </span>
         </Link>
       )}
-      <button
-        type="button"
-        onClick={() => saveToCalendar(event)}
-        className="inline-flex items-center justify-center gap-3 rounded-xs border border-black/15 bg-white px-5 py-3.5 text-sm font-medium tracking-wide text-black transition-all duration-500 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
+      {/* Only forward-looking events get a calendar entry — there is
+          nothing to diarise about a date that has passed. */}
+      {event.upcoming && (
+        <button
+          type="button"
+          onClick={() => saveToCalendar(event)}
+          className="inline-flex items-center justify-center gap-3 rounded-xs border border-black/15 bg-white px-5 py-3.5 text-sm font-medium tracking-wide text-black transition-all duration-500 hover:-translate-y-0.5 hover:border-primary hover:text-primary"
         >
-          <rect x="3" y="4" width="18" height="18" rx="1.5" />
-          <path d="M16 2v4M8 2v4M3 10h18" />
-        </svg>
-        Save to Calendar
-      </button>
+          <svg
+            viewBox="0 0 24 24"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <rect x="3" y="4" width="18" height="18" rx="1.5" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </svg>
+          Save to Calendar
+        </button>
+      )}
       <button
         type="button"
         onClick={share}
@@ -773,58 +739,6 @@ function FlyersSection({
               </span>
             </motion.a>
           ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ExtendedSection({ paragraphs }: { readonly paragraphs: readonly string[] }) {
-  return (
-    <section className="relative bg-white py-20 md:py-24">
-      <div className="mx-auto max-w-350 px-5 md:px-8 lg:px-12">
-        <div className="grid gap-8 md:grid-cols-12 md:gap-16">
-          <div className="md:col-span-4">
-            <motion.p
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.6 }}
-              variants={fadeUp}
-              className="font-heading text-sm font-medium uppercase tracking-[0.28em] text-primary"
-            >
-              Deeper Dive
-            </motion.p>
-
-            <motion.h2
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.4 }}
-              variants={fadeUp}
-              custom={1}
-              className="mt-5 font-heading font-thin leading-[1.05] text-black"
-              style={{
-                fontSize: 'clamp(1.65rem, 3.4vw, 2.75rem)',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              What to <span className="italic text-primary">expect.</span>
-            </motion.h2>
-          </div>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.35 }}
-            variants={fadeUp}
-            custom={2}
-            className="md:col-span-8"
-          >
-            <div className="space-y-6 text-[16px] leading-[1.85] text-black/75">
-              {paragraphs.map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
-            </div>
-          </motion.div>
         </div>
       </div>
     </section>
