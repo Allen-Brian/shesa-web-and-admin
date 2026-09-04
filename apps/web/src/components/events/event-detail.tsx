@@ -736,7 +736,12 @@ function FlyersSection({
           Shesans you know.
         </motion.p>
 
-        <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 md:mt-14 md:gap-6 lg:grid-cols-3">
+        {/* Masonry, not a grid of fixed boxes. Flyers arrive in whatever
+            shape the designer exported — A4 portrait, square for social,
+            the odd landscape banner — and a fixed 3/4 box cropped every
+            one that disagreed. CSS columns let each poster keep its own
+            height, so nothing is cut. */}
+        <div className="mt-12 columns-1 gap-5 sm:columns-2 md:mt-14 md:gap-6 lg:columns-3">
           {flyers.map((flyer, i) => (
             <motion.a
               key={flyer + i}
@@ -745,27 +750,27 @@ function FlyersSection({
               rel="noopener noreferrer"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.7, delay: 0.05 + i * 0.08, ease }}
-              className="group relative block overflow-hidden rounded-xs border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_18px_40px_-12px_rgba(139,21,51,0.16)]"
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.7, delay: 0.05 + (i % 3) * 0.08, ease }}
+              className="group relative mb-5 block break-inside-avoid overflow-hidden rounded-xs border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_18px_40px_-12px_rgba(139,21,51,0.16)] md:mb-6"
             >
-              <div className="relative aspect-[3/4] overflow-hidden">
-                <Image
-                  src={flyer}
-                  alt={`${title}, flyer ${i + 1}`}
-                  fill
-                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                  quality={75}
-                  className="object-cover transition-transform duration-1000 group-hover:scale-105"
-                />
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/25"
-                />
-                <span className="absolute right-3 top-3 rounded-xs bg-white/95 px-2.5 py-1 font-heading text-[10px] font-medium uppercase tracking-[0.2em] text-black backdrop-blur-sm">
-                  Flyer {String(i + 1).padStart(2, '0')}
-                </span>
-              </div>
+              {/* A plain img: the intrinsic ratio is the layout, and the
+                  flyers' dimensions are not stored anywhere for next/image
+                  to size a box from. */}
+              <img
+                src={flyer}
+                alt={`${title}, flyer ${i + 1}`}
+                loading="lazy"
+                decoding="async"
+                className="block h-auto w-full transition-transform duration-1000 group-hover:scale-[1.03]"
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/25"
+              />
+              <span className="absolute right-3 top-3 rounded-xs bg-white/95 px-2.5 py-1 font-heading text-[10px] font-medium uppercase tracking-[0.2em] text-black backdrop-blur-sm">
+                Flyer {String(i + 1).padStart(2, '0')}
+              </span>
             </motion.a>
           ))}
         </div>

@@ -25,18 +25,38 @@ export function FlyersEditor({ flyers, onChange }: Props) {
 
   const openPicker = () => fileRef.current?.click();
 
-  const onFile = (file: File | undefined) => {
-    if (!file) return;
-    const fd = new FormData();
-    fd.set('file', file);
+  /**
+   * Upload every file the picker returned, one after another. Uploads
+   * run in series so a large selection cannot swamp a slow connection,
+   * and the successful ones are kept even if some fail.
+   */
+  const onFiles = (fileList: FileList | null) => {
+    const files = Array.from(fileList ?? []);
+    if (files.length === 0) return;
+
     startTransition(async () => {
-      const res = await uploadEventImage(fd);
-      if (!res.ok) {
-        toast.error(res.message);
-        return;
+      const added: string[] = [];
+      const failed: string[] = [];
+
+      for (const file of files) {
+        const fd = new FormData();
+        fd.set('file', file);
+        const res = await uploadEventImage(fd);
+        if (res.ok) added.push(res.url);
+        else failed.push(file.name);
       }
-      onChange([...flyers, res.url]);
-      toast.success('Flyer added.');
+
+      if (added.length > 0) {
+        onChange([...flyers, ...added]);
+        toast.success(added.length === 1 ? 'Flyer added.' : `${added.length} flyers added.`);
+      }
+      if (failed.length > 0) {
+        toast.error(
+          failed.length === 1
+            ? `${failed[0]} could not be uploaded.`
+            : `${failed.length} files could not be uploaded.`,
+        );
+      }
     });
   };
 
@@ -56,7 +76,7 @@ export function FlyersEditor({ flyers, onChange }: Props) {
           ) : (
             <Plus className="h-3.5 w-3.5" />
           )}
-          Add flyer
+          Add flyers
         </Button>
       </div>
 
@@ -97,9 +117,10 @@ export function FlyersEditor({ flyers, onChange }: Props) {
         ref={fileRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/avif"
+        multiple
         className="hidden"
         onChange={(e) => {
-          onFile(e.target.files?.[0]);
+          onFiles(e.target.files);
           if (fileRef.current) fileRef.current.value = '';
         }}
       />

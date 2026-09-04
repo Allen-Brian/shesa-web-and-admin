@@ -5,6 +5,8 @@ import { Film, Loader2, Plus, Upload } from 'lucide-react';
 
 import { Button, toast } from '@shesa/ui';
 
+import { measureImageAspect } from '@/lib/media/measure-aspect';
+
 import { uploadAlbumMedia } from '../actions/photo-actions';
 import { createMediaItem } from '../actions/media';
 import type { MediaKind } from '../actions/gallery-action-types';
@@ -31,29 +33,61 @@ export function MediaUploader({ albumId, nextSort, onAdded }: Props) {
 
   const openPicker = () => fileRef.current?.click();
 
-  const onFile = (file: File | undefined) => {
-    if (!file) return;
-    const fd = new FormData();
-    fd.set('file', file);
+  /**
+   * Upload a whole selection, one file at a time.
+   *
+   * Sequential rather than parallel: each item needs its own sort order,
+   * and a dozen concurrent multi-megabyte uploads on a Cameroonian
+   * connection is a good way to have several of them time out. A file
+   * that fails is reported and the rest carry on, so one bad photo does
+   * not lose the other nineteen.
+   */
+  const onFiles = (fileList: FileList | null) => {
+    const files = Array.from(fileList ?? []);
+    if (files.length === 0) return;
+
     startUpload(async () => {
-      const up = await uploadAlbumMedia(fd);
-      if (!up.ok) {
-        toast.error(up.message);
-        return;
+      let added = 0;
+      const failed: string[] = [];
+
+      for (const [i, file] of files.entries()) {
+        const fd = new FormData();
+        fd.set('file', file);
+
+        const up = await uploadAlbumMedia(fd);
+        if (!up.ok) {
+          failed.push(file.name);
+          continue;
+        }
+
+        const created = await createMediaItem({
+          albumId,
+          kind: up.kind as MediaKind,
+          src: up.url,
+          // Measured, not assumed — see measure-aspect.ts.
+          aspect: up.kind === 'video' ? '16/9' : await measureImageAspect(file),
+          sortOrder: nextSort + i,
+        });
+        if (!created.ok) {
+          failed.push(file.name);
+          continue;
+        }
+        added += 1;
       }
-      const created = await createMediaItem({
-        albumId,
-        kind: up.kind as MediaKind,
-        src: up.url,
-        aspect: up.kind === 'video' ? '16/9' : '4/3',
-        sortOrder: nextSort,
-      });
-      if (!created.ok) {
-        toast.error(created.message);
-        return;
+
+      if (added > 0) {
+        toast.success(added === 1 ? 'Media added.' : `${added} items added.`);
+        onAdded();
       }
-      toast.success(up.kind === 'video' ? 'Video added.' : 'Photo added.');
-      onAdded();
+      if (failed.length > 0) {
+        toast.error(
+          failed.length === 1
+            ? `${failed[0]} could not be uploaded.`
+            : `${failed.length} files could not be uploaded: ${failed.slice(0, 3).join(', ')}${
+                failed.length > 3 ? '…' : ''
+              }`,
+        );
+      }
     });
   };
 
@@ -87,7 +121,7 @@ export function MediaUploader({ albumId, nextSort, onAdded }: Props) {
         ) : (
           <Upload className="h-3.5 w-3.5" />
         )}
-        Upload photo or video
+        Upload photos or videos
       </Button>
       <Button
         type="button"
@@ -108,9 +142,10 @@ export function MediaUploader({ albumId, nextSort, onAdded }: Props) {
         ref={fileRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm,video/quicktime"
+        multiple
         className="hidden"
         onChange={(e) => {
-          onFile(e.target.files?.[0]);
+          onFiles(e.target.files);
           if (fileRef.current) fileRef.current.value = '';
         }}
       />
