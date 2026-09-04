@@ -2,8 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { AnimatePresence, motion, type Variants } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { motion, type Variants } from 'framer-motion';
+import { useMemo, useState } from 'react';
 import { CalendarClock } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/empty-state';
@@ -11,7 +11,6 @@ import { EmptyState } from '@/components/ui/empty-state';
 import type { SiteEvent } from './events-content';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
-const PAGE_SIZE = 9;
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 24 },
@@ -22,24 +21,63 @@ const fadeUp: Variants = {
   }),
 };
 
-function chunk<T>(arr: readonly T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
+interface YearGroup {
+  readonly year: string;
+  readonly events: readonly SiteEvent[];
+}
+
+/**
+ * Newest first, sliced into years. One ordering rule throughout —
+ * latest date first — so an upcoming event sits above a past one
+ * without the list changing its mind halfway down.
+ */
+function groupByYear(events: readonly SiteEvent[]): readonly YearGroup[] {
+  const sorted = [...events].sort((a, b) => b.fullDate.localeCompare(a.fullDate));
+
+  const byYear = new Map<string, SiteEvent[]>();
+  for (const event of sorted) {
+    const bucket = byYear.get(event.year);
+    if (bucket) bucket.push(event);
+    else byYear.set(event.year, [event]);
+  }
+
+  // Map preserves insertion order, and insertion followed the sort.
+  return Array.from(byYear, ([year, list]) => ({ year, events: list }));
 }
 
 interface Props {
-  /** Upcoming events, chronological. Empty → the section short-circuits. */
-  readonly upcoming: readonly SiteEvent[];
+  /** Every event, upcoming and past. Order does not matter. */
+  readonly events: readonly SiteEvent[];
   /** Filter chips shown at the top. "All" is always prepended. */
   readonly categories: readonly string[];
 }
 
-export function EventsList({ upcoming, categories: categoryOptions }: Props) {
+/**
+ * The whole calendar in one list, newest year first, each event linking
+ * to its own page whether it has happened or not.
+ *
+ * Upcoming and past used to be separate sections, which meant the same
+ * card design appeared twice under two headings and a visitor had to
+ * know which one to look in. They are now one run of years with an
+ * "Upcoming" badge marking what is still ahead, so scrolling carries you
+ * from the next gathering back through the archive without a seam.
+ */
+export function EventsList({ events, categories: categoryOptions }: Props) {
   const [filter, setFilter] = useState<string>('All');
-  const [page, setPage] = useState(0);
 
-  if (upcoming.length === 0) {
+  const categories = useMemo<readonly string[]>(
+    () => ['All', ...categoryOptions],
+    [categoryOptions],
+  );
+
+  const list = useMemo(
+    () => (filter === 'All' ? events : events.filter((e) => e.categories.includes(filter))),
+    [events, filter],
+  );
+
+  const years = useMemo(() => groupByYear(list), [list]);
+
+  if (events.length === 0) {
     return (
       <section
         className="relative overflow-hidden py-24 text-black md:py-28"
@@ -51,36 +89,14 @@ export function EventsList({ upcoming, categories: categoryOptions }: Props) {
         <div className="mx-auto max-w-3xl px-5 md:px-8 lg:px-12">
           <EmptyState
             icon={CalendarClock}
-            heading="No upcoming events on the calendar"
-            body="We are between events at the moment. When the next reunion, ceremony, or summit is confirmed it will show up right here."
-            cta={{ label: 'See past events', href: '#past-events' }}
+            heading="Nothing on the calendar yet"
+            body="Reunions, ceremonies, and summits will appear here as soon as they are confirmed."
+            cta={{ label: 'Contact us', href: '/contact' }}
           />
         </div>
       </section>
     );
   }
-
-  const categories = useMemo<readonly string[]>(
-    () => ['All', ...categoryOptions],
-    [categoryOptions],
-  );
-
-  const list = useMemo(
-    () => (filter === 'All' ? upcoming : upcoming.filter((e) => e.categories.includes(filter))),
-    [upcoming, filter],
-  );
-
-  const pages = useMemo(() => chunk(list, PAGE_SIZE), [list]);
-  const totalPages = pages.length;
-
-  useEffect(() => {
-    setPage(0);
-  }, [filter]);
-
-  const goPrev = () => setPage((p) => (totalPages === 0 ? 0 : (p - 1 + totalPages) % totalPages));
-  const goNext = () => setPage((p) => (totalPages === 0 ? 0 : (p + 1) % totalPages));
-
-  const paginated = totalPages > 1;
 
   return (
     <section
@@ -100,7 +116,7 @@ export function EventsList({ upcoming, categories: categoryOptions }: Props) {
               variants={fadeUp}
               className="font-heading text-sm font-medium uppercase tracking-[0.28em] text-primary"
             >
-              Upcoming
+              The calendar
             </motion.p>
 
             <motion.h2
@@ -115,7 +131,7 @@ export function EventsList({ upcoming, categories: categoryOptions }: Props) {
                 letterSpacing: '-0.02em',
               }}
             >
-              The road <span className="italic text-primary">ahead.</span>
+              Every gathering, <span className="italic text-primary">year by year.</span>
             </motion.h2>
           </div>
 
@@ -127,7 +143,8 @@ export function EventsList({ upcoming, categories: categoryOptions }: Props) {
             custom={2}
             className="max-w-md text-[15px] leading-[1.7] text-black/60 md:col-span-4"
           >
-            Filter the calendar by the kind of gathering you're looking for.
+            Everything we have held and everything still to come. Filter by the kind of gathering,
+            or scroll back through the years.
           </motion.p>
         </div>
 
@@ -142,9 +159,7 @@ export function EventsList({ upcoming, categories: categoryOptions }: Props) {
           {categories.map((c) => {
             const active = filter === c;
             const count =
-              c === 'All'
-                ? upcoming.length
-                : upcoming.filter((e) => e.categories.includes(c)).length;
+              c === 'All' ? events.length : events.filter((e) => e.categories.includes(c)).length;
             return (
               <button
                 key={c}
@@ -169,67 +184,35 @@ export function EventsList({ upcoming, categories: categoryOptions }: Props) {
           })}
         </motion.div>
 
-        <div className="mt-12 md:mt-16">
-          {totalPages === 0 ? (
+        <div className="mt-12 flex flex-col gap-14 md:mt-16 md:gap-20">
+          {years.length === 0 ? (
             <p className="rounded-xs border border-dashed border-black/15 bg-white p-10 text-center text-sm text-black/50">
-              Nothing scheduled in this category yet. Check back soon.
+              Nothing in this category yet. Try another filter.
             </p>
           ) : (
-            <>
-              <div className="overflow-hidden">
-                <motion.div
-                  className="flex touch-pan-y"
-                  animate={{ x: `-${page * 100}%` }}
-                  transition={{ duration: 0.7, ease }}
-                  drag={paginated ? 'x' : false}
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.15}
-                  onDragEnd={(_, info) => {
-                    if (!paginated) return;
-                    const threshold = 60;
-                    if (info.offset.x < -threshold) goNext();
-                    else if (info.offset.x > threshold) goPrev();
-                  }}
-                >
-                  <AnimatePresence>
-                    {pages.map((pageEvents, pi) => (
-                      <div
-                        key={pi}
-                        className="grid w-full shrink-0 grid-cols-1 gap-5 pr-2 sm:grid-cols-2 md:gap-6 md:pr-4 lg:grid-cols-3"
-                        aria-hidden={pi !== page}
-                      >
-                        {pageEvents.map((event, i) => (
-                          <motion.div
-                            key={event.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            transition={{
-                              duration: 0.55,
-                              delay: 0.05 + (i % 9) * 0.05,
-                              ease,
-                            }}
-                          >
-                            <EventCard event={event} />
-                          </motion.div>
-                        ))}
-                      </div>
-                    ))}
-                  </AnimatePresence>
-                </motion.div>
-              </div>
-
-              {paginated && (
-                <PaginationBar
-                  page={page}
-                  total={totalPages}
-                  onPrev={goPrev}
-                  onNext={goNext}
-                  onSelect={setPage}
-                  label={`Showing ${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, list.length)} of ${list.length}`}
+            years.map((group) => (
+              <section key={group.year} aria-labelledby={`year-${group.year}`}>
+                <YearHeading
+                  year={group.year}
+                  count={group.events.length}
+                  upcoming={group.events.filter((e) => e.upcoming).length}
                 />
-              )}
-            </>
+
+                <div className="mt-7 grid grid-cols-1 gap-5 sm:grid-cols-2 md:mt-9 md:gap-6 lg:grid-cols-3">
+                  {group.events.map((event, i) => (
+                    <motion.div
+                      key={event.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, amount: 0.2 }}
+                      transition={{ duration: 0.55, delay: 0.05 + (i % 3) * 0.07, ease }}
+                    >
+                      <EventCard event={event} />
+                    </motion.div>
+                  ))}
+                </div>
+              </section>
+            ))
           )}
         </div>
       </div>
@@ -237,65 +220,44 @@ export function EventsList({ upcoming, categories: categoryOptions }: Props) {
   );
 }
 
-function PaginationBar({
-  page,
-  total,
-  onPrev,
-  onNext,
-  onSelect,
-  label,
+/** The year that opens each block, with a rule running out from it. */
+function YearHeading({
+  year,
+  count,
+  upcoming,
 }: {
-  readonly page: number;
-  readonly total: number;
-  readonly onPrev: () => void;
-  readonly onNext: () => void;
-  readonly onSelect: (i: number) => void;
-  readonly label: string;
+  readonly year: string;
+  readonly count: number;
+  readonly upcoming: number;
 }) {
   return (
-    <div className="mt-8 flex flex-col items-center gap-4 md:mt-10 md:flex-row md:justify-between md:gap-6">
-      <p className="font-heading text-[11px] font-medium uppercase tracking-[0.28em] text-black/50">
-        {label}
-      </p>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.6 }}
+      transition={{ duration: 0.6, ease }}
+      className="flex items-baseline gap-5"
+    >
+      <h3
+        id={`year-${year}`}
+        className="font-heading font-thin leading-none text-black"
+        style={{ fontSize: 'clamp(1.9rem, 4vw, 3rem)', letterSpacing: '-0.03em' }}
+      >
+        {year}
+      </h3>
 
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={onPrev}
-          aria-label="Previous page"
-          className="grid h-9 w-9 place-items-center rounded-xs border border-black/15 text-black/70 transition-all duration-300 hover:-translate-x-0.5 hover:border-primary hover:bg-primary hover:text-white"
-        >
-          <span aria-hidden>←</span>
-        </button>
+      {upcoming > 0 && (
+        <span className="rounded-xs bg-primary px-2.5 py-1 font-heading text-[10px] font-medium uppercase tracking-[0.22em] text-white">
+          Upcoming
+        </span>
+      )}
 
-        <div className="flex items-center gap-2">
-          {Array.from({ length: total }).map((_, i) => {
-            const active = i === page;
-            return (
-              <button
-                key={i}
-                type="button"
-                onClick={() => onSelect(i)}
-                aria-label={`Show page ${i + 1}`}
-                aria-current={active}
-                className={`h-1 rounded-full transition-all duration-500 ${
-                  active ? 'w-12 bg-primary' : 'w-6 bg-black/15 hover:bg-black/30'
-                }`}
-              />
-            );
-          })}
-        </div>
+      <span aria-hidden className="h-px flex-1 bg-black/12" />
 
-        <button
-          type="button"
-          onClick={onNext}
-          aria-label="Next page"
-          className="grid h-9 w-9 place-items-center rounded-xs border border-black/15 text-black/70 transition-all duration-300 hover:translate-x-0.5 hover:border-primary hover:bg-primary hover:text-white"
-        >
-          <span aria-hidden>→</span>
-        </button>
-      </div>
-    </div>
+      <span className="shrink-0 font-heading text-[11px] font-medium uppercase tracking-[0.24em] text-black/45">
+        {count} {count === 1 ? 'event' : 'events'}
+      </span>
+    </motion.div>
   );
 }
 
@@ -335,9 +297,19 @@ function EventCard({ event }: { readonly event: SiteEvent }) {
             {event.year}
           </span>
         </div>
-        <span className="absolute right-4 top-4 rounded-xs bg-black/55 px-2.5 py-1 font-heading text-[10px] font-medium uppercase tracking-[0.22em] text-white backdrop-blur-sm">
-          {event.category}
-        </span>
+        {/* Upcoming sits above the category so the two never collide,
+            and it is the only thing distinguishing a future gathering
+            from the archive now that both live in one list. */}
+        <div className="absolute right-4 top-4 flex flex-col items-end gap-1.5">
+          {event.upcoming && (
+            <span className="rounded-xs bg-primary px-2.5 py-1 font-heading text-[10px] font-medium uppercase tracking-[0.22em] text-white shadow-sm">
+              Upcoming
+            </span>
+          )}
+          <span className="rounded-xs bg-black/55 px-2.5 py-1 font-heading text-[10px] font-medium uppercase tracking-[0.22em] text-white backdrop-blur-sm">
+            {event.category}
+          </span>
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col p-5 md:p-6">

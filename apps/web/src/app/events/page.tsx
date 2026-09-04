@@ -5,7 +5,6 @@ import { EventsHero } from '@/components/events/events-hero';
 import { EventsList } from '@/components/events/events-list';
 import { formatEvent, type RawSiteEvent } from '@/components/events/format-event';
 import { NextEvent } from '@/components/events/next-event';
-import { PastEvents } from '@/components/events/past-events';
 import { PartnersStrip } from '@/components/home/partners-strip';
 import { getServerClient } from '@/lib/supabase-server';
 
@@ -69,8 +68,7 @@ export default async function EventsPage() {
     <>
       <EventsHero upcomingCount={upcoming.length} pastCount={past.length} />
       <NextEvent featuredEvent={featured} />
-      <EventsList upcoming={upcoming} categories={categories} />
-      <PastEvents past={past} />
+      <EventsList events={all} categories={categories} />
       {/* Partner boards always sit last, immediately above the footer. */}
       <PartnersStrip />
     </>
