@@ -107,9 +107,11 @@ export function derivePublicObjectPath(
   // Traversal and absolute-path guards.
   if (path.includes('..') || path.startsWith('/')) return null;
 
-  // Must sit under the surface that owns it. An empty prefix means the
-  // bucket has no surface folder, so there is nothing further to check.
-  if (prefix && !path.startsWith(`${prefix}/`)) return null;
+  // Must sit under the surface that owns it, or in the shared content
+  // store every surface now uploads to. An empty prefix means the bucket
+  // has no surface folder, so there is nothing further to check.
+  const owned = !prefix || path.startsWith(`${prefix}/`);
+  if (!owned && !path.startsWith(`${SHARED_PREFIX}/`)) return null;
 
   return path;
 }
@@ -144,6 +146,14 @@ export async function deletePublicObject(args: {
     );
     return;
   }
+
+  // Shared objects are named after their contents, so the same object
+  // can back an event flyer, a gallery photo, and a news banner at once.
+  // Removing it because one of those records dropped it would break the
+  // others, so the reference goes and the bytes stay. Reclaiming them
+  // needs a sweep that knows what is still referenced; until that
+  // exists, unreferenced blobs linger — far cheaper than a copy per use.
+  if (path.startsWith(`${SHARED_PREFIX}/`)) return;
 
   const serviceClient = createServiceRoleClient();
   await serviceClient.storage.from(args.bucket).remove([path]);
@@ -214,6 +224,41 @@ export const AUDIO: MediaKind = {
   accepts: 'MP3, WAV, OGG, or M4A',
 };
 
+/**
+ * Folder every uploaded object lives in, in every bucket. Flat and
+ * shared on purpose: two records pointing at the same picture must
+ * resolve to the same object for de-duplication to save anything.
+ */
+export const SHARED_PREFIX = 'shared';
+
+/** Hex SHA-256 of the file's bytes — the object's name. */
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', bytes as unknown as BufferSource);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/** `.jpg`, `.mp4`, … taken from the filename, else from the MIME type. */
+function extensionFor(file: File): string {
+  const fromName = /\.([a-zA-Z0-9]{1,5})$/.exec(file.name)?.[1];
+  if (fromName) return `.${fromName.toLowerCase()}`;
+
+  const subtype = file.type.split('/')[1];
+  return subtype ? `.${subtype.replace(/[^a-z0-9]/gi, '').toLowerCase()}` : '';
+}
+
+/**
+ * Storage answers a colliding upload with 409 / "Duplicate". Matched on
+ * the message too, because the status code is only present on
+ * `StorageApiError` and the SDK's error union does not promise it.
+ */
+function isAlreadyExists(error: { readonly message?: string }): boolean {
+  const status = (error as { readonly statusCode?: string | number }).statusCode;
+  if (status === '409' || status === 409) return true;
+  return /already exists|duplicate/i.test(error.message ?? '');
+}
+
 export interface UploadOk {
   readonly ok: true;
   readonly url: string;
@@ -259,20 +304,28 @@ export async function uploadPublicObject(args: {
     return { ok: false, message: `${match.noun} must be under ${mb} MB.` };
   }
 
-  const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 80);
-  // An empty prefix means the bucket is uploader-scoped with no surface
-  // folder (event-advert-images). Joining unconditionally would give the
-  // object a leading slash.
-  const folder = args.prefix ? `${args.prefix}/${auth.userId}` : auth.userId;
-  const path = `${folder}/${Date.now()}-${cleanName}`;
+  // Content-addressed: the object's name is the SHA-256 of its bytes, so
+  // the same picture uploaded twice — by two editors, from two surfaces,
+  // months apart — resolves to one object and is stored once. The path
+  // deliberately carries no surface prefix and no uploader id, since
+  // either would defeat the sharing.
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const hash = await sha256Hex(bytes);
+  const path = `${SHARED_PREFIX}/${hash.slice(0, 2)}/${hash}${extensionFor(file)}`;
 
   const serviceClient = createServiceRoleClient();
-  const { error } = await serviceClient.storage.from(args.bucket).upload(path, file, {
+  const { error } = await serviceClient.storage.from(args.bucket).upload(path, bytes, {
     contentType: file.type,
-    cacheControl: '3600',
+    // The name is the content, so the bytes behind a URL can never
+    // change and the object can be cached for a year.
+    cacheControl: '31536000',
     upsert: false,
   });
-  if (error) return { ok: false, message: error.message ?? 'Could not upload the file.' };
+  // A duplicate is the point, not a failure: the bytes are already
+  // there, and the URL we are about to build already serves them.
+  if (error && !isAlreadyExists(error)) {
+    return { ok: false, message: error.message ?? 'Could not upload the file.' };
+  }
 
   // Built from the browser-facing origin rather than the Storage SDK's
   // getPublicUrl: in local Docker the server reaches Supabase over an
