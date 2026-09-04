@@ -14,6 +14,9 @@ import { getServerClient } from '@/lib/supabase-server';
 
 const PLACEHOLDER_BANNER = '/hero_one.jpg';
 
+/** How many events the home strip carries. */
+const HOME_EVENT_COUNT = 10;
+
 const MONTH_LABELS = [
   'Jan',
   'Feb',
@@ -66,27 +69,49 @@ export interface HomeLeaderItem {
 }
 
 /**
- * Upcoming SHESA events (starts_at >= now), oldest-first, capped at 6.
- * If none are upcoming yet, the section renders an empty state.
+ * The ten events the home strip shows: everything upcoming, soonest
+ * first, topped up with the most recent past gatherings. Only an empty
+ * calendar leaves the section on its empty state now.
  */
 export async function loadHomeEvents(): Promise<readonly HomeEventItem[]> {
   const supabase = await getServerClient();
   const now = new Date().toISOString();
-  const { data } = await supabase
-    .schema('cms')
-    .from('site_events')
-    .select('slug, title, banner_url, starts_at, location, city')
-    .gte('starts_at', now)
-    .order('starts_at', { ascending: true })
-    .limit(6);
-  const rows = (data ?? []) as ReadonlyArray<{
+
+  const columns = 'slug, title, banner_url, starts_at, location, city';
+
+  // Ten events: what is coming, soonest first, then the most recent
+  // gatherings to fill the strip. A quiet stretch in the calendar used
+  // to leave the home page with an empty events section; the archive
+  // now carries it.
+  const [{ data: upcomingData }, { data: pastData }] = await Promise.all([
+    supabase
+      .schema('cms')
+      .from('site_events')
+      .select(columns)
+      .gte('starts_at', now)
+      .order('starts_at', { ascending: true })
+      .limit(HOME_EVENT_COUNT),
+    supabase
+      .schema('cms')
+      .from('site_events')
+      .select(columns)
+      .lt('starts_at', now)
+      .order('starts_at', { ascending: false })
+      .limit(HOME_EVENT_COUNT),
+  ]);
+
+  type Row = {
     slug: string;
     title: string;
     banner_url: string | null;
     starts_at: string;
     location: string | null;
     city: string | null;
-  }>;
+  };
+
+  const upcoming = (upcomingData ?? []) as ReadonlyArray<Row>;
+  const past = (pastData ?? []) as ReadonlyArray<Row>;
+  const rows = [...upcoming, ...past].slice(0, HOME_EVENT_COUNT);
   return rows.map((r) => {
     const d = new Date(r.starts_at);
     return {

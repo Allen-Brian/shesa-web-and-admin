@@ -47,6 +47,14 @@ export type SiteEvent = {
    * derived from `description_html` by splitting on `</p>`.
    */
   readonly extendedDescription?: readonly string[];
+  /**
+   * The editor's description exactly as Quill saved it. Rendered on the
+   * detail page so headings, bold, links and lists survive; the plain
+   * `description` above stays the card summary.
+   */
+  readonly descriptionHtml?: string;
+  /** The separate short summary, when the editor wrote one. */
+  readonly summary?: string;
   /** Ticketing, opt-in triple. */
   readonly ticketUrl?: string;
   readonly ticketPrice?: number;

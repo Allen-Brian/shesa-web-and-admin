@@ -254,36 +254,48 @@ function EventBody({
               About this event
             </motion.p>
 
-            <motion.p
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.4 }}
-              variants={fadeUp}
-              custom={1}
-              className="mt-6 max-w-2xl text-[17px] leading-[1.85] text-black/80 md:text-[18px]"
-            >
-              {event.description}
-            </motion.p>
+            {/* Only when the editor wrote a separate short summary —
+                otherwise `description` is just the first paragraph of the
+                body below, and printing it here says everything twice. */}
+            {event.summary && (
+              <motion.p
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.4 }}
+                variants={fadeUp}
+                custom={1}
+                className="mt-6 max-w-2xl text-[17px] leading-[1.85] text-black/80 md:text-[18px]"
+              >
+                {event.summary}
+              </motion.p>
+            )}
 
-            {/* The rest of what the editor wrote. Three paragraphs of
-                invented house copy — doors opening an hour early, coach
-                transport, registration closing at fourteen days — used to
-                sit here on every event, true or not, alongside four
-                hardcoded cards about delegations, registration, programme
-                and media. None of it came from the CMS. */}
-            {event.extendedDescription && event.extendedDescription.length > 0 && (
+            {/* The editor's own markup, styled by `news-article-body` —
+                the same treatment news articles get. The description used
+                to be flattened into bare paragraphs, so every heading,
+                bold run, link and list an editor wrote came out as plain
+                undifferentiated text. */}
+            {event.descriptionHtml ? (
               <motion.div
                 initial="hidden"
                 whileInView="visible"
-                viewport={{ once: true, amount: 0.35 }}
+                viewport={{ once: true, amount: 0.2 }}
                 variants={fadeUp}
                 custom={2}
-                className="mt-10 space-y-6 text-[15.5px] leading-[1.8] text-black/70"
+                className="news-article-body mt-8 max-w-2xl text-[16px] leading-[1.85] text-black/75"
+                dangerouslySetInnerHTML={{ __html: event.descriptionHtml }}
+              />
+            ) : (
+              <motion.p
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.4 }}
+                variants={fadeUp}
+                custom={2}
+                className="mt-6 max-w-2xl text-[17px] leading-[1.85] text-black/80 md:text-[18px]"
               >
-                {event.extendedDescription.map((paragraph, i) => (
-                  <p key={i}>{paragraph}</p>
-                ))}
-              </motion.div>
+                {event.description}
+              </motion.p>
             )}
           </div>
 
@@ -672,7 +684,7 @@ function FlyersSection({
           variants={fadeUp}
           className="font-heading text-sm font-medium uppercase tracking-[0.28em] text-primary"
         >
-          Flyers & Posters
+          Media
         </motion.p>
 
         <motion.h2
@@ -698,7 +710,7 @@ function FlyersSection({
           custom={2}
           className="mt-5 max-w-xl text-[15px] leading-[1.7] text-black/60"
         >
-          The official flyers for the event. Print them, post them, forward them to the fellow
+          Everything published around this event. Print it, post it, forward it to the fellow
           Shesans you know.
         </motion.p>
 
@@ -734,9 +746,6 @@ function FlyersSection({
                 aria-hidden
                 className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/25"
               />
-              <span className="absolute right-3 top-3 rounded-xs bg-white/95 px-2.5 py-1 font-heading text-[10px] font-medium uppercase tracking-[0.2em] text-black backdrop-blur-sm">
-                Flyer {String(i + 1).padStart(2, '0')}
-              </span>
             </motion.a>
           ))}
         </div>

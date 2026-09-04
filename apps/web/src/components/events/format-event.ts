@@ -104,6 +104,8 @@ export function formatEvent(raw: RawSiteEvent, categoryNames: readonly string[])
     city: raw.city ?? '',
     image: raw.banner_url ?? PLACEHOLDER_BANNER,
     description: raw.short_description ?? paras[0] ?? '',
+    summary: raw.short_description ?? undefined,
+    descriptionHtml: raw.description_html?.trim() ? raw.description_html : undefined,
     category: categoryNames[0] ?? 'Uncategorised',
     categories: categoryNames,
     upcoming: starts.getTime() > Date.now(),
