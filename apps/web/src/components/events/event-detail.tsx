@@ -580,11 +580,45 @@ function RelatedCard({ event }: { readonly event: SiteEvent }) {
   );
 }
 
+/**
+ * Split a programme into days. Slots carrying no date fall into one
+ * unlabelled group, which is the single-day case and by far the common
+ * one; a multi-day event dates each slot and gets a header per day.
+ */
+function groupProgrammeByDay(program: readonly import('./events-content').ProgramItem[]) {
+  const groups = new Map<
+    string,
+    { key: string; label: string; items: import('./events-content').ProgramItem[] }
+  >();
+
+  for (const item of program) {
+    const key = item.day ?? '';
+    const existing = groups.get(key);
+    if (existing) {
+      existing.items.push(item);
+      continue;
+    }
+    groups.set(key, { key: key || 'undated', label: formatDayLabel(key), items: [item] });
+  }
+
+  return Array.from(groups.values());
+}
+
+/** "Friday 13 November" from an ISO date; blank stays blank. */
+function formatDayLabel(iso: string): string {
+  if (!iso) return '';
+  const date = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
 function ProgrammeSection({
   program,
 }: {
   readonly program: readonly import('./events-content').ProgramItem[];
 }) {
+  const days = groupProgrammeByDay(program);
+
   return (
     <section
       className="relative overflow-hidden py-20 md:py-24"
@@ -616,51 +650,96 @@ function ProgrammeSection({
             letterSpacing: '-0.02em',
           }}
         >
-          The full day, <span className="italic text-primary">hour by hour.</span>
+          {days.length > 1 ? (
+            <>
+              Day by day, <span className="italic text-primary">hour by hour.</span>
+            </>
+          ) : (
+            <>
+              The full day, <span className="italic text-primary">hour by hour.</span>
+            </>
+          )}
         </motion.h2>
 
-        <div className="mt-12 md:mt-16">
-          <ol className="relative">
-            <span
-              aria-hidden
-              className="absolute left-[86px] top-2 bottom-2 hidden w-px bg-black/12 md:block"
-            />
-            <div className="flex flex-col divide-y divide-black/8">
-              {program.map((item, i) => (
-                <motion.li
-                  key={`${item.time}-${item.title}`}
-                  initial={{ opacity: 0, y: 16 }}
+        <div className="mt-12 flex flex-col gap-10 md:mt-16 md:gap-14">
+          {days.map((group, gi) => (
+            <div key={group.key}>
+              {/* A dated header only when the programme actually spans
+                  days — a single-day agenda repeats its own date for
+                  nothing. */}
+              {days.length > 1 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 14 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.4 }}
-                  transition={{ duration: 0.6, delay: 0.05 + i * 0.05, ease }}
-                  className="group grid grid-cols-1 items-baseline gap-2 py-5 md:grid-cols-[100px_1fr] md:gap-8 md:py-6"
+                  viewport={{ once: true, amount: 0.6 }}
+                  transition={{ duration: 0.6, ease }}
+                  className="mb-5 flex flex-wrap items-baseline gap-x-4 gap-y-2 md:mb-7"
                 >
-                  <div className="flex items-center gap-3 md:block">
-                    <span className="hidden h-2 w-2 rotate-45 shrink-0 bg-primary md:inline-block" />
-                    <span
-                      className="font-heading font-medium tabular-nums text-primary"
-                      style={{ fontSize: '1.1rem' }}
+                  <span className="rounded-xs bg-primary px-3 py-1.5 font-heading text-[10px] font-semibold uppercase tracking-[0.24em] text-white">
+                    Day {gi + 1}
+                  </span>
+                  <h3
+                    className="font-heading font-thin leading-none text-black"
+                    style={{ fontSize: 'clamp(1.2rem, 2.4vw, 1.75rem)', letterSpacing: '-0.02em' }}
+                  >
+                    {group.label}
+                  </h3>
+                  <span aria-hidden className="h-px flex-1 bg-black/12" />
+                  <span className="font-heading text-[11px] font-medium uppercase tracking-[0.24em] text-black/45">
+                    {group.items.length} {group.items.length === 1 ? 'session' : 'sessions'}
+                  </span>
+                </motion.div>
+              )}
+
+              <ol className="relative rounded-xs border border-black/10 bg-white px-5 md:px-8">
+                {/* The spine the time markers hang from. */}
+                <span
+                  aria-hidden
+                  className="absolute bottom-6 left-[124px] top-6 hidden w-px bg-black/10 md:block"
+                />
+
+                <div className="flex flex-col divide-y divide-black/8">
+                  {group.items.map((item, i) => (
+                    <motion.li
+                      key={`${item.time}-${item.title}-${i}`}
+                      initial={{ opacity: 0, y: 14 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, amount: 0.35 }}
+                      transition={{ duration: 0.55, delay: 0.04 + Math.min(i, 6) * 0.05, ease }}
+                      className="group grid grid-cols-1 gap-2 py-6 md:grid-cols-[124px_1fr] md:gap-10"
                     >
-                      {item.time}
-                    </span>
-                  </div>
-                  <div>
-                    <h3
-                      className="font-heading font-light leading-tight text-black"
-                      style={{ fontSize: '1.15rem', letterSpacing: '-0.005em' }}
-                    >
-                      {item.title}
-                    </h3>
-                    {item.description && (
-                      <p className="mt-2 max-w-2xl text-[14.5px] leading-[1.7] text-black/60">
-                        {item.description}
-                      </p>
-                    )}
-                  </div>
-                </motion.li>
-              ))}
+                      <div className="flex items-center gap-3 md:items-start">
+                        <span
+                          className="font-heading font-medium tabular-nums leading-none text-primary md:pt-0.5"
+                          style={{ fontSize: '1.05rem' }}
+                        >
+                          {item.time || '—'}
+                        </span>
+                        <span
+                          aria-hidden
+                          className="hidden h-2 w-2 shrink-0 rotate-45 bg-primary/70 transition-colors duration-500 group-hover:bg-primary md:ml-auto md:mt-1 md:inline-block"
+                        />
+                      </div>
+
+                      <div className="md:pl-2">
+                        <h4
+                          className="font-heading font-light leading-tight text-black"
+                          style={{ fontSize: '1.15rem', letterSpacing: '-0.005em' }}
+                        >
+                          {item.title}
+                        </h4>
+                        {item.description && (
+                          <p className="mt-2 max-w-2xl text-[14.5px] leading-[1.7] text-black/60">
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                    </motion.li>
+                  ))}
+                </div>
+              </ol>
             </div>
-          </ol>
+          ))}
         </div>
       </div>
     </section>

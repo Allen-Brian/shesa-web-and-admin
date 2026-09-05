@@ -61,8 +61,11 @@ export function MarqueeCarousel<T>({
         className={`marquee-track flex w-max ${reverse ? 'marquee-track-reverse' : ''} ${trackClassName}`}
         style={{ ['--marquee-duration' as string]: `${duration}s` }}
       >
+        {/* `flex` on each item lets a card stretch to the tallest in the
+            row; without it every card sizes to its own content and the run
+            of tops and bottoms is ragged. */}
         {track.map((item, i) => (
-          <li key={i} className="shrink-0" aria-hidden={i >= items.length}>
+          <li key={i} className="flex shrink-0" aria-hidden={i >= items.length}>
             {renderItem(item, i % items.length)}
           </li>
         ))}

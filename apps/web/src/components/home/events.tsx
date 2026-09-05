@@ -113,9 +113,9 @@ function EventCard({ event }: { readonly event: Event }) {
   return (
     <Link
       href={`/events/${event.slug}`}
-      className="group relative block w-[300px] overflow-hidden rounded-xs border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_18px_40px_-12px_rgba(139,21,51,0.18)] sm:w-[340px] md:w-[380px]"
+      className="group relative flex h-full w-[300px] flex-col overflow-hidden rounded-xs border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_18px_40px_-12px_rgba(139,21,51,0.18)] sm:w-[340px] md:w-[380px]"
     >
-      <div className="relative aspect-3/2 overflow-hidden">
+      <div className="relative aspect-3/2 shrink-0 overflow-hidden">
         <Image
           src={event.image}
           alt={event.title}
@@ -147,9 +147,9 @@ function EventCard({ event }: { readonly event: Event }) {
         </div>
       </div>
 
-      <div className="p-5 md:p-6">
+      <div className="flex flex-1 flex-col p-5 md:p-6">
         <h3
-          className="font-heading font-light leading-tight text-black transition-colors duration-500 group-hover:text-primary"
+          className="line-clamp-2 font-heading font-light leading-tight text-black transition-colors duration-500 group-hover:text-primary"
           style={{ fontSize: '1.15rem', letterSpacing: '-0.01em' }}
         >
           {event.title}

@@ -286,7 +286,7 @@ export async function loadHomeLeaders(): Promise<readonly HomeLeaderItem[]> {
 }
 
 /**
- * The four most recent published articles for the home strip. Ordered
+ * The three most recent published articles for the home strip. Ordered
  * by publish_at, falling back to created_at for anything published
  * without a date. Articles open at `/news?id=…`; there is no per-article
  * route.
@@ -302,7 +302,7 @@ export async function loadHomeNews(): Promise<readonly HomeNewsItem[]> {
       .eq('status', 'published')
       .order('publish_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
-      .limit(4),
+      .limit(3),
     supabase.schema('cms').from('article_categories').select('id, name'),
     supabase.schema('cms').from('article_categories_map').select('article_id, category_id'),
   ]);
