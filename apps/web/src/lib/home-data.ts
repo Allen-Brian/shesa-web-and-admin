@@ -77,6 +77,16 @@ export interface HomeAlbumItem {
   readonly slug: string;
 }
 
+export interface HomeNewsItem {
+  readonly id: string;
+  readonly title: string;
+  readonly excerpt: string;
+  readonly image: string;
+  readonly date: string;
+  readonly category: string;
+  readonly author: string;
+}
+
 export interface HomeLeaderItem {
   readonly name: string;
   readonly role: string;
@@ -273,4 +283,60 @@ export async function loadHomeLeaders(): Promise<readonly HomeLeaderItem[]> {
     photo: l.photo_url && l.photo_url.trim() ? l.photo_url : '/president_one.jpg',
     slug: l.id,
   }));
+}
+
+/**
+ * The four most recent published articles for the home strip. Ordered
+ * by publish_at, falling back to created_at for anything published
+ * without a date. Articles open at `/news?id=…`; there is no per-article
+ * route.
+ */
+export async function loadHomeNews(): Promise<readonly HomeNewsItem[]> {
+  const supabase = await getServerClient();
+
+  const [{ data: articlesRaw }, { data: categoriesRaw }, { data: mapRaw }] = await Promise.all([
+    supabase
+      .schema('cms')
+      .from('articles')
+      .select('id, title, excerpt, banner_url, author_name, publish_at, created_at')
+      .eq('status', 'published')
+      .order('publish_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(4),
+    supabase.schema('cms').from('article_categories').select('id, name'),
+    supabase.schema('cms').from('article_categories_map').select('article_id, category_id'),
+  ]);
+
+  const articles = (articlesRaw ?? []) as ReadonlyArray<{
+    id: string;
+    title: string;
+    excerpt: string | null;
+    banner_url: string | null;
+    author_name: string | null;
+    publish_at: string | null;
+    created_at: string;
+  }>;
+
+  const catNameById = new Map(
+    ((categoriesRaw ?? []) as Array<{ id: string; name: string }>).map((c) => [c.id, c.name]),
+  );
+  const firstCatByArticle = new Map<string, string>();
+  for (const m of (mapRaw ?? []) as Array<{ article_id: string; category_id: string }>) {
+    if (firstCatByArticle.has(m.article_id)) continue;
+    const name = catNameById.get(m.category_id);
+    if (name) firstCatByArticle.set(m.article_id, name);
+  }
+
+  return articles.map((a) => {
+    const when = new Date(a.publish_at ?? a.created_at);
+    return {
+      id: a.id,
+      title: a.title,
+      excerpt: a.excerpt ?? '',
+      image: a.banner_url && a.banner_url.trim() ? a.banner_url : PLACEHOLDER_BANNER,
+      date: `${MONTH_LABELS[when.getMonth()] ?? ''} ${when.getDate()}, ${when.getFullYear()}`,
+      category: firstCatByArticle.get(a.id) ?? 'News',
+      author: a.author_name ?? '',
+    };
+  });
 }
