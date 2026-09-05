@@ -5,6 +5,8 @@
  */
 
 export type ProgramItem = {
+  /** ISO date (YYYY-MM-DD) when the event runs over several days. */
+  readonly day?: string;
   readonly time: string;
   readonly title: string;
   readonly description?: string;

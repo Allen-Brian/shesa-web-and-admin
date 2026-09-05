@@ -65,10 +65,12 @@ function toProgram(v: unknown): ProgramItem[] {
   return v
     .map((p) => {
       const row = p as Partial<ProgramItem>;
+      const day = String(row.day ?? '').trim();
       const time = String(row.time ?? '').trim();
       const title = String(row.title ?? '').trim();
       if (!time && !title) return null;
       return {
+        day: day || undefined,
         time,
         title,
         description: row.description ? String(row.description) : undefined,

@@ -9,6 +9,11 @@ import type { ProgramItem } from './site-event-widget-types';
 interface Props {
   readonly program: readonly ProgramItem[];
   readonly onChange: (next: readonly ProgramItem[]) => void;
+  /**
+   * The event's own start and end (YYYY-MM-DD), used to bound the day
+   * picker so a slot cannot be dated outside the event it belongs to.
+   */
+  readonly dayRange?: { readonly min?: string; readonly max?: string };
 }
 
 /**
@@ -17,7 +22,7 @@ interface Props {
  * reordered and removed. The whole list is serialised into
  * `cms.site_events.program` (JSONB) on save.
  */
-export function ProgramEditor({ program, onChange }: Props) {
+export function ProgramEditor({ program, onChange, dayRange }: Props) {
   const update = (idx: number, patch: Partial<ProgramItem>) => {
     onChange(program.map((m, i) => (i === idx ? { ...m, ...patch } : m)));
   };
@@ -37,7 +42,10 @@ export function ProgramEditor({ program, onChange }: Props) {
   };
 
   const add = () => {
-    onChange([...program, { time: '', title: '', description: '' }]);
+    // A new slot inherits the day above it — a multi-day programme is
+    // mostly consecutive sessions on the same date.
+    const lastDay = program.length > 0 ? (program[program.length - 1]?.day ?? '') : '';
+    onChange([...program, { day: lastDay, time: '', title: '', description: '' }]);
   };
 
   return (
@@ -52,14 +60,15 @@ export function ProgramEditor({ program, onChange }: Props) {
 
       {program.length === 0 ? (
         <p className="rounded-md border border-dashed border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-          No programme yet. Add each session in chronological order.
+          No programme yet. Add each session in order; set the day on each slot when the event runs
+          over more than one.
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
           {program.map((m, idx) => (
             <li
               key={idx}
-              className="grid grid-cols-[24px_100px_1fr_auto] items-start gap-2 rounded-lg border border-border bg-card p-3"
+              className="grid grid-cols-[24px_150px_1fr_auto] items-start gap-2 rounded-lg border border-border bg-card p-3"
             >
               <div className="flex flex-col">
                 <button
@@ -81,13 +90,29 @@ export function ProgramEditor({ program, onChange }: Props) {
                   <GripVertical className="h-4 w-4 rotate-180" />
                 </button>
               </div>
-              <Input
-                value={m.time}
-                onChange={(e) => update(idx, { time: e.target.value })}
-                placeholder="e.g. 09:00"
-                maxLength={20}
-                className="text-xs"
-              />
+              {/* Day then time: an event that runs Friday to Sunday needs
+                  each slot pinned to a date, not just a clock reading. The
+                  date is optional — leave it blank on a single-day
+                  programme and the public page shows one undated run. */}
+              <div className="flex flex-col gap-1.5">
+                <Input
+                  type="date"
+                  value={m.day ?? ''}
+                  onChange={(e) => update(idx, { day: e.target.value })}
+                  min={dayRange?.min}
+                  max={dayRange?.max}
+                  className="text-xs"
+                  aria-label="Day"
+                />
+                <Input
+                  value={m.time}
+                  onChange={(e) => update(idx, { time: e.target.value })}
+                  placeholder="e.g. 09:00"
+                  maxLength={20}
+                  className="text-xs"
+                  aria-label="Time"
+                />
+              </div>
               <div className="flex flex-col gap-1.5">
                 <Input
                   value={m.title}

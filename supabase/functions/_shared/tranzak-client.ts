@@ -86,6 +86,12 @@ export class TranzakError extends Error {
     message: string,
     readonly httpStatus: number,
     readonly body?: unknown,
+    /**
+     * The gateway's own sentence, when it gave one. Worth carrying
+     * separately so it can be shown to an operator without the HTTP
+     * scaffolding around it.
+     */
+    readonly gatewayMessage?: string | null,
   ) {
     super(message);
     this.name = 'TranzakError';
@@ -185,15 +191,21 @@ async function call<T>(
     success?: boolean;
     data?: T;
     message?: string;
+    errorMsg?: string;
+    errorCode?: number;
   } | null;
 
   if (!res.ok || !body?.success || body.data === undefined) {
+    // Tranzak puts the human-readable reason in `errorMsg`, not `message`,
+    // and returns HTTP 200 while doing it. Reading only `message` threw
+    // away the one sentence that explains the failure: an account-level
+    // restriction on the live API reached operators as a bare 500.
+    const detail = body?.errorMsg ?? body?.message ?? null;
     throw new TranzakError(
-      `Tranzak ${init.method} ${path} failed (HTTP ${res.status})${
-        body?.message ? `: ${body.message}` : ''
-      }`,
+      `Tranzak ${init.method} ${path} failed (HTTP ${res.status})${detail ? `: ${detail}` : ''}`,
       res.status,
       body,
+      detail,
     );
   }
 

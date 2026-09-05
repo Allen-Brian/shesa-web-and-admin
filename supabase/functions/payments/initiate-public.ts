@@ -45,7 +45,7 @@ import {
 } from '../_shared/errors.ts';
 import { buildContext } from '../_shared/request-context.ts';
 import { createServiceRoleClient } from '../_shared/supabase-client.ts';
-import { createPaymentRequest } from '../_shared/tranzak-client.ts';
+import { createPaymentRequest, TranzakError } from '../_shared/tranzak-client.ts';
 import { PAYER_CARRIES_FEE_PERCENT, resolveTranzakConfig } from '../_shared/tranzak-config.ts';
 import { isServiceRole } from '../_shared/service-role-auth.ts';
 import { parseJson } from '../_shared/validation.ts';
@@ -315,13 +315,23 @@ export async function initiatePublicPayment(req: Request): Promise<Response> {
     );
   } catch (err) {
     // The intent exists but has no gateway request. Mark it failed rather
-    // than leaving a pending row nothing will ever settle.
+    // than leaving a pending row nothing will ever settle — and record the
+    // gateway's own words, so Payment attempts answers "why" instead of
+    // sending someone to the logs. "Access to the payments API has been
+    // temporarily restricted" is a sentence an operator can act on; "could
+    // not open a gateway payment request" is not.
+    const gatewayMessage =
+      err instanceof TranzakError && err.gatewayMessage ? err.gatewayMessage : null;
+
     await service
       .schema('finance' as never)
       .from('payment_intents' as never)
       .update({
         status: 'failed',
-        failure_reason: 'could not open a gateway payment request',
+        failure_reason: (gatewayMessage ?? 'Could not open a gateway payment request.').slice(
+          0,
+          500,
+        ),
         updated_at: new Date().toISOString(),
       } as never)
       .eq('id', intentId);

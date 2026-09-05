@@ -5,6 +5,12 @@ export interface CategoryRow {
 }
 
 export interface ProgramItem {
+  /**
+   * ISO date (YYYY-MM-DD) for a slot on a multi-day event. Optional:
+   * single-day programmes leave it blank and the public page shows one
+   * undated run of times.
+   */
+  readonly day?: string;
   readonly time: string;
   readonly title: string;
   readonly description?: string;

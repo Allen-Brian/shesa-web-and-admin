@@ -200,7 +200,16 @@ export function SiteEventForm({ categories, editing }: Props) {
           </div>
 
           <div className="rounded-lg border border-border bg-muted/10 p-4">
-            <ProgramEditor program={program} onChange={setProgram} />
+            <ProgramEditor
+              program={program}
+              onChange={setProgram}
+              /* datetime-local reads YYYY-MM-DDTHH:mm, so the date half
+                 bounds the slot pickers to the event's own span. */
+              dayRange={{
+                min: startsAt ? startsAt.slice(0, 10) : undefined,
+                max: endsAt ? endsAt.slice(0, 10) : undefined,
+              }}
+            />
           </div>
 
           <div className="rounded-lg border border-border bg-muted/10 p-4">
