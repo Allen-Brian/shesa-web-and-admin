@@ -48,7 +48,7 @@ export function Events({ events }: EventsProps) {
               variants={fadeUp}
               className="font-heading text-sm font-medium uppercase tracking-[0.28em] text-primary"
             >
-              Upcoming Events
+              Our Events
             </motion.p>
 
             <motion.h2
@@ -100,7 +100,7 @@ export function Events({ events }: EventsProps) {
           <MarqueeCarousel
             items={events}
             duration={50}
-            ariaLabel="Upcoming events"
+            ariaLabel="Our events"
             renderItem={(event) => <EventCard event={event} />}
           />
         )}

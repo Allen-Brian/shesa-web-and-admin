@@ -104,7 +104,9 @@ export function DiasporaPresidents({ presidents }: DiasporaPresidentsProps) {
 function DiasporaCard({ president }: { readonly president: DiasporaPresident }) {
   return (
     <article className="relative flex h-full flex-col overflow-hidden rounded-xs border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-      <div className="relative aspect-4/3 overflow-hidden">
+      {/* 4/5, as the main organ and branch presidents use — portraits on
+          one page should not change shape section to section. */}
+      <div className="relative aspect-4/5 overflow-hidden">
         <Image
           src={president.photo}
           alt={president.name}

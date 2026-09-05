@@ -17,6 +17,23 @@ const PLACEHOLDER_BANNER = '/hero_one.jpg';
 /** How many events the home strip carries. */
 const HOME_EVENT_COUNT = 10;
 
+/**
+ * The offices the home leadership strip shows, in the order they are
+ * shown: President General, Vice President General, Secretary General,
+ * Assistant Secretary General, Financial Secretary.
+ *
+ * Each entry tests a position string. "Assistant" is checked before the
+ * plain Secretary General so the deputy cannot be picked up as the
+ * principal, and "Vice" likewise for the President General.
+ */
+const HOME_LEADER_ORDER: readonly ((position: string) => boolean)[] = [
+  (p) => /president/i.test(p) && !/vice|assistant|deputy|past/i.test(p),
+  (p) => /president/i.test(p) && /vice|deputy/i.test(p),
+  (p) => /secretary/i.test(p) && /general/i.test(p) && !/assistant|deputy/i.test(p),
+  (p) => /secretary/i.test(p) && /general/i.test(p) && /assistant|deputy/i.test(p),
+  (p) => /financ/i.test(p) && /secretary|treasur/i.test(p),
+];
+
 const MONTH_LABELS = [
   'Jan',
   'Feb',
@@ -221,10 +238,8 @@ export async function loadHomeAlbums(): Promise<readonly HomeAlbumItem[]> {
 }
 
 /**
- * Top-level national leaders for the home strip. Reads the mainstream
- * leaders table, keeps the first four (President, VP, SG, Treasurer,
- * whatever the CMS ordered them by) and maps to a compact card shape.
- * The full leadership tree lives at /leadership.
+ * The five principal officers for the home strip, in protocol order —
+ * see HOME_LEADER_ORDER. The full leadership tree lives at /leadership.
  */
 export async function loadHomeLeaders(): Promise<readonly HomeLeaderItem[]> {
   const supabase = await getServerClient();
@@ -232,8 +247,7 @@ export async function loadHomeLeaders(): Promise<readonly HomeLeaderItem[]> {
     .schema('cms')
     .from('mainstream_leaders')
     .select('id, name, position, location, photo_url, sort_order')
-    .order('sort_order', { ascending: true })
-    .limit(4);
+    .order('sort_order', { ascending: true });
   const rows = (data ?? []) as ReadonlyArray<{
     id: string;
     name: string;
@@ -242,7 +256,17 @@ export async function loadHomeLeaders(): Promise<readonly HomeLeaderItem[]> {
     photo_url: string | null;
     sort_order: number | null;
   }>;
-  return rows.map((l) => ({
+
+  // Five specific offices, in protocol order, rather than whichever
+  // four happened to sort first. Matched on the position text because
+  // the CMS has no role key — loosely, so "Financial Secretary" and
+  // "Finance Secretary" both land, and an office the CMS has not filled
+  // is simply left out rather than shifting the rest up.
+  const matched = HOME_LEADER_ORDER.map((matches) => rows.find((r) => matches(r.position))).filter(
+    (r): r is (typeof rows)[number] => r !== undefined,
+  );
+
+  return matched.map((l) => ({
     name: l.name,
     role: l.position,
     location: l.location ?? '',

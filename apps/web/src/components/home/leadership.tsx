@@ -84,7 +84,9 @@ export function Leadership({ leaders }: LeadershipProps) {
             />
           </div>
         ) : (
-          <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 md:mt-16 md:gap-8 lg:grid-cols-4">
+          /* Five across on a wide screen — the strip now carries the five
+             principal officers rather than the first four by sort order. */
+          <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 md:mt-16 md:gap-8 lg:grid-cols-3 xl:grid-cols-5">
             {leaders.map((leader, i) => (
               <motion.div
                 key={leader.slug}

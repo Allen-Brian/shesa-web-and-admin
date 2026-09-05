@@ -108,7 +108,9 @@ export function BranchPresidents({ presidents }: BranchPresidentsProps) {
 function BranchCard({ president }: { readonly president: BranchPresident }) {
   return (
     <article className="relative flex h-full flex-col overflow-hidden rounded-xs border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-      <div className="relative aspect-4/3 overflow-hidden">
+      {/* 4/5 to match the main organ's portraits — at 4/3 these sat
+          noticeably shorter than the executive's on the same page. */}
+      <div className="relative aspect-4/5 overflow-hidden">
         <Image
           src={president.photo}
           alt={president.name}
