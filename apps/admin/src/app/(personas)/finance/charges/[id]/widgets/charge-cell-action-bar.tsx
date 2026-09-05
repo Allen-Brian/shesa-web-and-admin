@@ -126,10 +126,16 @@ export function ChargeCellActionBar({
           className="h-9"
         />
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setMode('none')} disabled={pending}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setMode('none')}
+            loading={pending}
+            disabled={pending}
+          >
             Cancel
           </Button>
-          <Button size="sm" onClick={submitPayment} disabled={pending}>
+          <Button size="sm" onClick={submitPayment} loading={pending} disabled={pending}>
             Record
           </Button>
         </div>
@@ -152,10 +158,22 @@ export function ChargeCellActionBar({
           className="h-9"
         />
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setMode('none')} disabled={pending}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setMode('none')}
+            loading={pending}
+            disabled={pending}
+          >
             Cancel
           </Button>
-          <Button variant="destructive" size="sm" onClick={submitWaive} disabled={pending}>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={submitWaive}
+            loading={pending}
+            disabled={pending}
+          >
             Waive
           </Button>
         </div>

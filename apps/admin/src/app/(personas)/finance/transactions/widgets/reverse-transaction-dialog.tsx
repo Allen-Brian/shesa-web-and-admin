@@ -78,7 +78,14 @@ export function ReverseTransactionDialog({
           </div>
         )}
         <DialogFooter>
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={pending}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            loading={pending}
+            disabled={pending}
+          >
             Cancel
           </Button>
           <Button
@@ -86,6 +93,7 @@ export function ReverseTransactionDialog({
             size="sm"
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={onSubmit}
+            loading={pending}
             disabled={pending}
           >
             <Undo2 className="h-4 w-4" />

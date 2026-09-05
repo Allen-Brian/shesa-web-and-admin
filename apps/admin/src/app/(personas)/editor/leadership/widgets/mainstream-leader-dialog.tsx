@@ -146,11 +146,12 @@ export function MainstreamLeaderDialog({
             variant="outline"
             size="sm"
             onClick={() => onOpenChange(false)}
+            loading={pending}
             disabled={pending}
           >
             Cancel
           </Button>
-          <Button size="sm" onClick={submit} disabled={pending}>
+          <Button size="sm" onClick={submit} loading={pending} disabled={pending}>
             {editing ? 'Save' : 'Add leader'}
           </Button>
         </DialogFooter>

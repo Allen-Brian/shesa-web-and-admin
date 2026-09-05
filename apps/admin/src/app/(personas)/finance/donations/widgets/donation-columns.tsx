@@ -140,6 +140,7 @@ export function buildDonationColumns(actions: DonationColumnActions): ColDef<Ser
               e.stopPropagation();
               onReverse(row);
             }}
+            loading={pending}
             disabled={pending}
             title="Reverse donation"
           >

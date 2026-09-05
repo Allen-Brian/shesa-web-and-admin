@@ -85,7 +85,12 @@ export function VideoUrlDialog({ open, onOpenChange, pending, onSubmit }: Props)
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={pending}>
+          <Button
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            loading={pending}
+            disabled={pending}
+          >
             Cancel
           </Button>
           <Button onClick={submit} disabled={pending || !src.trim()}>

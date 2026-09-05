@@ -38,6 +38,7 @@ export function ContributionRowActions({
             e.stopPropagation();
             onApprove(row.id);
           }}
+          loading={pending}
           disabled={pending}
           title="Approve → open"
         >
@@ -53,6 +54,7 @@ export function ContributionRowActions({
             e.stopPropagation();
             onClose(row.id);
           }}
+          loading={pending}
           disabled={pending}
           title="Close now"
         >
@@ -68,6 +70,7 @@ export function ContributionRowActions({
             e.stopPropagation();
             onExtend(row);
           }}
+          loading={pending}
           disabled={pending}
           title="Extend"
         >
@@ -84,6 +87,7 @@ export function ContributionRowActions({
             e.stopPropagation();
             onArchive(row.id);
           }}
+          loading={pending}
           disabled={pending}
           title="Archive"
         >

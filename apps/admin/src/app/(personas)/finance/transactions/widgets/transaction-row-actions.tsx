@@ -57,6 +57,7 @@ export function TransactionRowActions({
           variant="ghost"
           className="h-8 w-8 p-0"
           onClick={(e) => e.stopPropagation()}
+          loading={pending}
           disabled={pending}
           title="Row actions"
         >

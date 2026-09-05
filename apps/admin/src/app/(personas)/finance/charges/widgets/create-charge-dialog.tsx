@@ -162,6 +162,7 @@ export function CreateChargeDialog({
                   variant="outline"
                   size="sm"
                   onClick={() => onOpenChange(false)}
+                  loading={pending}
                   disabled={pending}
                 >
                   Cancel

@@ -285,7 +285,14 @@ export function EditChargeDialog({
                 : 'Live — amount changes are scheduled for next period.'}
           </div>
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={pending}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              loading={pending}
+              disabled={pending}
+            >
               Cancel
             </Button>
             {isDraft ? (
@@ -296,6 +303,7 @@ export function EditChargeDialog({
                   onChange({ status: 'active' });
                   onSubmit();
                 }}
+                loading={pending}
                 disabled={pending}
                 className="gap-1.5"
               >
@@ -303,7 +311,7 @@ export function EditChargeDialog({
                 Publish
               </Button>
             ) : null}
-            <Button type="button" size="sm" onClick={onSubmit} disabled={pending}>
+            <Button type="button" size="sm" onClick={onSubmit} loading={pending} disabled={pending}>
               Save
             </Button>
           </div>

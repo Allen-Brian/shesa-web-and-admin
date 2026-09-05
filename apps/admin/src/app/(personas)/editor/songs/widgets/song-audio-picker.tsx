@@ -107,6 +107,7 @@ export function SongAudioPicker({ value, duration, onChange }: Props) {
               variant="ghost"
               size="sm"
               onClick={() => audioRef.current?.play()}
+              loading={pending}
               disabled={pending}
             >
               <Play className="h-3.5 w-3.5" />

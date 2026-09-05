@@ -37,6 +37,7 @@ export function GroupRowActions({
           size="sm"
           variant="outline"
           onClick={stop(() => onToggleSidebar(row.id, !row.showInSidebar))}
+          loading={pending}
           disabled={pending}
           title={row.showInSidebar ? 'Hide from sidebar' : 'Show in sidebar'}
         >
@@ -49,6 +50,7 @@ export function GroupRowActions({
           size="sm"
           variant="outline"
           onClick={stop(() => onSetStatus(row.id, 'closed'))}
+          loading={pending}
           disabled={pending}
           title="Close group"
         >
@@ -62,6 +64,7 @@ export function GroupRowActions({
           variant="outline"
           className="text-destructive hover:text-destructive"
           onClick={stop(() => onSetStatus(row.id, 'archived'))}
+          loading={pending}
           disabled={pending}
           title="Archive group"
         >

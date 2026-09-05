@@ -189,6 +189,7 @@ export function ChapterDetailView(props: ChapterDetailViewProps) {
                   type="button"
                   size="sm"
                   variant="outline"
+                  loading={pending}
                   disabled={pending}
                   onClick={() => (isAutonomous ? setConfirmDemote(true) : setConfirmPromote(true))}
                 >
@@ -201,6 +202,7 @@ export function ChapterDetailView(props: ChapterDetailViewProps) {
                   type="button"
                   size="sm"
                   variant="outline"
+                  loading={pending}
                   disabled={pending}
                   onClick={() => setConfirmArchive(true)}
                   className="text-destructive hover:text-destructive"

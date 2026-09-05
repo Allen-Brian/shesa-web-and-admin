@@ -238,10 +238,16 @@ export function ChargeRuleDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={pending}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            loading={pending}
+            disabled={pending}
+          >
             Cancel
           </Button>
-          <Button size="sm" onClick={submit} disabled={pending}>
+          <Button size="sm" onClick={submit} loading={pending} disabled={pending}>
             Add rule
           </Button>
         </DialogFooter>

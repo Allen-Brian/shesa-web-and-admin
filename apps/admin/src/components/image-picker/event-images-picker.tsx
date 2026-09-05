@@ -199,6 +199,7 @@ export function EventImagesPicker({
           size="sm"
           className="self-start gap-2"
           onClick={() => fileInputRef.current?.click()}
+          loading={uploading}
           disabled={uploading}
         >
           <ImagePlus className="h-4 w-4" />

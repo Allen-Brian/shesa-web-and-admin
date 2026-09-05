@@ -109,6 +109,7 @@ export function NetworkDetailHeader({
               type="button"
               size="sm"
               variant="outline"
+              loading={pending}
               disabled={pending}
               onClick={() => setConfirmOpen(true)}
               className="text-destructive hover:text-destructive"

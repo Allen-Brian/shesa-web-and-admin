@@ -71,7 +71,7 @@ export function ProfileReasonDialog({
           <Button type="button" size="sm" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="button" size="sm" onClick={onConfirm} disabled={pending}>
+          <Button type="button" size="sm" onClick={onConfirm} loading={pending} disabled={pending}>
             {confirmLabel}
           </Button>
         </div>

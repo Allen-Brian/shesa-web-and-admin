@@ -138,7 +138,7 @@ export function CreatePositionDialog({
           <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" size="sm" disabled={pending} onClick={submit}>
+          <Button type="button" size="sm" loading={pending} disabled={pending} onClick={submit}>
             {pending ? 'Adding…' : 'Add position'}
           </Button>
         </DialogFooter>

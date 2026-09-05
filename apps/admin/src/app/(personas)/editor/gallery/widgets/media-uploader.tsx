@@ -128,6 +128,7 @@ export function MediaUploader({ albumId, nextSort, onAdded }: Props) {
         variant="outline"
         size="sm"
         onClick={() => setVideoOpen(true)}
+        loading={busy}
         disabled={busy}
       >
         <Film className="h-3.5 w-3.5" />

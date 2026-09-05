@@ -105,6 +105,7 @@ export function MediaItemDialog({ open, item, pending, onOpenChange, onSave, onD
             variant="ghost"
             size="sm"
             onClick={() => onDelete(item)}
+            loading={pending}
             disabled={pending}
             className="text-muted-foreground hover:text-destructive"
           >
@@ -117,6 +118,7 @@ export function MediaItemDialog({ open, item, pending, onOpenChange, onSave, onD
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
+              loading={pending}
               disabled={pending}
             >
               Close

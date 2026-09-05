@@ -32,6 +32,7 @@ export function ExpenseRowActions({ row, pending, onApprove, onReverse }: Expens
             e.stopPropagation();
             onApprove(row.id);
           }}
+          loading={pending}
           disabled={pending}
           title="Approve"
         >
@@ -49,6 +50,7 @@ export function ExpenseRowActions({ row, pending, onApprove, onReverse }: Expens
             e.stopPropagation();
             onReverse(row);
           }}
+          loading={pending}
           disabled={pending}
           title="Reverse"
         >

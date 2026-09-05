@@ -89,7 +89,7 @@ export function LoginForm({ next, initialEmail }: LoginFormProps) {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} className="w-full">
+    <Button type="submit" loading={pending} disabled={pending} className="w-full">
       {pending ? 'Signing in…' : 'Sign in to your account'}
     </Button>
   );

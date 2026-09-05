@@ -252,6 +252,7 @@ export function ChargePoolPaymentSheet({
                   <Button
                     variant="outline"
                     size="sm"
+                    loading={pending}
                     disabled={pending}
                     onClick={() => onUndo(payment.id)}
                   >
@@ -259,7 +260,12 @@ export function ChargePoolPaymentSheet({
                     Undo reconciliation
                   </Button>
                 ) : (
-                  <Button size="sm" disabled={pending} onClick={() => onReconcile(payment.id)}>
+                  <Button
+                    size="sm"
+                    loading={pending}
+                    disabled={pending}
+                    onClick={() => onReconcile(payment.id)}
+                  >
                     <BadgeCheck className="h-3.5 w-3.5" />
                     Mark reconciled
                   </Button>

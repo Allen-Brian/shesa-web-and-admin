@@ -265,7 +265,7 @@ export function OrganForm({ sectors, editing }: Props) {
         {/* Right column — meta */}
         <aside className="flex flex-col gap-6">
           <div className="sticky top-4 z-10 flex flex-col gap-2 rounded-lg border border-border bg-card p-3 shadow-[0_4px_18px_-8px_rgba(0,0,0,0.15)]">
-            <Button type="submit" size="sm" disabled={pending} className="w-full">
+            <Button type="submit" size="sm" loading={pending} disabled={pending} className="w-full">
               <Save className="h-3.5 w-3.5" />
               {pending ? 'Saving…' : editing ? 'Save changes' : 'Create organ'}
             </Button>

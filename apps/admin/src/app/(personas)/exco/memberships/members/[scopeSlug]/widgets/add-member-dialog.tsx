@@ -216,6 +216,7 @@ export function AddMemberDialog({ scope, open, onOpenChange }: AddMemberDialogPr
             variant="outline"
             size="sm"
             onClick={() => onOpenChange(false)}
+            loading={pending}
             disabled={pending}
           >
             Cancel

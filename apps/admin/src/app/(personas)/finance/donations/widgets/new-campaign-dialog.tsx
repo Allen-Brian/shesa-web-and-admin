@@ -118,11 +118,12 @@ export function NewCampaignDialog({
             variant="outline"
             size="sm"
             onClick={() => onOpenChange(false)}
+            loading={pending}
             disabled={pending}
           >
             Cancel
           </Button>
-          <Button type="button" size="sm" onClick={onSubmit} disabled={pending}>
+          <Button type="button" size="sm" onClick={onSubmit} loading={pending} disabled={pending}>
             <Plus className="h-4 w-4" />
             Create draft
           </Button>

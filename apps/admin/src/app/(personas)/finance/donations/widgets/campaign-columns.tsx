@@ -94,6 +94,7 @@ export function buildCampaignColumns(actions: CampaignColumnActions): ColDef<Ser
                   e.stopPropagation();
                   onApprove(row.id);
                 }}
+                loading={pending}
                 disabled={pending}
                 title="Approve → open"
               >
@@ -109,6 +110,7 @@ export function buildCampaignColumns(actions: CampaignColumnActions): ColDef<Ser
                   e.stopPropagation();
                   onClose(row.id);
                 }}
+                loading={pending}
                 disabled={pending}
                 title="Close"
               >
@@ -124,6 +126,7 @@ export function buildCampaignColumns(actions: CampaignColumnActions): ColDef<Ser
                   e.stopPropagation();
                   onExtend(row);
                 }}
+                loading={pending}
                 disabled={pending}
                 title="Extend"
               >
@@ -140,6 +143,7 @@ export function buildCampaignColumns(actions: CampaignColumnActions): ColDef<Ser
                   e.stopPropagation();
                   onArchive(row.id);
                 }}
+                loading={pending}
                 disabled={pending}
                 title="Archive"
               >

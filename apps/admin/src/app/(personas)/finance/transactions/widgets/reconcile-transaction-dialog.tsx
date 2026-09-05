@@ -99,7 +99,14 @@ export function ReconcileTransactionDialog({ target, pending, onClose, onSubmit 
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={pending}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            loading={pending}
+            disabled={pending}
+          >
             Cancel
           </Button>
           <Button

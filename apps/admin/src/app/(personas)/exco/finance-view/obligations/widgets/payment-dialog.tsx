@@ -151,6 +151,7 @@ export function PaymentDialog({
                 variant="outline"
                 size="sm"
                 onClick={onClose}
+                loading={pending}
                 disabled={pending}
               >
                 Cancel
@@ -159,6 +160,7 @@ export function PaymentDialog({
                 type="button"
                 size="sm"
                 onClick={onConfirm}
+                loading={pending}
                 disabled={pending}
                 className="gap-1.5"
               >

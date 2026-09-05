@@ -243,7 +243,7 @@ function SubmitButton({ mode }: { readonly mode: 'create' | 'edit' }) {
   const idle = mode === 'create' ? 'Create Batch' : 'Save changes';
   const busy = mode === 'create' ? 'Creating…' : 'Saving…';
   return (
-    <Button type="submit" size="sm" disabled={pending}>
+    <Button type="submit" size="sm" loading={pending} disabled={pending}>
       {pending ? busy : idle}
     </Button>
   );

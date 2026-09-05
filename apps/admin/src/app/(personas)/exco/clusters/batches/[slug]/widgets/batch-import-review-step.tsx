@@ -116,7 +116,14 @@ export function BatchImportReviewStep({
       )}
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={onReset} disabled={pending}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onReset}
+          loading={pending}
+          disabled={pending}
+        >
           Start over
         </Button>
         <Button

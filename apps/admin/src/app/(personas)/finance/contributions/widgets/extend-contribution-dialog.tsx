@@ -77,10 +77,17 @@ export function ExtendContributionDialog({
           </div>
         )}
         <DialogFooter>
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={pending}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            loading={pending}
+            disabled={pending}
+          >
             Cancel
           </Button>
-          <Button type="button" size="sm" onClick={onSubmit} disabled={pending}>
+          <Button type="button" size="sm" onClick={onSubmit} loading={pending} disabled={pending}>
             Extend
           </Button>
         </DialogFooter>
