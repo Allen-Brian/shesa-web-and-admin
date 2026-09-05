@@ -79,8 +79,8 @@ export function RegistrationForm({ initialError }: Props) {
       className="grid scroll-mt-28 grid-cols-1 gap-6 rounded-xs border border-black/10 bg-white p-6 md:grid-cols-2 md:p-10"
     >
       <div className="md:col-span-2">
-        <p className="font-heading text-[11px] font-medium uppercase tracking-[0.28em] text-primary">
-          Register
+        <p className="font-heading text-[12px] font-medium uppercase tracking-[0.28em] text-primary">
+          SHES (SACRED HEART EX-STUDENT) REGISTRATION
         </p>
         <h3
           className="mt-4 font-heading font-thin leading-[1.1] text-black"

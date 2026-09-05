@@ -57,8 +57,8 @@ export const ACTIVE_PROMO: PromoCampaign = {
     {
       day: '13',
       month: 'Fri',
-      title: 'Regional Football Tournament',
-      detail: 'Branch against branch. Prize pool of 1,000,000 XAF.',
+      title: 'SHESA Regional Football Tournament',
+      detail: 'Prize pool of 1,000,000 XAF.',
     },
     {
       day: '14',
@@ -75,7 +75,7 @@ export const ACTIVE_PROMO: PromoCampaign = {
   ],
   footnote: 'Tickets 20,000 XAF · Early bird until 30 September 2026',
   image: '/hero_two.jpg',
-  cta: { label: 'Get your ticket', href: '/agm-2026#register' },
+  cta: { label: 'Get your ticket (20, 000 XAF)', href: '/agm-2026#register' },
   secondary: { label: 'See the full programme', href: '/agm-2026' },
   /**
    * The whole AGM subtree — landing page, sponsor pitch, confirmation

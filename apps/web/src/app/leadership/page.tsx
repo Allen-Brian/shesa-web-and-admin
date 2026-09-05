@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Leadership · SHESA',
-  description: 'The National Executive, branch presidents, and batch chairs of the SHESA alumni.',
+  description: 'The SHESA Executive, branch presidents, and batch chairs of the SHESA alumni.',
 };
 
 // ── Raw shapes from the `cms` schema ─────────────────────────────────

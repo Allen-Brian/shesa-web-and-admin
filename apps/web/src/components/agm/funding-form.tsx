@@ -91,7 +91,7 @@ export function FundingForm({ initialError }: Props) {
         className="grid grid-cols-1 gap-6 rounded-xs border border-black/10 bg-white p-6 md:grid-cols-2 md:p-10"
       >
         <div className="md:col-span-2">
-          <p className="font-heading text-[11px] font-medium uppercase tracking-[0.28em] text-primary">
+          <p className="font-heading text-[12px] font-medium uppercase tracking-[0.28em] text-primary">
             Fund the AGM
           </p>
           <h3
