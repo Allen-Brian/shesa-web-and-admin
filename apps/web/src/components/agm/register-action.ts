@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 
-import { AGM_CHARGE_IDS, openAgmCheckout, PAY_ON_ARRIVAL } from '@/lib/agm-checkout';
+import { AGM_CHARGE_IDS, openAgmCheckout } from '@/lib/agm-checkout';
 import { submitAgmRegistration, type AgmRegistrationResult } from '@/lib/agm-registration';
 
 import { AGM_TICKET_UNIT_PRICE_XAF, PAYMENT_OPTIONS, type PaymentOption } from './agm-content';
@@ -11,6 +11,8 @@ export interface RegisterInput {
   readonly fullName: string;
   readonly email: string;
   readonly phone: string;
+  /** The registrant's leaving batch, e.g. "1998". */
+  readonly batch: string;
   readonly quantity: number;
   readonly paymentOption: PaymentOption;
 }
@@ -43,6 +45,11 @@ export async function registerForAgm(input: RegisterInput): Promise<RegisterResu
     return { ok: false, message: 'Pick a payment option.' };
   }
 
+  const batch = input.batch.trim().slice(0, 60);
+  if (!batch) {
+    return { ok: false, message: 'Please tell us your batch.' };
+  }
+
   const recorded = await submitAgmRegistration({
     kind: 'ticket',
     fullName: input.fullName,
@@ -51,12 +58,12 @@ export async function registerForAgm(input: RegisterInput): Promise<RegisterResu
     quantity,
     amountXaf: AGM_TICKET_UNIT_PRICE_XAF * quantity,
     paymentMethod: input.paymentOption,
+    // Recorded in the note, which is the only free-text the registration
+    // RPC takes. A dedicated column would be better for reporting on
+    // batch turnout, but that needs a migration.
+    note: batch ? `Batch: ${batch}` : undefined,
   });
   if (!recorded.ok) return recorded;
-
-  // Pay on arrival never touches the gateway — the secretariat collects
-  // at the door. Everything else hands over to hosted checkout.
-  if (input.paymentOption === PAY_ON_ARRIVAL) return recorded;
 
   const checkout = await openAgmCheckout({
     chargeId: AGM_CHARGE_IDS.ticket,
@@ -82,8 +89,9 @@ export async function registerForAgmForm(formData: FormData): Promise<void> {
     fullName: String(formData.get('fullName') ?? ''),
     email: String(formData.get('email') ?? ''),
     phone: String(formData.get('phone') ?? ''),
+    batch: String(formData.get('batch') ?? ''),
     quantity: Number.parseInt(String(formData.get('quantity') ?? '1'), 10) || 1,
-    paymentOption: String(formData.get('paymentOption') ?? 'cash-on-site') as PaymentOption,
+    paymentOption: String(formData.get('paymentOption') ?? 'pay-now') as PaymentOption,
   });
   if (res.ok) {
     redirect(res.redirectTo);

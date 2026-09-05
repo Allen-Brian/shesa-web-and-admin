@@ -124,96 +124,27 @@ export function PromoFlyer() {
   );
 }
 
-/** Left half: the poster proper — image, crest, and the title lockup. */
+/**
+ * Left half: the flyer itself. The artwork already carries the title,
+ * dates, and venue, so nothing is drawn over it — an overlay here would
+ * be the designer's words competing with mine.
+ *
+ * `object-contain` because a flyer is a fixed composition: cropping it
+ * to fill the panel would cut the very text it exists to show.
+ */
 function PosterHalf() {
   const promo = ACTIVE_PROMO;
 
   return (
-    <div className="relative min-h-70 overflow-hidden sm:min-h-90 md:min-h-160">
+    <div className="relative min-h-70 overflow-hidden bg-[#0b0b0f] sm:min-h-90 md:min-h-160">
       <Image
         src={promo.image}
-        alt=""
+        alt={`${promo.title} — ${promo.subtitle}`}
         fill
         priority
         sizes="(min-width: 768px) 640px, 100vw"
-        className="object-cover"
+        className="object-contain"
       />
-
-      <span
-        aria-hidden
-        className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 35%, rgba(0,0,0,0.85) 100%), radial-gradient(75% 55% at 50% 45%, color-mix(in srgb, var(--color-primary) 45%, transparent) 0%, transparent 72%)',
-        }}
-      />
-      {/* Film grain, the same treatment the hero uses. */}
-      <span
-        aria-hidden
-        className="absolute inset-0 opacity-[0.3] mix-blend-overlay"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.35 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>\")",
-          backgroundSize: '200px 200px',
-        }}
-      />
-
-      {/* Corner rules, the way a printed flyer is trimmed. */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-4 border border-white/15 md:inset-6"
-      />
-
-      {/* Ribbon across the top-left corner. */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -left-14 top-10 z-10 rotate-[-38deg] bg-primary px-12 py-1.5 text-center font-heading text-[10px] font-semibold uppercase text-primary-foreground shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
-        style={{ letterSpacing: '0.28em' }}
-      >
-        {promo.ribbon}
-      </span>
-
-      <div className="relative flex h-full flex-col items-center justify-center px-6 py-12 text-center md:px-10 md:py-16">
-        <Image
-          src="/shesa.png"
-          alt="SHESA"
-          width={96}
-          height={96}
-          className="h-14 w-auto object-contain md:h-20"
-        />
-
-        <p
-          className="mt-6 font-heading text-[10px] font-semibold uppercase text-white/70 md:text-[11px]"
-          style={{ letterSpacing: '0.45em' }}
-        >
-          {promo.eyebrow}
-        </p>
-
-        <h2
-          id="promo-flyer-title"
-          className="mt-3 font-display leading-[0.88] text-white"
-          style={{ fontSize: 'clamp(3rem, 9vw, 6rem)', letterSpacing: '-0.035em' }}
-        >
-          {promo.title}
-        </h2>
-
-        <p
-          className="mt-2 font-script text-primary"
-          style={{
-            fontSize: 'clamp(1.6rem, 4.5vw, 2.75rem)',
-            lineHeight: 1,
-            textShadow: '0 4px 30px rgba(139,21,51,0.6)',
-          }}
-        >
-          {promo.subtitle}
-        </p>
-
-        <span aria-hidden className="mt-7 h-px w-16 bg-white/25 md:mt-9" />
-
-        <p className="mt-6 max-w-sm text-[13px] leading-[1.75] text-white/70 md:text-[14px]">
-          {promo.body}
-        </p>
-      </div>
     </div>
   );
 }

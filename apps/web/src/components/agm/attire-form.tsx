@@ -7,7 +7,6 @@ import { motion } from 'framer-motion';
 import {
   AGM_ATTIRE_UNIT_PRICE_XAF,
   ATTIRE_SIZES,
-  PAYMENT_OPTIONS,
   type AttireSize,
   type PaymentOption,
 } from './agm-content';
@@ -37,7 +36,8 @@ export function AttireForm({ initialError }: Props) {
   const [phone, setPhone] = useState('');
   const [size, setSize] = useState<AttireSize>('M');
   const [quantity, setQuantity] = useState(1);
-  const [paymentOption, setPaymentOption] = useState<PaymentOption>('pay-now');
+  // One method left, so nothing to choose: every submission pays now.
+  const paymentOption: PaymentOption = 'pay-now';
   const [error, setError] = useState(initialError ?? '');
 
   const total = AGM_ATTIRE_UNIT_PRICE_XAF * Math.max(1, quantity);
@@ -184,23 +184,6 @@ export function AttireForm({ initialError }: Props) {
           step="1"
           className="rounded-xs border border-black/12 bg-white px-4 py-3 text-[15px] text-black focus:border-primary focus:outline-none"
         />
-      </label>
-
-      <label className="flex flex-col gap-1.5">
-        <span className="font-heading text-[11px] font-medium uppercase tracking-[0.22em] text-black/60">
-          Payment option
-        </span>
-        <select
-          value={paymentOption}
-          onChange={(e) => setPaymentOption(e.target.value as PaymentOption)}
-          className="rounded-xs border border-black/12 bg-white px-4 py-3 text-[15px] text-black focus:border-primary focus:outline-none"
-        >
-          {PAYMENT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
       </label>
 
       {error && (

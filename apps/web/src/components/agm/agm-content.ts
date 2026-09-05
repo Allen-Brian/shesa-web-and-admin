@@ -253,9 +253,13 @@ export function tierForAmount(amountXaf: number): AgmFundingTier['key'] {
  * What is left is the one thing Tranzak cannot answer: whether they are
  * paying at all right now, or handing cash to the secretariat on the day.
  */
+/**
+ * How an AGM payment can be made. Paying on arrival was removed — every
+ * form now goes through the gateway — but the list is kept as a list so
+ * a second method can return without reshaping the forms.
+ */
 export const PAYMENT_OPTIONS = [
   { value: 'pay-now', label: 'Pay now (Mobile Money, card, or bank)' },
-  { value: 'cash-on-site', label: 'Pay on arrival' },
 ] as const;
 
 export type PaymentOption = (typeof PAYMENT_OPTIONS)[number]['value'];

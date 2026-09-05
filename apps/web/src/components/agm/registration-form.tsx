@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
-import { AGM_TICKET_UNIT_PRICE_XAF, PAYMENT_OPTIONS, type PaymentOption } from './agm-content';
+import { AGM_TICKET_UNIT_PRICE_XAF, type PaymentOption } from './agm-content';
 import { registerForAgm } from './register-action';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -29,8 +29,10 @@ export function RegistrationForm({ initialError }: Props) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [batch, setBatch] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [paymentOption, setPaymentOption] = useState<PaymentOption>('pay-now');
+  // One method left, so nothing to choose: every submission pays now.
+  const paymentOption: PaymentOption = 'pay-now';
   const [error, setError] = useState(initialError ?? '');
 
   const total = AGM_TICKET_UNIT_PRICE_XAF * Math.max(1, quantity);
@@ -47,6 +49,10 @@ export function RegistrationForm({ initialError }: Props) {
       setError('Please enter a phone number we can reach you on.');
       return;
     }
+    if (batch.trim().length < 2) {
+      setError('Please tell us your batch.');
+      return;
+    }
     if (!Number.isFinite(quantity) || quantity < 1) {
       setError('Quantity must be at least 1.');
       return;
@@ -57,6 +63,7 @@ export function RegistrationForm({ initialError }: Props) {
         fullName,
         email,
         phone,
+        batch,
         quantity,
         paymentOption,
       });
@@ -139,6 +146,20 @@ export function RegistrationForm({ initialError }: Props) {
 
       <label className="flex flex-col gap-1.5">
         <span className="font-heading text-[11px] font-medium uppercase tracking-[0.22em] text-black/60">
+          Batch
+        </span>
+        <input
+          value={batch}
+          onChange={(e) => setBatch(e.target.value)}
+          placeholder="e.g. 1998"
+          maxLength={60}
+          required
+          className="rounded-xs border border-black/12 bg-white px-4 py-3 text-[15px] text-black focus:border-primary focus:outline-none"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="font-heading text-[11px] font-medium uppercase tracking-[0.22em] text-black/60">
           Tickets
         </span>
         <input
@@ -149,23 +170,6 @@ export function RegistrationForm({ initialError }: Props) {
           step="1"
           className="rounded-xs border border-black/12 bg-white px-4 py-3 text-[15px] text-black focus:border-primary focus:outline-none"
         />
-      </label>
-
-      <label className="flex flex-col gap-1.5">
-        <span className="font-heading text-[11px] font-medium uppercase tracking-[0.22em] text-black/60">
-          Payment option
-        </span>
-        <select
-          value={paymentOption}
-          onChange={(e) => setPaymentOption(e.target.value as PaymentOption)}
-          className="rounded-xs border border-black/12 bg-white px-4 py-3 text-[15px] text-black focus:border-primary focus:outline-none"
-        >
-          {PAYMENT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
       </label>
 
       {error && (

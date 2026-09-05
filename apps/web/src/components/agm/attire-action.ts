@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 
-import { AGM_CHARGE_IDS, openAgmCheckout, PAY_ON_ARRIVAL } from '@/lib/agm-checkout';
+import { AGM_CHARGE_IDS, openAgmCheckout } from '@/lib/agm-checkout';
 import { submitAgmRegistration, type AgmRegistrationResult } from '@/lib/agm-registration';
 
 import {
@@ -60,7 +60,6 @@ export async function orderAttire(input: AttireOrderInput): Promise<AttireOrderR
     paymentMethod: input.paymentOption,
   });
   if (!recorded.ok) return recorded;
-  if (input.paymentOption === PAY_ON_ARRIVAL) return recorded;
 
   const checkout = await openAgmCheckout({
     chargeId: AGM_CHARGE_IDS.attire,
@@ -85,7 +84,7 @@ export async function orderAttireForm(formData: FormData): Promise<void> {
     phone: String(formData.get('phone') ?? ''),
     size: String(formData.get('size') ?? 'M') as AttireSize,
     quantity: Number.parseInt(String(formData.get('quantity') ?? '1'), 10) || 1,
-    paymentOption: String(formData.get('paymentOption') ?? 'cash-on-site') as PaymentOption,
+    paymentOption: String(formData.get('paymentOption') ?? 'pay-now') as PaymentOption,
   });
   if (res.ok) {
     redirect(res.redirectTo);

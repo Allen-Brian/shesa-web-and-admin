@@ -74,7 +74,7 @@ export const ACTIVE_PROMO: PromoCampaign = {
     },
   ],
   footnote: 'Tickets 20,000 XAF · Early bird until 30 September 2026',
-  image: '/hero_two.jpg',
+  image: '/agm_flyer.jpeg',
   cta: { label: 'Get your ticket (20, 000 XAF)', href: '/agm-2026#register' },
   secondary: { label: 'See the full programme', href: '/agm-2026' },
   /**

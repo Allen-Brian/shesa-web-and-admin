@@ -4,12 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
-import {
-  AGM_FUNDING_TIERS,
-  PAYMENT_OPTIONS,
-  tierForAmount,
-  type PaymentOption,
-} from './agm-content';
+import { AGM_FUNDING_TIERS, tierForAmount, type PaymentOption } from './agm-content';
 import { donateForAgmFunding } from './funding-action';
 import { FundingTierCard } from './funding-tier-card';
 
@@ -34,7 +29,8 @@ export function FundingForm({ initialError }: Props) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [note, setNote] = useState('');
-  const [paymentOption, setPaymentOption] = useState<PaymentOption>('pay-now');
+  // One method left, so nothing to choose: every submission pays now.
+  const paymentOption: PaymentOption = 'pay-now';
   const [error, setError] = useState(initialError ?? '');
 
   const derivedTier = useMemo(() => (amountXaf > 0 ? tierForAmount(amountXaf) : null), [amountXaf]);
@@ -164,23 +160,6 @@ export function FundingForm({ initialError }: Props) {
             placeholder="50000"
             className="rounded-xs border border-black/12 bg-white px-4 py-3 text-[15px] text-black focus:border-primary focus:outline-none"
           />
-        </label>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="font-heading text-[11px] font-medium uppercase tracking-[0.22em] text-black/60">
-            Payment option
-          </span>
-          <select
-            value={paymentOption}
-            onChange={(e) => setPaymentOption(e.target.value as PaymentOption)}
-            className="rounded-xs border border-black/12 bg-white px-4 py-3 text-[15px] text-black focus:border-primary focus:outline-none"
-          >
-            {PAYMENT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
         </label>
 
         <label className="flex flex-col gap-1.5 md:col-span-2">

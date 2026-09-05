@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 
-import { AGM_CHARGE_IDS, openAgmCheckout, PAY_ON_ARRIVAL } from '@/lib/agm-checkout';
+import { AGM_CHARGE_IDS, openAgmCheckout } from '@/lib/agm-checkout';
 import { submitAgmRegistration, type AgmRegistrationResult } from '@/lib/agm-registration';
 
 import {
@@ -67,7 +67,6 @@ export async function donateForAgmFunding(input: FundingInput): Promise<FundingR
     note,
   });
   if (!recorded.ok) return recorded;
-  if (input.paymentOption === PAY_ON_ARRIVAL) return recorded;
 
   // A donation is genuinely caller-priced, so the amount does travel —
   // bounded above by MAX_PLEDGE_XAF here and again in the Edge Function.
@@ -96,7 +95,7 @@ export async function donateForAgmFundingForm(formData: FormData): Promise<void>
     // Ignored — the tier is derived from the amount server-side.
     tier: null,
     amountXaf: Number.parseInt(String(formData.get('amountXaf') ?? '0'), 10) || 0,
-    paymentOption: String(formData.get('paymentOption') ?? 'cash-on-site') as PaymentOption,
+    paymentOption: String(formData.get('paymentOption') ?? 'pay-now') as PaymentOption,
     note: String(formData.get('note') ?? ''),
   });
   if (res.ok) {
