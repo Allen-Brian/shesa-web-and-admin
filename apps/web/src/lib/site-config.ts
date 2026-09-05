@@ -16,6 +16,22 @@ export const siteConfig = {
     'The official home of the SHESA alumni community, reconnect, celebrate legacy, and shape what comes next.',
 } as const;
 
+/**
+ * The Association's vision and mission, as issued by the President
+ * General. One source for every surface that quotes them, so a revision
+ * lands everywhere at once rather than being chased through components.
+ *
+ * The Strategic Plan carries its own wording of both in
+ * `strategic-plan-content.ts` — that is a quotation from an adopted
+ * document and is deliberately left as written.
+ */
+export const association = {
+  vision:
+    'To build a globally connected, influential, and inclusive SHESA network that empowers every SHESAN to thrive and create lasting societal impact.',
+  mission:
+    'To connect, empower, and mobilize SHESANs worldwide through lifelong engagement, professional development, mutual support, and collective action for better livelihood, advancement of SAHECO and nation building.',
+} as const;
+
 export const navItems: readonly NavItem[] = [
   { label: 'Home', href: '/' },
   { label: 'About', href: '/about' },

@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 
+import { association } from '@/lib/site-config';
+
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
 const fadeUp: Variants = {
@@ -52,7 +54,7 @@ export function Vision() {
             className="mt-6 font-heading text-[11px] font-medium uppercase text-white/75 md:text-xs"
             style={{ letterSpacing: '0.5em' }}
           >
-            What's Next
+            Vision &amp; Mission
           </motion.p>
 
           <motion.h2
@@ -70,19 +72,36 @@ export function Vision() {
             The Shesa we're <span className="italic text-primary">building.</span>
           </motion.h2>
 
-          <motion.p
+          {/* The Association's adopted statements, from site-config. The
+              paragraph that stood here was written for the site — a good
+              line about labs, books, and bursaries — but it was not what
+              SHESA had actually resolved to do. */}
+          <motion.div
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, amount: 0.5 }}
+            viewport={{ once: true, amount: 0.4 }}
             variants={fadeUp}
             custom={3}
-            className="mt-8 max-w-2xl text-[15.5px] leading-[1.8] text-white/75 md:text-base"
+            className="mt-10 grid gap-8 text-left md:mt-12 md:grid-cols-2 md:gap-10"
           >
-            A brotherhood that reaches every graduate, wherever life took him. A school that never
-            lacks a lab, a book, or a bursary. A network where the youngest Shesan can call the
-            eldest and be answered. That's the Shesa we're building. And it starts with you showing
-            up.
-          </motion.p>
+            {[
+              { label: 'Vision', body: association.vision },
+              { label: 'Mission', body: association.mission },
+            ].map((s) => (
+              <div key={s.label} className="relative pl-5">
+                <span aria-hidden className="absolute inset-y-1 left-0 w-px bg-primary/60" />
+                <p
+                  className="font-heading text-[10px] font-semibold uppercase text-primary md:text-[11px]"
+                  style={{ letterSpacing: '0.32em' }}
+                >
+                  {s.label}
+                </p>
+                <p className="mt-3 text-[15px] leading-[1.8] text-white/75 md:text-[15.5px]">
+                  {s.body}
+                </p>
+              </div>
+            ))}
+          </motion.div>
 
           <motion.p
             initial="hidden"
@@ -97,7 +116,7 @@ export function Vision() {
               textShadow: '0 4px 30px rgba(139,21,51,0.55)',
             }}
           >
-            One family. Every era.
+            One SHESA. One Dream.
           </motion.p>
 
           <motion.div
