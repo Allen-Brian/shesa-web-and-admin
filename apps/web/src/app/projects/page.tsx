@@ -10,8 +10,15 @@ import { getServerClient } from '@/lib/supabase-server';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Projects · SHESA',
+  title: 'Projects',
   description: 'The projects, funds, and community missions SHESA is quietly building.',
+  alternates: { canonical: '/projects' },
+  openGraph: {
+    title: 'Projects',
+    description: 'The projects, funds, and community missions SHESA is quietly building.',
+    url: '/projects',
+    type: 'website',
+  },
 };
 
 interface RawCategory {

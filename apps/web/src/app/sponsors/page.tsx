@@ -6,9 +6,17 @@ import { SponsorsHero } from '@/components/sponsors/sponsors-hero';
 import { TiersSection } from '@/components/sponsors/tiers-section';
 
 export const metadata: Metadata = {
-  title: 'Sponsors · SHESA',
+  title: 'Sponsors',
   description:
     'The institutions, chapters, and businesses who carry the SHESA year, from Platinum partners to community backers.',
+  alternates: { canonical: '/sponsors' },
+  openGraph: {
+    title: 'Sponsors',
+    description:
+      'The institutions, chapters, and businesses who carry the SHESA year, from Platinum partners to community backers.',
+    url: '/sponsors',
+    type: 'website',
+  },
 };
 
 export default function SponsorsPage() {

@@ -12,9 +12,17 @@ import { StrategicGoals } from '@/components/strategic-plan/strategic-goals';
 import { StrategicPlanHero } from '@/components/strategic-plan/strategic-plan-hero';
 
 export const metadata: Metadata = {
-  title: 'Strategic Plan 2026 – 2030 · SHESA',
+  title: 'Strategic Plan 2026 \u2013 2030',
   description:
     'SHESA’s five-year pathway to institutional unity, member value, financial resilience, and societal impact. The 2026 – 2030 Strategic Plan.',
+  alternates: { canonical: '/strategic-plan' },
+  openGraph: {
+    title: 'Strategic Plan 2026 \u2013 2030',
+    description:
+      'SHESA\u2019s five-year pathway to institutional unity, member value, financial resilience, and societal impact. The 2026 \u2013 2030 Strategic Plan.',
+    url: '/strategic-plan',
+    type: 'website',
+  },
 };
 
 export default function StrategicPlanPage() {

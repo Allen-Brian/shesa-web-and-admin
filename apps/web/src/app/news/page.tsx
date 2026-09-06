@@ -9,8 +9,15 @@ import { getServerClient } from '@/lib/supabase-server';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'News · SHESA',
+  title: 'News',
   description: 'The official record of SHESA news, dispatches, and community milestones.',
+  alternates: { canonical: '/news' },
+  openGraph: {
+    title: 'News',
+    description: 'The official record of SHESA news, dispatches, and community milestones.',
+    url: '/news',
+    type: 'website',
+  },
 };
 
 interface Params {

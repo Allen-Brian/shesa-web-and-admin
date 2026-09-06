@@ -4,8 +4,15 @@ import { PRESIDENTS_ADDRESS } from '@/components/president/presidents-address-co
 import { PresidentsLetter } from '@/components/president/presidents-letter';
 
 export const metadata: Metadata = {
-  title: `${PRESIDENTS_ADDRESS.title} · SHESA`,
+  title: PRESIDENTS_ADDRESS.title,
   description: PRESIDENTS_ADDRESS.excerpt,
+  alternates: { canonical: '/presidents-address' },
+  openGraph: {
+    title: PRESIDENTS_ADDRESS.title,
+    description: PRESIDENTS_ADDRESS.excerpt,
+    url: '/presidents-address',
+    type: 'website',
+  },
 };
 
 /**

@@ -70,10 +70,27 @@ export async function generateMetadata({
   const { slug } = await params;
   const list = await loadAllProjects();
   const project = list.find((p) => p.slug === slug);
-  if (!project) return { title: 'Project · SHESA' };
+  if (!project) return { title: 'Project' };
+
+  const image = project.image || undefined;
+
   return {
-    title: `${project.title} · SHESA Projects`,
+    title: project.title,
     description: project.shortDescription,
+    alternates: { canonical: `/projects/${project.slug}` },
+    openGraph: {
+      type: 'article',
+      title: project.title,
+      description: project.shortDescription,
+      url: `/projects/${project.slug}`,
+      images: image ? [{ url: image, alt: project.title }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: project.title,
+      description: project.shortDescription,
+      images: image ? [image] : undefined,
+    },
   };
 }
 

@@ -8,6 +8,8 @@
  * state instead of hardcoded placeholders.
  */
 
+import type { Metadata } from 'next';
+
 import { AgmCta } from '@/components/home/agm-cta';
 import { Events } from '@/components/home/events';
 import { Gallery } from '@/components/home/gallery';
@@ -22,6 +24,8 @@ import { Projects } from '@/components/home/projects';
 import { SoundsCta } from '@/components/home/sounds-cta';
 import { Stats } from '@/components/home/stats';
 import { StrategicPlanCta } from '@/components/home/strategic-plan-cta';
+import { OrganizationSchema, WebSiteSchema } from '@/components/seo/structured-data';
+import { siteConfig } from '@/lib/site-config';
 import {
   loadHomeAlbums,
   loadHomeEvents,
@@ -29,6 +33,12 @@ import {
   loadHomeNews,
   loadHomeProjects,
 } from '@/lib/home-data';
+
+export const metadata: Metadata = {
+  title: `${siteConfig.name}, ${siteConfig.tagline}`,
+  description: siteConfig.description,
+  alternates: { canonical: '/' },
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +52,8 @@ export default async function HomePage() {
   ]);
   return (
     <>
+      <OrganizationSchema />
+      <WebSiteSchema />
       <Hero />
       <Mission />
       <PresidentsWord />

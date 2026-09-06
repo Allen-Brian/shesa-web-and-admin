@@ -5,6 +5,8 @@ import { SiteFooter } from '@/components/footer/site-footer';
 import { LenisProvider } from '@/components/lenis-provider';
 import { SiteNav } from '@/components/nav/site-nav';
 import { PromoFlyer } from '@/components/promo/promo-flyer';
+import { clientEnv } from '@shesa/config/env.client';
+
 import { siteConfig } from '@/lib/site-config';
 
 import './globals.css';
@@ -18,9 +20,69 @@ import './globals.css';
  * the .woff2 files makes the font layer offline-reproducible.
  */
 
+/**
+ * Site-wide metadata.
+ *
+ * `metadataBase` is what makes every relative image and canonical below
+ * resolve to an absolute URL — without it Next emits relative OG tags,
+ * which crawlers and social cards ignore.
+ *
+ * The title template lets each page set a short title and still be
+ * indexed under the association's name.
+ */
 export const metadata: Metadata = {
-  title: `${siteConfig.name}, ${siteConfig.tagline}`,
+  metadataBase: new URL(clientEnv.NEXT_PUBLIC_WEB_APP_URL),
+  title: {
+    default: `${siteConfig.name}, ${siteConfig.tagline}`,
+    template: `%s · ${siteConfig.name}`,
+  },
   description: siteConfig.description,
+  applicationName: siteConfig.name,
+  keywords: [
+    'SHESA',
+    'Sacred Heart College Mankon',
+    'SAHECO',
+    'Sacred Heart alumni',
+    'SHESA alumni',
+    'Cameroon alumni association',
+    'Viriliter Age',
+    'Bamenda',
+    'AGM 2026',
+  ],
+  authors: [{ name: siteConfig.name }],
+  creator: siteConfig.name,
+  publisher: siteConfig.name,
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    siteName: siteConfig.name,
+    title: `${siteConfig.name}, ${siteConfig.tagline}`,
+    description: siteConfig.description,
+    url: '/',
+    locale: 'en_GB',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${siteConfig.name}, ${siteConfig.tagline}`,
+    description: siteConfig.description,
+  },
+  icons: {
+    icon: '/shesa.png',
+    shortcut: '/shesa.png',
+    apple: '/shesa.png',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
+  category: 'Education',
 };
 
 interface RootLayoutProps {

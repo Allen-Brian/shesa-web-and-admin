@@ -8,9 +8,17 @@ import { getServerClient } from '@/lib/supabase-server';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Organs · SHESA',
+  title: 'Organs',
   description:
     'Every SHESA organ, the National body, the sectors, and the branches. From Yaoundé to Berlin to Washington.',
+  alternates: { canonical: '/organs' },
+  openGraph: {
+    title: 'Organs',
+    description:
+      'Every SHESA organ, the National body, the sectors, and the branches. From Yaound\u00e9 to Berlin to Washington.',
+    url: '/organs',
+    type: 'website',
+  },
 };
 
 interface RawSector {

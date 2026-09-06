@@ -9,6 +9,7 @@ import type { SiteEvent } from '@/components/events/events-content';
 import { EventDetail } from '@/components/events/event-detail';
 import { formatEvent, type RawSiteEvent } from '@/components/events/format-event';
 import { getServerClient } from '@/lib/supabase-server';
+import { EventSchema } from '@/components/seo/structured-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,10 +70,29 @@ export async function generateMetadata({
   const { slug } = await params;
   const list = await loadAllEvents();
   const event = list.find((e) => e.slug === slug);
-  if (!event) return { title: 'Event · SHESA' };
+  if (!event) return { title: 'Event' };
+
+  // The banner is the share card: an event's own artwork says far more
+  // than the site-wide fallback.
+  const images = event.image ? [{ url: event.image, alt: event.title }] : undefined;
+
   return {
-    title: `${event.title} · SHESA Events`,
+    title: event.title,
     description: event.description,
+    alternates: { canonical: `/events/${event.slug}` },
+    openGraph: {
+      type: 'article',
+      title: event.title,
+      description: event.description,
+      url: `/events/${event.slug}`,
+      images,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: event.title,
+      description: event.description,
+      images: event.image ? [event.image] : undefined,
+    },
   };
 }
 
@@ -112,18 +132,30 @@ export default async function EventPage({ params }: { readonly params: Promise<P
   const contribution = await loadPublicContribution(event.contributionChargeId);
 
   return (
-    <EventDetail
-      event={enrichedEvent}
-      related={related}
-      contribute={
-        contribution ? (
-          <ContributePanel
-            contribution={contribution}
-            subject={event.title}
-            action={contributeAction}
-          />
-        ) : null
-      }
-    />
+    <>
+      <EventSchema
+        name={event.title}
+        description={event.description}
+        startDate={event.fullDate}
+        location={event.location}
+        city={event.city}
+        image={event.image}
+        slug={event.slug}
+        isPast={!event.upcoming}
+      />
+      <EventDetail
+        event={enrichedEvent}
+        related={related}
+        contribute={
+          contribution ? (
+            <ContributePanel
+              contribution={contribution}
+              subject={event.title}
+              action={contributeAction}
+            />
+          ) : null
+        }
+      />
+    </>
   );
 }

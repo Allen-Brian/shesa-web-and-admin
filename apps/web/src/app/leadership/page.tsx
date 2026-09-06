@@ -13,9 +13,17 @@ import { getServerClient } from '@/lib/supabase-server';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Leadership · SHESA',
+  title: 'Leadership',
   description:
     'The SHESA Executive Committee, branch presidents, and batch chairs of the SHESA alumni.',
+  alternates: { canonical: '/leadership' },
+  openGraph: {
+    title: 'Leadership',
+    description:
+      'The SHESA Executive Committee, branch presidents, and batch chairs of the SHESA alumni.',
+    url: '/leadership',
+    type: 'website',
+  },
 };
 
 // ── Raw shapes from the `cms` schema ─────────────────────────────────

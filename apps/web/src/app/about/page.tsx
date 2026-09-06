@@ -9,9 +9,17 @@ import { Timeline } from '@/components/about/timeline';
 import { Vision } from '@/components/about/vision';
 
 export const metadata: Metadata = {
-  title: 'About · SHESA',
+  title: 'About',
   description:
     'The story of Sacred Heart College, Mankon and the alumni brotherhood, SHESA, that carries its ethos forward.',
+  alternates: { canonical: '/about' },
+  openGraph: {
+    title: 'About',
+    description:
+      'The story of Sacred Heart College, Mankon and the alumni brotherhood, SHESA, that carries its ethos forward.',
+    url: '/about',
+    type: 'website',
+  },
 };
 
 export default function AboutPage() {

@@ -6,9 +6,17 @@ import { LegalPageHero } from '@/components/legal/legal-page-hero';
 import { TERMS_META, TERMS_SECTIONS } from './terms-content';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service · SHESA',
+  title: 'Terms of Service',
   description:
     'The rules that govern your use of the SHESA public website, the members-only Connect platform, and related services.',
+  alternates: { canonical: '/terms' },
+  openGraph: {
+    title: 'Terms of Service',
+    description:
+      'The rules that govern your use of the SHESA public website, the members-only Connect platform, and related services.',
+    url: '/terms',
+    type: 'website',
+  },
 };
 
 export default function TermsPage() {

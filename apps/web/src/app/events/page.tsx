@@ -11,8 +11,15 @@ import { getServerClient } from '@/lib/supabase-server';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Events · SHESA',
+  title: 'Events',
   description: 'Reunions, ceremonies, community drives, and cultural nights, the SHESA calendar.',
+  alternates: { canonical: '/events' },
+  openGraph: {
+    title: 'Events',
+    description: 'Reunions, ceremonies, community drives, and cultural nights, the SHESA calendar.',
+    url: '/events',
+    type: 'website',
+  },
 };
 
 interface RawCategory {

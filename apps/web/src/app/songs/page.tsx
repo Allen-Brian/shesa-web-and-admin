@@ -10,9 +10,17 @@ import { getServerClient } from '@/lib/supabase-server';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Songs · SHESA',
+  title: 'Songs',
   description:
     'The SHESA songbook, every anthem, every chapter song, every cultural piece. Play, search, download.',
+  alternates: { canonical: '/songs' },
+  openGraph: {
+    title: 'Songs',
+    description:
+      'The SHESA songbook, every anthem, every chapter song, every cultural piece. Play, search, download.',
+    url: '/songs',
+    type: 'website',
+  },
 };
 
 interface RawGroup {

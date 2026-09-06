@@ -6,9 +6,17 @@ import { LegalPageHero } from '@/components/legal/legal-page-hero';
 import { PRIVACY_META, PRIVACY_SECTIONS } from './privacy-content';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy · SHESA',
+  title: 'Privacy Policy',
   description:
     'How the Sacred Heart Ex-Students’ Association collects, uses, and protects your personal data across the public website, the Connect platform, and payment flows.',
+  alternates: { canonical: '/privacy' },
+  openGraph: {
+    title: 'Privacy Policy',
+    description:
+      'How the Sacred Heart Ex-Students\u2019 Association collects, uses, and protects your personal data across the public website, the Connect platform, and payment flows.',
+    url: '/privacy',
+    type: 'website',
+  },
 };
 
 export default function PrivacyPage() {

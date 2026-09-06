@@ -11,9 +11,17 @@ import { SponsorBridge } from '@/components/agm/sponsor-bridge';
 import { PartnersBillboard } from '@/components/home/partners-billboard';
 
 export const metadata: Metadata = {
-  title: 'AGM 2026 · The Yaoundé Assembly · SHESA',
+  title: 'AGM 2026 \u00b7 The Yaound\u00e9 Assembly',
   description:
     'The Sacred Heart Alumni AGM 2026 comes to Yaoundé, three days of assembly, ceremony, and handover. Register now.',
+  alternates: { canonical: '/agm-2026' },
+  openGraph: {
+    title: 'AGM 2026 \u00b7 The Yaound\u00e9 Assembly',
+    description:
+      'The Sacred Heart Alumni AGM 2026 comes to Yaound\u00e9, three days of assembly, ceremony, and handover. Register now.',
+    url: '/agm-2026',
+    type: 'website',
+  },
 };
 
 interface Search {
