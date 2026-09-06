@@ -133,14 +133,20 @@ export function PromoFlyer() {
  * above and below, because the flyer is portrait and the panel is as
  * tall as the details beside it. Filling costs a sliver off one edge
  * instead, taken from the bottom so the title and crest are never
- * touched. On a phone the panel takes the flyer's own proportions, so
- * almost nothing is lost there.
+ * touched.
+ *
+ * Hidden below `md`. Stacked on a phone the poster is a 4:5 block above
+ * the details, which pushed the dates, the programme and — worst — the
+ * pay button below the fold of a dialog most people never think to
+ * scroll. A flyer nobody can act on is decoration. The artwork is the
+ * invitation, but the button is the point, so on a small screen the
+ * button wins.
  */
 function PosterHalf() {
   const promo = ACTIVE_PROMO;
 
   return (
-    <div className="relative aspect-4/5 overflow-hidden bg-[#0b0b0f] md:aspect-auto md:h-full md:min-h-160">
+    <div className="relative hidden aspect-4/5 overflow-hidden bg-[#0b0b0f] md:block md:aspect-auto md:h-full md:min-h-160">
       <Image
         src={promo.image}
         alt={`${promo.title} — ${promo.subtitle}`}
@@ -158,7 +164,9 @@ function StubHalf({ onNavigate }: { readonly onNavigate: () => void }) {
   const promo = ACTIVE_PROMO;
 
   return (
-    <div className="relative flex flex-col justify-center gap-7 border-t border-dashed border-white/20 px-6 py-10 md:border-l md:border-t-0 md:px-10 md:py-14">
+    // The dashed edge is the tear between poster and stub, so it only
+    // exists where the poster does — on md and up, down the left side.
+    <div className="relative flex flex-col justify-center gap-7 border-dashed border-white/20 px-6 py-10 md:border-l md:px-10 md:py-14">
       {/* Date lockup. */}
       <div>
         <p

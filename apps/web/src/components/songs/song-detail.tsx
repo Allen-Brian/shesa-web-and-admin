@@ -168,8 +168,8 @@ export function SongDetail({
 
             {/* `whitespace-pre-line` keeps the editor's line and verse
                 breaks, which is the whole shape of a lyric. */}
-            <div className="mt-8 max-w-3xl rounded-xs border border-black/8 bg-black/[0.02] p-6 md:p-10">
-              <p className="whitespace-pre-line text-[16px] leading-[2] text-black/75">
+            <div className="mt-8 max-w-3xl rounded-xs border border-black/8 bg-black/2 p-6 md:p-10">
+              <p className="whitespace-pre-line text-[16px] leading-loose text-black/75">
                 {song.lyrics}
               </p>
             </div>
