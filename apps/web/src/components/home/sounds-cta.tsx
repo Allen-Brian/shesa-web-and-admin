@@ -255,7 +255,7 @@ function PlayCentre() {
 function PrimaryCta() {
   return (
     <Link
-      href="/sounds"
+      href="/songs"
       className="group relative inline-flex items-center gap-3 overflow-hidden rounded-xs bg-primary px-9 py-4 text-sm font-medium tracking-wide text-primary-foreground shadow-[0_20px_60px_-15px_rgba(139,21,51,0.7)] transition-all duration-500 hover:-translate-y-0.5 hover:shadow-[0_25px_75px_-15px_rgba(139,21,51,0.95)] md:px-11 md:py-5 md:text-base"
     >
       <span
@@ -284,7 +284,7 @@ function PrimaryCta() {
 function SecondaryCta() {
   return (
     <Link
-      href="/sounds/anthem"
+      href="/songs"
       className="group relative inline-flex items-center gap-3 overflow-hidden rounded-xs border border-white/25 bg-white/[0.03] px-9 py-4 text-sm font-medium tracking-wide text-white backdrop-blur-sm transition-all duration-500 hover:-translate-y-0.5 hover:border-white hover:bg-white hover:text-black md:px-11 md:py-5 md:text-base"
     >
       <svg

@@ -38,6 +38,18 @@ export function AlbumDetail({ album }: { readonly album: Album }) {
     <>
       <AlbumHero album={album} photos={photos} videos={videos} />
       <section className="relative bg-white py-14 md:py-16">
+        {/* Above the grid, on the light background: the counter needs to
+            be where someone who has just looked through the album can
+            reach it, not buried in the hero they scrolled past. */}
+        <div className="mx-auto mb-8 max-w-350 px-5 md:mb-10 md:px-8 lg:px-12">
+          <div className="flex items-center justify-between border-y border-black/8 py-3">
+            <span className="font-heading text-[11px] font-medium uppercase tracking-[0.24em] text-black/45">
+              {album.media.length} {album.media.length === 1 ? 'item' : 'items'}
+            </span>
+            <Engagement kind="album" entityId={album.id} countView />
+          </div>
+        </div>
+
         <MediaGrid media={album.media} albumTitle={album.title} />
       </section>
       <CtaFooter />
@@ -129,17 +141,6 @@ function AlbumHero({
             </motion.span>
           </span>
         </motion.h1>
-
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.5 }}
-          variants={fadeUp}
-          custom={2}
-          className="mt-5 [&_*]:text-white/70 [&_button:hover]:text-white"
-        >
-          <Engagement kind="album" entityId={album.id} countView />
-        </motion.div>
 
         {album.linkedEventSlug && (
           <motion.div

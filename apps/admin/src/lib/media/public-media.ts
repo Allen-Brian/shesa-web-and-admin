@@ -218,10 +218,13 @@ export const AUDIO: MediaKind = {
     'audio/webm',
     'audio/aac',
     'audio/mp4', // .m4a
+    'audio/x-m4a', // what Safari reports for the same file
+    'audio/flac',
+    'audio/x-flac',
   ]),
   maxBytes: 50 * MB,
   noun: 'Audio',
-  accepts: 'MP3, WAV, OGG, or M4A',
+  accepts: 'MP3, WAV, OGG, M4A, or FLAC',
 };
 
 /**

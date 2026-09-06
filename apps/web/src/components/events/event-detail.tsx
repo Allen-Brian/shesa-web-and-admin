@@ -181,10 +181,6 @@ function EventHero({ event, days }: { readonly event: SiteEvent; readonly days: 
           {event.category} · {event.upcoming ? 'Upcoming' : 'Past Event'}
         </motion.p>
 
-        <div className="mt-5 [&_*]:text-white/70 [&_button:hover]:text-white">
-          <Engagement kind="event" entityId={event.id} countView />
-        </div>
-
         <motion.h1
           initial="hidden"
           whileInView="visible"
@@ -259,6 +255,13 @@ function EventBody({
             >
               About this event
             </motion.p>
+
+            {/* In the body rather than the hero: over the banner it read as
+                decoration and nobody reached for it. Here it sits where the
+                reader has arrived and can act. */}
+            <div className="mt-5 border-y border-black/8 py-3">
+              <Engagement kind="event" entityId={event.id} countView />
+            </div>
 
             {/* Only when the editor wrote a separate short summary —
                 otherwise `description` is just the first paragraph of the

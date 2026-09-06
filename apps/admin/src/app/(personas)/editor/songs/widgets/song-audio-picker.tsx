@@ -5,7 +5,9 @@ import { AudioLines, Loader2, Play, Upload, X } from 'lucide-react';
 
 import { Button, Input, Label, toast } from '@shesa/ui';
 
-import { deleteSongAudio, uploadSongAudio } from '../actions/photo-actions';
+import { uploadDirect } from '@/lib/media/direct-upload';
+
+import { deleteSongAudio } from '../actions/photo-actions';
 import { formatDuration } from './song-duration';
 
 interface Props {
@@ -40,12 +42,18 @@ export function SongAudioPicker({ value, duration, onChange }: Props) {
       el.src = url;
     });
 
+  /**
+   * Straight to Storage, not through a server action.
+   *
+   * A song is a few megabytes and the serverless request body limit sits
+   * below that, so posting the file to the server failed at the platform
+   * before any of our code ran. The browser now uploads to a signed URL
+   * the server issues after checking permissions.
+   */
   const onFile = (file: File | undefined) => {
     if (!file) return;
-    const fd = new FormData();
-    fd.set('file', file);
     startTransition(async () => {
-      const res = await uploadSongAudio(fd);
+      const res = await uploadDirect({ file, bucket: 'cms-audio', kind: 'audio' });
       if (!res.ok) {
         toast.error(res.message);
         return;
@@ -53,7 +61,7 @@ export function SongAudioPicker({ value, duration, onChange }: Props) {
       if (value && value.includes('/cms-audio/')) void deleteSongAudio(value);
       const detected = await detectDuration(res.url);
       onChange(res.url, detected);
-      toast.success('Audio uploaded.');
+      toast.success(res.deduped ? 'Audio already stored — linked.' : 'Audio uploaded.');
     });
   };
 
@@ -172,7 +180,7 @@ export function SongAudioPicker({ value, duration, onChange }: Props) {
       <input
         ref={fileRef}
         type="file"
-        accept="audio/mpeg,audio/mp3,audio/wav,audio/wave,audio/x-wav,audio/ogg,audio/webm,audio/aac,audio/mp4"
+        accept="audio/mpeg,audio/mp3,audio/wav,audio/wave,audio/x-wav,audio/ogg,audio/webm,audio/aac,audio/mp4,audio/x-m4a,audio/flac,audio/x-flac"
         className="hidden"
         onChange={(e) => {
           onFile(e.target.files?.[0]);

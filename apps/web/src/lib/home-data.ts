@@ -50,6 +50,7 @@ const MONTH_LABELS = [
 ];
 
 export interface HomeEventItem {
+  readonly id: string;
   readonly title: string;
   readonly day: string;
   readonly month: string;
@@ -69,6 +70,7 @@ export interface HomeProjectItem {
 }
 
 export interface HomeAlbumItem {
+  readonly id: string;
   readonly title: string;
   readonly date: string;
   readonly photos: number;
@@ -104,7 +106,7 @@ export async function loadHomeEvents(): Promise<readonly HomeEventItem[]> {
   const supabase = await getServerClient();
   const now = new Date().toISOString();
 
-  const columns = 'slug, title, banner_url, starts_at, location, city';
+  const columns = 'id, slug, title, banner_url, starts_at, location, city';
 
   // Ten events: what is coming, soonest first, then the most recent
   // gatherings to fill the strip. A quiet stretch in the calendar used
@@ -128,6 +130,7 @@ export async function loadHomeEvents(): Promise<readonly HomeEventItem[]> {
   ]);
 
   type Row = {
+    id: string;
     slug: string;
     title: string;
     banner_url: string | null;
@@ -142,6 +145,7 @@ export async function loadHomeEvents(): Promise<readonly HomeEventItem[]> {
   return rows.map((r) => {
     const d = new Date(r.starts_at);
     return {
+      id: r.id,
       title: r.title,
       day: String(d.getDate()).padStart(2, '0'),
       month: MONTH_LABELS[d.getMonth()] ?? '—',
@@ -220,7 +224,7 @@ export async function loadHomeAlbums(): Promise<readonly HomeAlbumItem[]> {
   const { data, error } = await supabase
     .schema('cms')
     .from('gallery_albums')
-    .select('slug, title, date_label, cover_url, description, gallery_media(count)')
+    .select('id, slug, title, date_label, cover_url, description, gallery_media(count)')
     .order('sort_order', { ascending: true })
     .limit(7);
 
@@ -237,6 +241,7 @@ export async function loadHomeAlbums(): Promise<readonly HomeAlbumItem[]> {
   }
 
   return (data ?? []).map((a) => ({
+    id: a.id,
     title: a.title,
     date: a.date_label ?? '',
     // PostgREST returns an embedded aggregate as `[{ count: n }]`.

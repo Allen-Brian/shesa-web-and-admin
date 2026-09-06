@@ -7,6 +7,8 @@ import { CalendarClock } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/empty-state';
 
+import { MetricsBadge, MetricsProvider } from '@/components/ui/metrics-badge';
+
 import { MarqueeCarousel } from './marquee-carousel';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -21,6 +23,7 @@ const fadeUp: Variants = {
 };
 
 type Event = {
+  readonly id: string;
   readonly title: string;
   readonly day: string;
   readonly month: string;
@@ -97,12 +100,14 @@ export function Events({ events }: EventsProps) {
             />
           </div>
         ) : (
-          <MarqueeCarousel
-            items={events}
-            duration={50}
-            ariaLabel="Our events"
-            renderItem={(event) => <EventCard event={event} />}
-          />
+          <MetricsProvider kind="event" ids={events.map((e) => e.id)}>
+            <MarqueeCarousel
+              items={events}
+              duration={50}
+              ariaLabel="Our events"
+              renderItem={(event) => <EventCard event={event} />}
+            />
+          </MetricsProvider>
         )}
       </motion.div>
     </section>
@@ -159,6 +164,7 @@ function EventCard({ event }: { readonly event: Event }) {
           <span className="truncate">{event.location}</span>
         </div>
         <p className="mt-1 pl-5 text-xs text-black/45">{event.city}</p>
+        <MetricsBadge entityId={event.id} className="mt-4" />
       </div>
     </Link>
   );

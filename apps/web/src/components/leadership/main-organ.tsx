@@ -78,7 +78,7 @@ export function MainOrgan({ tiers }: MainOrganProps) {
               letterSpacing: '-0.02em',
             }}
           >
-            The National <span className="text-primary">Executive Committee.</span>
+            The SHESA Executive and the <span className="text-primary">National Executive.</span>
           </motion.h2>
 
           <motion.p

@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { CalendarClock } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/empty-state';
+import { MetricsBadge, MetricsProvider } from '@/components/ui/metrics-badge';
 
 import type { SiteEvent } from './events-content';
 
@@ -184,37 +185,39 @@ export function EventsList({ events, categories: categoryOptions }: Props) {
           })}
         </motion.div>
 
-        <div className="mt-12 flex flex-col gap-14 md:mt-16 md:gap-20">
-          {years.length === 0 ? (
-            <p className="rounded-xs border border-dashed border-black/15 bg-white p-10 text-center text-sm text-black/50">
-              Nothing in this category yet. Try another filter.
-            </p>
-          ) : (
-            years.map((group) => (
-              <section key={group.year} aria-labelledby={`year-${group.year}`}>
-                <YearHeading
-                  year={group.year}
-                  count={group.events.length}
-                  upcoming={group.events.filter((e) => e.upcoming).length}
-                />
+        <MetricsProvider kind="event" ids={list.map((e) => e.id)}>
+          <div className="mt-12 flex flex-col gap-14 md:mt-16 md:gap-20">
+            {years.length === 0 ? (
+              <p className="rounded-xs border border-dashed border-black/15 bg-white p-10 text-center text-sm text-black/50">
+                Nothing in this category yet. Try another filter.
+              </p>
+            ) : (
+              years.map((group) => (
+                <section key={group.year} aria-labelledby={`year-${group.year}`}>
+                  <YearHeading
+                    year={group.year}
+                    count={group.events.length}
+                    upcoming={group.events.filter((e) => e.upcoming).length}
+                  />
 
-                <div className="mt-7 grid grid-cols-1 gap-5 sm:grid-cols-2 md:mt-9 md:gap-6 lg:grid-cols-3">
-                  {group.events.map((event, i) => (
-                    <motion.div
-                      key={event.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, amount: 0.2 }}
-                      transition={{ duration: 0.55, delay: 0.05 + (i % 3) * 0.07, ease }}
-                    >
-                      <EventCard event={event} />
-                    </motion.div>
-                  ))}
-                </div>
-              </section>
-            ))
-          )}
-        </div>
+                  <div className="mt-7 grid grid-cols-1 gap-5 sm:grid-cols-2 md:mt-9 md:gap-6 lg:grid-cols-3">
+                    {group.events.map((event, i) => (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, amount: 0.2 }}
+                        transition={{ duration: 0.55, delay: 0.05 + (i % 3) * 0.07, ease }}
+                      >
+                        <EventCard event={event} />
+                      </motion.div>
+                    ))}
+                  </div>
+                </section>
+              ))
+            )}
+          </div>
+        </MetricsProvider>
       </div>
     </section>
   );
@@ -328,6 +331,7 @@ function EventCard({ event }: { readonly event: SiteEvent }) {
         <p className="mt-3 line-clamp-3 text-[13.5px] leading-[1.6] text-black/60">
           {event.description}
         </p>
+        <MetricsBadge entityId={event.id} className="mt-auto pt-4" />
       </div>
     </Link>
   );
