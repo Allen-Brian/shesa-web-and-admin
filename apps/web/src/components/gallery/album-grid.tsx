@@ -8,6 +8,8 @@ import { Images } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/empty-state';
 
+import { MetricsBadge, MetricsProvider } from '@/components/ui/metrics-badge';
+
 import type { Album } from './gallery-content';
 import { ALL_CATEGORY } from './gallery-content';
 
@@ -161,18 +163,20 @@ export function AlbumGrid({ albums, categories }: AlbumGridProps) {
                 layout
                 className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:gap-6 lg:grid-cols-3"
               >
-                {list.map((album, i) => (
-                  <motion.div
-                    key={album.slug}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 12 }}
-                    transition={{ duration: 0.5, delay: 0.05 + (i % 6) * 0.06, ease }}
-                  >
-                    <AlbumCard album={album} />
-                  </motion.div>
-                ))}
+                <MetricsProvider kind="album" ids={list.map((a) => a.id)}>
+                  {list.map((album, i) => (
+                    <motion.div
+                      key={album.slug}
+                      layout
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 12 }}
+                      transition={{ duration: 0.5, delay: 0.05 + (i % 6) * 0.06, ease }}
+                    >
+                      <AlbumCard album={album} />
+                    </motion.div>
+                  ))}
+                </MetricsProvider>
               </motion.div>
             )}
           </AnimatePresence>
@@ -228,10 +232,13 @@ function AlbumCard({ album }: { readonly album: Album }) {
           {album.description}
         </p>
         <div className="mt-auto flex items-center justify-between gap-3 pt-2">
-          <p className="font-heading text-[11px] font-medium uppercase tracking-[0.24em] text-black/50">
-            {photoCount} photos
-            {videoCount > 0 ? ` · ${videoCount} videos` : ''}
-          </p>
+          <div className="flex min-w-0 flex-col gap-1">
+            <p className="font-heading text-[11px] font-medium uppercase tracking-[0.24em] text-black/50">
+              {photoCount} photos
+              {videoCount > 0 ? ` · ${videoCount} videos` : ''}
+            </p>
+            <MetricsBadge entityId={album.id} />
+          </div>
           <span
             aria-hidden
             className="inline-flex items-center gap-1 text-[12.5px] font-medium text-primary transition-transform duration-300 group-hover:translate-x-1"

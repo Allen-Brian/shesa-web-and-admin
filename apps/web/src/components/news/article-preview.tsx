@@ -4,6 +4,7 @@ import Image from 'next/image';
 
 import { isLocalSupabaseUrl } from '../leadership/is-local-supabase-url';
 import type { Article } from './news-content';
+import { MetricsBadge } from '@/components/ui/metrics-badge';
 
 interface Props {
   readonly article: Article;
@@ -53,9 +54,12 @@ export function ArticlePreview({ article, active, onSelect }: Props) {
         >
           {article.title}
         </h3>
-        <p className="mt-2 font-heading text-[11.5px] font-medium text-primary">
-          {article.author.name}
-        </p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="font-heading text-[11.5px] font-medium text-primary">
+            {article.author.name}
+          </p>
+          <MetricsBadge entityId={article.id} />
+        </div>
         {article.categories.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {article.categories.map((tag) => (

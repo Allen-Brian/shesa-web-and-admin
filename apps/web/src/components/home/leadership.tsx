@@ -79,7 +79,7 @@ export function Leadership({ leaders }: LeadershipProps) {
             <EmptyState
               icon={Users}
               heading="Leadership roster coming soon"
-              body="The SHESA Executive, the National Executive, and branch presidents will appear here once the CMS has been populated."
+              body="The SHESA Executive Committee and branch presidents will appear here once the CMS has been populated."
               cta={{ label: 'How we are structured', href: '/organs' }}
             />
           </div>

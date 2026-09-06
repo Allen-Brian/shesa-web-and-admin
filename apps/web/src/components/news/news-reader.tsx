@@ -6,6 +6,8 @@ import { Newspaper } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/empty-state';
 
+import { MetricsProvider } from '@/components/ui/metrics-badge';
+
 import { ArticlePreview } from './article-preview';
 import { ArticleView } from './article-view';
 import type { Article } from './news-content';
@@ -77,17 +79,19 @@ export function NewsReader({
               Latest
             </p>
 
-            <ul className="flex flex-col divide-y divide-black/8">
-              {pageItems.map((article) => (
-                <li key={article.id}>
-                  <ArticlePreview
-                    article={article}
-                    active={article.id === selectedId}
-                    onSelect={() => setSelectedId(article.id)}
-                  />
-                </li>
-              ))}
-            </ul>
+            <MetricsProvider kind="article" ids={pageItems.map((a) => a.id)}>
+              <ul className="flex flex-col divide-y divide-black/8">
+                {pageItems.map((article) => (
+                  <li key={article.id}>
+                    <ArticlePreview
+                      article={article}
+                      active={article.id === selectedId}
+                      onSelect={() => setSelectedId(article.id)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </MetricsProvider>
 
             {totalPages > 1 && (
               <Pagination page={clampedPage} totalPages={totalPages} onPage={setPage} />
