@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Sparkles, Trash2 } from 'lucide-react';
+import { Plus, Save, Sparkles, Trash2 } from 'lucide-react';
 
 import {
   Button,
@@ -74,6 +74,14 @@ export function ArticleForm({ categories, editing }: Props) {
     setCategoryIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
+  // Which button was pressed. A ref rather than state: it is read
+  // once inside the transition and must not trigger a render.
+  const intent = useRef<'close' | 'again'>('close');
+
+  // Bumped to remount the rich editor: its content lives inside Quill,
+  // not in React state, so there is no setter to clear it with.
+  const [editorKey, setEditorKey] = useState(0);
+
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const fd = new FormData(event.currentTarget);
@@ -111,9 +119,32 @@ export function ArticleForm({ categories, editing }: Props) {
         return;
       }
       toast.success(editing ? 'Article saved.' : 'Article created.');
-      const newId = editing ? editing.id : (res.data as { id: string })?.id;
-      router.push(newId ? `/editor/news/${newId}/edit` : '/editor/news');
+      // "Save and add another" keeps the editor here; a plain save
+      // returns to the list. Landing on the edit page of the thing
+      // just saved, as this did, is neither of those.
+      if (intent.current === 'again') {
+        if (editing) {
+          router.push('/editor/news/new');
+          return;
+        }
+        resetForm();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      router.push('/editor/news');
     });
+  };
+
+  /** Back to a blank create form, ready for the next article. */
+  const resetForm = () => {
+    setTitle('');
+    setSlug('');
+    setSlugTouched(false);
+    setExcerpt('');
+    setBannerUrl('');
+    setEditorKey((n) => n + 1);
+    setCategoryIds([]);
+    setIsFeatured(false);
   };
 
   const runDelete = () => {
@@ -178,6 +209,7 @@ export function ArticleForm({ categories, editing }: Props) {
           <div className="flex flex-col gap-2">
             <Label>Content</Label>
             <QuillEditor
+              key={editorKey}
               name="contentHtml"
               initialValue={editing?.contentHtml ?? ''}
               placeholder="Write the article. Use the toolbar's image button to embed pictures."
@@ -190,9 +222,28 @@ export function ArticleForm({ categories, editing }: Props) {
         <aside className="flex flex-col gap-6">
           {/* Sticky action bar — always visible while the operator scrolls. */}
           <div className="sticky top-4 z-10 flex flex-col gap-2 rounded-lg border border-border bg-card p-3 shadow-[0_4px_18px_-8px_rgba(0,0,0,0.15)]">
-            <Button type="submit" size="sm" loading={pending} disabled={pending} className="w-full">
+            <Button
+              type="submit"
+              size="sm"
+              loading={pending}
+              disabled={pending}
+              className="w-full"
+              onClick={() => (intent.current = 'close')}
+            >
               <Save className="h-3.5 w-3.5" />
               {pending ? 'Saving…' : editing ? 'Save changes' : 'Create article'}
+            </Button>
+
+            <Button
+              type="submit"
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              className="w-full"
+              onClick={() => (intent.current = 'again')}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Save and add another
             </Button>
             <div className="flex items-center gap-2">
               <Button

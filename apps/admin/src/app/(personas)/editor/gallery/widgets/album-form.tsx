@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Trash2 } from 'lucide-react';
+import { Plus, Save, Trash2 } from 'lucide-react';
 
 import { Button, ConfirmDialog, Input, Label, Textarea, toast } from '@shesa/ui';
 
@@ -54,6 +54,10 @@ export function AlbumForm({ categories, events, editing, media = [] }: Props) {
     setCategoryIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
+  // Which button was pressed. A ref rather than state: it is read
+  // once inside the transition and must not trigger a render.
+  const intent = useRef<'close' | 'again'>('close');
+
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -86,9 +90,32 @@ export function AlbumForm({ categories, events, editing, media = [] }: Props) {
         return;
       }
       toast.success(editing ? 'Album saved.' : 'Album created.');
-      const newId = editing ? editing.id : (res.data as { id: string })?.id;
-      router.push(newId ? `/editor/gallery/${newId}/edit` : '/editor/gallery');
+      // "Save and add another" keeps the editor here; a plain save
+      // returns to the list. Landing on the edit page of the thing
+      // just saved, as this did, is neither of those.
+      if (intent.current === 'again') {
+        if (editing) {
+          router.push('/editor/gallery/new');
+          return;
+        }
+        resetForm();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      router.push('/editor/gallery');
     });
+  };
+
+  /** Back to a blank create form, ready for the next album. */
+  const resetForm = () => {
+    setTitle('');
+    setSlug('');
+    setSlugTouched(false);
+    setDateLabel('');
+    setLocation('');
+    setDescription('');
+    setCoverUrl('');
+    setPhotographer('');
   };
 
   const runDelete = () => {
@@ -198,9 +225,28 @@ export function AlbumForm({ categories, events, editing, media = [] }: Props) {
         <aside className="flex flex-col gap-6">
           {/* Sticky action bar */}
           <div className="sticky top-4 z-10 flex flex-col gap-2 rounded-lg border border-border bg-card p-3 shadow-[0_4px_18px_-8px_rgba(0,0,0,0.15)]">
-            <Button type="submit" size="sm" loading={pending} disabled={pending} className="w-full">
+            <Button
+              type="submit"
+              size="sm"
+              loading={pending}
+              disabled={pending}
+              className="w-full"
+              onClick={() => (intent.current = 'close')}
+            >
               <Save className="h-3.5 w-3.5" />
               {pending ? 'Saving…' : editing ? 'Save changes' : 'Create album'}
+            </Button>
+
+            <Button
+              type="submit"
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              className="w-full"
+              onClick={() => (intent.current = 'again')}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Save and add another
             </Button>
             <div className="flex items-center gap-2">
               <Button
