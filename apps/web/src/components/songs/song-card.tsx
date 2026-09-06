@@ -1,11 +1,13 @@
 'use client';
 
-import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import type { PublicSong } from './songs-content';
 import { Engagement } from '@/components/ui/engagement';
 
+import Link from 'next/link';
+
+import { SongCover } from './song-cover';
 import { usePlayer } from './player-context';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -75,18 +77,11 @@ export function SongCard({ song, index }: Props) {
       className="group relative flex flex-col overflow-hidden rounded-xs border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_18px_40px_-12px_rgba(139,21,51,0.16)]"
     >
       <div className="relative aspect-square overflow-hidden bg-black/90">
-        {song.coverUrl ? (
-          <Image
-            src={song.coverUrl}
-            alt={song.title}
-            fill
-            sizes="(min-width: 1024px) 22vw, (min-width: 640px) 33vw, 50vw"
-            quality={70}
-            className="object-cover transition-transform duration-1000 group-hover:scale-105"
-          />
-        ) : (
-          <FallbackCover title={song.title} />
-        )}
+        <SongCover
+          src={song.coverUrl}
+          title={song.title}
+          className="object-cover object-top transition-transform duration-1000 group-hover:scale-105"
+        />
 
         <div
           aria-hidden
@@ -117,12 +112,13 @@ export function SongCard({ song, index }: Props) {
 
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 text-white">
           <div className="min-w-0">
-            <h3
-              className="truncate font-heading font-light leading-tight text-white"
+            <Link
+              href={`/songs/${song.slug}`}
+              className="block truncate font-heading font-light leading-tight text-white transition-colors hover:text-white/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               style={{ fontSize: '1rem', letterSpacing: '-0.005em' }}
             >
               {song.title}
-            </h3>
+            </Link>
             <p className="mt-1 truncate text-[11.5px] font-medium uppercase tracking-[0.24em] text-white/75">
               {song.performer ?? '-'}
             </p>
@@ -165,26 +161,6 @@ export function SongCard({ song, index }: Props) {
         </a>
       </div>
     </motion.article>
-  );
-}
-
-function FallbackCover({ title }: { readonly title: string }) {
-  const initials = title.slice(0, 2).toUpperCase();
-  return (
-    <div
-      className="grid h-full w-full place-items-center"
-      style={{
-        background:
-          'radial-gradient(65% 65% at 50% 40%, color-mix(in srgb, var(--color-primary) 45%, black) 0%, black 100%)',
-      }}
-    >
-      <span
-        className="font-heading font-thin text-white/95"
-        style={{ fontSize: 'clamp(2rem, 5vw, 3.75rem)', letterSpacing: '-0.02em' }}
-      >
-        {initials}
-      </span>
-    </div>
   );
 }
 

@@ -61,11 +61,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const supabase = await getServerClient();
 
-    const [{ data: events }, { data: projects }, { data: albums }] = await Promise.all([
-      supabase.schema('cms').from('site_events').select('slug, updated_at'),
-      supabase.schema('cms').from('projects').select('slug, updated_at'),
-      supabase.schema('cms').from('gallery_albums').select('slug, updated_at'),
-    ]);
+    const [{ data: events }, { data: projects }, { data: albums }, { data: songs }] =
+      await Promise.all([
+        supabase.schema('cms').from('site_events').select('slug, updated_at'),
+        supabase.schema('cms').from('projects').select('slug, updated_at'),
+        supabase.schema('cms').from('gallery_albums').select('slug, updated_at'),
+        supabase.schema('cms').from('songs').select('slug, updated_at'),
+      ]);
 
     const push = (rows: unknown, prefix: string, priority: number) => {
       for (const row of (rows ?? []) as ReadonlyArray<{
@@ -85,6 +87,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     push(events, '/events', 0.8);
     push(projects, '/projects', 0.7);
     push(albums, '/gallery', 0.6);
+    push(songs, '/songs', 0.6);
   } catch {
     /* Static routes alone still make a valid sitemap. */
   }

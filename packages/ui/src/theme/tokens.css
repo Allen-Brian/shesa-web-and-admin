@@ -121,6 +121,9 @@
    * competed with the actual focused field. */
   --input-border: var(--color-border);
   --input-border-hover: var(--color-primary);
+  /* Fields sit on a tint rather than the page colour, so a form reads as
+   * a set of things to fill in rather than a run of outlined boxes. */
+  --input-bg: #f8fafc;
   --input-ring: color-mix(in srgb, var(--color-primary) 10%, transparent);
   --input-focus-shadow: 0 0 0 3px var(--input-ring);
 }
@@ -161,6 +164,8 @@
   --color-sidebar-accent-foreground: hsl(0 0% 96%);
   --color-sidebar-border: hsl(0 0% 16%);
   --color-sidebar-ring: hsl(345 75% 50%);
+
+  --input-bg: #1c1b1c;
 }
 
 html,

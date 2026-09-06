@@ -707,52 +707,49 @@ function ProgrammeSection({
                 </motion.div>
               )}
 
-              <ol className="relative rounded-xs border border-black/10 bg-white px-5 md:px-8">
-                {/* The spine the time markers hang from. */}
-                <span
-                  aria-hidden
-                  className="absolute bottom-6 left-[124px] top-6 hidden w-px bg-black/10 md:block"
-                />
-
-                <div className="flex flex-col divide-y divide-black/8">
-                  {group.items.map((item, i) => (
-                    <motion.li
-                      key={`${item.time}-${item.title}-${i}`}
-                      initial={{ opacity: 0, y: 14 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, amount: 0.35 }}
-                      transition={{ duration: 0.55, delay: 0.04 + Math.min(i, 6) * 0.05, ease }}
-                      className="group grid grid-cols-1 gap-2 py-6 md:grid-cols-[124px_1fr] md:gap-10"
-                    >
-                      <div className="flex items-center gap-3 md:items-start">
-                        <span
-                          className="font-heading font-medium tabular-nums leading-none text-primary md:pt-0.5"
-                          style={{ fontSize: '1.05rem' }}
-                        >
-                          {item.time || '—'}
+              {/* Each session is its own card rather than a row on a
+                  ruled spine. The diamonds and the vertical line were
+                  decoration standing in for structure; a time set as a
+                  proper label and real space between sessions does the
+                  same job and reads at a glance. */}
+              <ol className="flex flex-col gap-3 md:gap-4">
+                {group.items.map((item, i) => (
+                  <motion.li
+                    key={`${item.time}-${item.title}-${i}`}
+                    initial={{ opacity: 0, y: 14 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.3 }}
+                    transition={{ duration: 0.55, delay: 0.04 + Math.min(i, 6) * 0.05, ease }}
+                    className="group grid grid-cols-1 items-start gap-3 rounded-xs border border-black/8 bg-white p-5 transition-all duration-500 hover:border-primary/30 hover:shadow-[0_14px_36px_-18px_rgba(139,21,51,0.22)] md:grid-cols-[132px_1fr] md:gap-8 md:p-6"
+                  >
+                    {/* The time reads as a label, not a list marker. */}
+                    <div className="flex items-center gap-3 md:block">
+                      {item.time ? (
+                        <span className="inline-flex items-center rounded-xs bg-primary/8 px-3 py-1.5 font-heading text-[13px] font-semibold tabular-nums leading-none text-primary transition-colors duration-500 group-hover:bg-primary group-hover:text-white md:text-[14px]">
+                          {item.time}
                         </span>
-                        <span
-                          aria-hidden
-                          className="hidden h-2 w-2 shrink-0 rotate-45 bg-primary/70 transition-colors duration-500 group-hover:bg-primary md:ml-auto md:mt-1 md:inline-block"
-                        />
-                      </div>
+                      ) : (
+                        <span className="font-heading text-[11px] font-medium uppercase tracking-[0.24em] text-black/35">
+                          To be confirmed
+                        </span>
+                      )}
+                    </div>
 
-                      <div className="md:pl-2">
-                        <h4
-                          className="font-heading font-light leading-tight text-black"
-                          style={{ fontSize: '1.15rem', letterSpacing: '-0.005em' }}
-                        >
-                          {item.title}
-                        </h4>
-                        {item.description && (
-                          <p className="mt-2 max-w-2xl text-[14.5px] leading-[1.7] text-black/60">
-                            {item.description}
-                          </p>
-                        )}
-                      </div>
-                    </motion.li>
-                  ))}
-                </div>
+                    <div>
+                      <h4
+                        className="font-heading font-light leading-snug text-black"
+                        style={{ fontSize: '1.15rem', letterSpacing: '-0.005em' }}
+                      >
+                        {item.title}
+                      </h4>
+                      {item.description && (
+                        <p className="mt-2 max-w-2xl text-[14.5px] leading-[1.75] text-black/60">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
+                  </motion.li>
+                ))}
               </ol>
             </div>
           ))}
