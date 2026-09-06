@@ -315,7 +315,14 @@ function EventCard({ event }: { readonly event: SiteEvent }) {
   return (
     <div className="overflow-hidden rounded-xs border border-black/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <div className="relative aspect-4/3">
-        <Image src={event.image} alt="" fill sizes="360px" quality={75} className="object-cover" />
+        <Image
+          src={event.image}
+          alt=""
+          fill
+          sizes="360px"
+          quality={75}
+          className="object-cover object-top"
+        />
         <div className="absolute left-4 top-4 flex flex-col items-center rounded-xs bg-white/95 px-3 py-2 text-center shadow-md backdrop-blur-sm">
           <span className="font-heading text-[10px] font-medium uppercase tracking-[0.24em] text-primary">
             {event.month}
@@ -538,7 +545,7 @@ function RelatedCard({ event }: { readonly event: SiteEvent }) {
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           quality={75}
-          className="object-cover transition-transform duration-1000 group-hover:scale-105"
+          className="object-cover object-top transition-transform duration-1000 group-hover:scale-105"
         />
         <div
           aria-hidden

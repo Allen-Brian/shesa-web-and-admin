@@ -142,7 +142,7 @@ export function NewsHero({ featured }: Props) {
                         sizes="320px"
                         quality={75}
                         unoptimized={isLocalSupabaseUrl(article.bannerUrl)}
-                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
                       />
                     )}
                     <div

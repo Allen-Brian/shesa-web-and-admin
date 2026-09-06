@@ -73,7 +73,7 @@ export function ArticleView({ article }: { readonly article: Article }) {
             sizes="(min-width: 768px) 66vw, 100vw"
             quality={75}
             unoptimized={isLocalSupabaseUrl(article.bannerUrl)}
-            className="object-cover"
+            className="object-cover object-top"
           />
         </div>
       )}

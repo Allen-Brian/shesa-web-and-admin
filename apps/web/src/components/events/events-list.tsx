@@ -274,7 +274,7 @@ function EventCard({ event }: { readonly event: SiteEvent }) {
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           quality={75}
-          className="object-cover transition-transform duration-1000 group-hover:scale-105"
+          className="object-cover object-top transition-transform duration-1000 group-hover:scale-105"
         />
         <div
           aria-hidden

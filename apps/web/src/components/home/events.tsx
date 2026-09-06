@@ -122,7 +122,7 @@ function EventCard({ event }: { readonly event: Event }) {
           fill
           sizes="380px"
           quality={75}
-          className="object-cover transition-transform duration-1000 group-hover:scale-105"
+          className="object-cover object-top transition-transform duration-1000 group-hover:scale-105"
         />
         <div
           aria-hidden

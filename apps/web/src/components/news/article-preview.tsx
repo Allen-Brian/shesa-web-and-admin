@@ -35,7 +35,7 @@ export function ArticlePreview({ article, active, onSelect }: Props) {
             sizes="80px"
             quality={75}
             unoptimized={isLocalSupabaseUrl(article.bannerUrl)}
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
+            className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
           />
         )}
         {active && <span aria-hidden className="absolute inset-0 border-2 border-primary" />}

@@ -116,7 +116,7 @@ export function News({ articles }: Props) {
                       fill
                       sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                       quality={75}
-                      className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                      className="object-cover object-top transition-transform duration-1000 group-hover:scale-105"
                     />
                     <span className="absolute left-4 top-4 rounded-xs bg-white/95 px-2.5 py-1 font-heading text-[10px] font-medium uppercase tracking-[0.22em] text-primary backdrop-blur-sm">
                       {article.category}
