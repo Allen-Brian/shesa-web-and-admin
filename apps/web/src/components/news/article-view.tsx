@@ -3,6 +3,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
+import { Engagement } from '@/components/ui/engagement';
+
 import { isLocalSupabaseUrl } from '../leadership/is-local-supabase-url';
 import { AuthorAvatar } from './author-avatar';
 import type { Article } from './news-content';
@@ -57,11 +59,16 @@ export function ArticleView({ article }: { readonly article: Article }) {
         {article.title}
       </h2>
 
-      {article.categories[0] && (
-        <p className="mt-4 font-heading text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
-          {article.categories[0]} · {article.displayDate}
-        </p>
-      )}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        {article.categories[0] && (
+          <p className="font-heading text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
+            {article.categories[0]} · {article.displayDate}
+          </p>
+        )}
+        {/* Counts the view: this component renders only when an article
+            is actually open, not on the listing. */}
+        <Engagement kind="article" entityId={article.id} countView />
+      </div>
 
       {article.bannerUrl && (
         <div className="relative mt-8 aspect-video w-full overflow-hidden rounded-xs">

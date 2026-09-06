@@ -8,6 +8,7 @@ import type { ColDef, ICellRendererParams } from '@shesa/ui';
 import { LeaderAvatar } from '../../leadership/widgets/leader-avatar';
 import { formatDuration } from './song-duration';
 import type { SongRow } from './song-widget-types';
+import { compactCount } from '@/lib/compact-count';
 
 export type SongSerialRow = SongRow & {
   readonly serial: number;
@@ -85,6 +86,20 @@ export function useSongColumns({ onOpen }: Args): ColDef<SongSerialRow>[] {
               {formatDuration(p.data.durationSeconds)}
             </span>
           ) : null,
+      },
+      {
+        headerName: 'Views',
+        field: 'views',
+        width: 110,
+        cellClass: 'text-xs tabular-nums text-muted-foreground',
+        valueFormatter: (p) => compactCount(Number(p.value ?? 0)),
+      },
+      {
+        headerName: 'Likes',
+        field: 'likes',
+        width: 110,
+        cellClass: 'text-xs tabular-nums text-muted-foreground',
+        valueFormatter: (p) => compactCount(Number(p.value ?? 0)),
       },
     ],
     [onOpen],

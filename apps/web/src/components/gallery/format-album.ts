@@ -71,6 +71,7 @@ interface FormatArgs {
  */
 export function formatAlbum({ raw, media, categoryName, linkedEventSlug }: FormatArgs): Album {
   return {
+    id: raw.id,
     slug: raw.slug,
     title: raw.title,
     date: raw.date_label ?? '',

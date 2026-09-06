@@ -1,4 +1,5 @@
 import { getServerClient } from '@/lib/supabase-server';
+import { loadContentMetrics, NO_METRICS } from '@/lib/content-metrics';
 
 import type { MediaAspect, MediaKind } from './actions/gallery-action-types';
 import type {
@@ -57,7 +58,7 @@ function normaliseAlbum(
   raw: RawAlbum,
   categoryIds: readonly string[],
   mediaCount: number,
-): AlbumRow {
+): Omit<AlbumRow, 'views' | 'likes'> {
   return {
     id: raw.id,
     slug: raw.slug,
@@ -140,9 +141,11 @@ export async function loadEditorGallery(): Promise<LoadedGallery> {
     countByAlbum.set(row.album_id, (countByAlbum.get(row.album_id) ?? 0) + 1);
   }
 
-  const albums: AlbumRow[] = ((albumsRaw ?? []) as RawAlbum[]).map((a) =>
-    normaliseAlbum(a, catsByAlbum.get(a.id) ?? [], countByAlbum.get(a.id) ?? 0),
-  );
+  const metrics = await loadContentMetrics('album');
+  const albums: AlbumRow[] = ((albumsRaw ?? []) as RawAlbum[]).map((a) => ({
+    ...normaliseAlbum(a, catsByAlbum.get(a.id) ?? [], countByAlbum.get(a.id) ?? 0),
+    ...(metrics.get(a.id) ?? NO_METRICS),
+  }));
 
   const categories: CategoryRow[] = ((categoriesRaw ?? []) as RawCategory[]).map((c) => ({
     id: c.id,

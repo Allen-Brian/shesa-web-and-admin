@@ -22,4 +22,8 @@ export interface ArticleRow {
   readonly categoryIds: readonly string[];
   readonly createdAt: string;
   readonly updatedAt: string;
+  /** Unique viewers, from cms.content_metrics. Zero when nobody has
+   *  opened it — items with no activity have no row there. */
+  readonly views: number;
+  readonly likes: number;
 }

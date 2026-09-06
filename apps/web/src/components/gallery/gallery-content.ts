@@ -19,6 +19,8 @@ export type MediaItem = {
 };
 
 export type Album = {
+  /** The CMS row id, used to key view and like counts. */
+  readonly id: string;
   readonly slug: string;
   readonly title: string;
   readonly date: string;

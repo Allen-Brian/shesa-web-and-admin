@@ -1,6 +1,7 @@
 import { getServerClient } from '@/lib/supabase-server';
 
 import type { CategoryRow, ProgramItem, SiteEventRow } from './widgets/site-event-widget-types';
+import { loadContentMetrics, NO_METRICS } from '@/lib/content-metrics';
 
 interface RawEvent {
   readonly id: string;
@@ -59,7 +60,10 @@ function toProgram(v: unknown): ProgramItem[] {
   });
 }
 
-function normalise(raw: RawEvent, categoryIds: readonly string[]): SiteEventRow {
+function normalise(
+  raw: RawEvent,
+  categoryIds: readonly string[],
+): Omit<SiteEventRow, 'views' | 'likes'> {
   return {
     id: raw.id,
     slug: raw.slug,
@@ -118,9 +122,11 @@ export async function loadEditorSiteEvents(): Promise<LoadedSiteEvents> {
     catsByEvent.set(m.event_id, bucket);
   }
 
-  const events: SiteEventRow[] = ((eventsRaw ?? []) as RawEvent[]).map((e) =>
-    normalise(e, catsByEvent.get(e.id) ?? []),
-  );
+  const metrics = await loadContentMetrics('event');
+  const events: SiteEventRow[] = ((eventsRaw ?? []) as RawEvent[]).map((e) => ({
+    ...normalise(e, catsByEvent.get(e.id) ?? []),
+    ...(metrics.get(e.id) ?? NO_METRICS),
+  }));
 
   const categories: CategoryRow[] = ((categoriesRaw ?? []) as RawCategory[]).map((c) => ({
     id: c.id,

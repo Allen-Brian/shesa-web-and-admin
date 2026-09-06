@@ -1,6 +1,7 @@
 import { getServerClient } from '@/lib/supabase-server';
 
 import type { GroupRow, SongRow } from './widgets/song-widget-types';
+import { loadContentMetrics, NO_METRICS } from '@/lib/content-metrics';
 
 interface RawGroup {
   readonly id: string;
@@ -26,7 +27,7 @@ interface RawSong {
   readonly updated_at: string;
 }
 
-function normaliseSong(raw: RawSong): SongRow {
+function normaliseSong(raw: RawSong): Omit<SongRow, 'views' | 'likes'> {
   return {
     id: raw.id,
     groupId: raw.group_id,
@@ -68,7 +69,11 @@ export async function loadEditorSongs(): Promise<LoadedSongs> {
       .order('sort_order'),
   ]);
 
-  const songs: SongRow[] = ((songsRaw ?? []) as RawSong[]).map(normaliseSong);
+  const metrics = await loadContentMetrics('song');
+  const songs: SongRow[] = ((songsRaw ?? []) as RawSong[]).map((s) => ({
+    ...normaliseSong(s),
+    ...(metrics.get(s.id) ?? NO_METRICS),
+  }));
   const groups: GroupRow[] = ((groupsRaw ?? []) as RawGroup[]).map((g) => ({
     id: g.id,
     name: g.name,

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
+import { Engagement } from '@/components/ui/engagement';
+
 import type { SiteEvent } from './events-content';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -178,6 +180,10 @@ function EventHero({ event, days }: { readonly event: SiteEvent; readonly days: 
         >
           {event.category} · {event.upcoming ? 'Upcoming' : 'Past Event'}
         </motion.p>
+
+        <div className="mt-5 [&_*]:text-white/70 [&_button:hover]:text-white">
+          <Engagement kind="event" entityId={event.id} countView />
+        </div>
 
         <motion.h1
           initial="hidden"

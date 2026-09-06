@@ -4,6 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 
+import { Engagement } from '@/components/ui/engagement';
+
 import { MediaGrid } from './media-grid';
 import type { Album } from './gallery-content';
 
@@ -127,6 +129,17 @@ function AlbumHero({
             </motion.span>
           </span>
         </motion.h1>
+
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.5 }}
+          variants={fadeUp}
+          custom={2}
+          className="mt-5 [&_*]:text-white/70 [&_button:hover]:text-white"
+        >
+          <Engagement kind="album" entityId={album.id} countView />
+        </motion.div>
 
         {album.linkedEventSlug && (
           <motion.div

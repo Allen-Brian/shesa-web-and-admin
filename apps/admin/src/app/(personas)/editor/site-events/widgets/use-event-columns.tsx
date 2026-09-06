@@ -8,6 +8,7 @@ import type { ColDef, ICellRendererParams } from '@shesa/ui';
 import { LeaderAvatar } from '../../leadership/widgets/leader-avatar';
 import { EventStatusBadge } from './event-status-badge';
 import type { SiteEventRow } from './site-event-widget-types';
+import { compactCount } from '@/lib/compact-count';
 
 export type EventSerialRow = SiteEventRow & {
   readonly serial: number;
@@ -111,6 +112,20 @@ export function useEventColumns({ onOpen }: Args): ColDef<EventSerialRow>[] {
         width: 120,
         cellRenderer: (p: ICellRendererParams<EventSerialRow>) =>
           p.data ? <EventStatusBadge startsAt={p.data.startsAt} /> : null,
+      },
+      {
+        headerName: 'Views',
+        field: 'views',
+        width: 110,
+        cellClass: 'text-xs tabular-nums text-muted-foreground',
+        valueFormatter: (p) => compactCount(Number(p.value ?? 0)),
+      },
+      {
+        headerName: 'Likes',
+        field: 'likes',
+        width: 110,
+        cellClass: 'text-xs tabular-nums text-muted-foreground',
+        valueFormatter: (p) => compactCount(Number(p.value ?? 0)),
       },
     ],
     [onOpen],

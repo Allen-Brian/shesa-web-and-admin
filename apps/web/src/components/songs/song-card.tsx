@@ -4,6 +4,8 @@ import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import type { PublicSong } from './songs-content';
+import { Engagement } from '@/components/ui/engagement';
+
 import { usePlayer } from './player-context';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -148,6 +150,9 @@ export function SongCard({ song, index }: Props) {
               {song.description}
             </p>
           )}
+          {/* `countView` fires once this card is on screen, which for a
+              song list is the closest honest signal to a play. */}
+          <Engagement kind="song" entityId={song.id} countView size="sm" className="mt-2" />
         </div>
         <a
           href={song.audioUrl}

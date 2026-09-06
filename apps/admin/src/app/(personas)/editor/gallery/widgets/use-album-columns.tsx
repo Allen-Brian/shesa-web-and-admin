@@ -7,6 +7,7 @@ import type { ColDef, ICellRendererParams } from '@shesa/ui';
 
 import { LeaderAvatar } from '../../leadership/widgets/leader-avatar';
 import type { AlbumRow } from './gallery-widget-types';
+import { compactCount } from '@/lib/compact-count';
 
 export type AlbumSerialRow = AlbumRow & {
   readonly serial: number;
@@ -108,6 +109,20 @@ export function useAlbumColumns({ onOpen }: Args): ColDef<AlbumSerialRow>[] {
         minWidth: 160,
         cellClass: 'text-xs text-muted-foreground',
         valueFormatter: (p) => (p.value ? String(p.value) : '—'),
+      },
+      {
+        headerName: 'Views',
+        field: 'views',
+        width: 110,
+        cellClass: 'text-xs tabular-nums text-muted-foreground',
+        valueFormatter: (p) => compactCount(Number(p.value ?? 0)),
+      },
+      {
+        headerName: 'Likes',
+        field: 'likes',
+        width: 110,
+        cellClass: 'text-xs tabular-nums text-muted-foreground',
+        valueFormatter: (p) => compactCount(Number(p.value ?? 0)),
       },
     ],
     [onOpen],

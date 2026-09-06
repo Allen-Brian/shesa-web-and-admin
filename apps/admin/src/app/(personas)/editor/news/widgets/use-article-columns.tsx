@@ -8,6 +8,7 @@ import type { ColDef, ICellRendererParams } from '@shesa/ui';
 import { ArticleStatusBadge } from './article-status-badge';
 import { LeaderAvatar } from '../../leadership/widgets/leader-avatar';
 import type { ArticleRow } from './news-widget-types';
+import { compactCount } from '@/lib/compact-count';
 
 export type ArticleSerialRow = ArticleRow & {
   readonly serial: number;
@@ -103,6 +104,20 @@ export function useArticleColumns({ onOpen }: Args): ColDef<ArticleSerialRow>[] 
         field: 'publishAt',
         width: 160,
         valueFormatter: (p) => (p.value ? new Date(p.value as string).toDateString() : '—'),
+      },
+      {
+        headerName: 'Views',
+        field: 'views',
+        width: 110,
+        cellClass: 'text-xs tabular-nums text-muted-foreground',
+        valueFormatter: (p) => compactCount(Number(p.value ?? 0)),
+      },
+      {
+        headerName: 'Likes',
+        field: 'likes',
+        width: 110,
+        cellClass: 'text-xs tabular-nums text-muted-foreground',
+        valueFormatter: (p) => compactCount(Number(p.value ?? 0)),
       },
     ],
     [onOpen],

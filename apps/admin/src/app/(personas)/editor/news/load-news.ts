@@ -1,6 +1,7 @@
 import { getServerClient } from '@/lib/supabase-server';
 
 import type { ArticleRow, ArticleStatus, CategoryRow } from './widgets/news-widget-types';
+import { loadContentMetrics, NO_METRICS } from '@/lib/content-metrics';
 
 interface RawArticle {
   readonly id: string;
@@ -30,7 +31,10 @@ interface RawMap {
   readonly category_id: string;
 }
 
-function normalise(raw: RawArticle, categoryIds: readonly string[]): ArticleRow {
+function normalise(
+  raw: RawArticle,
+  categoryIds: readonly string[],
+): Omit<ArticleRow, 'views' | 'likes'> {
   return {
     id: raw.id,
     slug: raw.slug,
@@ -87,9 +91,11 @@ export async function loadEditorNews(): Promise<LoadedNews> {
     catsByArticle.set(m.article_id, bucket);
   }
 
-  const articles: ArticleRow[] = ((articlesRaw ?? []) as RawArticle[]).map((a) =>
-    normalise(a, catsByArticle.get(a.id) ?? []),
-  );
+  const metrics = await loadContentMetrics('article');
+  const articles: ArticleRow[] = ((articlesRaw ?? []) as RawArticle[]).map((a) => ({
+    ...normalise(a, catsByArticle.get(a.id) ?? []),
+    ...(metrics.get(a.id) ?? NO_METRICS),
+  }));
 
   const categories: CategoryRow[] = ((categoriesRaw ?? []) as RawCategory[]).map((c) => ({
     id: c.id,
