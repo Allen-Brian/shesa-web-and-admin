@@ -14,7 +14,6 @@ import { Gallery } from '@/components/home/gallery';
 import { Hero } from '@/components/home/hero';
 import { Leadership } from '@/components/home/leadership';
 import { Mission } from '@/components/home/mission';
-import { MoreData } from '@/components/home/more-data';
 import { News } from '@/components/home/news';
 import { PartnersStadium } from '@/components/home/partners-stadium';
 import { PartnershipCta } from '@/components/home/partnership-cta';
@@ -51,11 +50,13 @@ export default async function HomePage() {
       <Stats />
       <StrategicPlanCta />
       <Events events={events} />
-      <News articles={articles} />
       <Projects projects={projects} />
+      <News articles={articles} />
       <Gallery albums={albums} />
       <Leadership leaders={leaders} />
-      <MoreData />
+      {/* "The Receipts" — the community-investment figures. Hidden until
+          the numbers behind it are confirmed. */}
+      {/* <MoreData /> */}
       {/* Partner boards always sit last, immediately above the footer. */}
       <PartnersStadium />
       <SoundsCta />
