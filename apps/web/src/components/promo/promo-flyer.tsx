@@ -129,21 +129,25 @@ export function PromoFlyer() {
  * dates, and venue, so nothing is drawn over it — an overlay here would
  * be the designer's words competing with mine.
  *
- * `object-contain` because a flyer is a fixed composition: cropping it
- * to fill the panel would cut the very text it exists to show.
+ * It fills the panel edge to edge. `object-contain` left black bands
+ * above and below, because the flyer is portrait and the panel is as
+ * tall as the details beside it. Filling costs a sliver off one edge
+ * instead, taken from the bottom so the title and crest are never
+ * touched. On a phone the panel takes the flyer's own proportions, so
+ * almost nothing is lost there.
  */
 function PosterHalf() {
   const promo = ACTIVE_PROMO;
 
   return (
-    <div className="relative min-h-70 overflow-hidden bg-[#0b0b0f] sm:min-h-90 md:min-h-160">
+    <div className="relative aspect-4/5 overflow-hidden bg-[#0b0b0f] md:aspect-auto md:h-full md:min-h-160">
       <Image
         src={promo.image}
         alt={`${promo.title} — ${promo.subtitle}`}
         fill
         priority
         sizes="(min-width: 768px) 640px, 100vw"
-        className="object-contain"
+        className="object-cover object-top"
       />
     </div>
   );
