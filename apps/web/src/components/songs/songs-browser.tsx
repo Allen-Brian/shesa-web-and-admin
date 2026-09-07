@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 
 import type { PublicSong, PublicSongGroup } from './songs-content';
 import { usePlayer } from './player-context';
+import { SongAmbience } from './song-ambience';
 import { SongCard } from './song-card';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -54,6 +55,10 @@ interface Props {
  * "Play all" runs that same filtered list, which is what makes it useful
  * rather than decorative: filter to a chapter, press it, and you hear
  * that chapter's songs and nothing else.
+ *
+ * The ambient wash is keyed to `isPlaying` rather than to this page, so
+ * the songbook warms up wherever the visitor happened to press play —
+ * most of them never reach a track's own page.
  */
 export function SongsBrowser({ songs, groups }: Props) {
   const player = usePlayer();
@@ -104,13 +109,18 @@ export function SongsBrowser({ songs, groups }: Props) {
 
   return (
     <section
-      className="relative overflow-hidden py-20 text-black md:py-24"
+      className="relative isolate overflow-hidden py-20 text-black md:py-24"
       style={{
         background:
           'linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 3%, white) 0%, color-mix(in srgb, var(--color-primary) 5%, white) 100%)',
       }}
     >
-      <div className="mx-auto max-w-350 px-5 md:px-8 lg:px-12">
+      {/* `isolate` above is load-bearing: without a stacking context here
+          the -z-10 wash escapes this section and paints behind its own
+          background instead of on top of it. */}
+      <SongAmbience active={player.isPlaying} veil="soft" />
+
+      <div className="relative mx-auto max-w-350 px-5 md:px-8 lg:px-12">
         <div className="grid gap-8 md:grid-cols-12 md:items-end md:gap-14">
           <div className="md:col-span-8">
             <motion.p
