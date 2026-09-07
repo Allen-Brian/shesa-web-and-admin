@@ -148,9 +148,13 @@ export function SongCard({ song, index }: Props) {
               {song.description}
             </p>
           )}
-          {/* `countView` fires once this card is on screen, which for a
-              song list is the closest honest signal to a play. */}
-          <Engagement kind="song" entityId={song.id} countView size="sm" className="mt-2" />
+          {/* No `countView` here. It used to be set as a stand-in for a
+              play count we did not have, so scrolling past a card counted
+              as reading the song. Now that plays are counted properly,
+              that proxy only inflates views — and the two numbers sit
+              side by side, where the contradiction would show. A view is
+              opening the song; that is the detail page's to record. */}
+          <Engagement kind="song" entityId={song.id} showPlays size="sm" className="mt-2" />
         </div>
         {/* A button, not a link: `<a download>` is ignored cross-origin,
             and the audio lives on Supabase Storage. See lib/download-file. */}
