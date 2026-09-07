@@ -109,10 +109,28 @@ export async function toggleLike(kind: ContentKind, entityId: string): Promise<L
   return first ? { liked: first.liked, likes: Number(first.likes) } : null;
 }
 
+/**
+ * Count one playback of one song.
+ *
+ * No visitor id and no session guard, unlike `recordView` — there is
+ * nothing to deduplicate against. Views count people; plays count
+ * listens, so a replay, an auto-advance into the next track and the same
+ * anthem every morning are all supposed to register.
+ *
+ * Not awaited by callers: this fires from inside playback, where the one
+ * thing that must not happen is the audio waiting on the network.
+ */
+export async function recordPlay(entityId: string): Promise<void> {
+  if (typeof window === 'undefined' || !entityId) return;
+  await rpc('record_song_play', { p_entity_id: entityId });
+}
+
 export interface ContentMetrics {
   readonly entityId: string;
   readonly views: number;
   readonly likes: number;
+  /** Cumulative playbacks. Songs only; zero for every other kind. */
+  readonly plays: number;
   readonly liked: boolean;
 }
 
@@ -124,7 +142,7 @@ export async function fetchMetrics(
   if (entityIds.length === 0) return [];
 
   const rows = await rpc<
-    Array<{ entity_id: string; views: number; likes: number; liked: boolean }>
+    Array<{ entity_id: string; views: number; likes: number; plays: number; liked: boolean }>
   >('get_content_metrics', {
     p_kind: kind,
     p_entity_ids: entityIds,
@@ -136,6 +154,7 @@ export async function fetchMetrics(
     entityId: r.entity_id,
     views: Number(r.views),
     likes: Number(r.likes),
+    plays: Number(r.plays ?? 0),
     liked: Boolean(r.liked),
   }));
 }

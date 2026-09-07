@@ -86,6 +86,15 @@ export function PromoFlyer() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4, ease }}
           className="fixed inset-0 z-100 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/75 p-3 backdrop-blur-md sm:p-6 md:items-center md:p-10"
+          /* Without this the flyer cannot be scrolled on a phone.
+             Opening it calls `stopLenis()`, and a stopped Lenis calls
+             preventDefault() on every touchmove and wheel event whose
+             composed path does not carry one of its opt-out attributes
+             (lenis 1.3.25, `onVirtualScroll`) — including the gesture
+             inside this element, which is the one thing that still has
+             to work while the page behind is frozen. On desktop the
+             panel fits the viewport, so nothing looked wrong. */
+          data-lenis-prevent
           /* A tap anywhere closes the flyer — the panel deliberately
              does not stop propagation. On a phone the sheet fills the
              screen and the close button sits far up in a corner, so

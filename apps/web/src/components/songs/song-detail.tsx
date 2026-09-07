@@ -176,7 +176,7 @@ export function SongDetail({
                 {copied ? 'Link copied' : 'Share'}
               </button>
 
-              <Engagement kind="song" entityId={song.id} countView size="lg" />
+              <Engagement kind="song" entityId={song.id} countView showPlays size="lg" />
             </div>
 
             {song.description && (

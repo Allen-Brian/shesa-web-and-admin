@@ -142,7 +142,7 @@ export function Lightbox({ items, index, onClose, onIndexChange, albumTitle }: L
             className="relative z-10 border-t border-white/10 px-5 py-3 md:px-8"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex gap-2 overflow-x-auto">
+            <div className="flex gap-2 overflow-x-auto" data-lenis-prevent-wheel>
               {items.map((m, i) => {
                 const active = i === index;
                 return (

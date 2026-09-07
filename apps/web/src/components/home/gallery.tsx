@@ -274,6 +274,7 @@ function MobileAlbumScroll({ albums }: { readonly albums: readonly Album[] }) {
   return (
     <div
       className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-6 md:hidden"
+      data-lenis-prevent-wheel
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
       {albums.map((album) => (

@@ -10,6 +10,8 @@ import {
   useState,
 } from 'react';
 
+import { recordPlay } from '@/lib/content-metrics';
+
 import type { PublicSong } from './songs-content';
 
 interface PlayerState {
@@ -44,6 +46,21 @@ const PlayerContext = createContext<PlayerState | null>(null);
  * the one failure a music page cannot laugh off.
  */
 let sharedAudio: HTMLAudioElement | null = null;
+
+/**
+ * Count a listen.
+ *
+ * Called wherever a track *starts from the beginning* — a card, "play
+ * all", a skip, a replay, and the auto-advance below. Resuming after a
+ * pause deliberately does not count: that is one listen continuing, not
+ * a second one.
+ *
+ * Never awaited. A counter must not put a network round trip between the
+ * visitor pressing play and the audio starting.
+ */
+function countPlay(song: PublicSong): void {
+  void recordPlay(song.id);
+}
 
 function getSharedAudio(): HTMLAudioElement | null {
   if (typeof window === 'undefined') return null;
@@ -122,6 +139,7 @@ export function PlayerProvider({
       setCurrent(upNext);
       setCurrentTime(0);
       setDuration(upNext.durationSeconds ?? 0);
+      countPlay(upNext);
       void el
         .play()
         .then(() => setPlaying(true))
@@ -159,6 +177,13 @@ export function PlayerProvider({
         setCurrentTime(0);
         setDuration(song.durationSeconds ?? 0);
       }
+
+      // A new track is always a play. The same track only counts again
+      // if it is starting over — pressing play on a song paused halfway
+      // is a resume, and `ended` covers the case where it ran to the end
+      // and the visitor wants it again.
+      if (!sameSong || el.ended || el.currentTime === 0) countPlay(song);
+
       void el
         .play()
         .then(() => setPlaying(true))

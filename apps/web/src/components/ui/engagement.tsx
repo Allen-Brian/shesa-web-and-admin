@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, Heart } from 'lucide-react';
+import { Eye, Heart, Play } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { fetchMetrics, recordView, toggleLike, type ContentKind } from '@/lib/content-metrics';
@@ -23,11 +23,16 @@ interface Props {
    * own against them.
    */
   readonly size?: 'sm' | 'md' | 'lg';
+  /**
+   * Show the play count alongside views. Songs only — nothing else has
+   * one, and the number would read as zero rather than as absent.
+   */
+  readonly showPlays?: boolean;
   readonly className?: string;
 }
 
 /**
- * Views and a like button for one piece of content.
+ * Views, plays, and a like button for one piece of content.
  *
  * Counts are fetched on the client rather than rendered on the server:
  * the pages they sit on are cached or statically composed, and a number
@@ -36,9 +41,17 @@ interface Props {
  * why they render as dashes rather than zeros until they arrive — a zero
  * that turns into 47 reads as a bug.
  */
-export function Engagement({ kind, entityId, countView = false, size = 'md', className }: Props) {
+export function Engagement({
+  kind,
+  entityId,
+  countView = false,
+  size = 'md',
+  showPlays = false,
+  className,
+}: Props) {
   const [views, setViews] = useState<number | null>(null);
   const [likes, setLikes] = useState<number | null>(null);
+  const [plays, setPlays] = useState<number | null>(null);
   const [liked, setLiked] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -52,6 +65,7 @@ export function Engagement({ kind, entityId, countView = false, size = 'md', cla
       if (!alive || !metrics) return;
       setViews(metrics.views);
       setLikes(metrics.likes);
+      setPlays(metrics.plays);
       setLiked(metrics.liked);
     })();
 
@@ -95,6 +109,18 @@ export function Engagement({ kind, entityId, countView = false, size = 'md', cla
 
   return (
     <div className={`flex items-center ${large ? 'gap-3' : 'gap-4'} ${text} ${className ?? ''}`}>
+      {showPlays && (
+        <span className={`inline-flex items-center ${chip} ${restText}`} title="Plays">
+          <Play className={`${icon} shrink-0 fill-current`} aria-hidden />
+          <span className="tabular-nums">{plays === null ? '—' : compact(plays)}</span>
+          {large ? (
+            <span>{plays === 1 ? 'play' : 'plays'}</span>
+          ) : (
+            <span className="sr-only">plays</span>
+          )}
+        </span>
+      )}
+
       <span className={`inline-flex items-center ${chip} ${restText}`} title="Views">
         <Eye className={`${icon} shrink-0`} aria-hidden />
         <span className="tabular-nums">{views === null ? '—' : compact(views)}</span>

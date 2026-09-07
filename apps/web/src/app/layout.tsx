@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
 import { SiteFooter } from '@/components/footer/site-footer';
+import { Analytics } from '@vercel/analytics/next';
+
 import { LenisProvider } from '@/components/lenis-provider';
 import { SiteNav } from '@/components/nav/site-nav';
 import { PromoFlyer } from '@/components/promo/promo-flyer';
@@ -99,6 +101,13 @@ export default function RootLayout({ children }: RootLayoutProps) {
           <SiteFooter />
           <PromoFlyer />
         </LenisProvider>
+
+        {/* Vercel Web Analytics — visitors and page views.
+            Cookieless and no cross-site identifier, so it needs no consent
+            banner; it is also first-party, served from /_vercel/insights
+            on this domain, which is what keeps it working under the CSP
+            and past the ad blockers that would drop a third-party host. */}
+        <Analytics />
       </body>
     </html>
   );

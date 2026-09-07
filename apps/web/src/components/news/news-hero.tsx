@@ -125,6 +125,7 @@ export function NewsHero({ featured }: Props) {
                 ref={scrollerRef}
                 onScroll={onScroll}
                 className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2"
+                data-lenis-prevent-wheel
                 style={{ scrollbarWidth: 'none' }}
               >
                 {featured.map((article) => (

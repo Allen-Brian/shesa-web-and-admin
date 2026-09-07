@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { SongAmbienceMotes } from './song-ambience-motes';
+
 /**
  * The room the song is playing in.
  *
@@ -12,12 +14,17 @@ import { useEffect, useState } from 'react';
  * track is playing the page acquires a slow wash of colour, and when it
  * stops the wash leaves.
  *
- * It is deliberately slow: the drifts run between 19 and 34 seconds and
+ * It is deliberately slow: the drifts run between 17 and 34 seconds and
  * are mutually prime, so the composition never visibly repeats and
  * nothing moves fast enough to pull the eye off the words. This is
  * atmosphere, not a visualiser — it is not driven by the audio, and it
  * should never be. A shape reacting to a beat is something you watch; the
  * point here is something you stop noticing.
+ *
+ * The colour lives here. The *motion* — shafts of light and the dust
+ * turning through them — is `song-ambience-motes`, drawn on a canvas
+ * over this, because a drifting blurred gradient reads as breathing
+ * rather than as anything travelling.
  *
  * ─── Being visible enough to exist ─────────────────────────────────────
  * The first version of this was not. Its blobs peaked at alpha 0.22 on a
@@ -31,11 +38,12 @@ import { useEffect, useState } from 'react';
  * only under running text, and on the accompanying `breathe` being a
  * ±12% opacity swell rather than anything that reads as blinking.
  *
- * ─── Why CSS and not canvas ────────────────────────────────────────────
+ * ─── Why the colour stays in CSS ───────────────────────────────────────
  * Blurred radial gradients on transform and opacity keyframes stay on the
  * compositor: no paint, no main-thread work, no rAF competing with the
- * audio element. A canvas would cost a frame budget for a result nobody
- * is looking directly at, and would keep costing it in a background tab.
+ * audio element. There is no reason to pay a frame loop for a wash that
+ * a keyframe expresses exactly — which is why only the part that a
+ * keyframe *cannot* express moved to a canvas.
  *
  * ─── Reduced motion ────────────────────────────────────────────────────
  * Honoured properly rather than by hiding the effect: the colour still
@@ -91,6 +99,12 @@ export function SongAmbience({
       <span className="song-ambience__blob song-ambience__blob--two" />
       <span className="song-ambience__blob song-ambience__blob--three" />
       <span className="song-ambience__blob song-ambience__blob--four" />
+
+      {/* The wash above is colour; this is the movement. Kept apart
+          because they are paid for differently — the gradients cost
+          nothing and can always run, the canvas costs a frame loop and
+          only runs while the music does. */}
+      <SongAmbienceMotes active={active} />
 
       {/* Keeps the wash off running text without flattening it everywhere. */}
       <span className={`song-ambience__veil song-ambience__veil--${veil}`} />
