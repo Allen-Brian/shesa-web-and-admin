@@ -7,6 +7,8 @@ import { Engagement } from '@/components/ui/engagement';
 
 import Link from 'next/link';
 
+import { downloadFile } from '@/lib/download-file';
+
 import { SongCover } from './song-cover';
 import { usePlayer } from './player-context';
 
@@ -150,15 +152,19 @@ export function SongCard({ song, index }: Props) {
               song list is the closest honest signal to a play. */}
           <Engagement kind="song" entityId={song.id} countView size="sm" className="mt-2" />
         </div>
-        <a
-          href={song.audioUrl}
-          download
-          onClick={(e) => e.stopPropagation()}
+        {/* A button, not a link: `<a download>` is ignored cross-origin,
+            and the audio lives on Supabase Storage. See lib/download-file. */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            void downloadFile(song.audioUrl, song.title);
+          }}
           aria-label={`Download ${song.title}`}
           className="grid h-8 w-8 shrink-0 place-items-center rounded-xs bg-black/5 text-black/60 transition-colors hover:bg-primary hover:text-white"
         >
           <DownloadIcon className="h-3.5 w-3.5" />
-        </a>
+        </button>
       </div>
     </motion.article>
   );

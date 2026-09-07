@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 
+import { downloadFile } from '@/lib/download-file';
 import { usePlayer } from './player-context';
 import { PlayerWaveform } from './player-waveform';
 
@@ -192,14 +193,14 @@ export function DockedPlayer() {
 
               {/* Right, download + close */}
               <div className="flex shrink-0 items-center gap-1 md:min-w-[100px] md:justify-end">
-                <a
-                  href={song.audioUrl}
-                  download
+                <button
+                  type="button"
+                  onClick={() => void downloadFile(song.audioUrl, song.title)}
                   aria-label={`Download ${song.title}`}
                   className="grid h-9 w-9 place-items-center rounded-xs border border-white/15 bg-white/5 text-white/75 transition-all hover:border-primary hover:bg-primary hover:text-white"
                 >
                   <DownloadIcon className="h-3.5 w-3.5" />
-                </a>
+                </button>
                 <button
                   type="button"
                   onClick={player.pause}

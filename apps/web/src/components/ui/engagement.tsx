@@ -17,8 +17,12 @@ interface Props {
   readonly entityId: string;
   /** Count a view on mount. Set on detail pages, not on cards. */
   readonly countView?: boolean;
-  /** Compact rendering for cards; the default suits a detail page. */
-  readonly size?: 'sm' | 'md';
+  /**
+   * `sm` for cards, `md` for a line of metadata, `lg` for a detail page
+   * where these sit in the row of primary controls and have to hold their
+   * own against them.
+   */
+  readonly size?: 'sm' | 'md' | 'lg';
   readonly className?: string;
 }
 
@@ -77,15 +81,28 @@ export function Engagement({ kind, entityId, countView = false, size = 'md', cla
     setPending(false);
   };
 
-  const text = size === 'sm' ? 'text-[11.5px]' : 'text-[13px]';
+  const large = size === 'lg';
+  const text = size === 'sm' ? 'text-[11.5px]' : large ? 'text-sm' : 'text-[13px]';
   const icon = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';
 
+  // At `lg` each metric becomes a control the same height as the Play and
+  // Share buttons beside it. At the smaller sizes they are metadata and
+  // stay quiet — the same numbers, given the weight of their surroundings.
+  const chip = large
+    ? 'gap-2.5 rounded-xs border border-black/15 px-5 py-4 font-medium tracking-wide'
+    : 'gap-1.5 rounded-xs';
+  const restText = large ? 'text-black/70' : 'text-black/50';
+
   return (
-    <div className={`flex items-center gap-4 ${text} ${className ?? ''}`}>
-      <span className="inline-flex items-center gap-1.5 text-black/50" title="Views">
+    <div className={`flex items-center ${large ? 'gap-3' : 'gap-4'} ${text} ${className ?? ''}`}>
+      <span className={`inline-flex items-center ${chip} ${restText}`} title="Views">
         <Eye className={`${icon} shrink-0`} aria-hidden />
         <span className="tabular-nums">{views === null ? '—' : compact(views)}</span>
-        <span className="sr-only">views</span>
+        {large ? (
+          <span>{views === 1 ? 'view' : 'views'}</span>
+        ) : (
+          <span className="sr-only">views</span>
+        )}
       </span>
 
       <button
@@ -93,8 +110,10 @@ export function Engagement({ kind, entityId, countView = false, size = 'md', cla
         onClick={onLike}
         aria-pressed={liked}
         aria-label={liked ? 'Remove like' : 'Like'}
-        className={`inline-flex items-center gap-1.5 rounded-xs transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-          liked ? 'text-primary' : 'text-black/50 hover:text-primary'
+        className={`inline-flex items-center ${chip} transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+          liked
+            ? 'border-primary text-primary'
+            : `${restText} hover:border-primary hover:text-primary`
         }`}
       >
         <Heart
@@ -104,6 +123,7 @@ export function Engagement({ kind, entityId, countView = false, size = 'md', cla
           aria-hidden
         />
         <span className="tabular-nums">{likes === null ? '—' : compact(likes)}</span>
+        {large && <span>{liked ? 'Liked' : 'Like'}</span>}
       </button>
     </div>
   );

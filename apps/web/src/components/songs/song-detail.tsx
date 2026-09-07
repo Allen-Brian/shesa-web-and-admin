@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Check, Pause, Play, Share2 } from 'lucide-react';
+import { Check, Download, Pause, Play, Share2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { Engagement } from '@/components/ui/engagement';
+import { downloadFile } from '@/lib/download-file';
 
+import { SongAmbience } from './song-ambience';
 import { usePlayer } from './player-context';
 import { SongCover } from './song-cover';
 import type { PublicSong, PublicSongGroup } from './songs-content';
@@ -19,7 +21,12 @@ const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
  * The lyrics and description an editor types were being collected and
  * never shown — the browser only ever rendered a card. This is the page
  * a shared link opens, so it carries everything the CMS holds about the
- * track and a share button of its own.
+ * track: its words, its credits, and every action you can take on it.
+ *
+ * The four controls sit on one row deliberately. Play, download, share
+ * and like are the same kind of thing — what a listener does with a song
+ * — and the counts had been set in grey metadata type where they read as
+ * a caption on the page rather than as something to press.
  */
 export function SongDetail({
   song,
@@ -33,10 +40,24 @@ export function SongDetail({
 
   const isCurrent = player.current?.id === song.id;
   const isPlaying = isCurrent && player.isPlaying;
+  const [saving, setSaving] = useState(false);
 
   const onPlay = () => {
     if (isCurrent) player.toggle();
     else player.play(song);
+  };
+
+  /**
+   * The audio is on Supabase Storage, a different origin, where the
+   * browser ignores `download` on a link — so this fetches the bytes and
+   * saves a blob. The pending state matters: a song is a few megabytes
+   * and nothing else on the page would say the tap had registered.
+   */
+  const onDownload = async () => {
+    if (saving) return;
+    setSaving(true);
+    await downloadFile(song.audioUrl, song.title);
+    setSaving(false);
   };
 
   /**
@@ -64,8 +85,10 @@ export function SongDetail({
   };
 
   return (
-    <article className="relative bg-white pb-24 pt-32 md:pb-32 md:pt-40">
-      <div className="mx-auto max-w-350 px-5 md:px-8 lg:px-12">
+    <article className="relative isolate overflow-hidden bg-white pb-24 pt-32 md:pb-32 md:pt-40">
+      <SongAmbience active={isPlaying} />
+
+      <div className="relative mx-auto max-w-350 px-5 md:px-8 lg:px-12">
         <Link
           href="/songs"
           className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.28em] text-black/50 transition-colors hover:text-primary"
@@ -132,6 +155,16 @@ export function SongDetail({
 
               <button
                 type="button"
+                onClick={onDownload}
+                disabled={saving}
+                className="inline-flex items-center gap-2.5 rounded-xs border border-black/15 px-5 py-4 text-sm font-medium tracking-wide text-black/70 transition-colors duration-300 hover:border-primary hover:text-primary disabled:opacity-60"
+              >
+                <Download className="h-4 w-4" aria-hidden />
+                {saving ? 'Saving…' : 'Download'}
+              </button>
+
+              <button
+                type="button"
                 onClick={onShare}
                 className="inline-flex items-center gap-2.5 rounded-xs border border-black/15 px-5 py-4 text-sm font-medium tracking-wide text-black/70 transition-colors duration-300 hover:border-primary hover:text-primary"
               >
@@ -143,7 +176,7 @@ export function SongDetail({
                 {copied ? 'Link copied' : 'Share'}
               </button>
 
-              <Engagement kind="song" entityId={song.id} countView className="ml-1" />
+              <Engagement kind="song" entityId={song.id} countView size="lg" />
             </div>
 
             {song.description && (

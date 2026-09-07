@@ -25,9 +25,34 @@ interface PlayerState {
   readonly next: () => void;
   readonly prev: () => void;
   readonly setQueue: (list: readonly PublicSong[]) => void;
+  /** Start at the top of the queue and run through it. */
+  readonly playAll: () => void;
+  /** True while the queue is running itself track to track. */
+  readonly isQueueRunning: boolean;
+  readonly queueLength: number;
 }
 
 const PlayerContext = createContext<PlayerState | null>(null);
+
+/**
+ * One `<audio>` for the whole application, not one per provider.
+ *
+ * The layout should mean only a single provider ever mounts, but this is
+ * the guarantee rather than the assumption: an element held in a module
+ * cannot be duplicated by a second provider, a fast-refresh remount, or a
+ * future page that wraps its own. Two songs playing over each other is
+ * the one failure a music page cannot laugh off.
+ */
+let sharedAudio: HTMLAudioElement | null = null;
+
+function getSharedAudio(): HTMLAudioElement | null {
+  if (typeof window === 'undefined') return null;
+  if (!sharedAudio) {
+    sharedAudio = new Audio();
+    sharedAudio.preload = 'metadata';
+  }
+  return sharedAudio;
+}
 
 /**
  * Wraps the /songs page. Holds a single `<audio>` element off-screen so
@@ -48,29 +73,85 @@ export function PlayerProvider({
   const [isPlaying, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isQueueRunning, setQueueRunning] = useState(false);
+
+  /**
+   * `ended` fires from a listener registered once, so it cannot close
+   * over the current track or queue. These refs are how it reads them —
+   * re-registering the listener on every change would be the alternative,
+   * and it drops the event if a track ends mid-render.
+   */
+  const currentRef = useRef<PublicSong | null>(null);
+  const queueRef = useRef<readonly PublicSong[]>(initialQueue);
+  currentRef.current = current;
+  queueRef.current = queue;
 
   useEffect(() => {
-    if (audioRef.current) return;
-    const el = new Audio();
-    el.preload = 'metadata';
+    const el = getSharedAudio();
+    if (!el) return;
     audioRef.current = el;
 
-    el.addEventListener('timeupdate', () => {
+    const onTime = () => {
       setCurrentTime(el.currentTime);
       if (el.duration && Number.isFinite(el.duration)) setDuration(el.duration);
-    });
-    el.addEventListener('loadedmetadata', () => {
+    };
+    const onMeta = () => {
       if (el.duration && Number.isFinite(el.duration)) setDuration(el.duration);
-    });
-    el.addEventListener('ended', () => {
-      setPlaying(false);
-    });
+    };
+
+    /**
+     * Roll on to the next track when one finishes.
+     *
+     * Deliberately does not wrap. `next()` cycles, which is right when a
+     * listener asks for it, but a queue that silently restarts at the top
+     * after the last track is a player nobody can leave running.
+     */
+    const onEnded = () => {
+      const list = queueRef.current;
+      const now = currentRef.current;
+      const idx = now ? list.findIndex((s) => s.id === now.id) : -1;
+      const upNext = idx >= 0 ? list[idx + 1] : undefined;
+
+      if (!upNext) {
+        setPlaying(false);
+        setQueueRunning(false);
+        return;
+      }
+
+      el.src = upNext.audioUrl;
+      setCurrent(upNext);
+      setCurrentTime(0);
+      setDuration(upNext.durationSeconds ?? 0);
+      void el
+        .play()
+        .then(() => setPlaying(true))
+        .catch(() => setPlaying(false));
+    };
+
+    el.addEventListener('timeupdate', onTime);
+    el.addEventListener('loadedmetadata', onMeta);
+    el.addEventListener('ended', onEnded);
+
+    return () => {
+      el.removeEventListener('timeupdate', onTime);
+      el.removeEventListener('loadedmetadata', onMeta);
+      el.removeEventListener('ended', onEnded);
+    };
   }, []);
 
+  /**
+   * Picking a track by hand ends the "play all" run — the visitor has
+   * taken over the choice, and leaving the flag set would have the button
+   * offering to pause a run that is no longer the one playing.
+   *
+   * Skipping with next/prev does not count as taking over, which is why
+   * `stepBy` restores the flag rather than going through here untouched.
+   */
   const play = useCallback(
     (song: PublicSong) => {
       const el = audioRef.current;
       if (!el) return;
+      setQueueRunning(false);
       const sameSong = current?.id === song.id;
       if (!sameSong) {
         el.src = song.audioUrl;
@@ -120,13 +201,25 @@ export function PlayerProvider({
       if (idx < 0) return;
       const nextIdx = (idx + delta + queue.length) % queue.length;
       const target = queue[nextIdx];
-      if (target) play(target);
+      if (!target) return;
+      const wasRunning = isQueueRunning;
+      play(target);
+      if (wasRunning) setQueueRunning(true);
     },
-    [current, queue, play],
+    [current, queue, play, isQueueRunning],
   );
 
   const next = useCallback(() => stepBy(1), [stepBy]);
   const prev = useCallback(() => stepBy(-1), [stepBy]);
+
+  const playAll = useCallback(() => {
+    const first = queue[0];
+    if (!first) return;
+    // After `play`, which clears the flag — the later setter is the one
+    // that survives the batch.
+    play(first);
+    setQueueRunning(true);
+  }, [queue, play]);
 
   const value = useMemo<PlayerState>(
     () => ({
@@ -142,8 +235,25 @@ export function PlayerProvider({
       next,
       prev,
       setQueue: (list) => setQueue(list),
+      playAll,
+      isQueueRunning,
+      queueLength: queue.length,
     }),
-    [current, isPlaying, currentTime, duration, play, toggle, pause, seekPercent, next, prev],
+    [
+      current,
+      isPlaying,
+      currentTime,
+      duration,
+      play,
+      toggle,
+      pause,
+      seekPercent,
+      next,
+      prev,
+      playAll,
+      isQueueRunning,
+      queue.length,
+    ],
   );
 
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;

@@ -1,3 +1,4 @@
+import { orderByOffice } from '@shesa/domain/governance';
 import type { Metadata } from 'next';
 
 import { BatchPresidents, type BatchPresident } from '@/components/leadership/batch-presidents';
@@ -40,6 +41,7 @@ interface RawMainstreamLeader {
   readonly name: string;
   readonly location: string | null;
   readonly photo_url: string | null;
+  readonly sort_order: number | null;
 }
 interface RawRegional {
   readonly id: string;
@@ -91,7 +93,7 @@ export default async function LeadershipPage() {
     supabase
       .schema('cms')
       .from('mainstream_leaders')
-      .select('id, sector_id, position, name, location, photo_url')
+      .select('id, sector_id, position, name, location, photo_url, sort_order')
       .order('sort_order'),
     supabase
       .schema('cms')
@@ -106,7 +108,11 @@ export default async function LeadershipPage() {
     supabase
       .schema('cms')
       .from('diaspora_leaders')
+      // Same ordering as the branches above, for the same reason: a
+      // chapter's president has to precede its vice.
       .select('id, branch_name, name, region, photo_url, role')
+      .order('branch_name')
+      .order('role')
       .order('sort_order'),
     supabase
       .schema('cms')
@@ -117,7 +123,7 @@ export default async function LeadershipPage() {
 
   const sectors = (sectorsRaw ?? []) as RawSector[];
   const mainstream = (mainstreamRaw ?? []) as RawMainstreamLeader[];
-  const leadersBySector = new Map<string, Leader[]>();
+  const leadersBySector = new Map<string, (Leader & { sortOrder: number })[]>();
   for (const l of mainstream) {
     const bucket = leadersBySector.get(l.sector_id) ?? [];
     bucket.push({
@@ -126,14 +132,25 @@ export default async function LeadershipPage() {
       location: l.location ?? undefined,
       photo: l.photo_url ?? PLACEHOLDER_PHOTO,
       slug: l.id,
+      sortOrder: l.sort_order ?? 0,
     });
     leadersBySector.set(l.sector_id, bucket);
   }
+
+  // `sort_order` alone let an assistant print above the office it
+  // assists. Reordered per sector so an office and its deputies stay
+  // together, principal first — see lib/leadership-order.
   const tiers: Tier[] = sectors
     .map((s) => ({
       heading: s.name,
       caption: s.caption ?? '',
-      leaders: leadersBySector.get(s.id) ?? [],
+      leaders: orderByOffice(leadersBySector.get(s.id) ?? []).map((l): Leader => ({
+        name: l.name,
+        position: l.position,
+        location: l.location,
+        photo: l.photo,
+        slug: l.slug,
+      })),
     }))
     .filter((t) => t.leaders.length > 0);
 

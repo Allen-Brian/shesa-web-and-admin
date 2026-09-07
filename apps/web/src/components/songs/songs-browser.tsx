@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
-import { Music4 } from 'lucide-react';
+import { ListMusic, Music4, Pause } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -50,6 +50,10 @@ interface Props {
  * Search + group-filter + responsive grid of song cards. Feeds the
  * player's queue with the current filtered list so "next"/"prev" only
  * walks over songs the user is actually browsing.
+ *
+ * "Play all" runs that same filtered list, which is what makes it useful
+ * rather than decorative: filter to a chapter, press it, and you hear
+ * that chapter's songs and nothing else.
  */
 export function SongsBrowser({ songs, groups }: Props) {
   const player = usePlayer();
@@ -92,6 +96,11 @@ export function SongsBrowser({ songs, groups }: Props) {
   useEffect(() => {
     player.setQueue(list);
   }, [list, player]);
+
+  // The one button is play and pause, so it needs to know the run it
+  // started is still the run that is playing — not merely that some song
+  // is, which would be true after the visitor picked a different card.
+  const runningNow = player.isQueueRunning && player.isPlaying;
 
   return (
     <section
@@ -155,6 +164,21 @@ export function SongsBrowser({ songs, groups }: Props) {
               className="w-full rounded-xs border border-black/12 bg-white py-3.5 pl-11 pr-5 text-[14px] text-black placeholder:text-black/40 focus:border-primary focus:outline-none"
             />
           </label>
+
+          <button
+            type="button"
+            onClick={runningNow ? player.pause : player.playAll}
+            disabled={list.length === 0}
+            className="inline-flex shrink-0 items-center justify-center gap-2.5 rounded-xs bg-primary px-6 py-3.5 text-[14px] font-medium tracking-wide text-primary-foreground transition-transform duration-500 hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-40"
+          >
+            {runningNow ? (
+              <Pause className="h-4 w-4 fill-current" aria-hidden />
+            ) : (
+              <ListMusic className="h-4 w-4" aria-hidden />
+            )}
+            {runningNow ? 'Pause' : 'Play all'}
+            <span className="tabular-nums opacity-70">({list.length})</span>
+          </button>
         </motion.div>
 
         {/* Filters */}
