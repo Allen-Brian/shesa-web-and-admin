@@ -10,7 +10,7 @@ import {
   useState,
 } from 'react';
 
-import { recordPlay } from '@/lib/content-metrics';
+import { recordPlay, recordView } from '@/lib/content-metrics';
 
 import type { PublicSong } from './songs-content';
 
@@ -48,18 +48,29 @@ const PlayerContext = createContext<PlayerState | null>(null);
 let sharedAudio: HTMLAudioElement | null = null;
 
 /**
- * Count a listen.
+ * Count a listen — and the view that must have come with it.
  *
  * Called wherever a track *starts from the beginning* — a card, "play
  * all", a skip, a replay, and the auto-advance below. Resuming after a
  * pause deliberately does not count: that is one listen continuing, not
  * a second one.
  *
+ * Playing a song is also viewing it. Views used to be recorded only by
+ * the detail page, so a visitor who pressed play from the grid and never
+ * opened the track counted as a listener nobody had — and the card could
+ * show plays above a view count of zero, which reads as a broken number
+ * rather than as a distinction.
+ *
+ * The two counters keep their own meanings: `recordView` is deduplicated
+ * per visitor for good, so however many times this fires, one person is
+ * one view. Only the plays accumulate.
+ *
  * Never awaited. A counter must not put a network round trip between the
  * visitor pressing play and the audio starting.
  */
 function countPlay(song: PublicSong): void {
   void recordPlay(song.id);
+  void recordView('song', song.id);
 }
 
 function getSharedAudio(): HTMLAudioElement | null {
