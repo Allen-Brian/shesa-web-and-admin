@@ -6,26 +6,28 @@ import { Save, Trash2 } from 'lucide-react';
 
 import { Button, ConfirmDialog, Input, Label, Textarea, toast } from '@shesa/ui';
 
-import { createOrgan, deleteOrgan, updateOrgan } from '../actions/organs';
+import { createOrgan, deleteOrgan, setOrganAlbum, updateOrgan } from '../actions/organs';
 import type { OrganInput } from '../actions/organ-action-types';
+import { AlbumLinker } from './album-linker';
 import { OrganLogoPicker } from './organ-logo-picker';
 import { OrganSectorManagerDialog } from './organ-sector-manager-dialog';
 import { SectorSelect } from './sector-select';
 import { slugify } from '@shesa/domain/utils';
+import type { LinkableAlbum } from '../load-organs';
 import type { OrganRow, SectorRow } from './organ-widget-types';
 
 interface Props {
   readonly sectors: readonly SectorRow[];
   readonly editing?: OrganRow | null;
+  readonly albums: readonly LinkableAlbum[];
 }
 
 /**
  * Organ form — name + sector + member count + optional location /
- * founded year / description / achievements / logo / contact fields.
- * Slug follows the
- * name until the editor edits it directly.
+ * founded year / description / achievements / album / logo / contact
+ * fields. Slug follows the name until the editor edits it directly.
  */
-export function OrganForm({ sectors, editing }: Props) {
+export function OrganForm({ sectors, editing, albums }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -60,6 +62,18 @@ export function OrganForm({ sectors, editing }: Props) {
     while (stored.length < 3) stored.push('');
     return stored;
   });
+  /**
+   * Which album points at this organ.
+   *
+   * Read from the albums rather than from the organ, because the link
+   * lives on `gallery_albums.linked_organ_id` — there is no column on
+   * the organ to read it from, and duplicating one would be a second
+   * source of truth for a fact the album already states.
+   */
+  const [albumId, setAlbumId] = useState<string | null>(
+    () => albums.find((a) => a.linkedOrganId === editing?.id)?.id ?? null,
+  );
+
   const [manageOpen, setManageOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -117,8 +131,25 @@ export function OrganForm({ sectors, editing }: Props) {
         toast.error(res.message);
         return;
       }
-      toast.success(editing ? 'Organ saved.' : 'Organ created.');
+
       const newId = editing ? editing.id : (res.data as { id: string })?.id;
+
+      // Separate write, because the link is a column on the album. Only
+      // sent when it actually changed — otherwise saving an unrelated
+      // field would clear and rewrite the link on every submit.
+      const wasLinked = albums.find((a) => a.linkedOrganId === editing?.id)?.id ?? null;
+      if (newId && albumId !== wasLinked) {
+        const linkRes = await setOrganAlbum(newId, albumId);
+        if (!linkRes.ok) {
+          // The organ itself saved, so say what did and did not land
+          // rather than reporting one failure for both.
+          toast.error(`Organ saved, but the album link failed: ${linkRes.message}`);
+          router.push(`/editor/organs/${newId}/edit`);
+          return;
+        }
+      }
+
+      toast.success(editing ? 'Organ saved.' : 'Organ created.');
       router.push(newId ? `/editor/organs/${newId}/edit` : '/editor/organs');
     });
   };
@@ -282,6 +313,11 @@ export function OrganForm({ sectors, editing }: Props) {
               </Button>
             )}
           </div>
+
+          {/* The mirror of the organ picker on the album form — both
+              write `gallery_albums.linked_organ_id`, so the relationship
+              can be set from whichever screen the editor is already on. */}
+          <AlbumLinker albums={albums} value={albumId} onChange={setAlbumId} />
 
           <OrganLogoPicker value={logoUrl} onChange={setLogoUrl} alt={name || 'Logo'} />
 

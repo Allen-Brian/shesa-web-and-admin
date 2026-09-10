@@ -82,3 +82,44 @@ export async function deleteOrgans(
   revalidatePath('/organs');
   return { ok: true, data: { count: ids.length } };
 }
+
+/**
+ * Point an album at this organ — the mirror of the picker on the album
+ * form, so the relationship can be set from either screen.
+ *
+ * Two writes, in this order. `gallery_albums.linked_organ_id` lives on
+ * the album, so "this organ's album" is really "the album pointing here";
+ * moving the link therefore means clearing whatever pointed here before,
+ * or the organ's page would keep finding the old one. Clearing first also
+ * means the failure mode is an organ with no album rather than an organ
+ * with two, which is the one a reader would notice.
+ *
+ * Passing null unlinks and stops there.
+ */
+export async function setOrganAlbum(
+  organId: string,
+  albumId: string | null,
+): Promise<ActionResult> {
+  const supabase = await getServerClient();
+
+  const { error: clearError } = await supabase
+    .schema('cms')
+    .from('gallery_albums')
+    .update({ linked_organ_id: null } as never)
+    .eq('linked_organ_id', organId);
+  if (clearError) return { ok: false, message: clearError.message };
+
+  if (albumId) {
+    const { error } = await supabase
+      .schema('cms')
+      .from('gallery_albums')
+      .update({ linked_organ_id: organId } as never)
+      .eq('id', albumId);
+    if (error) return { ok: false, message: error.message };
+  }
+
+  revalidatePath('/editor/organs');
+  revalidatePath('/editor/gallery');
+  revalidatePath('/organs');
+  return { ok: true };
+}

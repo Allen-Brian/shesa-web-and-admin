@@ -4,26 +4,14 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Save, Trash2 } from 'lucide-react';
 
-import {
-  Button,
-  ConfirmDialog,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Textarea,
-  toast,
-} from '@shesa/ui';
+import { Button, ConfirmDialog, Input, Label, Textarea, toast } from '@shesa/ui';
 
 import { createAlbum, deleteAlbum, updateAlbum } from '../actions/albums';
 import type { AlbumInput } from '../actions/gallery-action-types';
 import { AlbumCoverPicker } from './album-cover-picker';
 import { AlbumCategoryManagerDialog } from './album-category-manager-dialog';
 import { TaxonomyPicker } from '@/components/taxonomy/taxonomy-picker';
-import { EventLinker } from './event-linker';
+import { EventLinker, OrganLinker } from './event-linker';
 import { MediaGridEditor } from './media-grid-editor';
 import { slugify } from '@shesa/domain/utils';
 import type {
@@ -33,12 +21,6 @@ import type {
   LinkableOrgan,
   MediaRow,
 } from './gallery-widget-types';
-
-/**
- * Radix treats an empty string as "no value", which makes such an item
- * unselectable — so "not linked" needs a sentinel of its own.
- */
-const NO_ORGAN = '__none__';
 
 interface Props {
   readonly categories: readonly CategoryRow[];
@@ -67,7 +49,7 @@ export function AlbumForm({ categories, events, organs, editing, media = [] }: P
   const [coverUrl, setCoverUrl] = useState(editing?.coverUrl ?? '');
   const [photographer, setPhotographer] = useState(editing?.photographer ?? '');
   const [linkedEventId, setLinkedEventId] = useState<string | null>(editing?.linkedEventId ?? null);
-  const [linkedOrganId, setLinkedOrganId] = useState<string>(editing?.linkedOrganId ?? NO_ORGAN);
+  const [linkedOrganId, setLinkedOrganId] = useState<string | null>(editing?.linkedOrganId ?? null);
   const [categoryIds, setCategoryIds] = useState<string[]>(editing ? [...editing.categoryIds] : []);
   const [manageOpen, setManageOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -105,7 +87,7 @@ export function AlbumForm({ categories, events, organs, editing, media = [] }: P
       coverUrl: coverUrl || null,
       photographer: photographer || null,
       linkedEventId,
-      linkedOrganId: linkedOrganId === NO_ORGAN ? null : linkedOrganId,
+      linkedOrganId,
       sortOrder: editing?.sortOrder ?? 999,
       categoryIds,
     };
@@ -301,28 +283,7 @@ export function AlbumForm({ categories, events, organs, editing, media = [] }: P
 
           <EventLinker events={events} value={linkedEventId} onChange={setLinkedEventId} />
 
-          {/* The same idea as the event link above, pointed at an organ:
-              a branch's page renders the album linked to it, which is how
-              the group pictures get there. */}
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="al-organ">Branch / organ (optional)</Label>
-            <Select value={linkedOrganId} onValueChange={setLinkedOrganId}>
-              <SelectTrigger id="al-organ">
-                <SelectValue placeholder="Not linked" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NO_ORGAN}>Not linked</SelectItem>
-                {organs.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>
-                    {o.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Linking an album to an organ shows its photos on that organ&apos;s public page.
-            </p>
-          </div>
+          <OrganLinker organs={organs} value={linkedOrganId} onChange={setLinkedOrganId} />
 
           <TaxonomyPicker
             label="Categories"

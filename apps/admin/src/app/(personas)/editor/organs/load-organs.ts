@@ -54,16 +54,27 @@ function normaliseOrgan(raw: RawOrgan): OrganRow {
   };
 }
 
+/** An album as the organ form's picker needs it. */
+export interface LinkableAlbum {
+  readonly id: string;
+  readonly title: string;
+  readonly slug: string;
+  readonly dateLabel: string | null;
+  /** The organ it currently points at, if any. */
+  readonly linkedOrganId: string | null;
+}
+
 export interface LoadedOrgans {
   readonly organs: readonly OrganRow[];
   readonly sectors: readonly SectorRow[];
+  readonly albums: readonly LinkableAlbum[];
 }
 
 /** Server-side loader for the editor Organs surface. */
 export async function loadEditorOrgans(): Promise<LoadedOrgans> {
   const supabase = await getServerClient();
 
-  const [{ data: organsRaw }, { data: sectorsRaw }] = await Promise.all([
+  const [{ data: organsRaw }, { data: albumsRaw }, { data: sectorsRaw }] = await Promise.all([
     supabase
       .schema('cms')
       .from('organs')
@@ -72,6 +83,14 @@ export async function loadEditorOrgans(): Promise<LoadedOrgans> {
       )
       .order('sort_order')
       .order('name'),
+    // Offered in the organ form's album picker. `linked_organ_id` comes
+    // along so the form can show which album already points at this organ.
+    supabase
+      .schema('cms')
+      .from('gallery_albums')
+      .select('id, title, slug, date_label, linked_organ_id')
+      .order('sort_order')
+      .order('created_at', { ascending: false }),
     supabase
       .schema('cms')
       .from('organ_sectors')
@@ -88,5 +107,21 @@ export async function loadEditorOrgans(): Promise<LoadedOrgans> {
     sortOrder: s.sort_order,
   }));
 
-  return { organs, sectors };
+  const albums: LinkableAlbum[] = (
+    (albumsRaw ?? []) as {
+      id: string;
+      title: string;
+      slug: string;
+      date_label: string | null;
+      linked_organ_id: string | null;
+    }[]
+  ).map((a) => ({
+    id: a.id,
+    title: a.title,
+    slug: a.slug,
+    dateLabel: a.date_label,
+    linkedOrganId: a.linked_organ_id,
+  }));
+
+  return { organs, sectors, albums };
 }

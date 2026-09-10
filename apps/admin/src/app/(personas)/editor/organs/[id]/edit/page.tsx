@@ -16,7 +16,7 @@ interface Params {
 /** Edit-organ page for the Editor persona. */
 export default async function EditOrganPage({ params }: Params) {
   const { id } = await params;
-  const { organs, sectors } = await loadEditorOrgans();
+  const { organs, sectors, albums } = await loadEditorOrgans();
   const organ = organs.find((o) => o.id === id);
   if (!organ) notFound();
 
@@ -37,7 +37,7 @@ export default async function EditOrganPage({ params }: Params) {
         <p className="text-xs text-muted-foreground">{organ.name}</p>
       </div>
 
-      <OrganForm sectors={sectors} editing={organ} />
+      <OrganForm sectors={sectors} editing={organ} albums={albums} />
     </section>
   );
 }

@@ -10,7 +10,7 @@ export const metadata = { title: 'Shesa Editor — New organ' };
 
 /** Create-organ page for the Editor persona. */
 export default async function NewOrganPage() {
-  const { sectors } = await loadEditorOrgans();
+  const { sectors, albums } = await loadEditorOrgans();
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-5">
@@ -28,7 +28,7 @@ export default async function NewOrganPage() {
         </h1>
       </div>
 
-      <OrganForm sectors={sectors} />
+      <OrganForm sectors={sectors} albums={albums} />
     </section>
   );
 }
