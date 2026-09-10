@@ -3,6 +3,8 @@
 import Image from 'next/image';
 
 import { isLocalSupabaseUrl } from './is-local-supabase-url';
+import { hasProfile, type LeaderProfile } from './leader-profile';
+import { useLeaderProfile } from './leader-profile-modal';
 import { motion, type Variants } from 'framer-motion';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -22,6 +24,13 @@ export type BranchPresident = {
   readonly city: string;
   readonly photo: string;
   readonly slug: string;
+  /** Profile, when an editor has written one. See `leader-profile`. */
+  readonly profession?: string | null;
+  readonly bio?: string | null;
+  readonly email?: string | null;
+  readonly phone?: string | null;
+  /** The branch's own page, when it has one. */
+  readonly organHref?: string | null;
   /**
    * `President` or `Vice President`. Shown on the card because a branch
    * may now list both, and two cards under one branch name with no title
@@ -105,9 +114,51 @@ export function BranchPresidents({ presidents }: BranchPresidentsProps) {
   );
 }
 
+function toProfile(president: BranchPresident): LeaderProfile {
+  return {
+    name: president.name,
+    // "President · Buea Branch" rather than either half alone: in the
+    // modal the card's own heading is gone, so the role has to carry
+    // both what they do and where.
+    role: `${president.role} · ${president.branch}`,
+    location: president.city || null,
+    photo: president.photo,
+    profession: president.profession ?? null,
+    bio: president.bio ?? null,
+    email: president.email ?? null,
+    phone: president.phone ?? null,
+    organHref: president.organHref ?? null,
+    organName: president.branch,
+  };
+}
+
 function BranchCard({ president }: { readonly president: BranchPresident }) {
+  const { open } = useLeaderProfile();
+  const profile = toProfile(president);
+  const openable = hasProfile(profile);
+
   return (
-    <article className="relative flex h-full flex-col overflow-hidden rounded-xs border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+    <article
+      {...(openable
+        ? {
+            role: 'button',
+            tabIndex: 0,
+            onClick: () => open(profile),
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                open(profile);
+              }
+            },
+            'aria-label': `Read ${president.name}'s profile`,
+          }
+        : {})}
+      className={`relative flex h-full flex-col overflow-hidden rounded-xs border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] ${
+        openable
+          ? 'cursor-pointer transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_18px_40px_-12px_rgba(139,21,51,0.16)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+          : ''
+      }`}
+    >
       {/* 4/5 to match the main organ's portraits — at 4/3 these sat
           noticeably shorter than the executive's on the same page. */}
       <div className="relative aspect-4/5 overflow-hidden">

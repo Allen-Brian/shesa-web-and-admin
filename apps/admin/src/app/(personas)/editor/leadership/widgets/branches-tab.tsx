@@ -17,12 +17,18 @@ import {
   deleteBranchLeaders,
   updateBranchLeader,
 } from '../actions/regional-leaders';
-import { RegionalLeaderDialog } from './regional-leader-dialog';
+import { RegionalLeaderDialog, type OrganOption } from './regional-leader-dialog';
 import type { RegionalLeaderRow } from './leadership-widget-types';
 import { useRegionalColumns, type RegionalSerialRow } from './use-regional-columns';
 
 /** Branches tab — DataTable of every branch/chapter president. */
-export function BranchesTab({ leaders }: { readonly leaders: readonly RegionalLeaderRow[] }) {
+export function BranchesTab({
+  leaders,
+  organs,
+}: {
+  readonly leaders: readonly RegionalLeaderRow[];
+  readonly organs: readonly OrganOption[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [search, setSearch] = useState('');
@@ -108,6 +114,7 @@ export function BranchesTab({ leaders }: { readonly leaders: readonly RegionalLe
 
       {dialog && (
         <RegionalLeaderDialog
+          organs={organs}
           open
           onOpenChange={(o) => !o && setDialog(null)}
           kind="branch"

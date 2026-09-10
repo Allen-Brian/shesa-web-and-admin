@@ -21,7 +21,8 @@ interface Props {
 
 /**
  * Organ form — name + sector + member count + optional location /
- * founded year / description / logo / contact fields. Slug follows the
+ * founded year / description / achievements / logo / contact fields.
+ * Slug follows the
  * name until the editor edits it directly.
  */
 export function OrganForm({ sectors, editing }: Props) {
@@ -44,6 +45,21 @@ export function OrganForm({ sectors, editing }: Props) {
   const [contactEmail, setContactEmail] = useState(editing?.contactEmail ?? '');
   const [contactPhone, setContactPhone] = useState(editing?.contactPhone ?? '');
   const [websiteUrl, setWebsiteUrl] = useState(editing?.websiteUrl ?? '');
+
+  /**
+   * Always three boxes, whatever is stored.
+   *
+   * The Highlight Series asks each branch for its top three, so the form
+   * shows three rather than an add/remove list — the shape of the ask is
+   * the shape of the form, and an editor should not have to discover a
+   * button to answer it. Blanks are dropped on save, and an organ that
+   * already has more than three keeps them all.
+   */
+  const [achievements, setAchievements] = useState<string[]>(() => {
+    const stored = [...(editing?.achievements ?? [])];
+    while (stored.length < 3) stored.push('');
+    return stored;
+  });
   const [manageOpen, setManageOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -87,6 +103,7 @@ export function OrganForm({ sectors, editing }: Props) {
       foundedYear: year,
       memberCount: members,
       description: description || null,
+      achievements,
       logoUrl: logoUrl || null,
       contactEmail: contactEmail || null,
       contactPhone: contactPhone || null,
@@ -222,6 +239,48 @@ export function OrganForm({ sectors, editing }: Props) {
               maxLength={800}
               rows={4}
             />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="or-ach-0">Achievements</Label>
+            <p className="text-xs text-muted-foreground">
+              The branch&apos;s top achievements, shown in order on its public page. Leave any blank
+              to skip it.
+            </p>
+            <div className="flex flex-col gap-2">
+              {achievements.map((value, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="w-6 shrink-0 pt-2.5 text-xs tabular-nums text-muted-foreground">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <Textarea
+                    id={`or-ach-${i}`}
+                    value={value}
+                    onChange={(e) =>
+                      setAchievements((prev) =>
+                        prev.map((entry, j) => (j === i ? e.target.value : entry)),
+                      )
+                    }
+                    placeholder={
+                      i === 0 ? 'e.g. Raised 4.2M XAF for the school library refurbishment.' : ''
+                    }
+                    maxLength={500}
+                    rows={2}
+                  />
+                </div>
+              ))}
+            </div>
+            {achievements.length < 10 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="self-start"
+                onClick={() => setAchievements((prev) => [...prev, ''])}
+              >
+                Add another
+              </Button>
+            )}
           </div>
 
           <OrganLogoPicker value={logoUrl} onChange={setLogoUrl} alt={name || 'Logo'} />

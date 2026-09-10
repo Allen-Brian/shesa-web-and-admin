@@ -10,7 +10,7 @@ export const metadata = { title: 'Shesa Editor — New album' };
 
 /** Create-album page for the Editor persona. */
 export default async function NewAlbumPage() {
-  const { categories, events } = await loadEditorGallery();
+  const { categories, events, organs } = await loadEditorGallery();
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-5">
@@ -31,7 +31,7 @@ export default async function NewAlbumPage() {
         </p>
       </div>
 
-      <AlbumForm categories={categories} events={events} />
+      <AlbumForm categories={categories} events={events} organs={organs} />
     </section>
   );
 }

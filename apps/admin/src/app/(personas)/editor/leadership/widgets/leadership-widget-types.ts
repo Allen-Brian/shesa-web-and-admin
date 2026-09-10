@@ -13,6 +13,10 @@ export interface MainstreamLeaderRow {
   readonly name: string;
   readonly location: string | null;
   readonly photoUrl: string | null;
+  readonly profession: string | null;
+  readonly bio: string | null;
+  readonly email: string | null;
+  readonly phone: string | null;
   readonly sortOrder: number;
 }
 
@@ -24,6 +28,11 @@ export interface RegionalLeaderRow {
   readonly photoUrl: string | null;
   /** `president` or `vice_president`. Older rows default to president. */
   readonly role: string;
+  readonly profession: string | null;
+  readonly bio: string | null;
+  readonly email: string | null;
+  readonly phone: string | null;
+  readonly organId: string | null;
   readonly sortOrder: number;
 }
 

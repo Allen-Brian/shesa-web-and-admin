@@ -16,7 +16,7 @@ interface Params {
 /** Edit-album page for the Editor persona. */
 export default async function EditAlbumPage({ params }: Params) {
   const { id } = await params;
-  const [{ albums, categories, events }, media] = await Promise.all([
+  const [{ albums, categories, events, organs }, media] = await Promise.all([
     loadEditorGallery(),
     loadAlbumMedia(id),
   ]);
@@ -40,7 +40,13 @@ export default async function EditAlbumPage({ params }: Params) {
         <p className="text-xs text-muted-foreground">{album.title}</p>
       </div>
 
-      <AlbumForm categories={categories} events={events} editing={album} media={media} />
+      <AlbumForm
+        categories={categories}
+        events={events}
+        organs={organs}
+        editing={album}
+        media={media}
+      />
     </section>
   );
 }

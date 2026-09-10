@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 
 import type { PublicOrgan } from './organs-content';
@@ -82,7 +83,14 @@ interface Props {
   readonly index: number;
 }
 
-/** One card for a single organ. Logo, name, member count, contact bullets. */
+/**
+ * One card for a single organ. Logo, name, member count, contact bullets.
+ *
+ * The card is not itself a link. It already holds mailto/tel/website
+ * anchors, and an anchor inside an anchor is invalid HTML that browsers
+ * resolve by unnesting it — which would have broken the contact links.
+ * The name and an explicit footer link carry the navigation instead.
+ */
 export function OrganCard({ organ, index }: Props) {
   return (
     <motion.article
@@ -115,7 +123,12 @@ export function OrganCard({ organ, index }: Props) {
             className="font-heading font-light leading-tight text-black"
             style={{ fontSize: '1.05rem', letterSpacing: '-0.005em' }}
           >
-            {organ.name}
+            <Link
+              href={`/organs/${organ.slug}`}
+              className="transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              {organ.name}
+            </Link>
           </h3>
           {(organ.location || organ.country) && (
             <p className="mt-1 flex items-center gap-1.5 text-[12px] text-black/55">
@@ -178,6 +191,16 @@ export function OrganCard({ organ, index }: Props) {
           )}
         </div>
       )}
+
+      {/* Pushed to the bottom so cards of differing content still line
+          their footers up across a row. */}
+      <Link
+        href={`/organs/${organ.slug}`}
+        className="mt-auto inline-flex items-center gap-2 pt-5 text-[12.5px] font-medium tracking-wide text-primary transition-transform duration-300 hover:translate-x-0.5"
+      >
+        Branch profile
+        <span aria-hidden>→</span>
+      </Link>
     </motion.article>
   );
 }

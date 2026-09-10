@@ -21,6 +21,10 @@ function toDbBody(input: OrganInput) {
     contact_email: input.contactEmail?.trim() || null,
     contact_phone: input.contactPhone?.trim() || null,
     website_url: input.websiteUrl?.trim() || null,
+    // Blanks dropped here rather than in the form: the editor keeps three
+    // boxes on screen whether or not they are filled, and empty strings
+    // would render as empty numbered cards on the public page.
+    achievements: (input.achievements ?? []).map((a) => a.trim()).filter(Boolean),
     sort_order: input.sortOrder,
   };
 }
@@ -53,6 +57,8 @@ export async function updateOrgan(id: string, input: OrganInput): Promise<Action
   revalidatePath('/editor/organs');
   revalidatePath(`/editor/organs/${id}/edit`);
   revalidatePath('/organs');
+  // The organ's own page, which renders the achievements just edited.
+  revalidatePath(`/organs/${input.slug}`);
   return { ok: true };
 }
 

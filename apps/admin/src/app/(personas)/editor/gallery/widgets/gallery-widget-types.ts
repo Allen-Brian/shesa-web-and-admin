@@ -7,6 +7,12 @@ export interface CategoryRow {
 }
 
 /** Trimmed shape of a `cms.site_events` row used by the album linker dropdown. */
+/** Just enough of an organ to offer it in the album's link picker. */
+export interface LinkableOrgan {
+  readonly id: string;
+  readonly name: string;
+}
+
 export interface LinkableEvent {
   readonly id: string;
   readonly title: string;
@@ -35,6 +41,7 @@ export interface AlbumRow {
   readonly coverUrl: string | null;
   readonly photographer: string | null;
   readonly linkedEventId: string | null;
+  readonly linkedOrganId: string | null;
   readonly sortOrder: number;
   readonly categoryIds: readonly string[];
   readonly mediaCount: number;

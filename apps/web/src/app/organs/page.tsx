@@ -43,6 +43,7 @@ interface RawOrgan {
   readonly contact_email: string | null;
   readonly contact_phone: string | null;
   readonly website_url: string | null;
+  readonly achievements: string[] | null;
   readonly sort_order: number;
 }
 
@@ -61,6 +62,7 @@ function toOrgan(r: RawOrgan): PublicOrgan {
     contactEmail: r.contact_email,
     contactPhone: r.contact_phone,
     websiteUrl: r.website_url,
+    achievements: r.achievements ?? [],
   };
 }
 
@@ -83,7 +85,7 @@ export default async function OrgansPage() {
       .schema('cms')
       .from('organs')
       .select(
-        'id, sector_id, slug, name, short_name, location, country, founded_year, member_count, description, logo_url, contact_email, contact_phone, website_url, sort_order',
+        'id, sector_id, slug, name, short_name, location, country, founded_year, member_count, description, logo_url, contact_email, contact_phone, website_url, achievements, sort_order',
       )
       .order('sort_order')
       .order('name'),

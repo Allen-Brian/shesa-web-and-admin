@@ -14,6 +14,10 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = { title: 'Shesa Editor — Leadership' };
 
+/** Shared by the branch and diaspora reads — one table shape, two tables. */
+const REGIONAL_COLUMNS =
+  'id, branch_name, name, region, photo_url, role, profession, bio, email, phone, organ_id, sort_order';
+
 interface RawSector {
   readonly id: string;
   readonly name: string;
@@ -27,6 +31,10 @@ interface RawMainstreamLeader {
   readonly name: string;
   readonly location: string | null;
   readonly photo_url: string | null;
+  readonly profession: string | null;
+  readonly bio: string | null;
+  readonly email: string | null;
+  readonly phone: string | null;
   readonly sort_order: number;
 }
 interface RawRegional {
@@ -36,6 +44,11 @@ interface RawRegional {
   readonly region: string | null;
   readonly photo_url: string | null;
   readonly role: string | null;
+  readonly profession: string | null;
+  readonly bio: string | null;
+  readonly email: string | null;
+  readonly phone: string | null;
+  readonly organ_id: string | null;
   readonly sort_order: number;
 }
 interface RawBatch {
@@ -60,6 +73,7 @@ export default async function EditorLeadershipPage() {
     { data: branchRaw },
     { data: diasporaRaw },
     { data: batchRaw },
+    { data: organsRaw },
   ] = await Promise.all([
     supabase
       .schema('cms')
@@ -69,24 +83,23 @@ export default async function EditorLeadershipPage() {
     supabase
       .schema('cms')
       .from('mainstream_leaders')
-      .select('id, sector_id, position, name, location, photo_url, sort_order')
+      .select(
+        'id, sector_id, position, name, location, photo_url, profession, bio, email, phone, sort_order',
+      )
       .order('sort_order'),
-    supabase
-      .schema('cms')
-      .from('branch_leaders')
-      .select('id, branch_name, name, region, photo_url, role, sort_order')
-      .order('sort_order'),
-    supabase
-      .schema('cms')
-      .from('diaspora_leaders')
-      .select('id, branch_name, name, region, photo_url, role, sort_order')
-      .order('sort_order'),
+    supabase.schema('cms').from('branch_leaders').select(REGIONAL_COLUMNS).order('sort_order'),
+    supabase.schema('cms').from('diaspora_leaders').select(REGIONAL_COLUMNS).order('sort_order'),
     supabase
       .schema('cms')
       .from('batch_leaders')
       .select('id, batch, name, photo_url, sort_order')
       .order('sort_order'),
+    // Offered in the branch and diaspora dialogs so a leader can be tied
+    // to the organ they head. Name and id are all the picker needs.
+    supabase.schema('cms').from('organs').select('id, name').order('name'),
   ]);
+
+  const organs = (organsRaw ?? []) as { id: string; name: string }[];
 
   const sectorRows = (sectorsRaw ?? []) as RawSector[];
   const mainstreamRows = (mainstreamRaw ?? []) as RawMainstreamLeader[];
@@ -101,6 +114,10 @@ export default async function EditorLeadershipPage() {
       name: l.name,
       location: l.location,
       photoUrl: l.photo_url,
+      profession: l.profession,
+      bio: l.bio,
+      email: l.email,
+      phone: l.phone,
       sortOrder: l.sort_order,
     });
     leadersBySector.set(l.sector_id, bucket);
@@ -123,6 +140,11 @@ export default async function EditorLeadershipPage() {
     // Rows written before roles existed are presidents; the surface that
     // created them could not have produced anything else.
     role: r.role ?? 'president',
+    profession: r.profession,
+    bio: r.bio,
+    email: r.email,
+    phone: r.phone,
+    organId: r.organ_id,
     sortOrder: r.sort_order,
   });
 
@@ -158,6 +180,7 @@ export default async function EditorLeadershipPage() {
         branchLeaders={branchLeaders}
         diasporaLeaders={diasporaLeaders}
         batchLeaders={batchLeaders}
+        organs={organs}
       />
     </section>
   );

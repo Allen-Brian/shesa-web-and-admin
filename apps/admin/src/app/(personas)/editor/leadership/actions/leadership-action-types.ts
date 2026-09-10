@@ -12,6 +12,11 @@ export interface MainstreamLeaderInput {
   readonly name: string;
   readonly location?: string | null;
   readonly photoUrl?: string | null;
+  /** Profile shown in the modal on the public Leadership page. */
+  readonly profession?: string | null;
+  readonly bio?: string | null;
+  readonly email?: string | null;
+  readonly phone?: string | null;
   readonly sortOrder: number;
 }
 
@@ -22,6 +27,13 @@ export interface RegionalLeaderInput {
   readonly photoUrl?: string | null;
   /** `president` or `vice_president`. Display only — see the column comment. */
   readonly role?: string;
+  /** Profile shown in the modal on the public Leadership page. */
+  readonly profession?: string | null;
+  readonly bio?: string | null;
+  readonly email?: string | null;
+  readonly phone?: string | null;
+  /** The organ this leader heads, so their branch page can show them. */
+  readonly organId?: string | null;
   readonly sortOrder: number;
 }
 

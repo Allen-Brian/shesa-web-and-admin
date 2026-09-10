@@ -18,6 +18,8 @@ export interface AlbumInput {
   readonly coverUrl?: string | null;
   readonly photographer?: string | null;
   readonly linkedEventId?: string | null;
+  /** Ties the album to a branch or chapter, so its page shows these pictures. */
+  readonly linkedOrganId?: string | null;
   readonly sortOrder: number;
   readonly categoryIds: readonly string[];
 }

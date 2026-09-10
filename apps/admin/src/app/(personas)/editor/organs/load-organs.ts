@@ -25,6 +25,7 @@ interface RawOrgan {
   readonly contact_email: string | null;
   readonly contact_phone: string | null;
   readonly website_url: string | null;
+  readonly achievements: string[] | null;
   readonly sort_order: number;
   readonly created_at: string;
   readonly updated_at: string;
@@ -46,6 +47,7 @@ function normaliseOrgan(raw: RawOrgan): OrganRow {
     contactEmail: raw.contact_email,
     contactPhone: raw.contact_phone,
     websiteUrl: raw.website_url,
+    achievements: raw.achievements ?? [],
     sortOrder: raw.sort_order,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
@@ -66,7 +68,7 @@ export async function loadEditorOrgans(): Promise<LoadedOrgans> {
       .schema('cms')
       .from('organs')
       .select(
-        'id, sector_id, slug, name, short_name, location, country, founded_year, member_count, description, logo_url, contact_email, contact_phone, website_url, sort_order, created_at, updated_at',
+        'id, sector_id, slug, name, short_name, location, country, founded_year, member_count, description, logo_url, contact_email, contact_phone, website_url, achievements, sort_order, created_at, updated_at',
       )
       .order('sort_order')
       .order('name'),

@@ -4,6 +4,8 @@ import Image from 'next/image';
 import { motion, type Variants } from 'framer-motion';
 
 import { isLocalSupabaseUrl } from './is-local-supabase-url';
+import { hasProfile, type LeaderProfile } from './leader-profile';
+import { useLeaderProfile } from './leader-profile-modal';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -22,7 +24,25 @@ export type Leader = {
   readonly location?: string;
   readonly photo: string;
   readonly slug: string;
+  /** Profile, when an editor has written one. See `leader-profile`. */
+  readonly profession?: string | null;
+  readonly bio?: string | null;
+  readonly email?: string | null;
+  readonly phone?: string | null;
 };
+
+function toProfile(leader: Leader): LeaderProfile {
+  return {
+    name: leader.name,
+    role: leader.position,
+    location: leader.location ?? null,
+    photo: leader.photo,
+    profession: leader.profession ?? null,
+    bio: leader.bio ?? null,
+    email: leader.email ?? null,
+    phone: leader.phone ?? null,
+  };
+}
 
 export type Tier = {
   readonly heading: string;
@@ -134,13 +154,40 @@ export function MainOrgan({ tiers }: MainOrganProps) {
 }
 
 function LeaderCard({ leader }: { readonly leader: Leader }) {
+  const { open } = useLeaderProfile();
+  const profile = toProfile(leader);
+  const openable = hasProfile(profile);
+
   return (
-    /* Anchor target for the home-page strip, which links here rather
-       than to a per-leader page: the CMS holds only name, position,
-       location, and photo, so a detail route would repeat this card and
-       add nothing. `scroll-mt` clears the fixed nav on landing. */
+    /* Anchor target for the home-page strip, which links here rather than
+       to a per-leader page: everything the CMS holds is either on this
+       card or in the modal it opens, so a route would add a URL and no
+       content. `scroll-mt` clears the fixed nav on landing. */
     <article id={`leader-${leader.slug}`} className="relative block scroll-mt-28">
-      <div className="relative aspect-4/5 overflow-hidden rounded-xs">
+      {/* Only clickable once there is something behind it. Profiles are
+          filled in over weeks, and a modal that opens onto the same name
+          and photo the reader just clicked is worse than no modal. */}
+      <div
+        {...(openable
+          ? {
+              role: 'button',
+              tabIndex: 0,
+              onClick: () => open(profile),
+              onKeyDown: (e: React.KeyboardEvent) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  open(profile);
+                }
+              },
+              'aria-label': `Read ${leader.name}'s profile`,
+            }
+          : {})}
+        className={`relative aspect-4/5 overflow-hidden rounded-xs ${
+          openable
+            ? 'cursor-pointer transition-transform duration-500 hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+            : ''
+        }`}
+      >
         <Image
           src={leader.photo}
           alt={leader.name}

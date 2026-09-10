@@ -21,6 +21,7 @@ export interface OrganRow {
   readonly contactEmail: string | null;
   readonly contactPhone: string | null;
   readonly websiteUrl: string | null;
+  readonly achievements: readonly string[];
   readonly sortOrder: number;
   readonly createdAt: string;
   readonly updatedAt: string;

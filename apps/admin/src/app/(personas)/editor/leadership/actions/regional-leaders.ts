@@ -27,6 +27,11 @@ async function upsertOne(
       region: input.region?.trim() || null,
       photo_url: input.photoUrl?.trim() || null,
       role: input.role ?? 'president',
+      profession: input.profession?.trim() || null,
+      bio: input.bio?.trim() || null,
+      email: input.email?.trim() || null,
+      phone: input.phone?.trim() || null,
+      organ_id: input.organId || null,
       sort_order: input.sortOrder,
     } as never)
     .select('id')
@@ -60,6 +65,11 @@ async function updateOne(
   if (patch.region !== undefined) body.region = patch.region?.trim() || null;
   if (patch.photoUrl !== undefined) body.photo_url = patch.photoUrl?.trim() || null;
   if (patch.role !== undefined) body.role = patch.role;
+  if (patch.profession !== undefined) body.profession = patch.profession?.trim() || null;
+  if (patch.bio !== undefined) body.bio = patch.bio?.trim() || null;
+  if (patch.email !== undefined) body.email = patch.email?.trim() || null;
+  if (patch.phone !== undefined) body.phone = patch.phone?.trim() || null;
+  if (patch.organId !== undefined) body.organ_id = patch.organId || null;
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase

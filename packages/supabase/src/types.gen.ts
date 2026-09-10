@@ -243,28 +243,40 @@ export type Database = {
       batch_leaders: {
         Row: {
           batch: string
+          bio: string | null
           created_at: string
+          email: string | null
           id: string
           name: string
+          phone: string | null
           photo_url: string | null
+          profession: string | null
           sort_order: number
           updated_at: string
         }
         Insert: {
           batch: string
+          bio?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           name: string
+          phone?: string | null
           photo_url?: string | null
+          profession?: string | null
           sort_order?: number
           updated_at?: string
         }
         Update: {
           batch?: string
+          bio?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           name?: string
+          phone?: string | null
           photo_url?: string | null
+          profession?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -272,39 +284,62 @@ export type Database = {
       }
       branch_leaders: {
         Row: {
+          bio: string | null
           branch_name: string
           created_at: string
+          email: string | null
           id: string
           name: string
+          organ_id: string | null
+          phone: string | null
           photo_url: string | null
+          profession: string | null
           region: string | null
           role: string
           sort_order: number
           updated_at: string
         }
         Insert: {
+          bio?: string | null
           branch_name: string
           created_at?: string
+          email?: string | null
           id?: string
           name: string
+          organ_id?: string | null
+          phone?: string | null
           photo_url?: string | null
+          profession?: string | null
           region?: string | null
           role?: string
           sort_order?: number
           updated_at?: string
         }
         Update: {
+          bio?: string | null
           branch_name?: string
           created_at?: string
+          email?: string | null
           id?: string
           name?: string
+          organ_id?: string | null
+          phone?: string | null
           photo_url?: string | null
+          profession?: string | null
           region?: string | null
           role?: string
           sort_order?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "branch_leaders_organ_id_fkey"
+            columns: ["organ_id"]
+            isOneToOne: false
+            referencedRelation: "organs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       content_likes: {
         Row: {
@@ -377,39 +412,62 @@ export type Database = {
       }
       diaspora_leaders: {
         Row: {
+          bio: string | null
           branch_name: string
           created_at: string
+          email: string | null
           id: string
           name: string
+          organ_id: string | null
+          phone: string | null
           photo_url: string | null
+          profession: string | null
           region: string | null
           role: string
           sort_order: number
           updated_at: string
         }
         Insert: {
+          bio?: string | null
           branch_name: string
           created_at?: string
+          email?: string | null
           id?: string
           name: string
+          organ_id?: string | null
+          phone?: string | null
           photo_url?: string | null
+          profession?: string | null
           region?: string | null
           role?: string
           sort_order?: number
           updated_at?: string
         }
         Update: {
+          bio?: string | null
           branch_name?: string
           created_at?: string
+          email?: string | null
           id?: string
           name?: string
+          organ_id?: string | null
+          phone?: string | null
           photo_url?: string | null
+          profession?: string | null
           region?: string | null
           role?: string
           sort_order?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "diaspora_leaders_organ_id_fkey"
+            columns: ["organ_id"]
+            isOneToOne: false
+            referencedRelation: "organs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gallery_album_categories: {
         Row: {
@@ -473,6 +531,7 @@ export type Database = {
           description: string | null
           id: string
           linked_event_id: string | null
+          linked_organ_id: string | null
           location: string | null
           photographer: string | null
           slug: string
@@ -487,6 +546,7 @@ export type Database = {
           description?: string | null
           id?: string
           linked_event_id?: string | null
+          linked_organ_id?: string | null
           location?: string | null
           photographer?: string | null
           slug: string
@@ -501,6 +561,7 @@ export type Database = {
           description?: string | null
           id?: string
           linked_event_id?: string | null
+          linked_organ_id?: string | null
           location?: string | null
           photographer?: string | null
           slug?: string
@@ -514,6 +575,13 @@ export type Database = {
             columns: ["linked_event_id"]
             isOneToOne: false
             referencedRelation: "site_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gallery_albums_linked_organ_id_fkey"
+            columns: ["linked_organ_id"]
+            isOneToOne: false
+            referencedRelation: "organs"
             referencedColumns: ["id"]
           },
         ]
@@ -567,34 +635,46 @@ export type Database = {
       }
       mainstream_leaders: {
         Row: {
+          bio: string | null
           created_at: string
+          email: string | null
           id: string
           location: string | null
           name: string
+          phone: string | null
           photo_url: string | null
           position: string
+          profession: string | null
           sector_id: string
           sort_order: number
           updated_at: string
         }
         Insert: {
+          bio?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           location?: string | null
           name: string
+          phone?: string | null
           photo_url?: string | null
           position: string
+          profession?: string | null
           sector_id: string
           sort_order?: number
           updated_at?: string
         }
         Update: {
+          bio?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           location?: string | null
           name?: string
+          phone?: string | null
           photo_url?: string | null
           position?: string
+          profession?: string | null
           sector_id?: string
           sort_order?: number
           updated_at?: string
@@ -671,6 +751,7 @@ export type Database = {
       }
       organs: {
         Row: {
+          achievements: string[]
           contact_email: string | null
           contact_phone: string | null
           country: string | null
@@ -690,6 +771,7 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          achievements?: string[]
           contact_email?: string | null
           contact_phone?: string | null
           country?: string | null
@@ -709,6 +791,7 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          achievements?: string[]
           contact_email?: string | null
           contact_phone?: string | null
           country?: string | null

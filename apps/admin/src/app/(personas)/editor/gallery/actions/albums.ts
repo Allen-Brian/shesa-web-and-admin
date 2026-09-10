@@ -37,6 +37,7 @@ function toDbBody(input: AlbumInput) {
     cover_url: input.coverUrl?.trim() || null,
     photographer: input.photographer?.trim() || null,
     linked_event_id: input.linkedEventId ?? null,
+    linked_organ_id: input.linkedOrganId ?? null,
     sort_order: input.sortOrder,
   };
 }

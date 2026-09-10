@@ -6,6 +6,7 @@ import type {
   AlbumRow,
   CategoryRow,
   LinkableEvent,
+  LinkableOrgan,
   MediaRow,
 } from './widgets/gallery-widget-types';
 
@@ -19,6 +20,7 @@ interface RawAlbum {
   readonly cover_url: string | null;
   readonly photographer: string | null;
   readonly linked_event_id: string | null;
+  readonly linked_organ_id: string | null;
   readonly sort_order: number;
   readonly created_at: string;
   readonly updated_at: string;
@@ -69,6 +71,7 @@ function normaliseAlbum(
     coverUrl: raw.cover_url,
     photographer: raw.photographer,
     linkedEventId: raw.linked_event_id,
+    linkedOrganId: raw.linked_organ_id,
     sortOrder: raw.sort_order,
     categoryIds,
     mediaCount,
@@ -94,6 +97,7 @@ export interface LoadedGallery {
   readonly albums: readonly AlbumRow[];
   readonly categories: readonly CategoryRow[];
   readonly events: readonly LinkableEvent[];
+  readonly organs: readonly LinkableOrgan[];
 }
 
 /** Server-side loader for the editor Gallery list surface. */
@@ -106,12 +110,13 @@ export async function loadEditorGallery(): Promise<LoadedGallery> {
     { data: mapRaw },
     { data: mediaRaw },
     { data: eventsRaw },
+    { data: organsRaw },
   ] = await Promise.all([
     supabase
       .schema('cms')
       .from('gallery_albums')
       .select(
-        'id, slug, title, date_label, location, description, cover_url, photographer, linked_event_id, sort_order, created_at, updated_at',
+        'id, slug, title, date_label, location, description, cover_url, photographer, linked_event_id, linked_organ_id, sort_order, created_at, updated_at',
       )
       .order('sort_order')
       .order('created_at', { ascending: false }),
@@ -127,6 +132,7 @@ export async function loadEditorGallery(): Promise<LoadedGallery> {
       .from('site_events')
       .select('id, slug, title, starts_at')
       .order('starts_at', { ascending: false }),
+    supabase.schema('cms').from('organs').select('id, name').order('name'),
   ]);
 
   const catsByAlbum = new Map<string, string[]>();
@@ -160,7 +166,9 @@ export async function loadEditorGallery(): Promise<LoadedGallery> {
     startsAt: e.starts_at,
   }));
 
-  return { albums, categories, events };
+  const organs = (organsRaw ?? []) as LinkableOrgan[];
+
+  return { albums, categories, events, organs };
 }
 
 /** Media items for a single album, ordered by sort_order for the edit page. */

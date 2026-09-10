@@ -17,6 +17,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Textarea,
   toast,
 } from '@shesa/ui';
 
@@ -34,7 +35,8 @@ interface Props {
 
 /**
  * Add or edit a single mainstream leader. Fields: sector, position,
- * name, location, photo URL. Photo is a URL for now — the CMS bucket
+ * name, location, photo, and the profile shown when a visitor opens
+ * this person on the public Leadership page. Photo is a URL for now — the CMS bucket
  * upload flow lands in a follow-up; typing the public URL is fine for
  * the walkthrough.
  */
@@ -54,6 +56,10 @@ export function MainstreamLeaderDialog({
   const [name, setName] = useState(editing?.name ?? '');
   const [location, setLocation] = useState(editing?.location ?? '');
   const [photoUrl, setPhotoUrl] = useState(editing?.photoUrl ?? '');
+  const [profession, setProfession] = useState(editing?.profession ?? '');
+  const [bio, setBio] = useState(editing?.bio ?? '');
+  const [email, setEmail] = useState(editing?.email ?? '');
+  const [phone, setPhone] = useState(editing?.phone ?? '');
 
   const submit = () => {
     if (!sectorId || !position.trim() || !name.trim()) {
@@ -67,6 +73,10 @@ export function MainstreamLeaderDialog({
         name,
         location,
         photoUrl,
+        profession,
+        bio,
+        email,
+        phone,
         sortOrder: editing?.sortOrder ?? 0,
       };
       const res = editing
@@ -84,7 +94,7 @@ export function MainstreamLeaderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit leader' : 'Add leader'}</DialogTitle>
         </DialogHeader>
@@ -140,6 +150,60 @@ export function MainstreamLeaderDialog({
             onChange={setPhotoUrl}
             alt={name || 'Leader'}
           />
+
+          <div className="flex flex-col gap-2 border-t pt-4">
+            <Label htmlFor="ml-profession">Profession (optional)</Label>
+            <Input
+              id="ml-profession"
+              value={profession ?? ''}
+              onChange={(e) => setProfession(e.target.value)}
+              placeholder="e.g. Barrister, Civil Engineer"
+              maxLength={200}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="ml-bio">Biography (optional)</Label>
+            <Textarea
+              id="ml-bio"
+              value={bio ?? ''}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="A short profile, shown when a visitor opens this person on the Leadership page."
+              rows={6}
+              maxLength={4000}
+            />
+            <p className="text-xs text-muted-foreground">
+              {(bio ?? '').length} / 4000. Blank lines are kept as paragraph breaks.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="ml-email">Email (optional)</Label>
+              <Input
+                id="ml-email"
+                type="email"
+                value={email ?? ''}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                maxLength={320}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="ml-phone">Phone (optional)</Label>
+              <Input
+                id="ml-phone"
+                value={phone ?? ''}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+237 6XX XXX XXX"
+                maxLength={40}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Email and phone are published on the public website. Only add them where the person has
+            agreed to that.
+          </p>
         </div>
         <DialogFooter>
           <Button

@@ -20,6 +20,10 @@ export async function createMainstreamLeader(
       name: input.name.trim(),
       location: input.location?.trim() || null,
       photo_url: input.photoUrl?.trim() || null,
+      profession: input.profession?.trim() || null,
+      bio: input.bio?.trim() || null,
+      email: input.email?.trim() || null,
+      phone: input.phone?.trim() || null,
       sort_order: input.sortOrder,
     } as never)
     .select('id')
@@ -42,6 +46,10 @@ export async function updateMainstreamLeader(
   if (patch.name !== undefined) body.name = patch.name.trim();
   if (patch.location !== undefined) body.location = patch.location?.trim() || null;
   if (patch.photoUrl !== undefined) body.photo_url = patch.photoUrl?.trim() || null;
+  if (patch.profession !== undefined) body.profession = patch.profession?.trim() || null;
+  if (patch.bio !== undefined) body.bio = patch.bio?.trim() || null;
+  if (patch.email !== undefined) body.email = patch.email?.trim() || null;
+  if (patch.phone !== undefined) body.phone = patch.phone?.trim() || null;
   if (patch.sortOrder !== undefined) body.sort_order = patch.sortOrder;
 
   const { error } = await supabase

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shesa/ui';
 
 import { BatchesTab } from './batches-tab';
 import { BranchesTab } from './branches-tab';
+import type { OrganOption } from './regional-leader-dialog';
 import { DiasporaTab } from './diaspora-tab';
 import { MainstreamTab } from './mainstream-tab';
 import type { BatchLeaderRow, RegionalLeaderRow, SectorRow } from './leadership-widget-types';
@@ -15,6 +16,8 @@ interface Props {
   readonly branchLeaders: readonly RegionalLeaderRow[];
   readonly diasporaLeaders: readonly RegionalLeaderRow[];
   readonly batchLeaders: readonly BatchLeaderRow[];
+  /** Offered to the branch and diaspora dialogs, for the organ link. */
+  readonly organs: readonly OrganOption[];
 }
 
 /**
@@ -53,13 +56,13 @@ export function LeadershipTabs(props: Props) {
         value="branches"
         className="flex min-h-0 flex-1 flex-col focus-visible:outline-none"
       >
-        <BranchesTab leaders={props.branchLeaders} />
+        <BranchesTab leaders={props.branchLeaders} organs={props.organs} />
       </TabsContent>
       <TabsContent
         value="diaspora"
         className="flex min-h-0 flex-1 flex-col focus-visible:outline-none"
       >
-        <DiasporaTab leaders={props.diasporaLeaders} />
+        <DiasporaTab leaders={props.diasporaLeaders} organs={props.organs} />
       </TabsContent>
       <TabsContent
         value="batches"

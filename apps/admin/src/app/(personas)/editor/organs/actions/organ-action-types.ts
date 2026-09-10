@@ -21,5 +21,7 @@ export interface OrganInput {
   readonly contactEmail?: string | null;
   readonly contactPhone?: string | null;
   readonly websiteUrl?: string | null;
+  /** Ordered highlights for the branch page. Blank entries are dropped. */
+  readonly achievements?: readonly string[];
   readonly sortOrder: number;
 }
