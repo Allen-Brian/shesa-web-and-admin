@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import {
+  Button,
   ConfirmDialog,
   DataTable,
   EntityTablePanel,
@@ -11,46 +12,91 @@ import {
   type ICellRendererParams,
   type MassActions,
 } from '@shesa/ui';
+import { Unlink, Users } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 
-import { deleteNominations } from '../actions/voting-actions';
-import type { NominationRow } from '../voting-types';
+import {
+  assignNominations,
+  deleteNominations,
+  groupUnderNewNominee,
+} from '../actions/voting-actions';
+import type { NominationRow, NomineeRow } from '../voting-types';
 import { watDate } from '../wat';
+
+import { NomineePickerDialog } from './nominee-picker-dialog';
+
+type Filter = 'all' | 'grouped' | 'ungrouped';
 
 /**
  * Every nomination for one award, exactly as it arrived.
  *
- * A nomination has no state — it is a nomination. This screen exists to read
- * what members wrote and to remove anything that is not a real submission;
- * the decision about who goes on the ballot is made one tab across, where
- * the five rows naming one person are a single row with a count.
+ * A nomination has no state — it is a nomination. What this screen decides
+ * is only which person each one is counted against, because a nomination
+ * grouped under nobody is missing from every total on the People tab. The
+ * filter makes both halves visible: what has been placed, and what has not.
  */
 export function NominationsPanel({
+  awardId,
   nominations,
+  nominees,
 }: {
+  readonly awardId: string;
   readonly nominations: readonly NominationRow[];
+  readonly nominees: readonly NomineeRow[];
 }) {
   const router = useRouter();
   const [gridApi, setGridApi] = useState<GridApi<NominationRow> | null>(null);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
+  const [grouping, setGrouping] = useState<readonly NominationRow[] | null>(null);
   const [confirm, setConfirm] = useState<readonly NominationRow[] | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const nomineeName = useMemo(
+    () => new Map(nominees.map((n) => [n.id, n.displayName])),
+    [nominees],
+  );
+
+  const counts = useMemo(
+    () => ({
+      all: nominations.length,
+      grouped: nominations.filter((n) => n.nomineeId).length,
+      ungrouped: nominations.filter((n) => !n.nomineeId).length,
+    }),
+    [nominations],
+  );
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return nominations;
-    return nominations.filter(
-      (n) =>
+    return nominations.filter((n) => {
+      if (filter === 'grouped' && !n.nomineeId) return false;
+      if (filter === 'ungrouped' && n.nomineeId) return false;
+      if (!q) return true;
+      return (
         n.nomineeName.toLowerCase().includes(q) ||
         n.citation.toLowerCase().includes(q) ||
-        (n.nominatorName ?? '').toLowerCase().includes(q),
-    );
-  }, [nominations, search]);
+        (n.nominatorName ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [filter, nominations, search]);
+
+  const run = (fn: () => Promise<{ ok: boolean; message?: string }>, success: string) =>
+    startTransition(async () => {
+      const res = await fn();
+      if (res.ok) {
+        toast.success(success);
+        gridApi?.deselectAll();
+        setGrouping(null);
+        router.refresh();
+      } else {
+        toast.error(res.message ?? 'That did not work.');
+      }
+    });
 
   const columnDefs = useMemo<ColDef<NominationRow>[]>(
     () => [
       {
-        headerName: 'Nominee',
+        headerName: 'As submitted',
         field: 'nomineeName',
         flex: 1,
         minWidth: 180,
@@ -68,10 +114,55 @@ export function NominationsPanel({
         },
       },
       {
+        // The whole point of the screen: which person this row is counted
+        // against, and whether it is counted at all.
+        headerName: 'Counted under',
+        colId: 'grouped',
+        flex: 1,
+        minWidth: 190,
+        valueGetter: (p) =>
+          p.data?.nomineeId ? (nomineeName.get(p.data.nomineeId) ?? 'Unknown') : '',
+        cellRenderer: (p: ICellRendererParams<NominationRow>) => {
+          if (!p.data) return null;
+          if (!p.data.nomineeId) {
+            return (
+              <span className="flex h-full items-center gap-2">
+                <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                  Not grouped
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7"
+                  disabled={pending}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setGrouping([p.data as NominationRow]);
+                  }}
+                >
+                  Group
+                </Button>
+              </span>
+            );
+          }
+          const name = nomineeName.get(p.data.nomineeId) ?? 'Unknown';
+          const different = name.trim().toLowerCase() !== p.data.nomineeName.trim().toLowerCase();
+          return (
+            <span className="flex h-full items-center gap-1.5">
+              <span className="text-sm text-foreground">{name}</span>
+              {different && (
+                <span className="text-[11px] text-muted-foreground">(spelled differently)</span>
+              )}
+            </span>
+          );
+        },
+      },
+      {
         headerName: 'Why',
         field: 'citation',
         flex: 3,
-        minWidth: 300,
+        minWidth: 280,
         sortable: false,
         cellClass: 'text-xs text-muted-foreground',
         tooltipField: 'citation',
@@ -80,7 +171,7 @@ export function NominationsPanel({
         headerName: 'Nominated by',
         colId: 'nominator',
         flex: 1,
-        minWidth: 170,
+        minWidth: 160,
         sortable: false,
         valueGetter: (p) =>
           p.data?.nominatorName
@@ -100,38 +191,40 @@ export function NominationsPanel({
       {
         headerName: 'Received',
         colId: 'received',
-        width: 140,
+        width: 130,
         valueGetter: (p) => (p.data ? watDate(p.data.createdAt, false) : ''),
         cellClass: 'text-xs text-muted-foreground',
       },
-      {
-        // Whether this row is being counted. An ungrouped nomination counts
-        // towards nobody, which is the only thing on this screen that is a
-        // problem rather than a fact.
-        headerName: 'Counted under',
-        colId: 'grouped',
-        flex: 1,
-        minWidth: 160,
-        sortable: false,
-        cellRenderer: (p: ICellRendererParams<NominationRow>) =>
-          p.data?.nomineeId ? (
-            <span className="text-xs text-muted-foreground">Grouped</span>
-          ) : (
-            <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-              Not grouped
-            </span>
-          ),
-      },
     ],
-    [],
+    [nomineeName, pending],
   );
 
   const massActions = useMemo<MassActions<NominationRow>>(
     () => ({
       itemName: 'nomination',
       onDelete: (selected) => setConfirm(selected),
+      custom: [
+        {
+          label: 'Group under a person',
+          icon: <Users className="h-4 w-4" />,
+          onClick: (selected: NominationRow[]) => setGrouping(selected),
+        },
+        {
+          label: 'Ungroup',
+          icon: <Unlink className="h-4 w-4" />,
+          onClick: (selected: NominationRow[]) =>
+            run(
+              () =>
+                assignNominations(
+                  selected.map((s) => s.id),
+                  null,
+                ),
+              'Returned to the ungrouped pile.',
+            ),
+        },
+      ],
     }),
-    [],
+    [gridApi],
   );
 
   return (
@@ -146,6 +239,28 @@ export function NominationsPanel({
         canCreate={false}
         createLabel=""
         onCreate={() => undefined}
+        filters={
+          <div className="flex items-center gap-1">
+            {(
+              [
+                ['all', 'All'],
+                ['grouped', 'Grouped'],
+                ['ungrouped', 'Not grouped'],
+              ] as const
+            ).map(([value, label]) => (
+              <Button
+                key={value}
+                type="button"
+                size="sm"
+                variant={filter === value ? 'default' : 'ghost'}
+                onClick={() => setFilter(value)}
+              >
+                {label}
+                <span className="ml-1.5 tabular-nums opacity-70">{counts[value]}</span>
+              </Button>
+            ))}
+          </div>
+        }
       />
 
       <DataTable<NominationRow>
@@ -157,30 +272,52 @@ export function NominationsPanel({
         massActions={massActions}
       />
 
+      <NomineePickerDialog
+        open={grouping !== null}
+        onOpenChange={(o) => !o && setGrouping(null)}
+        title={`Group ${grouping?.length ?? 0} nomination${grouping?.length === 1 ? '' : 's'}`}
+        description="Pick the person these should be counted against. Moving a nomination changes the counts on the People tab and nothing else — the citation stays exactly as it was written."
+        nominees={nominees}
+        // Seeded from the row's own spelling, which is the name being placed.
+        newNameSuggestion={grouping?.length === 1 ? grouping[0]?.nomineeName : undefined}
+        confirmLabel="Group"
+        pending={pending}
+        onPick={(nomineeId) =>
+          run(
+            () =>
+              assignNominations(
+                (grouping ?? []).map((g) => g.id),
+                nomineeId,
+              ),
+            'Grouped. The counts on the People tab have moved.',
+          )
+        }
+        onCreateNew={(name) =>
+          run(
+            () =>
+              groupUnderNewNominee(
+                awardId,
+                name,
+                (grouping ?? []).map((g) => g.id),
+              ),
+            `Started “${name}” and grouped ${grouping?.length ?? 0} under them.`,
+          )
+        }
+      />
+
       <ConfirmDialog
         open={confirm !== null}
         title={`Delete ${confirm?.length ?? 0} nomination${confirm?.length === 1 ? '' : 's'}?`}
-        description="The citation goes with it and this cannot be undone. Delete a nomination when it is not a real submission — not because you disagree with it, since who goes on the ballot is decided on the Nominees tab."
+        description="The citation goes with it and this cannot be undone. Delete a nomination when it is not a real submission — not because you disagree with it, since who goes on the ballot is decided on the People tab."
         confirmLabel="Delete"
         onConfirm={() => {
           const targets = confirm;
           setConfirm(null);
           if (!targets) return;
-          startTransition(async () => {
-            const res = await deleteNominations(targets.map((t) => t.id));
-            if (res.ok) {
-              toast.success(`Deleted ${targets.length}.`);
-              gridApi?.deselectAll();
-              router.refresh();
-            } else {
-              toast.error(res.message);
-            }
-          });
+          run(() => deleteNominations(targets.map((t) => t.id)), `Deleted ${targets.length}.`);
         }}
         onCancel={() => setConfirm(null)}
       />
-
-      {pending && <span className="sr-only">Working…</span>}
     </div>
   );
 }

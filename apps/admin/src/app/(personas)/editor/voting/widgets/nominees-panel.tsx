@@ -14,18 +14,21 @@ import {
   type ICellRendererParams,
   type MassActions,
 } from '@shesa/ui';
-import { Check, Combine, Layers, UserPlus } from 'lucide-react';
+import { Check, Combine, Layers, Merge, UserPlus } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 
 import {
   aggregateAward,
   createNominee,
   deleteNominee,
+  mergeManyNominees,
   mergeNominees,
   promoteNominees,
   renameNominee,
 } from '../actions/voting-actions';
 import type { MergeSuggestion, NominationRow, NomineeRow } from '../voting-types';
+
+import { NomineePickerDialog } from './nominee-picker-dialog';
 
 /**
  * The people nominated for one award, with how many times each was named.
@@ -60,6 +63,7 @@ export function NomineesPanel({
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   const [merging, setMerging] = useState<MergeSuggestion | null>(null);
   const [dissolving, setDissolving] = useState<readonly NomineeRow[] | null>(null);
+  const [mergingMany, setMergingMany] = useState<readonly NomineeRow[] | null>(null);
   const [pending, startTransition] = useTransition();
 
   const ungrouped = nominations.filter((n) => !n.nomineeId).length;
@@ -224,6 +228,20 @@ export function NomineesPanel({
           icon: <UserPlus className="h-4 w-4" />,
           onClick: (selected: NomineeRow[]) => toBallot(selected),
         },
+        {
+          // Any two entries, not just the pairs the machine spotted. The
+          // suggestions only catch shared words; a nickname or a maiden name
+          // shares nothing with the name beside it and only a person knows.
+          label: 'Merge into one person',
+          icon: <Merge className="h-4 w-4" />,
+          onClick: (selected: NomineeRow[]) => {
+            if (selected.length < 2) {
+              toast.message('Select at least two people to merge.');
+              return;
+            }
+            setMergingMany(selected);
+          },
+        },
       ],
       onDelete: (selected) => setDissolving(selected),
     }),
@@ -377,6 +395,36 @@ export function NomineesPanel({
           </Button>
         </div>
       )}
+
+      {/* Which name survives is the only question a merge really asks, so
+          it is asked outright rather than defaulting to whichever row was
+          ticked first. */}
+      <NomineePickerDialog
+        open={mergingMany !== null}
+        onOpenChange={(o) => !o && setMergingMany(null)}
+        title={`Merge ${mergingMany?.length ?? 0} people into one`}
+        description="Pick the entry to keep. Every nomination under the others moves across and those entries disappear. Reversible — remove an entry again and its nominations return to the ungrouped pile."
+        nominees={mergingMany ?? []}
+        confirmLabel="Merge"
+        pending={pending}
+        onPick={(keepId) => {
+          const targets = mergingMany ?? [];
+          setMergingMany(null);
+          startTransition(async () => {
+            const res = await mergeManyNominees(
+              keepId,
+              targets.map((t) => t.id),
+            );
+            if (res.ok) {
+              toast.success(`Merged. ${res.moved ?? 0} nomination(s) moved across.`);
+              gridApi?.deselectAll();
+              router.refresh();
+            } else {
+              toast.error(res.message);
+            }
+          });
+        }}
+      />
 
       <ConfirmDialog
         open={merging !== null}

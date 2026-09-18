@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Badge, StatsCard, Tabs, TabsContent, TabsList, TabsTrigger } from '@shesa/ui';
+import { Badge, Tabs, TabsContent, TabsList, TabsTrigger } from '@shesa/ui';
 import { useState } from 'react';
 
 import type { AwardWorkspace } from '../load-voting';
@@ -66,13 +66,6 @@ export function AwardWorkspaceView({
         )}
       </header>
 
-      <div className="flex flex-wrap gap-3">
-        <StatsCard label="Nominations" value={nominations.length} />
-        <StatsCard label="People nominated" value={nominees.length} />
-        <StatsCard label="Not yet grouped" value={ungrouped} />
-        <StatsCard label="On the ballot" value={activeCandidates} />
-      </div>
-
       <Tabs value={current} onValueChange={select} className="flex min-h-0 flex-1 flex-col gap-4">
         <TabsList className="w-fit">
           <TabsTrigger value="nominees">
@@ -82,6 +75,14 @@ export function AwardWorkspaceView({
           <TabsTrigger value="nominations">
             Nominations
             <span className="ml-1.5 text-xs text-muted-foreground">({nominations.length})</span>
+            {ungrouped > 0 && (
+              <span
+                className="ml-1.5 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400"
+                title={`${ungrouped} nomination(s) counted against nobody`}
+              >
+                {ungrouped}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="ballot">
             The ballot
@@ -100,7 +101,7 @@ export function AwardWorkspaceView({
         </TabsContent>
 
         <TabsContent value="nominations" className="flex min-h-0 flex-1 flex-col">
-          <NominationsPanel nominations={nominations} />
+          <NominationsPanel awardId={award.id} nominations={nominations} nominees={nominees} />
         </TabsContent>
 
         <TabsContent value="ballot" className="flex min-h-0 flex-1 flex-col">

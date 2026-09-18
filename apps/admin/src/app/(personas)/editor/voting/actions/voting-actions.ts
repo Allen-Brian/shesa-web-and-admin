@@ -953,3 +953,109 @@ export async function deleteAwards(
   refresh();
   return { ok: true, kept: ids.length - deletable.length };
 }
+
+/**
+ * Move several nominations under one person, or out of every group.
+ *
+ * The manual half of grouping. The automatic pass only ever matches exact
+ * spellings, so anything a member typed differently — a reordered name, a
+ * dropped middle name, a typo — lands here and is placed by hand.
+ *
+ * `null` returns them to the ungrouped pile, which is also how a bad merge
+ * is undone.
+ */
+export async function assignNominations(
+  ids: readonly string[],
+  nomineeId: string | null,
+): Promise<ActionResult> {
+  if (ids.length === 0) return fail('Nothing selected.');
+
+  const supabase = await getServerClient();
+  const { error } = await supabase
+    .schema('awards')
+    .from('nominations')
+    .update({ nominee_id: nomineeId } as never)
+    .in('id', ids);
+
+  if (error) return fail(error.message);
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * Start a new person from a nomination's own spelling and place it there.
+ *
+ * The common case when a name arrives that nobody has used before: the
+ * alternative is typing the name a second time into the "add by hand" box
+ * and then finding the nomination again to attach it.
+ */
+export async function groupUnderNewNominee(
+  awardId: string,
+  displayName: string,
+  nominationIds: readonly string[],
+): Promise<ActionResult> {
+  if (displayName.trim().length < 2) return fail('That name is too short to group under.');
+
+  const supabase = await getServerClient();
+
+  // Reuse an existing person with the same normalised name rather than
+  // colliding with the unique index — the caller meant "put it with them".
+  const { data: existing } = await supabase
+    .schema('awards')
+    .from('nominees')
+    .select('id, display_name')
+    .eq('award_id', awardId);
+
+  const key = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, ' ')
+      .replace(/ +/g, ' ')
+      .trim();
+
+  let nomineeId = (existing ?? []).find((n) => key(n.display_name) === key(displayName))?.id;
+
+  if (!nomineeId) {
+    const { data: created, error } = await supabase
+      .schema('awards')
+      .from('nominees')
+      .insert({ award_id: awardId, display_name: displayName.trim() } as never)
+      .select('id')
+      .single();
+
+    if (error) return fail(error.message);
+    nomineeId = created.id;
+  }
+
+  return assignNominations(nominationIds, nomineeId);
+}
+
+/**
+ * Fold several people into one.
+ *
+ * `awards.merge_nominees` takes a pair, so this walks the list — each
+ * absorbed entry's nominations move across and the empty entry goes. Done in
+ * sequence rather than in parallel: they all write the same rows, and the
+ * order decides which display name survives if two of them clash.
+ */
+export async function mergeManyNominees(
+  keepId: string,
+  absorbIds: readonly string[],
+): Promise<ActionResult & { moved?: number }> {
+  const targets = absorbIds.filter((id) => id !== keepId);
+  if (targets.length === 0) return fail('Pick at least two people to merge.');
+
+  const supabase = await getServerClient();
+  let moved = 0;
+
+  for (const absorb of targets) {
+    const { data, error } = await supabase
+      .schema('awards')
+      .rpc('merge_nominees', { p_keep: keepId, p_absorb: absorb });
+    if (error) return fail(error.message);
+    moved += Number(data ?? 0);
+  }
+
+  refresh();
+  return { ok: true, moved };
+}
