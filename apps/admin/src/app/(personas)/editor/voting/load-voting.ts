@@ -231,39 +231,86 @@ export async function loadCeremony(slug: string): Promise<LoadedCeremony | null>
 }
 
 export type EditionSummary = EditionRow & {
+  /** 1-based row number, so the table can show S/N without a client index. */
+  readonly serial: number;
   readonly awardCount: number;
   readonly nominationCount: number;
+  readonly pendingCount: number;
+  readonly candidateCount: number;
+  readonly ballotCount: number;
+  /** Awards with nobody shortlisted — these vanish from the public ballot. */
+  readonly emptyAwardCount: number;
+  /** AG Grid rows are indexed by string key. */
+  readonly [key: string]: unknown;
 };
 
-/** Headline counts for the ceremony index, without loading every award. */
+/**
+ * The ceremony index.
+ *
+ * Four narrow reads across the whole schema and the arithmetic done here,
+ * rather than a query per ceremony. There are a handful of ceremonies and a
+ * few hundred nominations; the round trips would cost more than the loop.
+ */
 export async function loadEditionSummaries(): Promise<readonly EditionSummary[]> {
   const editions = await loadEditions();
   if (editions.length === 0) return [];
 
   const supabase = await getServerClient();
-  const [awards, noms] = await Promise.all([
-    supabase.schema('awards').from('awards').select('id, edition_id'),
-    supabase.schema('awards').from('nominations').select('award_id'),
+  const [awards, noms, cands, ballots] = await Promise.all([
+    supabase.schema('awards').from('awards').select('id, edition_id, status'),
+    supabase.schema('awards').from('nominations').select('award_id, status'),
+    supabase.schema('awards').from('candidates').select('award_id, status'),
+    supabase.schema('awards').from('ballots').select('edition_id, voided_at'),
   ]);
 
   const editionOf = new Map<string, string>();
   const awardCount = new Map<string, number>();
+  const activeAwards = new Map<string, string[]>();
   for (const a of awards.data ?? []) {
     editionOf.set(a.id, a.edition_id);
     awardCount.set(a.edition_id, (awardCount.get(a.edition_id) ?? 0) + 1);
+    if (a.status === 'active') {
+      const list = activeAwards.get(a.edition_id);
+      if (list) list.push(a.id);
+      else activeAwards.set(a.edition_id, [a.id]);
+    }
   }
 
   const nomCount = new Map<string, number>();
+  const pendCount = new Map<string, number>();
   for (const n of noms.data ?? []) {
     const ed = editionOf.get(n.award_id);
     if (!ed) continue;
     nomCount.set(ed, (nomCount.get(ed) ?? 0) + 1);
+    if (n.status === 'pending') pendCount.set(ed, (pendCount.get(ed) ?? 0) + 1);
   }
 
-  return editions.map((e) => ({
+  const candCount = new Map<string, number>();
+  const awardsWithCandidates = new Set<string>();
+  for (const c of cands.data ?? []) {
+    if (c.status !== 'active') continue;
+    awardsWithCandidates.add(c.award_id);
+    const ed = editionOf.get(c.award_id);
+    if (!ed) continue;
+    candCount.set(ed, (candCount.get(ed) ?? 0) + 1);
+  }
+
+  const ballotCount = new Map<string, number>();
+  for (const b of ballots.data ?? []) {
+    if (b.voided_at) continue;
+    ballotCount.set(b.edition_id, (ballotCount.get(b.edition_id) ?? 0) + 1);
+  }
+
+  return editions.map((e, i) => ({
     ...e,
+    serial: i + 1,
     awardCount: awardCount.get(e.id) ?? 0,
     nominationCount: nomCount.get(e.id) ?? 0,
+    pendingCount: pendCount.get(e.id) ?? 0,
+    candidateCount: candCount.get(e.id) ?? 0,
+    ballotCount: ballotCount.get(e.id) ?? 0,
+    emptyAwardCount: (activeAwards.get(e.id) ?? []).filter((id) => !awardsWithCandidates.has(id))
+      .length,
   }));
 }
 

@@ -415,9 +415,11 @@ const sidebarMenuButtonVariants = cva(
     // Hover (non-active): no background change; text + icon switch to primary.
     'hover:bg-transparent hover:text-primary [&:hover>svg]:text-primary',
     'focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50',
-    // Active: gradient pill, white text + icon — wins over hover.
-    'data-[active=true]:[background-image:var(--gradient-primary)] data-[active=true]:text-sidebar-primary-foreground data-[active=true]:font-medium data-[active=true]:[&>svg]:text-sidebar-primary-foreground',
-    'data-[active=true]:hover:text-sidebar-primary-foreground data-[active=true]:[&:hover>svg]:text-sidebar-primary-foreground',
+    // Active: no background at all — the text and icon carry it, the same
+    // way the sub-items already do. A filled pill on the parent and a bare
+    // colour on its children read as two different kinds of selection.
+    'data-[active=true]:bg-transparent data-[active=true]:text-primary data-[active=true]:font-medium data-[active=true]:[&>svg]:text-primary',
+    'data-[active=true]:hover:text-primary data-[active=true]:[&:hover>svg]:text-primary',
     // Collapsed-icon mode: square pill, centered, label + trailing chevron hidden.
     'group-data-[collapsible=icon]:!size-14 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center',
     'group-data-[collapsible=icon]:[&>span]:hidden group-data-[collapsible=icon]:[&>svg:not(:first-child)]:hidden',
@@ -496,7 +498,7 @@ const SidebarMenuAction = React.forwardRef<
       className={cn(
         'absolute right-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0 after:absolute after:-inset-2 after:md:hidden group-data-[collapsible=icon]:hidden',
         showOnHover &&
-          'group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-primary-foreground md:opacity-0',
+          'group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-primary md:opacity-0',
         className,
       )}
       {...props}

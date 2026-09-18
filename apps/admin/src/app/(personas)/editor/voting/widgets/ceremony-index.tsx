@@ -1,94 +1,155 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Button,
   ConfirmDialog,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-  Textarea,
+  DataTable,
+  EntityTablePanel,
   toast,
+  type GridApi,
+  type MassActions,
+  type RowClickedEvent,
 } from '@shesa/ui';
-import { ChevronRight, Globe, Plus, Trash2, Trophy } from 'lucide-react';
-import { useState, useTransition } from 'react';
+import { Globe, Plus, Trophy } from 'lucide-react';
+import { useMemo, useState, useTransition } from 'react';
 
-import {
-  createCeremony,
-  deleteCeremony,
-  setActiveCeremony,
-  type CeremonyInput,
-} from '../actions/voting-actions';
+import { deleteCeremony, setActiveCeremony } from '../actions/voting-actions';
 import type { EditionSummary } from '../load-voting';
-import { fromWatInput, watDate } from '../wat';
 
-import { PhaseBadge } from './phase-badge';
-
-const BLANK: CeremonyInput = {
-  name: '',
-  description: null,
-  nominationsOpenAt: null,
-  nominationsCloseAt: null,
-  votingOpenAt: null,
-  votingCloseAt: null,
-};
+import { buildCeremonyColumns } from './ceremony-columns';
+import { CeremonyFormDialog, type CeremonyDialogState } from './ceremony-form-dialog';
 
 /**
- * Every ceremony, as a table you click into.
+ * Every ceremony, in the same table every other list in this dashboard uses.
  *
  * Rows rather than cards: the useful comparison between two cycles is their
- * dates and their counts side by side, and cards put those on separate
- * lines at different heights.
+ * dates and their counts side by side, and cards put those on separate lines
+ * at different heights. Clicking a row opens the ceremony; the kebab does
+ * everything that is not "open it".
  */
 export function CeremonyIndex({ editions }: { readonly editions: readonly EditionSummary[] }) {
   const router = useRouter();
-  const [creating, setCreating] = useState(false);
-  const [removing, setRemoving] = useState<EditionSummary | null>(null);
+  const [gridApi, setGridApi] = useState<GridApi<EditionSummary> | null>(null);
+  const [search, setSearch] = useState('');
+  const [dialog, setDialog] = useState<CeremonyDialogState | null>(null);
+  const [confirm, setConfirm] = useState<readonly EditionSummary[] | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const toggleActive = (e: EditionSummary) =>
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return editions;
+    return editions.filter(
+      (e) =>
+        e.name.toLowerCase().includes(q) ||
+        e.slug.toLowerCase().includes(q) ||
+        e.phase.toLowerCase().includes(q),
+    );
+  }, [editions, search]);
+
+  const toggleActive = (row: EditionSummary) =>
     startTransition(async () => {
-      const res = await setActiveCeremony(e.isActive ? null : e.id);
+      const res = await setActiveCeremony(row.isActive ? null : row.id);
       if (res.ok) {
         toast.success(
-          e.isActive
+          row.isActive
             ? 'Stood down. The awards page has nothing to show until a ceremony is made live.'
-            : `"${e.name}" is now the ceremony the website shows.`,
+            : `"${row.name}" is now the ceremony the website shows.`,
         );
+        router.refresh();
       } else {
         toast.error(res.message);
       }
     });
 
-  const remove = () => {
-    if (!removing) return;
-    const target = removing;
-    setRemoving(null);
+  /**
+   * Deletion, one row or many.
+   *
+   * Each is refused server-side when it holds cast ballots, so a mixed
+   * selection deletes what it can and names what it kept — a blanket refusal
+   * would leave the caller to find the offending row themselves.
+   */
+  const runDelete = (targets: readonly EditionSummary[]) =>
     startTransition(async () => {
-      const res = await deleteCeremony(target.id);
-      if (res.ok) toast.success('Ceremony deleted.');
-      else toast.error(res.message);
+      const results = await Promise.all(targets.map((t) => deleteCeremony(t.id)));
+      const failed = results
+        .map((r, i) => ({ r, name: targets[i]?.name ?? '' }))
+        .filter((x) => !x.r.ok);
+
+      if (failed.length === 0) {
+        toast.success(
+          `Deleted ${targets.length} ${targets.length === 1 ? 'ceremony' : 'ceremonies'}.`,
+        );
+      } else if (failed.length === targets.length) {
+        const first = failed[0]?.r;
+        toast.error(first && !first.ok ? first.message : 'Could not delete.');
+      } else {
+        toast.error(
+          `Deleted ${targets.length - failed.length}. Kept ${failed
+            .map((f) => f.name)
+            .join(', ')} — they hold cast ballots.`,
+        );
+      }
+      gridApi?.deselectAll();
+      router.refresh();
     });
+
+  const columnDefs = useMemo(
+    () =>
+      buildCeremonyColumns({
+        onEdit: (row) => setDialog({ mode: 'edit', edition: row }),
+        onDelete: (row) => setConfirm([row]),
+        onToggleActive: toggleActive,
+      }),
+    // Built once: the handlers only ever call setState and a transition,
+    // neither of which changes identity in a way the grid cares about.
+    [],
+  );
+
+  const massActions = useMemo<MassActions<EditionSummary>>(
+    () => ({
+      itemName: 'ceremony',
+      pluralItemName: 'ceremonies',
+      onDelete: (selected) => setConfirm(selected),
+      custom: [
+        {
+          label: 'Make live',
+          icon: <Globe className="h-4 w-4" />,
+          // Live is a single slot, so a multi-row selection cannot all win.
+          // The first is taken and the caller told which.
+          onClick: (selected: EditionSummary[]) => {
+            const first = selected[0];
+            if (!first) return;
+            if (selected.length > 1) {
+              toast.message(`Only one ceremony can be live — using “${first.name}”.`);
+            }
+            if (!first.isActive) toggleActive(first);
+          },
+        },
+      ],
+    }),
+    [],
+  );
+
+  const onRowClicked = (e: RowClickedEvent<EditionSummary>) => {
+    if (!e.data) return;
+    router.push(`/editor/voting/${e.data.slug}`);
   };
 
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          {editions.length === 0
-            ? 'No ceremonies yet.'
-            : `${editions.length} ${editions.length === 1 ? 'ceremony' : 'ceremonies'}`}
-        </p>
-        <Button type="button" onClick={() => setCreating(true)}>
-          <Plus className="h-3.5 w-3.5" /> New ceremony
-        </Button>
-      </div>
+  const formDialog = (
+    // Keyed so switching rows remounts with that ceremony's values rather
+    // than carrying the previous one's across.
+    <CeremonyFormDialog
+      key={dialog?.mode === 'edit' ? dialog.edition.id : 'create'}
+      state={dialog}
+      onOpenChange={(o) => !o && setDialog(null)}
+      onCreated={(slug) => router.push(`/editor/voting/${slug}`)}
+    />
+  );
 
-      {editions.length === 0 ? (
+  if (editions.length === 0) {
+    return (
+      <>
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed p-12 text-center">
           <Trophy className="h-8 w-8 text-muted-foreground" aria-hidden />
           <p className="text-sm font-medium text-foreground">Start an awards ceremony</p>
@@ -96,256 +157,58 @@ export function CeremonyIndex({ editions }: { readonly editions: readonly Editio
             A ceremony holds its own categories, awards and dates. Create it, add the awards, then
             open nominations.
           </p>
-          <Button type="button" onClick={() => setCreating(true)}>
+          <Button type="button" onClick={() => setDialog({ mode: 'create' })}>
             <Plus className="h-3.5 w-3.5" /> New ceremony
           </Button>
         </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full min-w-[820px] text-sm">
-            <thead className="bg-muted/40 text-xs text-muted-foreground">
-              <tr>
-                <th className="w-24 px-3 py-2 text-left font-medium">Live</th>
-                <th className="px-3 py-2 text-left font-medium">Ceremony</th>
-                <th className="px-3 py-2 text-left font-medium">Nominations</th>
-                <th className="px-3 py-2 text-left font-medium">Voting</th>
-                <th className="px-3 py-2 text-right font-medium">Awards</th>
-                <th className="px-3 py-2 text-right font-medium">Names in</th>
-                <th className="w-20" />
-              </tr>
-            </thead>
-            <tbody>
-              {editions.map((e) => (
-                <tr
-                  key={e.id}
-                  className="cursor-pointer border-t transition-colors hover:bg-muted/40"
-                  onClick={() => router.push(`/editor/voting/${e.slug}`)}
-                >
-                  {/* Which ceremony the public site shows. Only one can be
-                      live at a time, so switching one on stands the other
-                      down — enforced in the database, not here. */}
-                  <td className="px-3 py-3" onClick={(ev) => ev.stopPropagation()}>
-                    <button
-                      type="button"
-                      disabled={pending}
-                      onClick={() => toggleActive(e)}
-                      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${
-                        e.isActive
-                          ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <Globe className="h-3 w-3" aria-hidden />
-                      {e.isActive ? 'Live' : 'Set live'}
-                    </button>
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={`/editor/voting/${e.slug}`}
-                        className="font-medium text-foreground hover:text-primary hover:underline"
-                        onClick={(ev) => ev.stopPropagation()}
-                      >
-                        {e.name}
-                      </Link>
-                      <PhaseBadge phase={e.phase} />
-                    </div>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{e.slug}</p>
-                  </td>
-                  <td className="px-3 py-3 text-xs text-muted-foreground">
-                    {watDate(e.nominationsOpenAt, false)} → {watDate(e.nominationsCloseAt, false)}
-                  </td>
-                  <td className="px-3 py-3 text-xs text-muted-foreground">
-                    {watDate(e.votingOpenAt, false)} → {watDate(e.votingCloseAt, false)}
-                  </td>
-                  <td className="px-3 py-3 text-right tabular-nums text-muted-foreground">
-                    {e.awardCount}
-                  </td>
-                  <td className="px-3 py-3 text-right tabular-nums text-muted-foreground">
-                    {e.nominationCount}
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          setRemoving(e);
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        {formDialog}
+      </>
+    );
+  }
 
-      <CreateCeremonyDialog
-        open={creating}
-        onOpenChange={setCreating}
-        onCreated={(slug) => router.push(`/editor/voting/${slug}`)}
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <EntityTablePanel
+        count={filtered.length}
+        countLabel={filtered.length === 1 ? 'ceremony' : 'ceremonies'}
+        search={search}
+        onSearchChange={setSearch}
+        gridApi={gridApi}
+        canCreate
+        createLabel="New ceremony"
+        onCreate={() => setDialog({ mode: 'create' })}
       />
 
+      <DataTable<EditionSummary>
+        rowData={filtered as EditionSummary[]}
+        columnDefs={columnDefs}
+        getRowId={(params) => params.data.id}
+        onGridReady={(e) => setGridApi(e.api)}
+        onRowClicked={onRowClicked}
+        showColumnPicker={false}
+        massActions={massActions}
+      />
+
+      {formDialog}
+
       <ConfirmDialog
-        open={removing !== null}
-        title={`Delete "${removing?.name ?? ''}"?`}
-        description={`Its ${removing?.awardCount ?? 0} award(s) and ${removing?.nominationCount ?? 0} nomination(s) go with it, and this cannot be undone. A ceremony that already holds cast ballots is refused.`}
+        open={confirm !== null}
+        title={
+          confirm && confirm.length === 1
+            ? `Delete “${confirm[0]?.name ?? ''}”?`
+            : `Delete ${confirm?.length ?? 0} ceremonies?`
+        }
+        description="Their awards, categories and nominations go with them, and this cannot be undone. Any ceremony that already holds cast ballots is refused and left alone."
         confirmLabel="Delete"
-        onConfirm={remove}
-        onCancel={() => setRemoving(null)}
+        onConfirm={() => {
+          const targets = confirm;
+          setConfirm(null);
+          if (targets) runDelete(targets);
+        }}
+        onCancel={() => setConfirm(null)}
       />
 
       {pending && <span className="sr-only">Working…</span>}
-    </div>
-  );
-}
-
-/**
- * Creating a ceremony asks for the name and the two windows, and nothing
- * else. Categories and awards come next, on the ceremony's own page, where
- * there is room to see them as a structure rather than a list of fields.
- */
-function CreateCeremonyDialog({
-  open,
-  onOpenChange,
-  onCreated,
-}: {
-  readonly open: boolean;
-  readonly onOpenChange: (open: boolean) => void;
-  readonly onCreated: (slug: string) => void;
-}) {
-  const [input, setInput] = useState<CeremonyInput>(BLANK);
-  const [nomOpen, setNomOpen] = useState('');
-  const [nomClose, setNomClose] = useState('');
-  const [voteOpen, setVoteOpen] = useState('');
-  const [voteClose, setVoteClose] = useState('');
-  const [pending, startTransition] = useTransition();
-
-  const save = () => {
-    if (input.name.trim().length < 2) {
-      toast.error('The ceremony needs a name.');
-      return;
-    }
-    startTransition(async () => {
-      const res = await createCeremony({
-        ...input,
-        nominationsOpenAt: fromWatInput(nomOpen),
-        nominationsCloseAt: fromWatInput(nomClose),
-        votingOpenAt: fromWatInput(voteOpen),
-        votingCloseAt: fromWatInput(voteClose),
-      });
-      if (!res.ok) {
-        toast.error(res.message);
-        return;
-      }
-      toast.success('Ceremony created. Add its awards next.');
-      onOpenChange(false);
-      setInput(BLANK);
-      if (res.slug) onCreated(res.slug);
-    });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>New awards ceremony</DialogTitle>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-4">
-          <Field label="Name" required>
-            <Input
-              value={input.name}
-              onChange={(e) => setInput({ ...input, name: e.target.value })}
-              placeholder="SHESA Leadership Awards 2027"
-              maxLength={200}
-              autoFocus
-            />
-          </Field>
-
-          <Field label="Description — shown on the public page">
-            <Textarea
-              value={input.description ?? ''}
-              onChange={(e) => setInput({ ...input, description: e.target.value })}
-              rows={3}
-              maxLength={1000}
-            />
-          </Field>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nominations open">
-              <Input
-                type="datetime-local"
-                value={nomOpen}
-                onChange={(e) => setNomOpen(e.target.value)}
-              />
-            </Field>
-            <Field label="Nominations close">
-              <Input
-                type="datetime-local"
-                value={nomClose}
-                onChange={(e) => setNomClose(e.target.value)}
-              />
-            </Field>
-            <Field label="Voting opens">
-              <Input
-                type="datetime-local"
-                value={voteOpen}
-                onChange={(e) => setVoteOpen(e.target.value)}
-              />
-            </Field>
-            <Field label="Voting closes">
-              <Input
-                type="datetime-local"
-                value={voteClose}
-                onChange={(e) => setVoteClose(e.target.value)}
-              />
-            </Field>
-          </div>
-
-          <p className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-            All times are West Africa Time. The dates can be left blank and set later — the public
-            site opens and closes itself from them, so nothing goes live until they are filled in.
-            Weighting starts at the approved 60% ex-students / 40% Exco and cannot be changed here.
-          </p>
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={save} disabled={pending}>
-              {pending ? 'Creating…' : 'Create ceremony'}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  readonly label: string;
-  readonly required?: boolean;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Label className="text-xs text-muted-foreground">
-        {label}
-        {required && <span className="ml-0.5 text-destructive">*</span>}
-      </Label>
-      {children}
     </div>
   );
 }
