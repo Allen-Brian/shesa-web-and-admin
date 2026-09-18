@@ -157,7 +157,7 @@ export const AGM_TICKET_UNIT_PRICE_XAF = 20_000;
  * Attire package price, a custom-tailored piece the buyer specifies
  * measurements for at purchase time. Also flat.
  */
-export const AGM_ATTIRE_UNIT_PRICE_XAF = 50_000;
+export const AGM_ATTIRE_UNIT_PRICE_XAF = 55_000;
 
 /**
  * Attire sizes offered. Lives here (not in the server-action file)

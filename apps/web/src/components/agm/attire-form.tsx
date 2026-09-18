@@ -21,7 +21,8 @@ interface Props {
 /**
  * Attire order form for AGM 2026. The buyer picks a size (S / M / L /
  * XL / XXL), a quantity, and their payment channel; the piece is a flat
- * 50 000 XAF each.
+ * 55 000 XAF each — the figure itself lives in `AGM_ATTIRE_UNIT_PRICE_XAF`
+ * so the form, the total, and the copy cannot disagree.
  *
  * No payment is taken — there is no provider connected until Tranzak
  * lands. Submission records the order and forwards to a confirmation
