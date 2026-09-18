@@ -50,6 +50,11 @@ const SEGMENT_LABELS: Record<string, string> = {
   announcements: 'Announcements',
   pages: 'Pages',
   media: 'Media Library',
+  voting: 'Voting',
+  nominations: 'Nominations',
+  candidates: 'Candidates',
+  ballots: 'Ballots',
+  results: 'Results',
   new: 'New',
   edit: 'Edit',
 };

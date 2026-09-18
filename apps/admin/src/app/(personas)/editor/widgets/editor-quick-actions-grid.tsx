@@ -1,4 +1,13 @@
-import { CalendarDays, Crown, Images, Landmark, Music, Newspaper, Target } from 'lucide-react';
+import {
+  CalendarDays,
+  Crown,
+  Images,
+  Landmark,
+  Music,
+  Newspaper,
+  Target,
+  Trophy,
+} from 'lucide-react';
 
 import type { EditorContentKpis } from './dashboard-types';
 import { EditorQuickActionCard } from './editor-quick-action-card';
@@ -68,6 +77,16 @@ export function EditorQuickActionsGrid({ kpis }: { readonly kpis: EditorContentK
           iconClass="bg-rose-500/15 text-rose-700 dark:text-rose-400"
           label="Songs"
           hint={`${kpis.songs} song${kpis.songs === 1 ? '' : 's'} in library`}
+        />
+        {/* No live count. The others read from the dashboard KPI query, and
+            adding the awards schema to it would make every editor dashboard
+            load pay for a cycle that runs for six weeks a year. */}
+        <EditorQuickActionCard
+          href="/editor/voting"
+          icon={Trophy}
+          iconClass="bg-amber-500/15 text-amber-700 dark:text-amber-400"
+          label="Voting"
+          hint="Leadership Awards"
         />
       </div>
     </div>

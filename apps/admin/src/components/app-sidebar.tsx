@@ -23,6 +23,7 @@ import {
   ScrollText,
   Settings2,
   Target,
+  Trophy,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -398,6 +399,21 @@ export function AppSidebar({
                     <Link href={`/${persona}/songs`}>
                       <Music />
                       <span>Songs</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Voting"
+                    isActive={
+                      pathname === `/${persona}/voting` ||
+                      pathname.startsWith(`/${persona}/voting/`)
+                    }
+                  >
+                    <Link href={`/${persona}/voting`}>
+                      <Trophy />
+                      <span>Voting</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
