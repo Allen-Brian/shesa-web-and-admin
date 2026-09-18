@@ -82,6 +82,268 @@ export type Database = {
       [_ in never]: never
     }
   }
+  awards: {
+    Tables: {
+      awards: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          description: string | null
+          edition_id: string
+          id: string
+          name: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          edition_id: string
+          id?: string
+          name: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          edition_id?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "awards_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "awards_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          edition_id: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          edition_id: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          edition_id?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      editions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ex_student_weight: number
+          exco_weight: number
+          id: string
+          name: string
+          nominations_close_at: string | null
+          nominations_open_at: string | null
+          results_published_at: string | null
+          slug: string
+          updated_at: string
+          voting_close_at: string | null
+          voting_open_at: string | null
+          weighting_method: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ex_student_weight?: number
+          exco_weight?: number
+          id?: string
+          name: string
+          nominations_close_at?: string | null
+          nominations_open_at?: string | null
+          results_published_at?: string | null
+          slug: string
+          updated_at?: string
+          voting_close_at?: string | null
+          voting_open_at?: string | null
+          weighting_method?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ex_student_weight?: number
+          exco_weight?: number
+          id?: string
+          name?: string
+          nominations_close_at?: string | null
+          nominations_open_at?: string | null
+          results_published_at?: string | null
+          slug?: string
+          updated_at?: string
+          voting_close_at?: string | null
+          voting_open_at?: string | null
+          weighting_method?: string
+        }
+        Relationships: []
+      }
+      nominations: {
+        Row: {
+          award_id: string
+          citation: string
+          created_at: string
+          device_id: string
+          id: string
+          ip_hash: string | null
+          nominator_batch_year: number | null
+          nominator_branch_label: string | null
+          nominator_contact: string | null
+          nominator_name: string | null
+          nominee_batch_year: number | null
+          nominee_branch_label: string | null
+          nominee_contact: string | null
+          nominee_name: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          award_id: string
+          citation: string
+          created_at?: string
+          device_id: string
+          id?: string
+          ip_hash?: string | null
+          nominator_batch_year?: number | null
+          nominator_branch_label?: string | null
+          nominator_contact?: string | null
+          nominator_name?: string | null
+          nominee_batch_year?: number | null
+          nominee_branch_label?: string | null
+          nominee_contact?: string | null
+          nominee_name: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          award_id?: string
+          citation?: string
+          created_at?: string
+          device_id?: string
+          id?: string
+          ip_hash?: string | null
+          nominator_batch_year?: number | null
+          nominator_branch_label?: string | null
+          nominator_contact?: string | null
+          nominator_name?: string | null
+          nominee_batch_year?: number | null
+          nominee_branch_label?: string | null
+          nominee_contact?: string | null
+          nominee_name?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nominations_award_id_fkey"
+            columns: ["award_id"]
+            isOneToOne: false
+            referencedRelation: "awards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      branches: {
+        Args: never
+        Returns: {
+          kind: string
+          name: string
+          scope_id: string
+        }[]
+      }
+      phase: {
+        Args: { p_edition: Database["awards"]["Tables"]["editions"]["Row"] }
+        Returns: string
+      }
+      public_state: { Args: { p_edition_slug?: string }; Returns: Json }
+      submit_nomination: {
+        Args: {
+          p_award_id: string
+          p_citation: string
+          p_device_id: string
+          p_ip_hash?: string
+          p_nominator_batch_year?: number
+          p_nominator_branch_label?: string
+          p_nominator_contact?: string
+          p_nominator_name?: string
+          p_nominee_batch_year?: number
+          p_nominee_branch_label?: string
+          p_nominee_contact?: string
+          p_nominee_name: string
+        }
+        Returns: {
+          ok: boolean
+          reason: string
+        }[]
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   cms: {
     Tables: {
       agm_registrations: {
@@ -4525,6 +4787,9 @@ export type CompositeTypes<
 
 export const Constants = {
   audit: {
+    Enums: {},
+  },
+  awards: {
     Enums: {},
   },
   cms: {

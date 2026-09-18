@@ -73,7 +73,16 @@ const COMMANDS = {
 };
 
 /** Every schema the Data API exposes. Keep in step with config.toml [api].schemas. */
-const TYPED_SCHEMAS = ['public', 'core', 'audit', 'notifications', 'exco', 'finance', 'cms'];
+const TYPED_SCHEMAS = [
+  'public',
+  'core',
+  'audit',
+  'notifications',
+  'exco',
+  'finance',
+  'cms',
+  'awards',
+];
 
 // ─────────────────────────────────────────────────────────────────────
 // Arguments
