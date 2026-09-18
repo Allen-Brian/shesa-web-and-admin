@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, Check, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -414,18 +415,33 @@ function BallotStage({
                     >
                       {on && <Check className="h-3 w-3" />}
                     </span>
+                    {/* The photograph is what a voter recognises first —
+                        many of these names are known by face at branch
+                        meetings and not in print. */}
+                    {c.photoUrl && (
+                      <span className="relative block h-14 w-14 shrink-0 overflow-hidden rounded-xs bg-black/5">
+                        <Image
+                          src={c.photoUrl}
+                          alt=""
+                          fill
+                          sizes="56px"
+                          className="object-cover object-top"
+                        />
+                      </span>
+                    )}
+
                     <span className="min-w-0">
                       <span className="block font-heading text-[15px] font-light leading-snug text-black">
                         {c.fullName}
                       </span>
-                      {(c.batchYear || c.branchLabel) && (
+                      {(c.profession || c.batchYear || c.branchLabel) && (
                         <span className="mt-0.5 block text-[11.5px] text-black/45">
-                          {[c.batchYear, c.branchLabel].filter(Boolean).join(' · ')}
+                          {[c.profession, c.batchYear, c.branchLabel].filter(Boolean).join(' · ')}
                         </span>
                       )}
-                      {c.description && (
-                        <span className="mt-1.5 block text-[12.5px] leading-relaxed text-black/55">
-                          {c.description}
+                      {c.accomplishments && (
+                        <span className="mt-1.5 block whitespace-pre-line text-[12.5px] leading-relaxed text-black/55">
+                          {c.accomplishments}
                         </span>
                       )}
                     </span>

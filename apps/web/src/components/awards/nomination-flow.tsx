@@ -2,12 +2,12 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, Check, CornerDownLeft, Search } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Award, AwardCategory, BranchOption } from '@/lib/awards';
 import { visitorId } from '@/lib/content-metrics';
 
-import { nominate } from './nominate-action';
+import { nominate, suggestNames } from './nominate-action';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -230,16 +230,9 @@ export function NominationFlow({ awards, categories, branches }: Props) {
               <Question
                 kicker={award?.name ?? 'Nomination'}
                 title="Who are you nominating?"
-                hint="Their full name, as you would read it out at the ceremony."
+                hint="Their full name, as you would read it out at the ceremony. If someone has already been put forward, pick their name from the list so the spellings match."
               >
-                <BigInput
-                  value={nomineeName}
-                  onChange={setNomineeName}
-                  onEnter={next}
-                  placeholder="Ndifon Peter"
-                  maxLength={200}
-                  autoFocus
-                />
+                <NomineeNameInput value={nomineeName} onChange={setNomineeName} onEnter={next} />
               </Question>
             )}
 
@@ -457,37 +450,144 @@ function Field({
 const LINE =
   'w-full border-0 border-b border-black/15 bg-transparent px-0 py-3 text-black placeholder:text-black/25 focus:border-primary focus:outline-none';
 
-function BigInput({
+/**
+ * The nominee's name, with suggestions from what has already been put
+ * forward this cycle.
+ *
+ * The point is spelling, not convenience. Every fresh variant of a name —
+ * a reordering, a dropped middle name, `Gohn` for `John` — is one the
+ * secretariat has to reconcile by hand afterwards, and one that silently
+ * splits a person's count in two if they miss it. Offering the existing
+ * spelling is the cheapest possible fix, applied before the problem exists.
+ *
+ * Suggestions are names only. Never how many times anyone has been
+ * nominated: that would turn the round into a campaign, with people piling
+ * onto whoever is visibly ahead.
+ */
+function NomineeNameInput({
   value,
   onChange,
   onEnter,
-  placeholder,
-  maxLength,
-  autoFocus,
 }: {
   readonly value: string;
   readonly onChange: (v: string) => void;
   readonly onEnter: () => void;
-  readonly placeholder: string;
-  readonly maxLength: number;
-  readonly autoFocus?: boolean;
 }) {
+  const [suggestions, setSuggestions] = useState<readonly string[]>([]);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  // What the last accepted suggestion was, so re-showing the list for a
+  // name the visitor just picked does not make it look unaccepted.
+  const acceptedRef = useRef('');
+
+  useEffect(() => {
+    const q = value.trim();
+    if (q.length < 2 || q === acceptedRef.current) {
+      setSuggestions([]);
+      return;
+    }
+
+    // Debounced, and every in-flight result is discarded if the field has
+    // moved on — otherwise a slow response overwrites a newer one and the
+    // list flickers back to an older query on a bad connection.
+    let live = true;
+    const t = setTimeout(async () => {
+      const names = await suggestNames(q);
+      if (!live) return;
+      // Exact match already typed: nothing left to suggest.
+      const filtered = names.filter((n) => n.toLowerCase() !== q.toLowerCase());
+      setSuggestions(filtered);
+      setActive(-1);
+      setOpen(filtered.length > 0);
+    }, 220);
+
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [value]);
+
+  const accept = (name: string) => {
+    acceptedRef.current = name;
+    onChange(name);
+    setSuggestions([]);
+    setOpen(false);
+    setActive(-1);
+  };
+
   return (
-    <input
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          onEnter();
-        }
-      }}
-      placeholder={placeholder}
-      maxLength={maxLength}
-      autoFocus={autoFocus}
-      autoComplete="off"
-      className={`${LINE} font-heading text-[24px] font-light md:text-[30px]`}
-    />
+    <div className="relative">
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (!open || suggestions.length === 0) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onEnter();
+            }
+            return;
+          }
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setActive((i) => (i + 1) % suggestions.length);
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setActive((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+          } else if (e.key === 'Escape') {
+            setOpen(false);
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            // Enter takes the highlighted suggestion if the visitor moved
+            // to one, and otherwise takes them at their word and advances.
+            const picked = active >= 0 ? suggestions[active] : undefined;
+            if (picked) accept(picked);
+            else onEnter();
+          }
+        }}
+        // A short delay, or the blur fires before the click on a suggestion
+        // registers and the list closes out from under the tap.
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onFocus={() => setOpen(suggestions.length > 0)}
+        placeholder="Ndifon Peter"
+        maxLength={200}
+        autoFocus
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={open}
+        aria-autocomplete="list"
+        className={`${LINE} font-heading text-[24px] font-light md:text-[30px]`}
+      />
+
+      {open && suggestions.length > 0 && (
+        <div className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-xs border border-black/12 bg-white shadow-[0_24px_60px_-20px_rgba(0,0,0,0.25)]">
+          <p className="border-b border-black/8 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-black/40">
+            Already put forward
+          </p>
+          <ul>
+            {suggestions.map((name, i) => (
+              <li key={name}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => accept(name)}
+                  onMouseEnter={() => setActive(i)}
+                  className={`block w-full px-4 py-3 text-left font-heading text-[16px] font-light transition-colors ${
+                    i === active ? 'bg-primary/8 text-primary' : 'text-black hover:bg-black/3'
+                  }`}
+                >
+                  {name}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="border-t border-black/8 px-4 py-2 text-[11.5px] leading-relaxed text-black/45">
+            Someone else has nominated this person. Picking their name keeps the spellings together
+            — or keep typing if you mean someone different.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -1,6 +1,11 @@
 'use server';
 
-import { submitNomination, type NominationInput, type NominationResult } from '@/lib/awards';
+import {
+  submitNomination,
+  suggestNominees,
+  type NominationInput,
+  type NominationResult,
+} from '@/lib/awards';
 
 /**
  * A Server Action rather than a browser call to PostgREST, unlike the like
@@ -11,4 +16,15 @@ import { submitNomination, type NominationInput, type NominationResult } from '@
  */
 export async function nominate(input: NominationInput): Promise<NominationResult> {
   return submitNomination(input);
+}
+
+/**
+ * Names already put forward, for the nominee field's autocomplete.
+ *
+ * Also an action rather than a browser RPC — not for the IP this time, but
+ * so the anon key is never the only thing guarding a function that returns
+ * people's names.
+ */
+export async function suggestNames(query: string): Promise<readonly string[]> {
+  return suggestNominees(query);
 }

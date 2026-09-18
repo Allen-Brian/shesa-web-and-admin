@@ -251,6 +251,31 @@ export async function submitNomination(input: NominationInput): Promise<Nominati
   };
 }
 
+/**
+ * Names already put forward this cycle, for the form's autocomplete.
+ *
+ * This exists to stop spelling variants being created, which is worth more
+ * than any amount of reconciling them afterwards: "Fru John Che" and "John
+ * Doe Fru" are one man, and only a person can tell.
+ *
+ * It discloses that a name has been nominated somewhere — not for which
+ * award, not by whom, and deliberately never how many times. A count here
+ * would turn the nomination round into a campaign, with people piling onto
+ * whoever is visibly ahead. The database enforces the two-character floor
+ * and the cap of eight; this is the second check, not the only one.
+ */
+export async function suggestNominees(query: string): Promise<readonly string[]> {
+  if (query.trim().length < 2) return [];
+
+  const supabase = await getServerClient();
+  const { data, error } = await supabase
+    .schema('awards')
+    .rpc('suggest_nominees', { p_query: query.trim() });
+
+  if (error || !Array.isArray(data)) return [];
+  return data.map((r) => r.name);
+}
+
 /* ── The ballot ────────────────────────────────────────────────────── */
 
 export type College = 'ex_student' | 'exco';
@@ -260,7 +285,9 @@ export interface BallotCandidate {
   readonly fullName: string;
   readonly batchYear: number | null;
   readonly branchLabel: string | null;
-  readonly description: string | null;
+  readonly profession: string | null;
+  /** Works accomplished in this award's field. The case for voting for them. */
+  readonly accomplishments: string | null;
   readonly photoUrl: string | null;
 }
 
@@ -350,7 +377,8 @@ export async function getBallotPaper(slug?: string, excoToken?: string): Promise
             full_name: string;
             batch_year: number | null;
             branch_label: string | null;
-            description: string | null;
+            profession: string | null;
+            accomplishments: string | null;
             photo_url: string | null;
           }[]
         | null;
@@ -383,7 +411,8 @@ export async function getBallotPaper(slug?: string, excoToken?: string): Promise
         fullName: c.full_name,
         batchYear: c.batch_year,
         branchLabel: c.branch_label,
-        description: c.description,
+        profession: c.profession,
+        accomplishments: c.accomplishments,
         photoUrl: c.photo_url,
       })),
     })),
