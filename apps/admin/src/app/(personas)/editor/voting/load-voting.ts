@@ -9,7 +9,6 @@ import type {
   EditionRow,
   MergeSuggestion,
   NominationRow,
-  NominationStatus,
   NomineeRow,
   ResultRow,
   Turnout,
@@ -117,7 +116,8 @@ export async function loadEditionBySlug(slug: string): Promise<EditionRow | null
 
 export interface EditionTotals {
   readonly nominations: number;
-  readonly pending: number;
+  /** Distinct people named across every award. */
+  readonly nominees: number;
   readonly candidates: number;
   readonly emptyAwards: number;
   readonly ballots: number;
@@ -160,11 +160,12 @@ export async function loadCeremony(slug: string): Promise<LoadedCeremony | null>
 
   const awardIds = (awards.data ?? []).map((a) => a.id);
   const empty = { data: [] as { award_id: string; status: string }[] };
+  const emptyIds = { data: [] as { award_id: string }[] };
 
   // Counted from two narrow reads filtered to this ceremony's awards. An
   // aggregate view would be a database object to maintain for arithmetic
   // over a few hundred rows.
-  const [noms, cands, ballots] = await Promise.all([
+  const [noms, nominees, cands, ballots] = await Promise.all([
     awardIds.length
       ? supabase
           .schema('awards')
@@ -172,6 +173,9 @@ export async function loadCeremony(slug: string): Promise<LoadedCeremony | null>
           .select('award_id, status')
           .in('award_id', awardIds)
       : Promise.resolve(empty),
+    awardIds.length
+      ? supabase.schema('awards').from('nominees').select('award_id').in('award_id', awardIds)
+      : Promise.resolve(emptyIds),
     awardIds.length
       ? supabase
           .schema('awards')
@@ -187,10 +191,13 @@ export async function loadCeremony(slug: string): Promise<LoadedCeremony | null>
   ]);
 
   const nomCount = new Map<string, number>();
-  const pendCount = new Map<string, number>();
   for (const n of noms.data ?? []) {
     nomCount.set(n.award_id, (nomCount.get(n.award_id) ?? 0) + 1);
-    if (n.status === 'pending') pendCount.set(n.award_id, (pendCount.get(n.award_id) ?? 0) + 1);
+  }
+
+  const nomineeCount = new Map<string, number>();
+  for (const b of nominees.data ?? []) {
+    nomineeCount.set(b.award_id, (nomineeCount.get(b.award_id) ?? 0) + 1);
   }
 
   const candCount = new Map<string, number>();
@@ -207,7 +214,7 @@ export async function loadCeremony(slug: string): Promise<LoadedCeremony | null>
     sortOrder: a.sort_order,
     status: a.status as AwardRow['status'],
     nominationCount: nomCount.get(a.id) ?? 0,
-    pendingCount: pendCount.get(a.id) ?? 0,
+    nomineeCount: nomineeCount.get(a.id) ?? 0,
     candidateCount: candCount.get(a.id) ?? 0,
   }));
 
@@ -222,7 +229,7 @@ export async function loadCeremony(slug: string): Promise<LoadedCeremony | null>
     awards: rows,
     totals: {
       nominations: rows.reduce((n, a) => n + a.nominationCount, 0),
-      pending: rows.reduce((n, a) => n + a.pendingCount, 0),
+      nominees: rows.reduce((n, a) => n + a.nomineeCount, 0),
       candidates: rows.reduce((n, a) => n + a.candidateCount, 0),
       emptyAwards: rows.filter((a) => a.status === 'active' && a.candidateCount === 0).length,
       ballots: (ballots as { count?: number | null }).count ?? 0,
@@ -235,7 +242,8 @@ export type EditionSummary = EditionRow & {
   readonly serial: number;
   readonly awardCount: number;
   readonly nominationCount: number;
-  readonly pendingCount: number;
+  /** Distinct people named across the ceremony's awards. */
+  readonly nomineeCount: number;
   readonly candidateCount: number;
   readonly ballotCount: number;
   /** Awards with nobody shortlisted — these vanish from the public ballot. */
@@ -256,9 +264,10 @@ export async function loadEditionSummaries(): Promise<readonly EditionSummary[]>
   if (editions.length === 0) return [];
 
   const supabase = await getServerClient();
-  const [awards, noms, cands, ballots] = await Promise.all([
+  const [awards, noms, nominees, cands, ballots] = await Promise.all([
     supabase.schema('awards').from('awards').select('id, edition_id, status'),
-    supabase.schema('awards').from('nominations').select('award_id, status'),
+    supabase.schema('awards').from('nominations').select('award_id'),
+    supabase.schema('awards').from('nominees').select('award_id'),
     supabase.schema('awards').from('candidates').select('award_id, status'),
     supabase.schema('awards').from('ballots').select('edition_id, voided_at'),
   ]);
@@ -277,12 +286,17 @@ export async function loadEditionSummaries(): Promise<readonly EditionSummary[]>
   }
 
   const nomCount = new Map<string, number>();
-  const pendCount = new Map<string, number>();
   for (const n of noms.data ?? []) {
     const ed = editionOf.get(n.award_id);
     if (!ed) continue;
     nomCount.set(ed, (nomCount.get(ed) ?? 0) + 1);
-    if (n.status === 'pending') pendCount.set(ed, (pendCount.get(ed) ?? 0) + 1);
+  }
+
+  const nomineeCount = new Map<string, number>();
+  for (const b of nominees.data ?? []) {
+    const ed = editionOf.get(b.award_id);
+    if (!ed) continue;
+    nomineeCount.set(ed, (nomineeCount.get(ed) ?? 0) + 1);
   }
 
   const candCount = new Map<string, number>();
@@ -306,7 +320,7 @@ export async function loadEditionSummaries(): Promise<readonly EditionSummary[]>
     serial: i + 1,
     awardCount: awardCount.get(e.id) ?? 0,
     nominationCount: nomCount.get(e.id) ?? 0,
-    pendingCount: pendCount.get(e.id) ?? 0,
+    nomineeCount: nomineeCount.get(e.id) ?? 0,
     candidateCount: candCount.get(e.id) ?? 0,
     ballotCount: ballotCount.get(e.id) ?? 0,
     emptyAwardCount: (activeAwards.get(e.id) ?? []).filter((id) => !awardsWithCandidates.has(id))
@@ -407,7 +421,7 @@ export async function loadAward(slug: string, awardId: string): Promise<AwardWor
       sortOrder: awardRow.sort_order,
       status: awardRow.status as AwardRow['status'],
       nominationCount: nominationRows.length,
-      pendingCount: nominationRows.filter((n) => n.status === 'pending').length,
+      nomineeCount: (nominees.data ?? []).length,
       candidateCount: candidateRows.filter((c) => c.status === 'active').length,
     },
     categoryName: (category as { data: { name: string } | null }).data?.name ?? null,
@@ -423,8 +437,6 @@ export async function loadAward(slug: string, awardId: string): Promise<AwardWor
       nominatorBatchYear: n.nominator_batch_year,
       nominatorBranchLabel: n.nominator_branch_label,
       nominatorContact: n.nominator_contact,
-      status: n.status as NominationStatus,
-      reviewNote: n.review_note,
       candidateId: n.candidate_id,
       nomineeId: n.nominee_id,
       createdAt: n.created_at,

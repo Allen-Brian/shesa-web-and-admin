@@ -6,10 +6,12 @@ import {
   Badge,
   Button,
   ConfirmDialog,
+  DataTable,
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  EntityTablePanel,
   Input,
   Label,
   Select,
@@ -19,11 +21,22 @@ import {
   SelectValue,
   Textarea,
   toast,
+  type ColDef,
+  type GridApi,
+  type ICellRendererParams,
+  type MassActions,
+  type RowClickedEvent,
 } from '@shesa/ui';
-import { ChevronRight, FolderTree, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, FolderTree, Pencil } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 
-import { deleteAward, saveAward, saveCategory, type AwardInput } from '../actions/voting-actions';
+import {
+  deleteAwards,
+  saveAward,
+  saveCategory,
+  setAwardsStatus,
+  type AwardInput,
+} from '../actions/voting-actions';
 import type { AwardRow, CategoryRow, EditionRow } from '../voting-types';
 
 import { CategoryManager } from './category-manager';
@@ -34,12 +47,11 @@ const NEW_CATEGORY = '__new';
 /**
  * The awards, as a table you click into.
  *
- * Grouped by category because that is how the briefing groups them and how
- * the public page renders them — a flat alphabetical list would put
- * Agriculture next to Branch Leadership, which are different kinds of thing.
- *
- * A whole row is the link. The work for an award — reading its citations,
- * grouping its nominees, filling its ballot — needs a page, not a drawer.
+ * Three numbers per row, and which one matters moves as the cycle does:
+ * nominations while the form is open, people once they have been grouped,
+ * candidates once the ballot is drawn. A row with nobody on the ballot is
+ * called out, because such an award is dropped from the public ballot
+ * entirely and finding that out from a voter is worse than finding it here.
  */
 export function AwardsPanel({
   edition,
@@ -53,41 +65,26 @@ export function AwardsPanel({
   readonly emptyAwards: number;
 }) {
   const router = useRouter();
-  const [query, setQuery] = useState('');
+  const [gridApi, setGridApi] = useState<GridApi<AwardRow> | null>(null);
+  const [search, setSearch] = useState('');
   const [managingCategories, setManagingCategories] = useState(false);
   const [newCategory, setNewCategory] = useState('');
   const [editing, setEditing] = useState<{ id: string | null; input: AwardInput } | null>(null);
-  const [removing, setRemoving] = useState<AwardRow | null>(null);
+  const [confirm, setConfirm] = useState<readonly AwardRow[] | null>(null);
   const [pending, startTransition] = useTransition();
 
   const base = `/editor/voting/${edition.slug}`;
+  const categoryName = useMemo(() => new Map(categories.map((c) => [c.id, c.name])), [categories]);
 
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
     if (!q) return awards;
-    const catName = new Map(categories.map((c) => [c.id, c.name.toLowerCase()]));
     return awards.filter(
       (a) =>
         a.name.toLowerCase().includes(q) ||
-        (a.categoryId ? (catName.get(a.categoryId) ?? '').includes(q) : false),
+        (a.categoryId ? (categoryName.get(a.categoryId) ?? '').toLowerCase().includes(q) : false),
     );
-  }, [awards, categories, query]);
-
-  const groups = useMemo(() => {
-    const out = categories
-      .map((c) => ({
-        key: c.id,
-        heading: c.name,
-        items: shown.filter((a) => a.categoryId === c.id),
-      }))
-      .filter((g) => g.items.length > 0);
-
-    const standalone = shown.filter((a) => a.categoryId === null);
-    if (standalone.length > 0) {
-      out.push({ key: STANDALONE, heading: 'Standalone awards', items: standalone });
-    }
-    return out;
-  }, [categories, shown]);
+  }, [awards, categoryName, search]);
 
   const blank: AwardInput = {
     editionId: edition.id,
@@ -105,45 +102,200 @@ export function AwardsPanel({
       if (res.ok) {
         toast.success(editing.id ? 'Award updated.' : 'Award added.');
         setEditing(null);
+        router.refresh();
       } else {
         toast.error(res.message);
       }
     });
   };
 
+  const columnDefs = useMemo<ColDef<AwardRow>[]>(
+    () => [
+      {
+        headerName: 'Award',
+        field: 'name',
+        flex: 2,
+        minWidth: 260,
+        cellRenderer: (p: ICellRendererParams<AwardRow>) => {
+          if (!p.data) return null;
+          return (
+            <span className="flex h-full flex-col justify-center leading-tight">
+              <span className="flex items-center gap-2">
+                <Link
+                  href={`${base}/awards/${p.data.id}`}
+                  className="font-medium text-foreground hover:text-primary hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {p.data.name}
+                </Link>
+                {p.data.status === 'hidden' && (
+                  <Badge className="bg-muted text-muted-foreground">Hidden</Badge>
+                )}
+              </span>
+              {p.data.description && (
+                <span className="truncate text-xs text-muted-foreground">{p.data.description}</span>
+              )}
+            </span>
+          );
+        },
+      },
+      {
+        headerName: 'Category',
+        colId: 'category',
+        flex: 1,
+        minWidth: 180,
+        valueGetter: (p) =>
+          p.data?.categoryId ? (categoryName.get(p.data.categoryId) ?? '—') : 'Standalone',
+        cellClass: 'text-xs text-muted-foreground',
+      },
+      {
+        headerName: 'Nominations',
+        field: 'nominationCount',
+        width: 140,
+        type: 'numericColumn',
+      },
+      {
+        headerName: 'People',
+        field: 'nomineeCount',
+        width: 120,
+        type: 'numericColumn',
+      },
+      {
+        headerName: 'On the ballot',
+        field: 'candidateCount',
+        width: 150,
+        type: 'numericColumn',
+        cellRenderer: (p: ICellRendererParams<AwardRow, number>) => {
+          if ((p.value ?? 0) > 0) {
+            return <span className="font-medium text-foreground">{p.value}</span>;
+          }
+          // Only a problem once nominations have closed — before that, an
+          // empty ballot is a cycle that has not got there yet.
+          const urgent = edition.phase === 'voting' || edition.phase === 'review';
+          return (
+            <span className={urgent ? 'font-medium text-destructive' : 'text-muted-foreground'}>
+              0
+            </span>
+          );
+        },
+      },
+      {
+        headerName: 'Order',
+        field: 'sortOrder',
+        width: 100,
+        type: 'numericColumn',
+        initialHide: true,
+      },
+      {
+        headerName: '',
+        colId: 'actions',
+        width: 64,
+        maxWidth: 64,
+        sortable: false,
+        filter: false,
+        suppressMovable: true,
+        cellRenderer: (p: ICellRendererParams<AwardRow>) =>
+          p.data ? (
+            <span className="flex h-full items-center justify-end">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0"
+                aria-label="Edit award"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const a = p.data as AwardRow;
+                  setEditing({
+                    id: a.id,
+                    input: {
+                      editionId: edition.id,
+                      categoryId: a.categoryId,
+                      name: a.name,
+                      description: a.description,
+                      sortOrder: a.sortOrder,
+                      status: a.status,
+                    },
+                  });
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            </span>
+          ) : null,
+      },
+    ],
+    [base, categoryName, edition.id, edition.phase],
+  );
+
+  const setStatus = (rows: readonly AwardRow[], status: 'active' | 'hidden') =>
+    startTransition(async () => {
+      const res = await setAwardsStatus(
+        rows.map((r) => r.id),
+        status,
+      );
+      if (res.ok) {
+        toast.success(status === 'hidden' ? 'Hidden from the public.' : 'Visible to the public.');
+        gridApi?.deselectAll();
+        router.refresh();
+      } else {
+        toast.error(res.message);
+      }
+    });
+
+  const massActions = useMemo<MassActions<AwardRow>>(
+    () => ({
+      itemName: 'award',
+      onDelete: (selected) => setConfirm(selected),
+      custom: [
+        {
+          label: 'Hide from the public',
+          icon: <EyeOff className="h-4 w-4" />,
+          onClick: (selected: AwardRow[]) => setStatus(selected, 'hidden'),
+        },
+        {
+          label: 'Show to the public',
+          icon: <Eye className="h-4 w-4" />,
+          onClick: (selected: AwardRow[]) => setStatus(selected, 'active'),
+        },
+      ],
+    }),
+    [gridApi],
+  );
+
+  const onRowClicked = (e: RowClickedEvent<AwardRow>) => {
+    if (!e.data) return;
+    router.push(`${base}/awards/${e.data.id}`);
+  };
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search awards…"
-            className="w-[260px] pl-8"
-          />
-        </div>
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <EntityTablePanel
+        count={filtered.length}
+        countLabel={filtered.length === 1 ? 'award' : 'awards'}
+        search={search}
+        onSearchChange={setSearch}
+        gridApi={gridApi}
+        canCreate
+        createLabel="Add award"
+        onCreate={() => setEditing({ id: null, input: blank })}
+        filters={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setManagingCategories((v) => !v)}
+          >
+            <FolderTree className="h-3.5 w-3.5" />
+            Categories
+            <span className="ml-1 text-xs text-muted-foreground">({categories.length})</span>
+          </Button>
+        }
+      />
 
-        <Button
-          type="button"
-          variant="outline"
-          className="ml-auto"
-          onClick={() => setManagingCategories((v) => !v)}
-        >
-          <FolderTree className="h-3.5 w-3.5" />
-          Categories
-          <span className="ml-1 text-xs text-muted-foreground">({categories.length})</span>
-        </Button>
-
-        <Button type="button" onClick={() => setEditing({ id: null, input: blank })}>
-          <Plus className="h-3.5 w-3.5" /> Add award
-        </Button>
-      </div>
-
-      {/* Categories live beside the awards they group rather than on another
-          tab. They exist for no other purpose, and sending someone to a
-          different screen to make one before they can finish adding an award
-          is the trip this avoids. */}
+      {/* Categories live beside the awards they group. They exist for no
+          other purpose, and sending someone to another screen to make one
+          before they can finish adding an award is the trip this avoids. */}
       {managingCategories && (
         <div className="rounded-lg border bg-card p-4">
           <p className="text-sm font-semibold text-foreground">Categories</p>
@@ -155,153 +307,24 @@ export function AwardsPanel({
         </div>
       )}
 
-      {/* An award with nobody on the ballot is dropped from the public
-          ballot entirely. Finding that out from a voter is worse than
-          finding it out here. */}
-      {emptyAwards > 0 && edition.phase !== 'nominating' && edition.phase !== 'upcoming' && (
-        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-          <span className="font-medium text-foreground">
+      {emptyAwards > 0 && (edition.phase === 'voting' || edition.phase === 'review') && (
+        <p className="rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs text-muted-foreground">
+          <strong className="text-foreground">
             {emptyAwards} {emptyAwards === 1 ? 'award has' : 'awards have'} nobody on the ballot.
-          </span>{' '}
-          <span className="text-muted-foreground">
-            Voters are not shown an award with no candidates at all.
-          </span>
-        </div>
-      )}
-
-      {awards.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed p-12 text-center">
-          <p className="text-sm font-medium text-foreground">No awards yet</p>
-          <p className="max-w-md text-sm text-muted-foreground">
-            Add the awards this ceremony will present. Group them under a category from the
-            Description tab, or leave them standalone.
-          </p>
-          <Button type="button" onClick={() => setEditing({ id: null, input: blank })}>
-            <Plus className="h-3.5 w-3.5" /> Add award
-          </Button>
-        </div>
-      ) : groups.length === 0 ? (
-        <p className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
-          No award matches “{query}”.
+          </strong>{' '}
+          Voters are not shown an award with no candidates at all.
         </p>
-      ) : (
-        <div className="flex flex-col gap-5">
-          {groups.map((g) => (
-            <div key={g.key} className="flex flex-col gap-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {g.heading}
-              </p>
-
-              <div className="overflow-x-auto rounded-lg border">
-                <table className="w-full min-w-[720px] text-sm">
-                  <thead className="bg-muted/40 text-xs text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2 text-left font-medium">Award</th>
-                      <th className="px-3 py-2 text-right font-medium">Nominations</th>
-                      <th className="px-3 py-2 text-right font-medium">Pending</th>
-                      <th className="px-3 py-2 text-right font-medium">On the ballot</th>
-                      <th className="w-24" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {g.items.map((a) => (
-                      <tr
-                        key={a.id}
-                        className="cursor-pointer border-t transition-colors hover:bg-muted/40"
-                        onClick={() => router.push(`${base}/awards/${a.id}`)}
-                      >
-                        <td className="px-3 py-2.5">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Link
-                              href={`${base}/awards/${a.id}`}
-                              className="font-medium text-foreground hover:text-primary hover:underline"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {a.name}
-                            </Link>
-                            {a.status === 'hidden' && (
-                              <Badge className="bg-muted text-muted-foreground">Hidden</Badge>
-                            )}
-                          </div>
-                          {a.description && (
-                            <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-                              {a.description}
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">
-                          {a.nominationCount}
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">
-                          {a.pendingCount > 0 ? (
-                            <span className="font-medium text-amber-600 dark:text-amber-400">
-                              {a.pendingCount}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">0</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">
-                          {a.candidateCount === 0 ? (
-                            <span
-                              className={
-                                edition.phase === 'voting'
-                                  ? 'font-medium text-destructive'
-                                  : 'text-muted-foreground'
-                              }
-                            >
-                              0
-                            </span>
-                          ) : (
-                            <span className="font-medium text-foreground">{a.candidateCount}</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditing({
-                                  id: a.id,
-                                  input: {
-                                    editionId: edition.id,
-                                    categoryId: a.categoryId,
-                                    name: a.name,
-                                    description: a.description,
-                                    sortOrder: a.sortOrder,
-                                    status: a.status,
-                                  },
-                                });
-                              }}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setRemoving(a);
-                              }}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
-        </div>
       )}
+
+      <DataTable<AwardRow>
+        rowData={filtered as AwardRow[]}
+        columnDefs={columnDefs}
+        getRowId={(params) => params.data.id}
+        onGridReady={(e) => setGridApi(e.api)}
+        onRowClicked={onRowClicked}
+        showColumnPicker={false}
+        massActions={massActions}
+      />
 
       <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-lg">
@@ -330,7 +353,7 @@ export function AwardsPanel({
                   }
                   onValueChange={(v) => {
                     if (v === NEW_CATEGORY) {
-                      // A placeholder space, so the select stays on "New
+                      // A placeholder space keeps the select on "New
                       // category…" while the box below is still empty.
                       setNewCategory(' ');
                       return;
@@ -356,9 +379,6 @@ export function AwardsPanel({
                   </SelectContent>
                 </Select>
 
-                {/* Created without leaving the dialog. Needing a category
-                    that does not exist yet is the commonest reason to
-                    abandon adding an award half-finished. */}
                 {newCategory !== '' && (
                   <div className="mt-2 flex items-center gap-2">
                     <Input
@@ -384,6 +404,7 @@ export function AwardsPanel({
                           if (res.ok) {
                             toast.success('Category created. Pick it from the list.');
                             setNewCategory('');
+                            router.refresh();
                           } else {
                             toast.error(res.message);
                           }
@@ -462,21 +483,30 @@ export function AwardsPanel({
       </Dialog>
 
       <ConfirmDialog
-        open={removing !== null}
-        title={`Delete "${removing?.name ?? ''}"?`}
-        description="An award that has already received nominations is refused — hide it instead, so the citations people wrote are kept."
+        open={confirm !== null}
+        title={`Delete ${confirm?.length ?? 0} award${confirm?.length === 1 ? '' : 's'}?`}
+        description="Any award that already has nominations against it is kept — deleting would take the citations people wrote with it. Hide those instead."
         confirmLabel="Delete"
         onConfirm={() => {
-          const target = removing;
-          setRemoving(null);
-          if (!target) return;
+          const targets = confirm;
+          setConfirm(null);
+          if (!targets) return;
           startTransition(async () => {
-            const res = await deleteAward(target.id);
-            if (res.ok) toast.success('Award deleted.');
-            else toast.error(res.message);
+            const res = await deleteAwards(targets.map((t) => t.id));
+            if (!res.ok) {
+              toast.error(res.message);
+              return;
+            }
+            toast.success(
+              res.kept
+                ? `Deleted ${targets.length - res.kept}. Kept ${res.kept} that hold nominations.`
+                : `Deleted ${targets.length}.`,
+            );
+            gridApi?.deselectAll();
+            router.refresh();
           });
         }}
-        onCancel={() => setRemoving(null)}
+        onCancel={() => setConfirm(null)}
       />
     </div>
   );

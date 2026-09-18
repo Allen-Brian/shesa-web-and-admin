@@ -32,53 +32,21 @@ function fail(message: string): ActionResult {
   return { ok: false, message };
 }
 
-/* ── Nomination review ─────────────────────────────────────────────── */
+/* ── Nominations ───────────────────────────────────────────────────── */
 
-export async function reviewNomination(
-  id: string,
-  status: 'approved' | 'rejected' | 'pending',
-  note?: string,
-): Promise<ActionResult> {
-  const supabase = await getServerClient();
-  const { data: auth } = await supabase.auth.getUser();
-
-  const { error } = await supabase
-    .schema('awards')
-    .from('nominations')
-    .update({
-      status,
-      review_note: note?.trim() || null,
-      // Back to pending means un-reviewed, so the reviewer's name comes off
-      // too — otherwise the row claims a decision nobody currently holds.
-      reviewed_by: status === 'pending' ? null : (auth.user?.id ?? null),
-      reviewed_at: status === 'pending' ? null : new Date().toISOString(),
-    } as never)
-    .eq('id', id);
-
-  if (error) return fail(error.message);
-  refresh();
-  return { ok: true };
-}
-
-/** Approve or reject several at once — the review screen's bulk action. */
-export async function reviewNominations(
-  ids: readonly string[],
-  status: 'approved' | 'rejected',
-): Promise<ActionResult> {
+/**
+ * Delete nominations outright.
+ *
+ * There is no approve/reject state any more: a nomination is a nomination.
+ * The only judgement left is whether a row is real, and the answer to a
+ * fake one is to remove it rather than to file it under "rejected" and have
+ * every later screen filter around it.
+ */
+export async function deleteNominations(ids: readonly string[]): Promise<ActionResult> {
   if (ids.length === 0) return fail('Nothing selected.');
 
   const supabase = await getServerClient();
-  const { data: auth } = await supabase.auth.getUser();
-
-  const { error } = await supabase
-    .schema('awards')
-    .from('nominations')
-    .update({
-      status,
-      reviewed_by: auth.user?.id ?? null,
-      reviewed_at: new Date().toISOString(),
-    } as never)
-    .in('id', ids);
+  const { error } = await supabase.schema('awards').from('nominations').delete().in('id', ids);
 
   if (error) return fail(error.message);
   refresh();
@@ -803,4 +771,185 @@ export async function updateWeighting(id: string, input: WeightingInput): Promis
   if (error) return fail(error.message);
   refresh();
   return { ok: true };
+}
+
+/**
+ * Put several nominees on the ballot at once.
+ *
+ * The straight path: pick the people who should be voted on and forward
+ * them. Each candidate is seeded from what the members actually wrote —
+ * name, the commonest batch and branch across their nominations, and their
+ * citations as a first draft of the accomplishments — so nothing has to be
+ * retyped before the ballot exists.
+ *
+ * It is a draft, not a publication. The Ballot tab marks every candidate
+ * still missing a profession, a photograph or a written paragraph, because
+ * the briefing asks the Exco for accurate data and five hurried sentences
+ * concatenated is not that.
+ */
+export async function promoteNominees(
+  ids: readonly string[],
+): Promise<ActionResult & { added?: number; skipped?: number }> {
+  if (ids.length === 0) return fail('Nothing selected.');
+
+  const supabase = await getServerClient();
+  const { data: auth } = await supabase.auth.getUser();
+
+  const { data: buckets, error: readErr } = await supabase
+    .schema('awards')
+    .from('nominees')
+    .select('id, award_id, display_name')
+    .in('id', ids);
+
+  if (readErr) return fail(readErr.message);
+  if (!buckets || buckets.length === 0) return fail('Those nominees no longer exist.');
+
+  // Already on the ballot — silently skipped rather than failing the batch,
+  // because selecting a row that is already a candidate is a slip, not an
+  // instruction to undo anything.
+  const { data: existing } = await supabase
+    .schema('awards')
+    .from('candidates')
+    .select('nominee_id')
+    .in('nominee_id', ids);
+
+  const taken = new Set((existing ?? []).map((c) => c.nominee_id));
+  const todo = buckets.filter((b) => !taken.has(b.id));
+  if (todo.length === 0) return { ok: true, added: 0, skipped: buckets.length };
+
+  const { data: noms } = await supabase
+    .schema('awards')
+    .from('nominations')
+    .select('nominee_id, citation, nominee_batch_year, nominee_branch_label, created_at')
+    .in(
+      'nominee_id',
+      todo.map((b) => b.id),
+    )
+    .order('created_at');
+
+  const byNominee = new Map<string, typeof noms>();
+  for (const n of noms ?? []) {
+    if (!n.nominee_id) continue;
+    const list = byNominee.get(n.nominee_id);
+    if (list) list.push(n);
+    else byNominee.set(n.nominee_id, [n]);
+  }
+
+  /** The value most nominations agree on — four saying 1998 beats one saying 1989. */
+  const commonest = <T>(values: readonly (T | null)[]): T | null => {
+    const tally = new Map<T, number>();
+    for (const v of values) {
+      if (v === null || v === undefined || v === ('' as unknown as T)) continue;
+      tally.set(v, (tally.get(v) ?? 0) + 1);
+    }
+    let best: T | null = null;
+    let bestN = 0;
+    for (const [v, n] of tally) {
+      if (n > bestN) {
+        best = v;
+        bestN = n;
+      }
+    }
+    return best;
+  };
+
+  const rows = todo.map((b) => {
+    const mine = byNominee.get(b.id) ?? [];
+    return {
+      award_id: b.award_id,
+      nominee_id: b.id,
+      full_name: b.display_name,
+      batch_year: commonest((mine ?? []).map((n) => n.nominee_batch_year)),
+      branch_label: commonest((mine ?? []).map((n) => n.nominee_branch_label)),
+      accomplishments: (mine ?? []).map((n) => n.citation).join('\n\n') || null,
+      created_by: auth.user?.id ?? null,
+    };
+  });
+
+  const { error } = await supabase
+    .schema('awards')
+    .from('candidates')
+    .insert(rows as never);
+  if (error) {
+    if (error.code === '23505') {
+      return fail('Someone with that name is already a candidate for this award.');
+    }
+    return fail(error.message);
+  }
+
+  refresh();
+  return { ok: true, added: rows.length, skipped: buckets.length - rows.length };
+}
+
+/** Take people off the ballot, one row or many. */
+export async function removeCandidates(
+  ids: readonly string[],
+  afterVotingOpened: boolean,
+): Promise<ActionResult> {
+  if (ids.length === 0) return fail('Nothing selected.');
+
+  const supabase = await getServerClient();
+
+  // Deleting cascades into ballot_votes and would silently rewrite votes
+  // already cast, so once voting is open the answer is a withdrawal.
+  const { error } = afterVotingOpened
+    ? await supabase
+        .schema('awards')
+        .from('candidates')
+        .update({ status: 'withdrawn' } as never)
+        .in('id', ids)
+    : await supabase.schema('awards').from('candidates').delete().in('id', ids);
+
+  if (error) return fail(error.message);
+  refresh();
+  return { ok: true };
+}
+
+/** Hide or reveal several awards at once. */
+export async function setAwardsStatus(
+  ids: readonly string[],
+  status: 'active' | 'hidden',
+): Promise<ActionResult> {
+  if (ids.length === 0) return fail('Nothing selected.');
+
+  const supabase = await getServerClient();
+  const { error } = await supabase
+    .schema('awards')
+    .from('awards')
+    .update({ status } as never)
+    .in('id', ids);
+
+  if (error) return fail(error.message);
+  refresh();
+  return { ok: true };
+}
+
+/** Delete awards, one or many. Each is refused if it holds nominations. */
+export async function deleteAwards(
+  ids: readonly string[],
+): Promise<ActionResult & { kept?: number }> {
+  if (ids.length === 0) return fail('Nothing selected.');
+
+  const supabase = await getServerClient();
+
+  const { data: noms } = await supabase
+    .schema('awards')
+    .from('nominations')
+    .select('award_id')
+    .in('award_id', ids);
+
+  const held = new Set((noms ?? []).map((n) => n.award_id));
+  const deletable = ids.filter((id) => !held.has(id));
+
+  if (deletable.length === 0) {
+    return fail(
+      'Every award selected has nominations against it. Hide them instead — deleting would take the citations people wrote with them.',
+    );
+  }
+
+  const { error } = await supabase.schema('awards').from('awards').delete().in('id', deletable);
+  if (error) return fail(error.message);
+
+  refresh();
+  return { ok: true, kept: ids.length - deletable.length };
 }

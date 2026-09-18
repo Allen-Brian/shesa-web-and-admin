@@ -1,7 +1,6 @@
 /** Shared shapes for the editor's Voting surface. */
 
 export type AwardsPhase = 'upcoming' | 'nominating' | 'review' | 'voting' | 'closed';
-export type NominationStatus = 'pending' | 'approved' | 'rejected';
 
 /** Two colleges combined by the weights, or the membership alone. */
 export type VotingMode = 'weighted' | 'public_only';
@@ -43,8 +42,11 @@ export interface AwardRow {
   readonly sortOrder: number;
   readonly status: 'active' | 'hidden';
   readonly nominationCount: number;
-  readonly pendingCount: number;
+  /** Distinct people named, after the spellings have been grouped. */
+  readonly nomineeCount: number;
   readonly candidateCount: number;
+  /** AG Grid rows are indexed by string key. */
+  readonly [key: string]: unknown;
 }
 
 export interface NominationRow {
@@ -59,14 +61,13 @@ export interface NominationRow {
   readonly nominatorBatchYear: number | null;
   readonly nominatorBranchLabel: string | null;
   readonly nominatorContact: string | null;
-  readonly status: NominationStatus;
-  readonly reviewNote: string | null;
   readonly candidateId: string | null;
-  /** The bucket this nomination has been aggregated into. NULL = idle. */
+  /** The person this nomination has been grouped under. NULL = ungrouped. */
   readonly nomineeId: string | null;
   readonly createdAt: string;
-  /** How many other nominations name the same person for the same award. */
+  /** How many nominations name the same person for the same award. */
   readonly supportCount: number;
+  readonly [key: string]: unknown;
 }
 
 export interface CandidateRow {
@@ -83,6 +84,7 @@ export interface CandidateRow {
   readonly photoUrl: string | null;
   readonly sortOrder: number;
   readonly status: 'active' | 'withdrawn';
+  readonly [key: string]: unknown;
 }
 
 /**
@@ -99,6 +101,7 @@ export interface NomineeRow {
   readonly nominationCount: number;
   /** Set once this person has been put on the ballot. */
   readonly candidateId: string | null;
+  readonly [key: string]: unknown;
 }
 
 /** Two buckets that might be the same person. A proposal, never an action. */

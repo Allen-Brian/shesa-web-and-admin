@@ -212,7 +212,6 @@ export function buildCeremonyColumns({
       sortable: false,
       filter: false,
       suppressMovable: true,
-      pinned: 'right',
       cellRenderer: (p: ICellRendererParams<EditionSummary>) =>
         p.data ? (
           <CeremonyRowActions
