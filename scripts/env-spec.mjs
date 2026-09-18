@@ -210,6 +210,14 @@ export const ENV_VARS = [
       "Server-to-server notification target sent as `callbackUrl` on request/create. Empty means derive it from SUPABASE_URL, which is the recommended setting — the destination is our own Edge Function, so deriving it cannot drift. Distinct from TRANZAK_RETURN_URL_BASE, which is the payer's browser redirect.",
   },
   {
+    name: 'TRANZAK_RECONCILE_SECRET',
+    scope: 'server',
+    source: 'auto',
+    defaults: { local: '', staging: '', production: '' },
+    description:
+      "Shared secret the scheduled reconciliation sweep sends as `x-worker-secret`. Gates payments/tranzak-reconcile, which polls the gateway for intents that neither the webhook nor the payer's return settled. Without it the endpoint would be open — verify_jwt is a signature check and the anon key is a valid project JWT — letting anyone burn our Tranzak quota. An Edge Function secret; the database also needs it as app.tranzak_reconcile_secret for pg_cron to send it.",
+  },
+  {
     name: 'NEXT_SERVER_ACTIONS_ENCRYPTION_KEY',
     scope: 'server',
     source: 'auto',

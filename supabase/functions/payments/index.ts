@@ -27,6 +27,11 @@
  *                     re-reading the gateway before writing anything.
  *                     Reached by the webhook forwarder and the payer's
  *                     return page. Idempotent.
+ *   tranzak-reconcile — Sweeps intents that never reached a terminal
+ *                     state and asks the gateway what happened. The
+ *                     safety net for when neither the webhook nor the
+ *                     payer's return fires. Scheduled; worker-secret
+ *                     gated.
  */
 
 import { entityRouter } from '../_shared/entity-router.ts';
@@ -37,6 +42,7 @@ import { initiatePublicPayment } from './initiate-public.ts';
 import { payOnBehalf } from './pay-on-behalf.ts';
 import { recordManualPayment } from './record-manual.ts';
 import { reversePayment } from './reverse.ts';
+import { tranzakReconcile } from './tranzak-reconcile.ts';
 import { tranzakSettle } from './tranzak-settle.ts';
 
 Deno.serve(
@@ -48,5 +54,6 @@ Deno.serve(
     'initiate-public': initiatePublicPayment,
     confirm: confirmPayment,
     'tranzak-settle': tranzakSettle,
+    'tranzak-reconcile': tranzakReconcile,
   }),
 );
