@@ -20,8 +20,12 @@ import type {
  *
  * Straight table reads rather than the public RPCs: an editor holding
  * `cms.edit` is admitted by RLS on every `awards` table, and the definer
- * functions deliberately withhold what this screen exists to show —
+ * functions deliberately withhold what these screens exist to show —
  * hidden awards, pending nominations, the Exco token, the tally.
+ *
+ * Everything below is scoped to one ceremony or one award. A cycle is a
+ * self-contained thing with its own dates, awards and ballot, and a screen
+ * mixing two of them would be showing counts nobody asked for.
  */
 
 /** Mirrors `awards.phase()`, which the editor's table reads bypass. */
@@ -45,50 +49,95 @@ function phaseOf(e: {
   return 'upcoming';
 }
 
-export async function loadEdition(): Promise<EditionRow | null> {
-  const supabase = await getServerClient();
-  const { data, error } = await supabase
-    .schema('awards')
-    .from('editions')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+interface RawEdition {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  nominations_open_at: string | null;
+  nominations_close_at: string | null;
+  voting_open_at: string | null;
+  voting_close_at: string | null;
+  ex_student_weight: number | string;
+  exco_weight: number | string;
+  weighting_method: string;
+  exco_token: string;
+  results_published_at: string | null;
+}
 
-  if (error || !data) return null;
-
+function toEdition(raw: RawEdition): EditionRow {
   return {
-    id: data.id,
-    slug: data.slug,
-    name: data.name,
-    description: data.description,
-    phase: phaseOf(data),
-    nominationsOpenAt: data.nominations_open_at,
-    nominationsCloseAt: data.nominations_close_at,
-    votingOpenAt: data.voting_open_at,
-    votingCloseAt: data.voting_close_at,
-    exStudentWeight: Number(data.ex_student_weight),
-    excoWeight: Number(data.exco_weight),
-    weightingMethod: data.weighting_method,
-    excoToken: data.exco_token,
-    resultsPublishedAt: data.results_published_at,
+    id: raw.id,
+    slug: raw.slug,
+    name: raw.name,
+    description: raw.description,
+    phase: phaseOf(raw),
+    nominationsOpenAt: raw.nominations_open_at,
+    nominationsCloseAt: raw.nominations_close_at,
+    votingOpenAt: raw.voting_open_at,
+    votingCloseAt: raw.voting_close_at,
+    exStudentWeight: Number(raw.ex_student_weight),
+    excoWeight: Number(raw.exco_weight),
+    weightingMethod: raw.weighting_method,
+    excoToken: raw.exco_token,
+    resultsPublishedAt: raw.results_published_at,
   };
 }
 
-export interface LoadedVoting {
-  readonly edition: EditionRow | null;
-  readonly categories: readonly CategoryRow[];
-  readonly awards: readonly AwardRow[];
+/** Every ceremony, newest first — the sidebar and the index both read this. */
+export async function loadEditions(): Promise<readonly EditionRow[]> {
+  const supabase = await getServerClient();
+  const { data } = await supabase
+    .schema('awards')
+    .from('editions')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  return (data ?? []).map((e) => toEdition(e as RawEdition));
 }
 
-/** The overview: the cycle, its structure, and how full each award is. */
-export async function loadVoting(): Promise<LoadedVoting> {
-  const edition = await loadEdition();
-  if (!edition) return { edition: null, categories: [], awards: [] };
+/** One ceremony, by its slug. */
+export async function loadEditionBySlug(slug: string): Promise<EditionRow | null> {
+  const supabase = await getServerClient();
+  const { data } = await supabase
+    .schema('awards')
+    .from('editions')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  return data ? toEdition(data as RawEdition) : null;
+}
+
+export interface EditionTotals {
+  readonly nominations: number;
+  readonly pending: number;
+  readonly candidates: number;
+  readonly emptyAwards: number;
+  readonly ballots: number;
+}
+
+export interface LoadedCeremony {
+  readonly edition: EditionRow;
+  readonly categories: readonly CategoryRow[];
+  readonly awards: readonly AwardRow[];
+  readonly totals: EditionTotals;
+}
+
+/**
+ * A ceremony and the shape of its awards.
+ *
+ * The three counts per award are the point of the awards table: which one
+ * matters moves as the cycle does — nominations while the form is open,
+ * pending while the shortlist is drawn, candidates once it is.
+ */
+export async function loadCeremony(slug: string): Promise<LoadedCeremony | null> {
+  const edition = await loadEditionBySlug(slug);
+  if (!edition) return null;
 
   const supabase = await getServerClient();
 
-  const [cats, awards, noms, cands] = await Promise.all([
+  const [cats, awards] = await Promise.all([
     supabase
       .schema('awards')
       .from('categories')
@@ -101,11 +150,34 @@ export async function loadVoting(): Promise<LoadedVoting> {
       .select('id, category_id, name, description, sort_order, status')
       .eq('edition_id', edition.id)
       .order('sort_order'),
-    // Counts are derived in JS from two narrow column reads. The row counts
-    // here are in the hundreds, and a per-award aggregate view would be a
-    // database object to maintain for an arithmetic problem this small.
-    supabase.schema('awards').from('nominations').select('award_id, status'),
-    supabase.schema('awards').from('candidates').select('award_id, status'),
+  ]);
+
+  const awardIds = (awards.data ?? []).map((a) => a.id);
+  const empty = { data: [] as { award_id: string; status: string }[] };
+
+  // Counted from two narrow reads filtered to this ceremony's awards. An
+  // aggregate view would be a database object to maintain for arithmetic
+  // over a few hundred rows.
+  const [noms, cands, ballots] = await Promise.all([
+    awardIds.length
+      ? supabase
+          .schema('awards')
+          .from('nominations')
+          .select('award_id, status')
+          .in('award_id', awardIds)
+      : Promise.resolve(empty),
+    awardIds.length
+      ? supabase
+          .schema('awards')
+          .from('candidates')
+          .select('award_id, status')
+          .in('award_id', awardIds)
+      : Promise.resolve(empty),
+    supabase
+      .schema('awards')
+      .from('ballots')
+      .select('id', { count: 'exact', head: true })
+      .eq('edition_id', edition.id),
   ]);
 
   const nomCount = new Map<string, number>();
@@ -121,6 +193,18 @@ export async function loadVoting(): Promise<LoadedVoting> {
     candCount.set(c.award_id, (candCount.get(c.award_id) ?? 0) + 1);
   }
 
+  const rows: AwardRow[] = (awards.data ?? []).map((a) => ({
+    id: a.id,
+    categoryId: a.category_id,
+    name: a.name,
+    description: a.description,
+    sortOrder: a.sort_order,
+    status: a.status as AwardRow['status'],
+    nominationCount: nomCount.get(a.id) ?? 0,
+    pendingCount: pendCount.get(a.id) ?? 0,
+    candidateCount: candCount.get(a.id) ?? 0,
+  }));
+
   return {
     edition,
     categories: (cats.data ?? []).map((c) => ({
@@ -129,159 +213,215 @@ export async function loadVoting(): Promise<LoadedVoting> {
       description: c.description,
       sortOrder: c.sort_order,
     })),
-    awards: (awards.data ?? []).map((a) => ({
-      id: a.id,
-      categoryId: a.category_id,
-      name: a.name,
-      description: a.description,
-      sortOrder: a.sort_order,
-      status: a.status as AwardRow['status'],
-      nominationCount: nomCount.get(a.id) ?? 0,
-      pendingCount: pendCount.get(a.id) ?? 0,
-      candidateCount: candCount.get(a.id) ?? 0,
+    awards: rows,
+    totals: {
+      nominations: rows.reduce((n, a) => n + a.nominationCount, 0),
+      pending: rows.reduce((n, a) => n + a.pendingCount, 0),
+      candidates: rows.reduce((n, a) => n + a.candidateCount, 0),
+      emptyAwards: rows.filter((a) => a.status === 'active' && a.candidateCount === 0).length,
+      ballots: (ballots as { count?: number | null }).count ?? 0,
+    },
+  };
+}
+
+export type EditionSummary = EditionRow & {
+  readonly awardCount: number;
+  readonly nominationCount: number;
+};
+
+/** Headline counts for the ceremony index, without loading every award. */
+export async function loadEditionSummaries(): Promise<readonly EditionSummary[]> {
+  const editions = await loadEditions();
+  if (editions.length === 0) return [];
+
+  const supabase = await getServerClient();
+  const [awards, noms] = await Promise.all([
+    supabase.schema('awards').from('awards').select('id, edition_id'),
+    supabase.schema('awards').from('nominations').select('award_id'),
+  ]);
+
+  const editionOf = new Map<string, string>();
+  const awardCount = new Map<string, number>();
+  for (const a of awards.data ?? []) {
+    editionOf.set(a.id, a.edition_id);
+    awardCount.set(a.edition_id, (awardCount.get(a.edition_id) ?? 0) + 1);
+  }
+
+  const nomCount = new Map<string, number>();
+  for (const n of noms.data ?? []) {
+    const ed = editionOf.get(n.award_id);
+    if (!ed) continue;
+    nomCount.set(ed, (nomCount.get(ed) ?? 0) + 1);
+  }
+
+  return editions.map((e) => ({
+    ...e,
+    awardCount: awardCount.get(e.id) ?? 0,
+    nominationCount: nomCount.get(e.id) ?? 0,
+  }));
+}
+
+/* ── One award ─────────────────────────────────────────────────────── */
+
+export interface AwardWorkspace {
+  readonly edition: EditionRow;
+  readonly award: AwardRow;
+  readonly categoryName: string | null;
+  readonly nominations: readonly NominationRow[];
+  readonly nominees: readonly NomineeRow[];
+  readonly candidates: readonly CandidateRow[];
+  readonly suggestions: readonly MergeSuggestion[];
+}
+
+/**
+ * Everything about one award, in one place.
+ *
+ * Scoped to the award rather than the ceremony because that is the unit the
+ * work happens in: the question is never "review the nominations", it is
+ * "who should be on the ballot for Health".
+ */
+export async function loadAward(slug: string, awardId: string): Promise<AwardWorkspace | null> {
+  const edition = await loadEditionBySlug(slug);
+  if (!edition) return null;
+
+  const supabase = await getServerClient();
+
+  const { data: awardRow } = await supabase
+    .schema('awards')
+    .from('awards')
+    .select('id, category_id, name, description, sort_order, status, edition_id')
+    .eq('id', awardId)
+    .maybeSingle();
+
+  // Guard the pairing, not just existence: an award id from one ceremony
+  // must not render under another ceremony's slug.
+  if (!awardRow || awardRow.edition_id !== edition.id) return null;
+
+  const [noms, nominees, cands, suggestions, category] = await Promise.all([
+    supabase
+      .schema('awards')
+      .from('nominations')
+      .select('*')
+      .eq('award_id', awardId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .schema('awards')
+      .from('nominees')
+      .select('id, award_id, display_name')
+      .eq('award_id', awardId),
+    supabase
+      .schema('awards')
+      .from('candidates')
+      .select('*')
+      .eq('award_id', awardId)
+      .order('sort_order'),
+    supabase.schema('awards').rpc('merge_suggestions', { p_award_id: awardId }),
+    awardRow.category_id
+      ? supabase
+          .schema('awards')
+          .from('categories')
+          .select('name')
+          .eq('id', awardRow.category_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const nominationRows = noms.data ?? [];
+
+  // Support count: how many nominations name the same person, compared the
+  // way a reader would — case and spacing carry no meaning.
+  const key = (name: string) => name.trim().toLowerCase().replace(/\s+/g, ' ');
+  const support = new Map<string, number>();
+  const counts = new Map<string, number>();
+  for (const n of nominationRows) {
+    support.set(key(n.nominee_name), (support.get(key(n.nominee_name)) ?? 0) + 1);
+    if (n.nominee_id) counts.set(n.nominee_id, (counts.get(n.nominee_id) ?? 0) + 1);
+  }
+
+  const candidateRows = cands.data ?? [];
+  const candidateOf = new Map<string, string>();
+  for (const c of candidateRows) {
+    if (c.nominee_id) candidateOf.set(c.nominee_id, c.id);
+  }
+
+  return {
+    edition,
+    award: {
+      id: awardRow.id,
+      categoryId: awardRow.category_id,
+      name: awardRow.name,
+      description: awardRow.description,
+      sortOrder: awardRow.sort_order,
+      status: awardRow.status as AwardRow['status'],
+      nominationCount: nominationRows.length,
+      pendingCount: nominationRows.filter((n) => n.status === 'pending').length,
+      candidateCount: candidateRows.filter((c) => c.status === 'active').length,
+    },
+    categoryName: (category as { data: { name: string } | null }).data?.name ?? null,
+    nominations: nominationRows.map((n) => ({
+      id: n.id,
+      awardId: n.award_id,
+      nomineeName: n.nominee_name,
+      nomineeBatchYear: n.nominee_batch_year,
+      nomineeBranchLabel: n.nominee_branch_label,
+      nomineeContact: n.nominee_contact,
+      citation: n.citation,
+      nominatorName: n.nominator_name,
+      nominatorBatchYear: n.nominator_batch_year,
+      nominatorBranchLabel: n.nominator_branch_label,
+      nominatorContact: n.nominator_contact,
+      status: n.status as NominationStatus,
+      reviewNote: n.review_note,
+      candidateId: n.candidate_id,
+      nomineeId: n.nominee_id,
+      createdAt: n.created_at,
+      supportCount: support.get(key(n.nominee_name)) ?? 1,
+    })),
+    nominees: (nominees.data ?? [])
+      .map((b) => ({
+        id: b.id,
+        awardId: b.award_id,
+        displayName: b.display_name,
+        nominationCount: counts.get(b.id) ?? 0,
+        candidateId: candidateOf.get(b.id) ?? null,
+      }))
+      .sort(
+        (a, b) =>
+          b.nominationCount - a.nominationCount || a.displayName.localeCompare(b.displayName),
+      ),
+    candidates: candidateRows.map((c) => ({
+      id: c.id,
+      awardId: c.award_id,
+      nominationId: c.nomination_id,
+      nomineeId: c.nominee_id,
+      fullName: c.full_name,
+      batchYear: c.batch_year,
+      branchLabel: c.branch_label,
+      profession: c.profession,
+      accomplishments: c.accomplishments,
+      photoUrl: c.photo_url,
+      sortOrder: c.sort_order,
+      status: c.status as CandidateRow['status'],
+    })),
+    suggestions: (Array.isArray(suggestions.data) ? suggestions.data : []).map((r) => ({
+      leftId: r.left_id,
+      leftName: r.left_name,
+      leftCount: Number(r.left_count),
+      rightId: r.right_id,
+      rightName: r.right_name,
+      rightCount: Number(r.right_count),
+      overlap: Number(r.overlap),
     })),
   };
 }
 
-/**
- * Every nomination, with a support count.
- *
- * The count is the point of this screen. Ten people naming the same person
- * for the same award is the single strongest signal the secretariat has, and
- * without it a reviewer reads ten near-identical rows and has to notice the
- * pattern themselves.
- */
-export async function loadNominations(): Promise<readonly NominationRow[]> {
-  const supabase = await getServerClient();
-  const { data, error } = await supabase
-    .schema('awards')
-    .from('nominations')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error || !data) return [];
-
-  const support = new Map<string, number>();
-  const key = (awardId: string, name: string) =>
-    `${awardId}::${name.trim().toLowerCase().replace(/\s+/g, ' ')}`;
-  for (const n of data) {
-    const k = key(n.award_id, n.nominee_name);
-    support.set(k, (support.get(k) ?? 0) + 1);
-  }
-
-  return data.map((n) => ({
-    id: n.id,
-    awardId: n.award_id,
-    nomineeName: n.nominee_name,
-    nomineeBatchYear: n.nominee_batch_year,
-    nomineeBranchLabel: n.nominee_branch_label,
-    nomineeContact: n.nominee_contact,
-    citation: n.citation,
-    nominatorName: n.nominator_name,
-    nominatorBatchYear: n.nominator_batch_year,
-    nominatorBranchLabel: n.nominator_branch_label,
-    nominatorContact: n.nominator_contact,
-    status: n.status as NominationStatus,
-    reviewNote: n.review_note,
-    candidateId: n.candidate_id,
-    nomineeId: n.nominee_id,
-    createdAt: n.created_at,
-    supportCount: support.get(key(n.award_id, n.nominee_name)) ?? 1,
-  }));
-}
-
-/**
- * The buckets, with their counts.
- *
- * Counted here from the nominations themselves rather than read from a
- * column, because the count has to stay right across merges, splits and
- * manual reassignment — and the only thing that is always right is the
- * pointers.
- */
-export async function loadNominees(): Promise<readonly NomineeRow[]> {
-  const supabase = await getServerClient();
-
-  const [nominees, noms, cands] = await Promise.all([
-    supabase.schema('awards').from('nominees').select('id, award_id, display_name'),
-    supabase.schema('awards').from('nominations').select('nominee_id'),
-    supabase.schema('awards').from('candidates').select('id, nominee_id'),
-  ]);
-
-  const counts = new Map<string, number>();
-  for (const n of noms.data ?? []) {
-    if (!n.nominee_id) continue;
-    counts.set(n.nominee_id, (counts.get(n.nominee_id) ?? 0) + 1);
-  }
-
-  const candidateOf = new Map<string, string>();
-  for (const c of cands.data ?? []) {
-    if (c.nominee_id) candidateOf.set(c.nominee_id, c.id);
-  }
-
-  return (nominees.data ?? [])
-    .map((b) => ({
-      id: b.id,
-      awardId: b.award_id,
-      displayName: b.display_name,
-      nominationCount: counts.get(b.id) ?? 0,
-      candidateId: candidateOf.get(b.id) ?? null,
-    }))
-    .sort(
-      (a, b) => b.nominationCount - a.nominationCount || a.displayName.localeCompare(b.displayName),
-    );
-}
-
-/** Buckets that might be one person, for one award. Proposals only. */
-export async function loadMergeSuggestions(awardId: string): Promise<readonly MergeSuggestion[]> {
-  const supabase = await getServerClient();
-  const { data, error } = await supabase
-    .schema('awards')
-    .rpc('merge_suggestions', { p_award_id: awardId });
-
-  if (error || !Array.isArray(data)) return [];
-  return data.map((r) => ({
-    leftId: r.left_id,
-    leftName: r.left_name,
-    leftCount: Number(r.left_count),
-    rightId: r.right_id,
-    rightName: r.right_name,
-    rightCount: Number(r.right_count),
-    overlap: Number(r.overlap),
-  }));
-}
-
-export async function loadCandidates(): Promise<readonly CandidateRow[]> {
-  const supabase = await getServerClient();
-  const { data, error } = await supabase
-    .schema('awards')
-    .from('candidates')
-    .select('*')
-    .order('sort_order');
-
-  if (error || !data) return [];
-
-  return data.map((c) => ({
-    id: c.id,
-    awardId: c.award_id,
-    nominationId: c.nomination_id,
-    nomineeId: c.nominee_id,
-    fullName: c.full_name,
-    batchYear: c.batch_year,
-    branchLabel: c.branch_label,
-    profession: c.profession,
-    accomplishments: c.accomplishments,
-    photoUrl: c.photo_url,
-    sortOrder: c.sort_order,
-    status: c.status as CandidateRow['status'],
-  }));
-}
+/* ── Ballots and results ───────────────────────────────────────────── */
 
 /**
  * The ballot register.
  *
- * Exco ballots first: they are the ones a human actually reviews, because
- * the post-and-name pair is checkable against a list of people the
- * secretariat knows.
+ * Exco ballots are the ones a human can actually audit — few enough that a
+ * post-and-name pair is checkable against people the secretariat knows.
  */
 export async function loadBallots(editionId: string): Promise<readonly BallotRow[]> {
   const supabase = await getServerClient();
@@ -362,7 +502,7 @@ export async function loadResults(
   };
 }
 
-/** The Exco post list, for the settings screen. */
+/** The Exco post list, for the ceremony's Description tab. */
 export async function loadExcoPosts(
   editionId: string,
 ): Promise<readonly { id: string; label: string; sortOrder: number }[]> {

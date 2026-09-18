@@ -1,22 +1,11 @@
 'use client';
 
-import {
-  Badge,
-  Button,
-  Checkbox,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  toast,
-} from '@shesa/ui';
+import { Badge, Button, Checkbox, Input, toast } from '@shesa/ui';
 import { Check, Layers, Search, Undo2, X } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 
 import { reviewNomination, reviewNominations } from '../actions/voting-actions';
-import type { AwardRow, NominationRow, NominationStatus } from '../voting-types';
+import type { NominationRow, NominationStatus } from '../voting-types';
 
 type Filter = 'pending' | 'approved' | 'rejected' | 'all';
 
@@ -39,24 +28,18 @@ const STATUS_TONE: Record<NominationStatus, string> = {
  */
 export function NominationsReview({
   nominations,
-  awards,
 }: {
   readonly nominations: readonly NominationRow[];
-  readonly awards: readonly AwardRow[];
 }) {
-  const [filter, setFilter] = useState<Filter>('pending');
-  const [awardId, setAwardId] = useState<string>('all');
+  const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [pending, startTransition] = useTransition();
-
-  const awardName = useMemo(() => new Map(awards.map((a) => [a.id, a.name])), [awards]);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return nominations.filter((n) => {
       if (filter !== 'all' && n.status !== filter) return false;
-      if (awardId !== 'all' && n.awardId !== awardId) return false;
       if (!q) return true;
       return (
         n.nomineeName.toLowerCase().includes(q) ||
@@ -64,26 +47,19 @@ export function NominationsReview({
         (n.nominatorName ?? '').toLowerCase().includes(q)
       );
     });
-  }, [awardId, filter, nominations, query]);
+  }, [filter, nominations, query]);
 
-  /** Award → its nominations, most-supported first. */
-  const groups = useMemo(() => {
-    const by = new Map<string, NominationRow[]>();
-    for (const n of shown) {
-      const list = by.get(n.awardId);
-      if (list) list.push(n);
-      else by.set(n.awardId, [n]);
-    }
-    return [...by.entries()]
-      .map(([id, items]) => ({
-        id,
-        name: awardName.get(id) ?? 'Unknown award',
-        items: items.sort(
-          (a, b) => b.supportCount - a.supportCount || a.nomineeName.localeCompare(b.nomineeName),
-        ),
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [awardName, shown]);
+  /**
+   * Most-supported first. Ten people naming the same person is the strongest
+   * signal there is, and sorting by arrival time buries it.
+   */
+  const ordered = useMemo(
+    () =>
+      [...shown].sort(
+        (a, b) => b.supportCount - a.supportCount || a.nomineeName.localeCompare(b.nomineeName),
+      ),
+    [shown],
+  );
 
   const toggle = (id: string) =>
     setSelected((s) => {
@@ -113,19 +89,14 @@ export function NominationsReview({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      {/* This screen is for reading citations and screening out the
-          frivolous. Counting who leads an award, and reconciling the
-          spellings of their name, happens one tab across — and that is
-          where a person gets put on the ballot. */}
+      {/* Every nomination as it arrived, one row each. Counting who leads
+          the award, and reconciling the spellings of their name, happens
+          on Nominees — and that is where a person gets put on the ballot. */}
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
         <Layers className="h-3.5 w-3.5 shrink-0" aria-hidden />
         <span>
-          Five people nominating one person is five rows here. To see them as one person with a
-          count — and to put them on the ballot — use{' '}
-          <a href="/editor/voting/nominees" className="font-medium text-primary hover:underline">
-            Nominees
-          </a>
-          .
+          Five people nominating one person is five rows here. The Nominees tab shows them as one
+          person with a count.
         </span>
       </div>
 
@@ -144,20 +115,6 @@ export function NominationsReview({
         ))}
 
         <div className="ml-auto flex items-center gap-2">
-          <Select value={awardId} onValueChange={setAwardId}>
-            <SelectTrigger className="w-[240px]">
-              <SelectValue placeholder="All awards" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All awards</SelectItem>
-              {awards.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -197,41 +154,28 @@ export function NominationsReview({
         </div>
       )}
 
-      {groups.length === 0 ? (
+      {ordered.length === 0 ? (
         <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
           {nominations.length === 0
-            ? 'No nominations yet. They appear here as the membership submits them.'
+            ? 'No nominations for this award yet. They appear here as the membership submits them.'
             : 'Nothing matches that filter.'}
         </div>
       ) : (
-        <div className="flex flex-col gap-6">
-          {groups.map((g) => (
-            <div key={g.id} className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-semibold text-foreground">{g.name}</p>
-                <span className="text-xs text-muted-foreground">
-                  {g.items.length} {g.items.length === 1 ? 'nomination' : 'nominations'}
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                {g.items.map((n) => (
-                  <NominationCard
-                    key={n.id}
-                    nomination={n}
-                    checked={selected.has(n.id)}
-                    onToggle={() => toggle(n.id)}
-                    pending={pending}
-                    onReview={(status) =>
-                      run(
-                        () => reviewNomination(n.id, status),
-                        status === 'pending' ? 'Sent back for review.' : `Marked ${status}.`,
-                      )
-                    }
-                  />
-                ))}
-              </div>
-            </div>
+        <div className="flex flex-col gap-2">
+          {ordered.map((n) => (
+            <NominationCard
+              key={n.id}
+              nomination={n}
+              checked={selected.has(n.id)}
+              onToggle={() => toggle(n.id)}
+              pending={pending}
+              onReview={(status) =>
+                run(
+                  () => reviewNomination(n.id, status),
+                  status === 'pending' ? 'Sent back for review.' : `Marked ${status}.`,
+                )
+              }
+            />
           ))}
         </div>
       )}

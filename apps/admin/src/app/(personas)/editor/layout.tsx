@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/app-shell';
+import { loadEditions } from '@/app/(personas)/editor/voting/load-voting';
 import { getServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
@@ -40,6 +41,11 @@ export default async function EditorLayout({ children }: { readonly children: Re
     .eq('id', user.id)
     .maybeSingle();
 
+  // The Voting group lists the ceremonies. Read here rather than in the
+  // sidebar because the sidebar is a client component, and the same way the
+  // finance persona already supplies its event groups.
+  const editions = await loadEditions();
+
   const userEmail = profile?.email ?? user.email ?? '';
   const userName = profile?.display_name ?? userEmail.split('@')[0] ?? 'User';
 
@@ -50,6 +56,7 @@ export default async function EditorLayout({ children }: { readonly children: Re
       userName={userName}
       avatarUrl={profile?.avatar_url ?? undefined}
       canEditCms
+      votingEditions={editions.map((e) => ({ slug: e.slug, name: e.name }))}
     >
       {children}
     </AppShell>

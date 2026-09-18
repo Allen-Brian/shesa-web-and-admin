@@ -77,6 +77,12 @@ interface AppSidebarProps {
    * Announcements copy, etc. live under this group.
    */
   readonly canEditCms?: boolean;
+  /**
+   * Awards ceremonies, newest first — the sub-items under Voting. Read
+   * server-side in the editor layout, the same way the finance sidebar
+   * takes its event groups.
+   */
+  readonly votingEditions?: readonly { slug: string; name: string }[];
 }
 
 interface NavItem {
@@ -134,6 +140,7 @@ export function AppSidebar({
   canReadFinance = false,
   isGlobalAdmin = false,
   canEditCms = false,
+  votingEditions = [],
 }: AppSidebarProps) {
   const pathname = usePathname();
   const meta = PERSONA_META[persona];
@@ -141,6 +148,7 @@ export function AppSidebar({
   const clustersActive = pathname.startsWith(`/${persona}/clusters`);
   const membershipScope = extractMembershipScopeSlug(pathname, persona);
   const financeActive = pathname.startsWith(`/${persona}/finance-view`);
+  const votingActive = pathname.startsWith(`/${persona}/voting`);
 
   return (
     <Sidebar collapsible="icon" variant="floating">
@@ -402,21 +410,51 @@ export function AppSidebar({
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip="Voting"
-                    isActive={
-                      pathname === `/${persona}/voting` ||
-                      pathname.startsWith(`/${persona}/voting/`)
-                    }
-                  >
-                    <Link href={`/${persona}/voting`}>
-                      <Trophy />
-                      <span>Voting</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {/* A group rather than a link: an awards ceremony happens
+                    every year, and last year's is a record that should stay
+                    openable rather than something a migration overwrote.
+                    The sub-items are the ceremonies themselves. */}
+                <Collapsible asChild defaultOpen={votingActive} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton tooltip="Voting" isActive={votingActive}>
+                        <Trophy />
+                        <span>Voting</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={pathname === `/${persona}/voting`}
+                          >
+                            <Link href={`/${persona}/voting`}>
+                              <span>All ceremonies</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+
+                        {votingEditions.map((e) => {
+                          const href = `/${persona}/voting/${e.slug}`;
+                          return (
+                            <SidebarMenuSubItem key={e.slug}>
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={pathname === href || pathname.startsWith(`${href}/`)}
+                              >
+                                <Link href={href}>
+                                  <span className="truncate">{e.name}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          );
+                        })}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

@@ -16,15 +16,16 @@ import type { ActionResult } from '../voting-types';
 
 const BASE = '/editor/voting';
 
+/**
+ * Every Voting screen, plus the public pages that read the same structure.
+ *
+ * `layout` rather than a list of paths: the ceremony routes are dynamic
+ * (`/editor/voting/[edition]/awards/[award]`) and enumerating them here
+ * would mean this function needed updating every time a route was added.
+ */
 function refresh() {
-  revalidatePath(BASE);
-  revalidatePath(`${BASE}/nominations`);
-  revalidatePath(`${BASE}/nominees`);
-  revalidatePath(`${BASE}/candidates`);
-  revalidatePath(`${BASE}/ballots`);
-  revalidatePath(`${BASE}/results`);
-  // The public pages read the same structure through their own RPCs.
-  revalidatePath('/awards');
+  revalidatePath(BASE, 'layout');
+  revalidatePath('/awards', 'layout');
 }
 
 function fail(message: string): ActionResult {
@@ -572,6 +573,143 @@ export async function saveExcoPost(
 export async function deleteExcoPost(id: string): Promise<ActionResult> {
   const supabase = await getServerClient();
   const { error } = await supabase.schema('awards').from('exco_posts').delete().eq('id', id);
+  if (error) return fail(error.message);
+  refresh();
+  return { ok: true };
+}
+
+/* ── Ceremonies ────────────────────────────────────────────────────── */
+
+export interface CeremonyInput {
+  readonly name: string;
+  readonly description: string | null;
+  readonly nominationsOpenAt: string | null;
+  readonly nominationsCloseAt: string | null;
+  readonly votingOpenAt: string | null;
+  readonly votingCloseAt: string | null;
+}
+
+/**
+ * A URL-safe slug from the ceremony's name.
+ *
+ * It becomes the edition's public identity and the segment in every editor
+ * URL, so it is derived once at creation and never re-derived: renaming a
+ * ceremony afterwards must not break a link someone has bookmarked.
+ */
+function slugify(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'awards'
+  );
+}
+
+/**
+ * Start a new awards ceremony.
+ *
+ * Weights are not asked for. The 60/40 split is the approved default and
+ * changing it needs written authorisation from SHESA — a field on a creation
+ * form is not somewhere that authorisation can be recorded.
+ */
+export async function createCeremony(
+  input: CeremonyInput,
+): Promise<ActionResult & { slug?: string }> {
+  if (input.name.trim().length < 2) return fail('The ceremony needs a name.');
+
+  const supabase = await getServerClient();
+  const { data: auth } = await supabase.auth.getUser();
+
+  const base = slugify(input.name);
+
+  // A second ceremony in the same year is a real thing, so a clash appends a
+  // counter rather than refusing the name the user typed.
+  const { data: taken } = await supabase
+    .schema('awards')
+    .from('editions')
+    .select('slug')
+    .like('slug', `${base}%`);
+
+  const used = new Set((taken ?? []).map((t) => t.slug));
+  let slug = base;
+  for (let i = 2; used.has(slug); i += 1) slug = `${base}-${i}`;
+
+  const { error } = await supabase
+    .schema('awards')
+    .from('editions')
+    .insert({
+      slug,
+      name: input.name.trim(),
+      description: input.description?.trim() || null,
+      nominations_open_at: input.nominationsOpenAt,
+      nominations_close_at: input.nominationsCloseAt,
+      voting_open_at: input.votingOpenAt,
+      voting_close_at: input.votingCloseAt,
+      created_by: auth.user?.id ?? null,
+    } as never);
+
+  if (error) return fail(error.message);
+  refresh();
+  return { ok: true, slug };
+}
+
+/**
+ * Delete a ceremony and everything under it.
+ *
+ * Cascades through categories, awards, nominations, nominees, candidates and
+ * ballots. Refused outright once anyone has voted: a cast ballot is a record
+ * of what a member did, and no button in a CMS should be able to erase it.
+ */
+export async function deleteCeremony(id: string): Promise<ActionResult> {
+  const supabase = await getServerClient();
+
+  const { count } = await supabase
+    .schema('awards')
+    .from('ballots')
+    .select('id', { count: 'exact', head: true })
+    .eq('edition_id', id);
+
+  if ((count ?? 0) > 0) {
+    return fail(
+      `This ceremony already holds ${count} cast ballot(s) and cannot be deleted. Ask an engineer if it truly needs removing.`,
+    );
+  }
+
+  const { error } = await supabase.schema('awards').from('editions').delete().eq('id', id);
+  if (error) return fail(error.message);
+  refresh();
+  return { ok: true };
+}
+
+/** Remove an award. Refused once anyone has been nominated for it. */
+export async function deleteAward(id: string): Promise<ActionResult> {
+  const supabase = await getServerClient();
+
+  const { count } = await supabase
+    .schema('awards')
+    .from('nominations')
+    .select('id', { count: 'exact', head: true })
+    .eq('award_id', id);
+
+  if ((count ?? 0) > 0) {
+    return fail(
+      `${count} nomination(s) have been made for this award. Hide it instead — deleting would take their citations with it.`,
+    );
+  }
+
+  const { error } = await supabase.schema('awards').from('awards').delete().eq('id', id);
+  if (error) return fail(error.message);
+  refresh();
+  return { ok: true };
+}
+
+/** Remove a category. Its awards survive and become standalone. */
+export async function deleteCategory(id: string): Promise<ActionResult> {
+  const supabase = await getServerClient();
+  const { error } = await supabase.schema('awards').from('categories').delete().eq('id', id);
   if (error) return fail(error.message);
   refresh();
   return { ok: true };

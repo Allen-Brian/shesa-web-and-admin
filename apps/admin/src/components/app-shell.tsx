@@ -42,6 +42,8 @@ interface AppShellProps {
    * the Site Editor persona and by the exco layout for mainstream_admin.
    */
   readonly canEditCms?: boolean;
+  /** Awards ceremonies, for the editor sidebar's Voting group. */
+  readonly votingEditions?: readonly { slug: string; name: string }[];
   readonly children: React.ReactNode;
 }
 
@@ -68,6 +70,7 @@ export function AppShell({
   sidebarGroups,
   isGlobalAdmin,
   canEditCms,
+  votingEditions,
   children,
 }: AppShellProps) {
   const [open, setOpen] = React.useState(true);
@@ -96,6 +99,7 @@ export function AppShell({
             canReadFinance={canReadFinance}
             isGlobalAdmin={isGlobalAdmin}
             canEditCms={canEditCms}
+            votingEditions={votingEditions}
           />
         )}
         <SidebarInset>
