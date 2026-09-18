@@ -38,6 +38,7 @@ const STATIC_ROUTES: readonly {
   { path: '/songs', priority: 0.6, changeFrequency: 'monthly' },
   { path: '/strategic-plan', priority: 0.7, changeFrequency: 'yearly' },
   { path: '/agm-2026', priority: 0.95, changeFrequency: 'weekly' },
+  { path: '/awards', priority: 0.9, changeFrequency: 'daily' },
   { path: '/agm-2026/sponsor', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/sponsors', priority: 0.5, changeFrequency: 'monthly' },
   { path: '/contact', priority: 0.5, changeFrequency: 'yearly' },
