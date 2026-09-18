@@ -135,6 +135,168 @@ export type Database = {
           },
         ]
       }
+      ballot_votes: {
+        Row: {
+          award_id: string
+          ballot_id: string
+          candidate_id: string
+          id: string
+        }
+        Insert: {
+          award_id: string
+          ballot_id: string
+          candidate_id: string
+          id?: string
+        }
+        Update: {
+          award_id?: string
+          ballot_id?: string
+          candidate_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ballot_votes_award_id_fkey"
+            columns: ["award_id"]
+            isOneToOne: false
+            referencedRelation: "awards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ballot_votes_ballot_id_fkey"
+            columns: ["ballot_id"]
+            isOneToOne: false
+            referencedRelation: "ballots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ballot_votes_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ballots: {
+        Row: {
+          college: string
+          device_id: string
+          edition_id: string
+          exco_name: string | null
+          exco_post: string | null
+          id: string
+          ip_hash: string | null
+          submitted_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+          voter_batch_year: number | null
+          voter_branch_label: string | null
+        }
+        Insert: {
+          college: string
+          device_id: string
+          edition_id: string
+          exco_name?: string | null
+          exco_post?: string | null
+          id?: string
+          ip_hash?: string | null
+          submitted_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          voter_batch_year?: number | null
+          voter_branch_label?: string | null
+        }
+        Update: {
+          college?: string
+          device_id?: string
+          edition_id?: string
+          exco_name?: string | null
+          exco_post?: string | null
+          id?: string
+          ip_hash?: string | null
+          submitted_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          voter_batch_year?: number | null
+          voter_branch_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ballots_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidates: {
+        Row: {
+          award_id: string
+          batch_year: number | null
+          branch_label: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          full_name: string
+          id: string
+          nomination_id: string | null
+          photo_url: string | null
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          award_id: string
+          batch_year?: number | null
+          branch_label?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          full_name: string
+          id?: string
+          nomination_id?: string | null
+          photo_url?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          award_id?: string
+          batch_year?: number | null
+          branch_label?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          full_name?: string
+          id?: string
+          nomination_id?: string | null
+          photo_url?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidates_award_id_fkey"
+            columns: ["award_id"]
+            isOneToOne: false
+            referencedRelation: "awards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidates_nomination_id_fkey"
+            columns: ["nomination_id"]
+            isOneToOne: false
+            referencedRelation: "nominations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string
@@ -179,6 +341,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           ex_student_weight: number
+          exco_token: string
           exco_weight: number
           id: string
           name: string
@@ -196,6 +359,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           ex_student_weight?: number
+          exco_token?: string
           exco_weight?: number
           id?: string
           name: string
@@ -213,6 +377,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           ex_student_weight?: number
+          exco_token?: string
           exco_weight?: number
           id?: string
           name?: string
@@ -227,9 +392,42 @@ export type Database = {
         }
         Relationships: []
       }
+      exco_posts: {
+        Row: {
+          created_at: string
+          edition_id: string
+          id: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          edition_id: string
+          id?: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          edition_id?: string
+          id?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exco_posts_edition_id_fkey"
+            columns: ["edition_id"]
+            isOneToOne: false
+            referencedRelation: "editions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nominations: {
         Row: {
           award_id: string
+          candidate_id: string | null
           citation: string
           created_at: string
           device_id: string
@@ -250,6 +448,7 @@ export type Database = {
         }
         Insert: {
           award_id: string
+          candidate_id?: string | null
           citation: string
           created_at?: string
           device_id: string
@@ -270,6 +469,7 @@ export type Database = {
         }
         Update: {
           award_id?: string
+          candidate_id?: string | null
           citation?: string
           created_at?: string
           device_id?: string
@@ -296,6 +496,13 @@ export type Database = {
             referencedRelation: "awards"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "nominations_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -311,11 +518,46 @@ export type Database = {
           scope_id: string
         }[]
       }
+      cast_ballot: {
+        Args: {
+          p_batch_year?: number
+          p_branch_label?: string
+          p_choices: Json
+          p_device_id: string
+          p_edition_slug: string
+          p_exco_name?: string
+          p_exco_post?: string
+          p_exco_token?: string
+          p_ip_hash?: string
+        }
+        Returns: {
+          ok: boolean
+          reason: string
+        }[]
+      }
       phase: {
         Args: { p_edition: Database["awards"]["Tables"]["editions"]["Row"] }
         Returns: string
       }
+      public_ballot: {
+        Args: { p_edition_slug?: string; p_exco_token?: string }
+        Returns: Json
+      }
       public_state: { Args: { p_edition_slug?: string }; Returns: Json }
+      results: {
+        Args: { p_edition_id: string }
+        Returns: {
+          award_id: string
+          award_name: string
+          candidate_id: string
+          candidate_name: string
+          category_name: string
+          ex_student_votes: number
+          exco_votes: number
+          place: number
+          score: number
+        }[]
+      }
       submit_nomination: {
         Args: {
           p_award_id: string
@@ -336,6 +578,7 @@ export type Database = {
           reason: string
         }[]
       }
+      turnout: { Args: { p_edition_id: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
