@@ -236,46 +236,52 @@ export type Database = {
       }
       candidates: {
         Row: {
+          accomplishments: string | null
           award_id: string
           batch_year: number | null
           branch_label: string | null
           created_at: string
           created_by: string | null
-          description: string | null
           full_name: string
           id: string
           nomination_id: string | null
+          nominee_id: string | null
           photo_url: string | null
+          profession: string | null
           sort_order: number
           status: string
           updated_at: string
         }
         Insert: {
+          accomplishments?: string | null
           award_id: string
           batch_year?: number | null
           branch_label?: string | null
           created_at?: string
           created_by?: string | null
-          description?: string | null
           full_name: string
           id?: string
           nomination_id?: string | null
+          nominee_id?: string | null
           photo_url?: string | null
+          profession?: string | null
           sort_order?: number
           status?: string
           updated_at?: string
         }
         Update: {
+          accomplishments?: string | null
           award_id?: string
           batch_year?: number | null
           branch_label?: string | null
           created_at?: string
           created_by?: string | null
-          description?: string | null
           full_name?: string
           id?: string
           nomination_id?: string | null
+          nominee_id?: string | null
           photo_url?: string | null
+          profession?: string | null
           sort_order?: number
           status?: string
           updated_at?: string
@@ -293,6 +299,13 @@ export type Database = {
             columns: ["nomination_id"]
             isOneToOne: false
             referencedRelation: "nominations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidates_nominee_id_fkey"
+            columns: ["nominee_id"]
+            isOneToOne: false
+            referencedRelation: "nominees"
             referencedColumns: ["id"]
           },
         ]
@@ -440,6 +453,7 @@ export type Database = {
           nominee_batch_year: number | null
           nominee_branch_label: string | null
           nominee_contact: string | null
+          nominee_id: string | null
           nominee_name: string
           review_note: string | null
           reviewed_at: string | null
@@ -461,6 +475,7 @@ export type Database = {
           nominee_batch_year?: number | null
           nominee_branch_label?: string | null
           nominee_contact?: string | null
+          nominee_id?: string | null
           nominee_name: string
           review_note?: string | null
           reviewed_at?: string | null
@@ -482,6 +497,7 @@ export type Database = {
           nominee_batch_year?: number | null
           nominee_branch_label?: string | null
           nominee_contact?: string | null
+          nominee_id?: string | null
           nominee_name?: string
           review_note?: string | null
           reviewed_at?: string | null
@@ -503,6 +519,45 @@ export type Database = {
             referencedRelation: "candidates"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "nominations_nominee_id_fkey"
+            columns: ["nominee_id"]
+            isOneToOne: false
+            referencedRelation: "nominees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nominees: {
+        Row: {
+          award_id: string
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          award_id: string
+          created_at?: string
+          display_name: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          award_id?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nominees_award_id_fkey"
+            columns: ["award_id"]
+            isOneToOne: false
+            referencedRelation: "awards"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -510,6 +565,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aggregate_nominations: {
+        Args: { p_award_id: string }
+        Returns: {
+          buckets_created: number
+          nominations_assigned: number
+        }[]
+      }
       branches: {
         Args: never
         Returns: {
@@ -535,6 +597,23 @@ export type Database = {
           reason: string
         }[]
       }
+      merge_nominees: {
+        Args: { p_absorb: string; p_keep: string }
+        Returns: number
+      }
+      merge_suggestions: {
+        Args: { p_award_id: string }
+        Returns: {
+          left_count: number
+          left_id: string
+          left_name: string
+          overlap: number
+          right_count: number
+          right_id: string
+          right_name: string
+        }[]
+      }
+      normalise_name: { Args: { p_name: string }; Returns: string }
       phase: {
         Args: { p_edition: Database["awards"]["Tables"]["editions"]["Row"] }
         Returns: string
@@ -576,6 +655,12 @@ export type Database = {
         Returns: {
           ok: boolean
           reason: string
+        }[]
+      }
+      suggest_nominees: {
+        Args: { p_edition_slug?: string; p_query: string }
+        Returns: {
+          name: string
         }[]
       }
       turnout: { Args: { p_edition_id: string }; Returns: Json }
