@@ -55,6 +55,8 @@ export interface NominationRow {
   readonly status: NominationStatus;
   readonly reviewNote: string | null;
   readonly candidateId: string | null;
+  /** The bucket this nomination has been aggregated into. NULL = idle. */
+  readonly nomineeId: string | null;
   readonly createdAt: string;
   /** How many other nominations name the same person for the same award. */
   readonly supportCount: number;
@@ -64,13 +66,43 @@ export interface CandidateRow {
   readonly id: string;
   readonly awardId: string;
   readonly nominationId: string | null;
+  readonly nomineeId: string | null;
   readonly fullName: string;
   readonly batchYear: number | null;
   readonly branchLabel: string | null;
-  readonly description: string | null;
+  readonly profession: string | null;
+  /** Works accomplished, relevant to this award. What a voter reads. */
+  readonly accomplishments: string | null;
   readonly photoUrl: string | null;
   readonly sortOrder: number;
   readonly status: 'active' | 'withdrawn';
+}
+
+/**
+ * A bucket: one person, per award, above the nominations naming them.
+ *
+ * `nominationCount` is computed on every read rather than stored. A stored
+ * counter is a second source of truth that goes stale the moment two buckets
+ * merge, and a count that is quietly wrong gets believed.
+ */
+export interface NomineeRow {
+  readonly id: string;
+  readonly awardId: string;
+  readonly displayName: string;
+  readonly nominationCount: number;
+  /** Set once this person has been put on the ballot. */
+  readonly candidateId: string | null;
+}
+
+/** Two buckets that might be the same person. A proposal, never an action. */
+export interface MergeSuggestion {
+  readonly leftId: string;
+  readonly leftName: string;
+  readonly leftCount: number;
+  readonly rightId: string;
+  readonly rightName: string;
+  readonly rightCount: number;
+  readonly overlap: number;
 }
 
 export interface BallotRow {

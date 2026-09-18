@@ -19,6 +19,7 @@ const BASE = '/editor/voting';
 function refresh() {
   revalidatePath(BASE);
   revalidatePath(`${BASE}/nominations`);
+  revalidatePath(`${BASE}/nominees`);
   revalidatePath(`${BASE}/candidates`);
   revalidatePath(`${BASE}/ballots`);
   revalidatePath(`${BASE}/results`);
@@ -83,79 +84,213 @@ export async function reviewNominations(
   return { ok: true };
 }
 
+/* ── Aggregation: nominations into nominees ────────────────────────── */
+
 /**
- * Put a nomination on the ballot.
+ * The Aggregate button.
  *
- * The citation becomes the candidate's description, because it is already
- * the best sentence anyone has written about why this person deserves the
- * award — and it was written by a member rather than by the secretariat.
- *
- * Approving is implied: a name on the ballot that reads "pending" on the
- * review screen would be a contradiction the next reviewer has to resolve.
+ * Sweeps every not-yet-aggregated nomination for one award into a bucket
+ * keyed on its normalised name. Exact matches only — this half of the job is
+ * not a judgement, it is the same string, so it can run unattended and cannot
+ * be wrong. What it leaves is one bucket per spelling, which is what the
+ * merge suggestions then propose folding together.
  */
-export async function promoteNomination(id: string): Promise<ActionResult> {
+export async function aggregateAward(
+  awardId: string,
+): Promise<ActionResult & { created?: number; assigned?: number }> {
   const supabase = await getServerClient();
-  const { data: auth } = await supabase.auth.getUser();
-
-  const { data: nom, error: readErr } = await supabase
+  const { data, error } = await supabase
     .schema('awards')
-    .from('nominations')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
+    .rpc('aggregate_nominations', { p_award_id: awardId });
 
-  if (readErr) return fail(readErr.message);
-  if (!nom) return fail('That nomination no longer exists.');
-  if (nom.candidate_id) return fail('That nomination is already on the ballot.');
+  if (error) return fail(error.message);
+  const row = Array.isArray(data) ? data[0] : null;
+  refresh();
+  return {
+    ok: true,
+    created: Number(row?.buckets_created ?? 0),
+    assigned: Number(row?.nominations_assigned ?? 0),
+  };
+}
 
-  const { data: candidate, error: insErr } = await supabase
+/**
+ * Fold one bucket into another.
+ *
+ * Only ever called from a button a person pressed. The suggestion engine
+ * proposes; fusing two real people who share a surname is the one failure
+ * this must not have, so nothing merges on its own.
+ */
+export async function mergeNominees(keepId: string, absorbId: string): Promise<ActionResult> {
+  const supabase = await getServerClient();
+  const { error } = await supabase
     .schema('awards')
-    .from('candidates')
-    .insert({
-      award_id: nom.award_id,
-      nomination_id: nom.id,
-      full_name: nom.nominee_name,
-      batch_year: nom.nominee_batch_year,
-      branch_label: nom.nominee_branch_label,
-      description: nom.citation,
-      created_by: auth.user?.id ?? null,
-    } as never)
-    .select('id')
-    .single();
+    .rpc('merge_nominees', { p_keep: keepId, p_absorb: absorbId });
 
-  if (insErr) {
-    // The unique index on (award_id, lower(full_name)) — somebody else was
-    // already promoted under this name, which is a fact, not a failure.
-    if (insErr.code === '23505') {
-      return fail('Someone with that name is already a candidate for this award.');
-    }
-    return fail(insErr.message);
-  }
-
-  const { error: linkErr } = await supabase
-    .schema('awards')
-    .from('nominations')
-    .update({
-      candidate_id: candidate.id,
-      status: 'approved',
-      reviewed_by: auth.user?.id ?? null,
-      reviewed_at: new Date().toISOString(),
-    } as never)
-    .eq('id', id);
-
-  if (linkErr) return fail(linkErr.message);
+  if (error) return fail(error.message);
   refresh();
   return { ok: true };
 }
 
-/* ── Candidates ────────────────────────────────────────────────────── */
+/** Rename a bucket. The first spelling to arrive is not always the right one. */
+export async function renameNominee(id: string, displayName: string): Promise<ActionResult> {
+  if (displayName.trim().length < 2) return fail('A nominee needs a name.');
 
-export interface CandidateInput {
+  const supabase = await getServerClient();
+  const { error } = await supabase
+    .schema('awards')
+    .from('nominees')
+    .update({ display_name: displayName.trim() } as never)
+    .eq('id', id);
+
+  if (error) {
+    if (error.code === '23505')
+      return fail('Another nominee for this award already has that name.');
+    return fail(error.message);
+  }
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * Move one nomination into a bucket, or out of every bucket.
+ *
+ * The manual half of aggregation, and the undo for a merge the machine got
+ * wrong — a nomination pulled out with `null` lands back in the idle pile
+ * where it can be assigned somewhere else.
+ */
+export async function assignNomination(
+  nominationId: string,
+  nomineeId: string | null,
+): Promise<ActionResult> {
+  const supabase = await getServerClient();
+  const { error } = await supabase
+    .schema('awards')
+    .from('nominations')
+    .update({ nominee_id: nomineeId } as never)
+    .eq('id', nominationId);
+
+  if (error) return fail(error.message);
+  refresh();
+  return { ok: true };
+}
+
+/** Start a new bucket by hand, for a spelling nobody has used yet. */
+export async function createNominee(awardId: string, displayName: string): Promise<ActionResult> {
+  if (displayName.trim().length < 2) return fail('A nominee needs a name.');
+
+  const supabase = await getServerClient();
+  const { error } = await supabase
+    .schema('awards')
+    .from('nominees')
+    .insert({ award_id: awardId, display_name: displayName.trim() } as never);
+
+  if (error) {
+    if (error.code === '23505') return fail('That name is already a nominee for this award.');
+    return fail(error.message);
+  }
+  refresh();
+  return { ok: true };
+}
+
+/** Dissolve a bucket. Its nominations return to the idle pile, not the bin. */
+export async function deleteNominee(id: string): Promise<ActionResult> {
+  const supabase = await getServerClient();
+  const { error } = await supabase.schema('awards').from('nominees').delete().eq('id', id);
+  if (error) return fail(error.message);
+  refresh();
+  return { ok: true };
+}
+
+export interface CandidateDraft {
   readonly awardId: string;
+  readonly nomineeId: string;
   readonly fullName: string;
   readonly batchYear: number | null;
   readonly branchLabel: string | null;
-  readonly description: string | null;
+  /** Every citation written about this person, for the editor to draw on. */
+  readonly citations: readonly string[];
+  readonly contacts: readonly string[];
+}
+
+/**
+ * What the Executive Committee starts from when putting a nominee forward.
+ *
+ * This deliberately does NOT create the candidate. The briefing wants
+ * accurate data on the ballot — profession, works accomplished, a photograph
+ * — and none of that is in a nomination. So promoting opens a form seeded
+ * with what the members supplied, and a person fills in the rest.
+ *
+ * Batch and branch are taken by majority across the nominations rather than
+ * from the first one: if four people say 1998 and one says 1989, the four are
+ * the better guess, and it is a guess the editor can still overrule.
+ */
+export async function candidateDraft(nomineeId: string): Promise<CandidateDraft | null> {
+  const supabase = await getServerClient();
+
+  const { data: bucket } = await supabase
+    .schema('awards')
+    .from('nominees')
+    .select('id, award_id, display_name')
+    .eq('id', nomineeId)
+    .maybeSingle();
+
+  if (!bucket) return null;
+
+  const { data: noms } = await supabase
+    .schema('awards')
+    .from('nominations')
+    .select('citation, nominee_batch_year, nominee_branch_label, nominee_contact, created_at')
+    .eq('nominee_id', nomineeId)
+    .order('created_at');
+
+  const rows = noms ?? [];
+
+  const commonest = <T>(values: readonly (T | null)[]): T | null => {
+    const tally = new Map<T, number>();
+    for (const v of values) {
+      if (v === null || v === undefined || v === ('' as unknown as T)) continue;
+      tally.set(v, (tally.get(v) ?? 0) + 1);
+    }
+    let best: T | null = null;
+    let bestN = 0;
+    for (const [v, n] of tally) {
+      if (n > bestN) {
+        best = v;
+        bestN = n;
+      }
+    }
+    return best;
+  };
+
+  return {
+    awardId: bucket.award_id,
+    nomineeId: bucket.id,
+    fullName: bucket.display_name,
+    batchYear: commonest(rows.map((r) => r.nominee_batch_year)),
+    branchLabel: commonest(rows.map((r) => r.nominee_branch_label)),
+    citations: rows.map((r) => r.citation),
+    contacts: [...new Set(rows.map((r) => r.nominee_contact).filter((c): c is string => !!c))],
+  };
+}
+
+/* ── Candidates ────────────────────────────────────────────────────── */
+
+/**
+ * What the Executive Committee publishes about a candidate.
+ *
+ * A nomination is what a member typed on their phone in a hurry. A candidacy
+ * is what SHESA puts on a ballot, so the secretariat supplies it properly —
+ * name, batch, branch, profession, what the person has actually done in the
+ * field the award is for, and a photograph.
+ */
+export interface CandidateInput {
+  readonly awardId: string;
+  readonly nomineeId?: string | null;
+  readonly fullName: string;
+  readonly batchYear: number | null;
+  readonly branchLabel: string | null;
+  readonly profession: string | null;
+  readonly accomplishments: string | null;
   readonly photoUrl: string | null;
   readonly sortOrder: number;
   readonly status: 'active' | 'withdrawn';
@@ -164,10 +299,12 @@ export interface CandidateInput {
 function candidateBody(input: CandidateInput) {
   return {
     award_id: input.awardId,
+    nominee_id: input.nomineeId ?? null,
     full_name: input.fullName.trim(),
     batch_year: input.batchYear,
     branch_label: input.branchLabel?.trim() || null,
-    description: input.description?.trim() || null,
+    profession: input.profession?.trim() || null,
+    accomplishments: input.accomplishments?.trim() || null,
     photo_url: input.photoUrl?.trim() || null,
     sort_order: input.sortOrder,
     status: input.status,

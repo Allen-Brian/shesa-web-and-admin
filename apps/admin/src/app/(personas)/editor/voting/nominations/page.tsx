@@ -2,6 +2,7 @@ import { ClipboardList } from 'lucide-react';
 
 import { loadNominations, loadVoting } from '../load-voting';
 import { NominationsReview } from '../widgets/nominations-review';
+import { VotingTabs } from '../widgets/voting-tabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,13 +22,15 @@ export default async function NominationsPage() {
           Nominations
         </h1>
         <p className="text-sm text-muted-foreground">
-          Every name the membership has put forward. Approve the ones worth considering, reject the
-          rest, and drop the final list onto the ballot.
+          Every nomination as it arrived, one row each. To see how many times a person has been put
+          forward — and to group the different spellings of their name — use Nominees.
         </p>
       </header>
 
+      <VotingTabs active="nominations" />
+
       {edition ? (
-        <NominationsReview nominations={nominations} awards={awards} phase={edition.phase} />
+        <NominationsReview nominations={nominations} awards={awards} />
       ) : (
         <p className="text-sm text-muted-foreground">No awards cycle exists yet.</p>
       )}

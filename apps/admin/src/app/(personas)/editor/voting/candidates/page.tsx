@@ -2,6 +2,7 @@ import { Users } from 'lucide-react';
 
 import { loadCandidates, loadVoting } from '../load-voting';
 import { CandidatesBoard } from '../widgets/candidates-board';
+import { VotingTabs } from '../widgets/voting-tabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,8 @@ export default async function CandidatesPage({
           add a name by hand. An award with nobody here is not shown to voters at all.
         </p>
       </header>
+
+      <VotingTabs active="candidates" />
 
       {edition ? (
         <CandidatesBoard

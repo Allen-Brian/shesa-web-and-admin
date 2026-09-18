@@ -7,8 +7,10 @@ import type {
   CandidateRow,
   CategoryRow,
   EditionRow,
+  MergeSuggestion,
   NominationRow,
   NominationStatus,
+  NomineeRow,
   ResultRow,
   Turnout,
 } from './voting-types';
@@ -182,8 +184,69 @@ export async function loadNominations(): Promise<readonly NominationRow[]> {
     status: n.status as NominationStatus,
     reviewNote: n.review_note,
     candidateId: n.candidate_id,
+    nomineeId: n.nominee_id,
     createdAt: n.created_at,
     supportCount: support.get(key(n.award_id, n.nominee_name)) ?? 1,
+  }));
+}
+
+/**
+ * The buckets, with their counts.
+ *
+ * Counted here from the nominations themselves rather than read from a
+ * column, because the count has to stay right across merges, splits and
+ * manual reassignment — and the only thing that is always right is the
+ * pointers.
+ */
+export async function loadNominees(): Promise<readonly NomineeRow[]> {
+  const supabase = await getServerClient();
+
+  const [nominees, noms, cands] = await Promise.all([
+    supabase.schema('awards').from('nominees').select('id, award_id, display_name'),
+    supabase.schema('awards').from('nominations').select('nominee_id'),
+    supabase.schema('awards').from('candidates').select('id, nominee_id'),
+  ]);
+
+  const counts = new Map<string, number>();
+  for (const n of noms.data ?? []) {
+    if (!n.nominee_id) continue;
+    counts.set(n.nominee_id, (counts.get(n.nominee_id) ?? 0) + 1);
+  }
+
+  const candidateOf = new Map<string, string>();
+  for (const c of cands.data ?? []) {
+    if (c.nominee_id) candidateOf.set(c.nominee_id, c.id);
+  }
+
+  return (nominees.data ?? [])
+    .map((b) => ({
+      id: b.id,
+      awardId: b.award_id,
+      displayName: b.display_name,
+      nominationCount: counts.get(b.id) ?? 0,
+      candidateId: candidateOf.get(b.id) ?? null,
+    }))
+    .sort(
+      (a, b) => b.nominationCount - a.nominationCount || a.displayName.localeCompare(b.displayName),
+    );
+}
+
+/** Buckets that might be one person, for one award. Proposals only. */
+export async function loadMergeSuggestions(awardId: string): Promise<readonly MergeSuggestion[]> {
+  const supabase = await getServerClient();
+  const { data, error } = await supabase
+    .schema('awards')
+    .rpc('merge_suggestions', { p_award_id: awardId });
+
+  if (error || !Array.isArray(data)) return [];
+  return data.map((r) => ({
+    leftId: r.left_id,
+    leftName: r.left_name,
+    leftCount: Number(r.left_count),
+    rightId: r.right_id,
+    rightName: r.right_name,
+    rightCount: Number(r.right_count),
+    overlap: Number(r.overlap),
   }));
 }
 
@@ -201,10 +264,12 @@ export async function loadCandidates(): Promise<readonly CandidateRow[]> {
     id: c.id,
     awardId: c.award_id,
     nominationId: c.nomination_id,
+    nomineeId: c.nominee_id,
     fullName: c.full_name,
     batchYear: c.batch_year,
     branchLabel: c.branch_label,
-    description: c.description,
+    profession: c.profession,
+    accomplishments: c.accomplishments,
     photoUrl: c.photo_url,
     sortOrder: c.sort_order,
     status: c.status as CandidateRow['status'],

@@ -12,10 +12,10 @@ import {
   SelectValue,
   toast,
 } from '@shesa/ui';
-import { Check, Search, Undo2, UserPlus, X } from 'lucide-react';
+import { Check, Layers, Search, Undo2, X } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 
-import { promoteNomination, reviewNomination, reviewNominations } from '../actions/voting-actions';
+import { reviewNomination, reviewNominations } from '../actions/voting-actions';
 import type { AwardRow, NominationRow, NominationStatus } from '../voting-types';
 
 type Filter = 'pending' | 'approved' | 'rejected' | 'all';
@@ -40,11 +40,9 @@ const STATUS_TONE: Record<NominationStatus, string> = {
 export function NominationsReview({
   nominations,
   awards,
-  phase,
 }: {
   readonly nominations: readonly NominationRow[];
   readonly awards: readonly AwardRow[];
-  readonly phase: string;
 }) {
   const [filter, setFilter] = useState<Filter>('pending');
   const [awardId, setAwardId] = useState<string>('all');
@@ -115,6 +113,22 @@ export function NominationsReview({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
+      {/* This screen is for reading citations and screening out the
+          frivolous. Counting who leads an award, and reconciling the
+          spellings of their name, happens one tab across — and that is
+          where a person gets put on the ballot. */}
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+        <Layers className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <span>
+          Five people nominating one person is five rows here. To see them as one person with a
+          count — and to put them on the ballot — use{' '}
+          <a href="/editor/voting/nominees" className="font-medium text-primary hover:underline">
+            Nominees
+          </a>
+          .
+        </span>
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         {(['pending', 'approved', 'rejected', 'all'] as const).map((f) => (
           <Button
@@ -208,15 +222,11 @@ export function NominationsReview({
                     checked={selected.has(n.id)}
                     onToggle={() => toggle(n.id)}
                     pending={pending}
-                    phase={phase}
                     onReview={(status) =>
                       run(
                         () => reviewNomination(n.id, status),
                         status === 'pending' ? 'Sent back for review.' : `Marked ${status}.`,
                       )
-                    }
-                    onPromote={() =>
-                      run(() => promoteNomination(n.id), `${n.nomineeName} is on the ballot.`)
                     }
                   />
                 ))}
@@ -234,17 +244,13 @@ function NominationCard({
   checked,
   onToggle,
   onReview,
-  onPromote,
   pending,
-  phase,
 }: {
   readonly nomination: NominationRow;
   readonly checked: boolean;
   readonly onToggle: () => void;
   readonly onReview: (status: NominationStatus) => void;
-  readonly onPromote: () => void;
   readonly pending: boolean;
-  readonly phase: string;
 }) {
   const onBallot = n.candidateId !== null;
 
@@ -304,21 +310,10 @@ function NominationCard({
       </div>
 
       <div className="flex shrink-0 flex-col gap-1.5">
-        {!onBallot && (
-          <Button
-            type="button"
-            size="sm"
-            disabled={pending}
-            onClick={onPromote}
-            title={
-              phase === 'voting'
-                ? 'Voting is already open — adding a candidate now changes an election in progress.'
-                : 'Add this person to the ballot'
-            }
-          >
-            <UserPlus className="h-3.5 w-3.5" /> To ballot
-          </Button>
-        )}
+        {/* Promotion happens on the Nominees tab, not here. Putting one
+            nomination on the ballot ignores the other four naming the same
+            person — and their citations are exactly what the profile should
+            be written from. */}
         {n.status !== 'approved' && (
           <Button
             type="button"

@@ -1,51 +1,22 @@
 'use client';
 
-import {
-  Badge,
-  Button,
-  ConfirmDialog,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Textarea,
-  toast,
-} from '@shesa/ui';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import Image from 'next/image';
+import { Badge, Button, ConfirmDialog, toast } from '@shesa/ui';
+import { Pencil, Plus, Trash2, UserRound } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 
-import {
-  createCandidate,
-  removeCandidate,
-  updateCandidate,
-  type CandidateInput,
-} from '../actions/voting-actions';
+import { removeCandidate, type CandidateInput } from '../actions/voting-actions';
 import type { AwardRow, CandidateRow, CategoryRow } from '../voting-types';
 
-const BLANK: CandidateInput = {
-  awardId: '',
-  fullName: '',
-  batchYear: null,
-  branchLabel: null,
-  description: null,
-  photoUrl: null,
-  sortOrder: 0,
-  status: 'active',
-};
+import { BLANK_CANDIDATE, CandidateDialog } from './candidate-dialog';
 
 /**
  * The ballot as voters will see it, award by award.
  *
  * Awards with no candidates are shown rather than hidden, and marked, because
  * the empty ones are the only rows anyone needs to act on — the full ones are
- * already done.
+ * already done. An award with nobody on it is dropped from the public ballot
+ * entirely, so it cannot be allowed to look like an ordinary empty list.
  */
 export function CandidatesBoard({
   awards,
@@ -78,21 +49,6 @@ export function CandidatesBoard({
 
   const shown = focusAwardId ? awards.filter((a) => a.id === focusAwardId) : awards;
 
-  const save = () => {
-    if (!editing) return;
-    startTransition(async () => {
-      const res = editing.id
-        ? await updateCandidate(editing.id, editing.input)
-        : await createCandidate(editing.input);
-      if (res.ok) {
-        toast.success(editing.id ? 'Candidate updated.' : 'Candidate added to the ballot.');
-        setEditing(null);
-      } else {
-        toast.error(res.message);
-      }
-    });
-  };
-
   const confirmRemove = () => {
     if (!removing) return;
     const target = removing;
@@ -106,6 +62,8 @@ export function CandidatesBoard({
     });
   };
 
+  const editingAward = editing ? awards.find((a) => a.id === editing.input.awardId) : null;
+
   return (
     <div className="flex flex-col gap-6">
       {focusAwardId && (
@@ -115,8 +73,9 @@ export function CandidatesBoard({
       )}
 
       {shown.map((award) => {
-        const list = (byAward.get(award.id) ?? []).filter((c) => c.status === 'active');
-        const withdrawn = (byAward.get(award.id) ?? []).filter((c) => c.status === 'withdrawn');
+        const all = byAward.get(award.id) ?? [];
+        const active = all.filter((c) => c.status === 'active');
+        const withdrawn = all.filter((c) => c.status === 'withdrawn');
 
         return (
           <div key={award.id} className="flex flex-col gap-2">
@@ -127,7 +86,7 @@ export function CandidatesBoard({
                   {categoryName.get(award.categoryId)}
                 </span>
               )}
-              {list.length === 0 && (
+              {active.length === 0 && (
                 <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400">
                   Not on the ballot — nobody shortlisted
                 </Badge>
@@ -137,74 +96,113 @@ export function CandidatesBoard({
                 size="sm"
                 variant="outline"
                 className="ml-auto"
-                onClick={() => setEditing({ id: null, input: { ...BLANK, awardId: award.id } })}
+                onClick={() =>
+                  setEditing({ id: null, input: { ...BLANK_CANDIDATE, awardId: award.id } })
+                }
               >
                 <Plus className="h-3.5 w-3.5" /> Add candidate
               </Button>
             </div>
 
-            {list.length === 0 && withdrawn.length === 0 ? (
+            {all.length === 0 ? (
               <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                No candidates. Promote a nomination, or add one by hand.
+                No candidates.{' '}
+                <a
+                  href={`/editor/voting/nominees?award=${award.id}`}
+                  className="text-primary hover:underline"
+                >
+                  Pick one from the nominees
+                </a>
+                , or add a name by hand.
               </p>
             ) : (
-              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                {[...list, ...withdrawn].map((c) => (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {[...active, ...withdrawn].map((c) => (
                   <div
                     key={c.id}
-                    className={`flex flex-col gap-1.5 rounded-lg border p-3 ${
+                    className={`flex gap-3 rounded-lg border p-3 ${
                       c.status === 'withdrawn' ? 'bg-muted/30 opacity-60' : 'bg-card'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-foreground">{c.fullName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {[c.batchYear, c.branchLabel].filter(Boolean).join(' · ') || '—'}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 gap-1">
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          onClick={() =>
-                            setEditing({
-                              id: c.id,
-                              input: {
-                                awardId: c.awardId,
-                                fullName: c.fullName,
-                                batchYear: c.batchYear,
-                                branchLabel: c.branchLabel,
-                                description: c.description,
-                                photoUrl: c.photoUrl,
-                                sortOrder: c.sortOrder,
-                                status: c.status,
-                              },
-                            })
-                          }
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setRemoving(c)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+                      {c.photoUrl ? (
+                        <Image
+                          src={c.photoUrl}
+                          alt={c.fullName}
+                          fill
+                          sizes="64px"
+                          className="object-cover object-top"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-muted-foreground">
+                          <UserRound className="h-6 w-6" aria-hidden />
+                        </div>
+                      )}
                     </div>
 
-                    {c.description && (
-                      <p className="line-clamp-3 text-xs leading-relaxed text-muted-foreground">
-                        {c.description}
-                      </p>
-                    )}
-                    {c.status === 'withdrawn' && (
-                      <Badge className="w-fit bg-muted text-muted-foreground">Withdrawn</Badge>
-                    )}
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-foreground">{c.fullName}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {[c.profession, c.batchYear, c.branchLabel]
+                              .filter(Boolean)
+                              .join(' · ') || '—'}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() =>
+                              setEditing({
+                                id: c.id,
+                                input: {
+                                  awardId: c.awardId,
+                                  nomineeId: c.nomineeId,
+                                  fullName: c.fullName,
+                                  batchYear: c.batchYear,
+                                  branchLabel: c.branchLabel,
+                                  profession: c.profession,
+                                  accomplishments: c.accomplishments,
+                                  photoUrl: c.photoUrl,
+                                  sortOrder: c.sortOrder,
+                                  status: c.status,
+                                },
+                              })
+                            }
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setRemoving(c)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* A ballot entry with no accomplishments is a name and
+                          nothing else to vote on, so the gap is called out
+                          rather than rendered as empty space. */}
+                      {c.accomplishments ? (
+                        <p className="line-clamp-3 text-xs leading-relaxed text-muted-foreground">
+                          {c.accomplishments}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          No works accomplished written yet.
+                        </p>
+                      )}
+
+                      {c.status === 'withdrawn' && (
+                        <Badge className="w-fit bg-muted text-muted-foreground">Withdrawn</Badge>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -213,122 +211,16 @@ export function CandidatesBoard({
         );
       })}
 
-      <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editing?.id ? 'Edit candidate' : 'Add candidate'}</DialogTitle>
-          </DialogHeader>
-
-          {editing && (
-            <div className="flex flex-col gap-4">
-              <Field label="Full name">
-                <Input
-                  value={editing.input.fullName}
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      input: { ...editing.input, fullName: e.target.value },
-                    })
-                  }
-                  maxLength={200}
-                  autoFocus
-                />
-              </Field>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Batch year">
-                  <Input
-                    value={editing.input.batchYear ?? ''}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        input: {
-                          ...editing.input,
-                          batchYear: e.target.value
-                            ? Number.parseInt(e.target.value.replace(/\D/g, ''), 10)
-                            : null,
-                        },
-                      })
-                    }
-                    inputMode="numeric"
-                    placeholder="1998"
-                  />
-                </Field>
-                <Field label="Branch or chapter">
-                  <Input
-                    value={editing.input.branchLabel ?? ''}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        input: { ...editing.input, branchLabel: e.target.value },
-                      })
-                    }
-                    maxLength={160}
-                  />
-                </Field>
-              </div>
-
-              <Field label="Citation — shown to voters on the ballot">
-                <Textarea
-                  value={editing.input.description ?? ''}
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      input: { ...editing.input, description: e.target.value },
-                    })
-                  }
-                  rows={4}
-                  maxLength={2000}
-                />
-              </Field>
-
-              <Field label="Photo URL (optional)">
-                <Input
-                  value={editing.input.photoUrl ?? ''}
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      input: { ...editing.input, photoUrl: e.target.value },
-                    })
-                  }
-                  placeholder="https://…"
-                />
-              </Field>
-
-              {editing.id && (
-                <Field label="Status">
-                  <Select
-                    value={editing.input.status}
-                    onValueChange={(v) =>
-                      setEditing({
-                        ...editing,
-                        input: { ...editing.input, status: v as CandidateInput['status'] },
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">On the ballot</SelectItem>
-                      <SelectItem value="withdrawn">Withdrawn</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              )}
-
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setEditing(null)}>
-                  Cancel
-                </Button>
-                <Button type="button" onClick={save} disabled={pending}>
-                  {pending ? 'Saving…' : 'Save'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {editing && (
+        <CandidateDialog
+          open
+          onOpenChange={(o) => !o && setEditing(null)}
+          candidateId={editing.id}
+          input={editing.input}
+          onInput={(input) => setEditing({ ...editing, input })}
+          awardName={editingAward?.name}
+        />
+      )}
 
       <ConfirmDialog
         open={removing !== null}
@@ -342,21 +234,8 @@ export function CandidatesBoard({
         onConfirm={confirmRemove}
         onCancel={() => setRemoving(null)}
       />
-    </div>
-  );
-}
 
-function Field({
-  label,
-  children,
-}: {
-  readonly label: string;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      {children}
+      {pending && <span className="sr-only">Saving…</span>}
     </div>
   );
 }
