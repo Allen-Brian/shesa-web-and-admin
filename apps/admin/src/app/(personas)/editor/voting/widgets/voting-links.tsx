@@ -18,11 +18,14 @@ export function VotingLinks({
   excoToken,
   editionId,
   webBaseUrl,
+  publicOnly = false,
 }: {
   readonly slug: string;
   readonly excoToken: string;
   readonly editionId: string;
   readonly webBaseUrl: string;
+  /** Public-only ceremonies have no Exco college, so no second door. */
+  readonly publicOnly?: boolean;
 }) {
   const base = webBaseUrl.replace(/\/+$/, '');
   const publicUrl = `${base}/awards/vote`;
@@ -47,44 +50,48 @@ export function VotingLinks({
 
   return (
     <>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`grid gap-4 ${publicOnly ? '' : 'lg:grid-cols-2'}`}>
         <LinkCard
-          title="Public ballot"
+          title={publicOnly ? 'Voting link' : 'Public ballot'}
           note={`Share this anywhere — WhatsApp, the website, the newsletter. It is in the sitemap and every ex-student ballot cast through it counts at the ex-student weight. Edition: ${slug}.`}
           url={publicUrl}
           visible
         />
 
-        <LinkCard
-          title="Exco ballot"
-          note="Private. Not linked from any page, absent from the sitemap, and disallowed in robots.txt — the only way in is this URL. A voter must pick their post and type their name, which is what lets you spot a ballot that should not be there."
-          url={excoUrl}
-          visible={revealed}
-          tone="danger"
-          extra={
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setRevealed((v) => !v)}
-              >
-                {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                {revealed ? 'Hide' : 'Reveal'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={pending}
-                onClick={() => setConfirming(true)}
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Issue a new link
-              </Button>
-            </div>
-          }
-        />
+        {/* Not rendered at all in public_only. Showing a dead link beside a
+            live one is how somebody ends up sending the dead one. */}
+        {!publicOnly && (
+          <LinkCard
+            title="Exco ballot"
+            note="Private. Not linked from any page, absent from the sitemap, and disallowed in robots.txt — the only way in is this URL. A voter must pick their post and type their name, which is what lets you spot a ballot that should not be there."
+            url={excoUrl}
+            visible={revealed}
+            tone="danger"
+            extra={
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRevealed((v) => !v)}
+                >
+                  {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  {revealed ? 'Hide' : 'Reveal'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={pending}
+                  onClick={() => setConfirming(true)}
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Issue a new link
+                </Button>
+              </div>
+            }
+          />
+        )}
       </div>
 
       <ConfirmDialog

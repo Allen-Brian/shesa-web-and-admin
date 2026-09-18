@@ -714,3 +714,93 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
   refresh();
   return { ok: true };
 }
+
+/* ── Which ceremony is live ────────────────────────────────────────── */
+
+/**
+ * Make one ceremony the live one, or stand them all down.
+ *
+ * The public site shows whichever is active and nothing otherwise, so this
+ * is the switch that puts a nomination form in front of the membership.
+ *
+ * One RPC rather than two writes: a partial unique index enforces "at most
+ * one active", which means clearing the old row and setting the new one has
+ * to happen inside a single UPDATE or the intermediate state collides with
+ * itself.
+ */
+export async function setActiveCeremony(id: string | null): Promise<ActionResult> {
+  const supabase = await getServerClient();
+
+  const { error } = id
+    ? await supabase.schema('awards').rpc('set_active_edition', { p_edition_id: id })
+    : await supabase.schema('awards').rpc('clear_active_edition');
+
+  if (error) return fail(error.message);
+  refresh();
+  return { ok: true };
+}
+
+/* ── Weighting ─────────────────────────────────────────────────────── */
+
+export type VotingMode = 'weighted' | 'public_only';
+
+export interface WeightingInput {
+  readonly mode: VotingMode;
+  /** Percentages, 0–100. Only read when the mode is `weighted`. */
+  readonly exStudentPercent: number;
+  readonly excoPercent: number;
+  readonly weightingMethod: 'raw_weighted' | 'college_share';
+}
+
+/**
+ * How this ceremony counts votes.
+ *
+ * Stamped with who changed it and when. `awards.results` computes the tally
+ * live from these columns, so altering them after ballots are cast changes a
+ * result that has already been arrived at — the screen warns about that, and
+ * this records it either way, because a published result has to be
+ * explainable afterwards.
+ *
+ * `public_only` forces 100/0. The database also checks it: both weights are
+ * read by the tally and a mismatch would produce a figure nobody could
+ * account for.
+ */
+export async function updateWeighting(id: string, input: WeightingInput): Promise<ActionResult> {
+  const supabase = await getServerClient();
+  const { data: auth } = await supabase.auth.getUser();
+
+  let exStudent = 1;
+  let exco = 0;
+
+  if (input.mode === 'weighted') {
+    const total = input.exStudentPercent + input.excoPercent;
+    if (total <= 0) return fail('The two weights cannot both be zero.');
+    if (Math.abs(total - 100) > 0.01) {
+      return fail(`The weights must add up to 100% — they currently total ${total}%.`);
+    }
+    if (input.exStudentPercent < 0 || input.excoPercent < 0) {
+      return fail('A weight cannot be negative.');
+    }
+    // Stored as numeric(4,3): three decimals is 0.1% of resolution, which is
+    // finer than any split SHESA is going to approve.
+    exStudent = Math.round(input.exStudentPercent * 10) / 1000;
+    exco = Math.round(input.excoPercent * 10) / 1000;
+  }
+
+  const { error } = await supabase
+    .schema('awards')
+    .from('editions')
+    .update({
+      voting_mode: input.mode,
+      ex_student_weight: exStudent,
+      exco_weight: exco,
+      weighting_method: input.weightingMethod,
+      weights_changed_at: new Date().toISOString(),
+      weights_changed_by: auth.user?.id ?? null,
+    } as never)
+    .eq('id', id);
+
+  if (error) return fail(error.message);
+  refresh();
+  return { ok: true };
+}

@@ -14,10 +14,15 @@ import {
   Textarea,
   toast,
 } from '@shesa/ui';
-import { ChevronRight, Plus, Trash2, Trophy } from 'lucide-react';
+import { ChevronRight, Globe, Plus, Trash2, Trophy } from 'lucide-react';
 import { useState, useTransition } from 'react';
 
-import { createCeremony, deleteCeremony, type CeremonyInput } from '../actions/voting-actions';
+import {
+  createCeremony,
+  deleteCeremony,
+  setActiveCeremony,
+  type CeremonyInput,
+} from '../actions/voting-actions';
 import type { EditionSummary } from '../load-voting';
 import { fromWatInput, watDate } from '../wat';
 
@@ -44,6 +49,20 @@ export function CeremonyIndex({ editions }: { readonly editions: readonly Editio
   const [creating, setCreating] = useState(false);
   const [removing, setRemoving] = useState<EditionSummary | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const toggleActive = (e: EditionSummary) =>
+    startTransition(async () => {
+      const res = await setActiveCeremony(e.isActive ? null : e.id);
+      if (res.ok) {
+        toast.success(
+          e.isActive
+            ? 'Stood down. The awards page has nothing to show until a ceremony is made live.'
+            : `"${e.name}" is now the ceremony the website shows.`,
+        );
+      } else {
+        toast.error(res.message);
+      }
+    });
 
   const remove = () => {
     if (!removing) return;
@@ -86,6 +105,7 @@ export function CeremonyIndex({ editions }: { readonly editions: readonly Editio
           <table className="w-full min-w-[820px] text-sm">
             <thead className="bg-muted/40 text-xs text-muted-foreground">
               <tr>
+                <th className="w-24 px-3 py-2 text-left font-medium">Live</th>
                 <th className="px-3 py-2 text-left font-medium">Ceremony</th>
                 <th className="px-3 py-2 text-left font-medium">Nominations</th>
                 <th className="px-3 py-2 text-left font-medium">Voting</th>
@@ -101,6 +121,24 @@ export function CeremonyIndex({ editions }: { readonly editions: readonly Editio
                   className="cursor-pointer border-t transition-colors hover:bg-muted/40"
                   onClick={() => router.push(`/editor/voting/${e.slug}`)}
                 >
+                  {/* Which ceremony the public site shows. Only one can be
+                      live at a time, so switching one on stands the other
+                      down — enforced in the database, not here. */}
+                  <td className="px-3 py-3" onClick={(ev) => ev.stopPropagation()}>
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => toggleActive(e)}
+                      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${
+                        e.isActive
+                          ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <Globe className="h-3 w-3" aria-hidden />
+                      {e.isActive ? 'Live' : 'Set live'}
+                    </button>
+                  </td>
                   <td className="px-3 py-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <Link

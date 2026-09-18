@@ -63,6 +63,9 @@ interface RawEdition {
   weighting_method: string;
   exco_token: string;
   results_published_at: string | null;
+  is_active: boolean;
+  voting_mode: string;
+  weights_changed_at: string | null;
 }
 
 function toEdition(raw: RawEdition): EditionRow {
@@ -72,6 +75,9 @@ function toEdition(raw: RawEdition): EditionRow {
     name: raw.name,
     description: raw.description,
     phase: phaseOf(raw),
+    isActive: raw.is_active,
+    votingMode: raw.voting_mode as EditionRow['votingMode'],
+    weightsChangedAt: raw.weights_changed_at,
     nominationsOpenAt: raw.nominations_open_at,
     nominationsCloseAt: raw.nominations_close_at,
     votingOpenAt: raw.voting_open_at,

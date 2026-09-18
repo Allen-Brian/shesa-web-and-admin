@@ -19,12 +19,16 @@ import { getServerClient } from './supabase-server';
 /** Where a cycle stands, derived from its two windows by `awards.phase()`. */
 export type AwardsPhase = 'upcoming' | 'nominating' | 'review' | 'voting' | 'closed';
 
+/** Two colleges combined by the weights, or the membership alone. */
+export type VotingMode = 'weighted' | 'public_only';
+
 export interface AwardsEdition {
   readonly id: string;
   readonly slug: string;
   readonly name: string;
   readonly description: string | null;
   readonly phase: AwardsPhase;
+  readonly votingMode: VotingMode;
   readonly nominationsOpenAt: string | null;
   readonly nominationsCloseAt: string | null;
   readonly votingOpenAt: string | null;
@@ -69,6 +73,7 @@ interface RawState {
     name: string;
     description: string | null;
     phase: string;
+    voting_mode?: string;
     nominations_open_at: string | null;
     nominations_close_at: string | null;
     voting_open_at: string | null;
@@ -112,6 +117,7 @@ export async function getAwardsState(slug?: string): Promise<AwardsState> {
       name: raw.edition.name,
       description: raw.edition.description,
       phase: raw.edition.phase as AwardsPhase,
+      votingMode: (raw.edition.voting_mode ?? 'weighted') as VotingMode,
       nominationsOpenAt: raw.edition.nominations_open_at,
       nominationsCloseAt: raw.edition.nominations_close_at,
       votingOpenAt: raw.edition.voting_open_at,
@@ -306,6 +312,7 @@ export interface BallotPaper {
     readonly name: string;
     readonly description: string | null;
     readonly phase: AwardsPhase;
+    readonly votingMode: VotingMode;
     readonly votingOpenAt: string | null;
     readonly votingCloseAt: string | null;
   } | null;
@@ -316,6 +323,8 @@ export interface BallotPaper {
   readonly excoPosts: readonly string[];
   /** Set when the token in the URL is not the current one. */
   readonly invalidToken: boolean;
+  /** Set when an Exco link was used on a ceremony that has no Exco college. */
+  readonly publicOnly: boolean;
 }
 
 const NO_PAPER: BallotPaper = {
@@ -325,6 +334,7 @@ const NO_PAPER: BallotPaper = {
   awards: [],
   excoPosts: [],
   invalidToken: false,
+  publicOnly: false,
 };
 
 /**
@@ -360,6 +370,7 @@ export async function getBallotPaper(slug?: string, excoToken?: string): Promise
       name: string;
       description: string | null;
       phase: string;
+      voting_mode?: string;
       voting_open_at: string | null;
       voting_close_at: string | null;
     } | null;
@@ -387,6 +398,7 @@ export async function getBallotPaper(slug?: string, excoToken?: string): Promise
   } | null;
 
   if (raw?.error === 'invalid_token') return { ...NO_PAPER, invalidToken: true };
+  if (raw?.error === 'public_only') return { ...NO_PAPER, publicOnly: true };
   if (!raw?.edition) return NO_PAPER;
 
   return {
@@ -396,6 +408,7 @@ export async function getBallotPaper(slug?: string, excoToken?: string): Promise
       name: raw.edition.name,
       description: raw.edition.description,
       phase: raw.edition.phase as AwardsPhase,
+      votingMode: (raw.edition.voting_mode ?? 'weighted') as VotingMode,
       votingOpenAt: raw.edition.voting_open_at,
       votingCloseAt: raw.edition.voting_close_at,
     },
@@ -418,6 +431,7 @@ export async function getBallotPaper(slug?: string, excoToken?: string): Promise
     })),
     excoPosts: raw.exco_posts ?? [],
     invalidToken: false,
+    publicOnly: false,
   };
 }
 
@@ -436,6 +450,8 @@ export interface BallotInput {
 const BALLOT_REASONS = {
   unknown_edition: 'This ballot no longer exists.',
   invalid_token: 'That voting link is no longer valid. Ask the secretariat for the current one.',
+  public_only:
+    'This ceremony is decided by the membership alone — there is no separate Executive Committee ballot. Use the public voting link.',
   not_open_yet: 'Voting has not opened yet.',
   closed: 'Voting has closed. Thank you.',
   bad_device:

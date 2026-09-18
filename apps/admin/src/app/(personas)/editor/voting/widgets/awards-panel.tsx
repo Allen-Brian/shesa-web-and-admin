@@ -20,13 +20,16 @@ import {
   Textarea,
   toast,
 } from '@shesa/ui';
-import { ChevronRight, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { ChevronRight, FolderTree, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 
-import { deleteAward, saveAward, type AwardInput } from '../actions/voting-actions';
+import { deleteAward, saveAward, saveCategory, type AwardInput } from '../actions/voting-actions';
 import type { AwardRow, CategoryRow, EditionRow } from '../voting-types';
 
+import { CategoryManager } from './category-manager';
+
 const STANDALONE = '__standalone';
+const NEW_CATEGORY = '__new';
 
 /**
  * The awards, as a table you click into.
@@ -51,6 +54,8 @@ export function AwardsPanel({
 }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const [managingCategories, setManagingCategories] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
   const [editing, setEditing] = useState<{ id: string | null; input: AwardInput } | null>(null);
   const [removing, setRemoving] = useState<AwardRow | null>(null);
   const [pending, startTransition] = useTransition();
@@ -121,12 +126,34 @@ export function AwardsPanel({
 
         <Button
           type="button"
+          variant="outline"
           className="ml-auto"
-          onClick={() => setEditing({ id: null, input: blank })}
+          onClick={() => setManagingCategories((v) => !v)}
         >
+          <FolderTree className="h-3.5 w-3.5" />
+          Categories
+          <span className="ml-1 text-xs text-muted-foreground">({categories.length})</span>
+        </Button>
+
+        <Button type="button" onClick={() => setEditing({ id: null, input: blank })}>
           <Plus className="h-3.5 w-3.5" /> Add award
         </Button>
       </div>
+
+      {/* Categories live beside the awards they group rather than on another
+          tab. They exist for no other purpose, and sending someone to a
+          different screen to make one before they can finish adding an award
+          is the trip this avoids. */}
+      {managingCategories && (
+        <div className="rounded-lg border bg-card p-4">
+          <p className="text-sm font-semibold text-foreground">Categories</p>
+          <p className="mb-3 mt-1 text-xs text-muted-foreground">
+            Headings that group the awards below. An award can also stand alone — Branch and Country
+            Chapter have no parent heading.
+          </p>
+          <CategoryManager editionId={edition.id} categories={categories} />
+        </div>
+      )}
 
       {/* An award with nobody on the ballot is dropped from the public
           ballot entirely. Finding that out from a voter is worse than
@@ -298,13 +325,22 @@ export function AwardsPanel({
 
               <Field label="Category">
                 <Select
-                  value={editing.input.categoryId ?? STANDALONE}
-                  onValueChange={(v) =>
+                  value={
+                    newCategory !== '' ? NEW_CATEGORY : (editing.input.categoryId ?? STANDALONE)
+                  }
+                  onValueChange={(v) => {
+                    if (v === NEW_CATEGORY) {
+                      // A placeholder space, so the select stays on "New
+                      // category…" while the box below is still empty.
+                      setNewCategory(' ');
+                      return;
+                    }
+                    setNewCategory('');
                     setEditing({
                       ...editing,
                       input: { ...editing.input, categoryId: v === STANDALONE ? null : v },
-                    })
-                  }
+                    });
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -316,8 +352,48 @@ export function AwardsPanel({
                         {c.name}
                       </SelectItem>
                     ))}
+                    <SelectItem value={NEW_CATEGORY}>New category…</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* Created without leaving the dialog. Needing a category
+                    that does not exist yet is the commonest reason to
+                    abandon adding an award half-finished. */}
+                {newCategory !== '' && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <Input
+                      value={newCategory.trimStart()}
+                      onChange={(e) => setNewCategory(e.target.value || ' ')}
+                      placeholder="Professional Leadership Awards"
+                      maxLength={160}
+                      autoFocus
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={pending || newCategory.trim().length < 2}
+                      onClick={() =>
+                        startTransition(async () => {
+                          const res = await saveCategory(
+                            null,
+                            edition.id,
+                            newCategory.trim(),
+                            null,
+                            categories.length + 1,
+                          );
+                          if (res.ok) {
+                            toast.success('Category created. Pick it from the list.');
+                            setNewCategory('');
+                          } else {
+                            toast.error(res.message);
+                          }
+                        })
+                      }
+                    >
+                      Create
+                    </Button>
+                  </div>
+                )}
               </Field>
 
               <Field label="Description">

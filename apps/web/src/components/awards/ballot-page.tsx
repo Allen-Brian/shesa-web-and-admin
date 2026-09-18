@@ -16,6 +16,16 @@ import { BallotFlow } from './ballot-flow';
 export async function BallotPage({ excoToken }: { readonly excoToken?: string }) {
   const paper = await getBallotPaper(undefined, excoToken);
 
+  if (paper.publicOnly) {
+    return (
+      <Shell title="This ceremony has no Exco ballot.">
+        It is decided by the membership alone, so every vote counts the same and there is no
+        separate Executive Committee link. Use the public voting link — a ballot cast there is
+        counted in full.
+      </Shell>
+    );
+  }
+
   if (paper.invalidToken) {
     return (
       <Shell title="That link is no longer valid.">

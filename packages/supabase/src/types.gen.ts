@@ -357,6 +357,7 @@ export type Database = {
           exco_token: string
           exco_weight: number
           id: string
+          is_active: boolean
           name: string
           nominations_close_at: string | null
           nominations_open_at: string | null
@@ -364,8 +365,11 @@ export type Database = {
           slug: string
           updated_at: string
           voting_close_at: string | null
+          voting_mode: string
           voting_open_at: string | null
           weighting_method: string
+          weights_changed_at: string | null
+          weights_changed_by: string | null
         }
         Insert: {
           created_at?: string
@@ -375,6 +379,7 @@ export type Database = {
           exco_token?: string
           exco_weight?: number
           id?: string
+          is_active?: boolean
           name: string
           nominations_close_at?: string | null
           nominations_open_at?: string | null
@@ -382,8 +387,11 @@ export type Database = {
           slug: string
           updated_at?: string
           voting_close_at?: string | null
+          voting_mode?: string
           voting_open_at?: string | null
           weighting_method?: string
+          weights_changed_at?: string | null
+          weights_changed_by?: string | null
         }
         Update: {
           created_at?: string
@@ -393,6 +401,7 @@ export type Database = {
           exco_token?: string
           exco_weight?: number
           id?: string
+          is_active?: boolean
           name?: string
           nominations_close_at?: string | null
           nominations_open_at?: string | null
@@ -400,8 +409,11 @@ export type Database = {
           slug?: string
           updated_at?: string
           voting_close_at?: string | null
+          voting_mode?: string
           voting_open_at?: string | null
           weighting_method?: string
+          weights_changed_at?: string | null
+          weights_changed_by?: string | null
         }
         Relationships: []
       }
@@ -597,6 +609,7 @@ export type Database = {
           reason: string
         }[]
       }
+      clear_active_edition: { Args: never; Returns: undefined }
       merge_nominees: {
         Args: { p_absorb: string; p_keep: string }
         Returns: number
@@ -637,6 +650,7 @@ export type Database = {
           score: number
         }[]
       }
+      set_active_edition: { Args: { p_edition_id: string }; Returns: undefined }
       submit_nomination: {
         Args: {
           p_award_id: string

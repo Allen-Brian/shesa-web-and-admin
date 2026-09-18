@@ -3,12 +3,19 @@
 export type AwardsPhase = 'upcoming' | 'nominating' | 'review' | 'voting' | 'closed';
 export type NominationStatus = 'pending' | 'approved' | 'rejected';
 
+/** Two colleges combined by the weights, or the membership alone. */
+export type VotingMode = 'weighted' | 'public_only';
+
 export interface EditionRow {
   readonly id: string;
   readonly slug: string;
   readonly name: string;
   readonly description: string | null;
   readonly phase: AwardsPhase;
+  /** The ceremony the public site shows. At most one, enforced in the database. */
+  readonly isActive: boolean;
+  readonly votingMode: VotingMode;
+  readonly weightsChangedAt: string | null;
   readonly nominationsOpenAt: string | null;
   readonly nominationsCloseAt: string | null;
   readonly votingOpenAt: string | null;

@@ -1,34 +1,44 @@
 'use client';
 
-import { Button, Input, Label, Textarea, toast } from '@shesa/ui';
-import { Lock, Plus, X } from 'lucide-react';
+import { Button, Input, Label, Switch, Textarea, toast } from '@shesa/ui';
+import { Globe, Plus, X } from 'lucide-react';
 import { useState, useTransition } from 'react';
 
-import { deleteExcoPost, saveExcoPost, updateEdition } from '../actions/voting-actions';
-import type { CategoryRow, EditionRow } from '../voting-types';
+import {
+  deleteExcoPost,
+  saveExcoPost,
+  setActiveCeremony,
+  updateEdition,
+} from '../actions/voting-actions';
+import type { EditionRow } from '../voting-types';
 import { fromWatInput, toWatInput } from '../wat';
 
-import { CategoryManager } from './category-manager';
 import { VotingLinks } from './voting-links';
+import { WeightingSettings } from './weighting-settings';
 
 /**
  * Everything true of the cycle as a whole.
  *
  * The dates first, because they are the only control over what the public
  * site shows — the phase is computed from these four timestamps, so there is
- * no publish button to forget at midnight. Then the two links, the
- * categories that group the awards, and the Exco post list.
+ * no publish button to forget at midnight. Then how votes are weighted, the
+ * two links, and the Exco post list.
+ *
+ * Categories are NOT here. A category only exists to group awards, so it
+ * lives beside them on the Awards tab — and can be created from inside the
+ * award dialog, rather than sending someone to a different screen to make
+ * one before they can finish the thing they were doing.
  */
 export function DescriptionPanel({
   edition,
   excoPosts,
   webBaseUrl,
-  categories,
+  ballotsCast,
 }: {
   readonly edition: EditionRow;
   readonly excoPosts: readonly { id: string; label: string; sortOrder: number }[];
   readonly webBaseUrl: string;
-  readonly categories: readonly CategoryRow[];
+  readonly ballotsCast: number;
 }) {
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState(edition.name);
@@ -52,8 +62,54 @@ export function DescriptionPanel({
       else toast.error(res.message);
     });
 
+  const toggleActive = (next: boolean) =>
+    startTransition(async () => {
+      const res = await setActiveCeremony(next ? edition.id : null);
+      if (res.ok) {
+        toast.success(
+          next
+            ? 'This ceremony is now the one the website shows.'
+            : 'Stood down. The awards page has nothing to show until a ceremony is made live.',
+        );
+      } else {
+        toast.error(res.message);
+      }
+    });
+
   return (
     <div className="flex flex-col gap-6">
+      {/* The switch that puts a nomination form in front of the membership.
+          Only one ceremony can be live at a time — the database enforces it,
+          so turning this on stands the previous one down. */}
+      <div
+        className={`flex flex-wrap items-center gap-4 rounded-lg border p-4 ${
+          edition.isActive ? 'border-emerald-500/40 bg-emerald-500/5' : 'bg-card'
+        }`}
+      >
+        <Globe
+          className={`h-5 w-5 shrink-0 ${
+            edition.isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'
+          }`}
+          aria-hidden
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-foreground">
+            {edition.isActive ? 'Live on the website' : 'Not on the website'}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {edition.isActive
+              ? 'This is the ceremony visitors see at /awards. Turning it off leaves the page with nothing to show.'
+              : 'Turn this on to make it the ceremony visitors see. Only one can be live at a time, so any other is stood down.'}
+          </p>
+        </div>
+        <Switch
+          checked={edition.isActive}
+          onCheckedChange={toggleActive}
+          disabled={pending}
+          aria-label="Live on the website"
+        />
+      </div>
+
       <Section
         title="The cycle"
         note="All times are West Africa Time. The site opens and closes itself on these dates."
@@ -101,23 +157,6 @@ export function DescriptionPanel({
           />
         </Field>
 
-        <div className="flex items-start gap-2 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-          <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-          <span>
-            Weighting is fixed at{' '}
-            <strong className="text-foreground">
-              {(edition.exStudentWeight * 100).toFixed(0)}% ex-students
-            </strong>{' '}
-            and{' '}
-            <strong className="text-foreground">
-              {(edition.excoWeight * 100).toFixed(0)}% Exco
-            </strong>{' '}
-            ({edition.weightingMethod.replace('_', ' ')}), as approved by the President
-            General&apos;s briefing. It cannot be changed here — that needs written authorisation
-            from SHESA and a change to the database.
-          </span>
-        </div>
-
         <div className="flex justify-end">
           <Button type="button" onClick={save} disabled={pending}>
             {pending ? 'Saving…' : 'Save changes'}
@@ -126,30 +165,37 @@ export function DescriptionPanel({
       </Section>
 
       <Section
-        title="The two links"
-        note="The difference between them is the whole security model of this election."
+        title="Weighting"
+        note="How this ceremony counts votes. Changing it after ballots are cast changes a result people have already voted towards, so the change is stamped with your name and the time."
+      >
+        <WeightingSettings edition={edition} ballotsCast={ballotsCast} />
+      </Section>
+
+      <Section
+        title={edition.votingMode === 'public_only' ? 'The voting link' : 'The two links'}
+        note={
+          edition.votingMode === 'public_only'
+            ? 'One college, so one link. Everyone votes through the same URL.'
+            : 'The difference between them is the whole security model of this election.'
+        }
       >
         <VotingLinks
           slug={edition.slug}
           excoToken={edition.excoToken}
           editionId={edition.id}
           webBaseUrl={webBaseUrl}
+          publicOnly={edition.votingMode === 'public_only'}
         />
       </Section>
 
-      <Section
-        title="Categories"
-        note="Headings that group the awards. An award can also stand alone — Branch and Country Chapter have no parent heading."
-      >
-        <CategoryManager editionId={edition.id} categories={categories} />
-      </Section>
-
-      <Section
-        title="Executive Committee posts"
-        note="What an Exco voter picks from before casting. A free-text box here would give you 'Treasurer', 'treasurer' and 'Nat. Treasurer' to reconcile afterwards."
-      >
-        <ExcoPosts editionId={edition.id} posts={excoPosts} />
-      </Section>
+      {edition.votingMode !== 'public_only' && (
+        <Section
+          title="Executive Committee posts"
+          note="What an Exco voter picks from before casting. A free-text box here would give you 'Treasurer', 'treasurer' and 'Nat. Treasurer' to reconcile afterwards."
+        >
+          <ExcoPosts editionId={edition.id} posts={excoPosts} />
+        </Section>
+      )}
     </div>
   );
 }

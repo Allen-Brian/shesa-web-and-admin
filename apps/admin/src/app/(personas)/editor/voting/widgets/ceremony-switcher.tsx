@@ -125,7 +125,7 @@ export function CeremonySwitcher({
             edition={edition}
             excoPosts={excoPosts}
             webBaseUrl={webBaseUrl}
-            categories={categories}
+            ballotsCast={totals.ballots}
           />
         </TabsContent>
 
