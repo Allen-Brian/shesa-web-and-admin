@@ -23,6 +23,12 @@ export default function robots(): MetadataRoute.Robots {
           '/agm-2026/receipt/',
           '/agm-2026/confirmation/',
           '/agm-2026/pending/',
+          // The Executive Committee's ballot. Its secrecy rests on the
+          // token, not on this line — a disallow is a request, and the
+          // route is also absent from the sitemap and unlinked from every
+          // page. This stops it turning up in a search result, which is the
+          // realistic way such a link escapes.
+          '/awards/exco/',
         ],
       },
     ],

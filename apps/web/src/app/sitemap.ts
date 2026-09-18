@@ -39,6 +39,9 @@ const STATIC_ROUTES: readonly {
   { path: '/strategic-plan', priority: 0.7, changeFrequency: 'yearly' },
   { path: '/agm-2026', priority: 0.95, changeFrequency: 'weekly' },
   { path: '/awards', priority: 0.9, changeFrequency: 'daily' },
+  // The public ballot only. `/awards/exco/<token>` is deliberately absent —
+  // listing it here would publish the secret that makes it an Exco ballot.
+  { path: '/awards/vote', priority: 0.8, changeFrequency: 'daily' },
   { path: '/agm-2026/sponsor', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/sponsors', priority: 0.5, changeFrequency: 'monthly' },
   { path: '/contact', priority: 0.5, changeFrequency: 'yearly' },

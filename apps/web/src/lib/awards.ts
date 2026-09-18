@@ -250,3 +250,215 @@ export async function submitNomination(input: NominationInput): Promise<Nominati
       'We could not record that nomination. Please try again.',
   };
 }
+
+/* ── The ballot ────────────────────────────────────────────────────── */
+
+export type College = 'ex_student' | 'exco';
+
+export interface BallotCandidate {
+  readonly id: string;
+  readonly fullName: string;
+  readonly batchYear: number | null;
+  readonly branchLabel: string | null;
+  readonly description: string | null;
+  readonly photoUrl: string | null;
+}
+
+export interface BallotAward {
+  readonly id: string;
+  readonly categoryId: string | null;
+  readonly name: string;
+  readonly description: string | null;
+  readonly candidates: readonly BallotCandidate[];
+}
+
+export interface BallotPaper {
+  readonly edition: {
+    readonly id: string;
+    readonly slug: string;
+    readonly name: string;
+    readonly description: string | null;
+    readonly phase: AwardsPhase;
+    readonly votingOpenAt: string | null;
+    readonly votingCloseAt: string | null;
+  } | null;
+  readonly college: College;
+  readonly categories: readonly { id: string; name: string }[];
+  readonly awards: readonly BallotAward[];
+  /** Populated only through the Exco door. */
+  readonly excoPosts: readonly string[];
+  /** Set when the token in the URL is not the current one. */
+  readonly invalidToken: boolean;
+}
+
+const NO_PAPER: BallotPaper = {
+  edition: null,
+  college: 'ex_student',
+  categories: [],
+  awards: [],
+  excoPosts: [],
+  invalidToken: false,
+};
+
+/**
+ * The ballot paper.
+ *
+ * The token is what makes a ballot an Exco ballot — it is never taken from
+ * the client as a claim about who they are, only as the URL they arrived on,
+ * and the database is what decides whether it is current.
+ */
+export async function getBallotPaper(slug?: string, excoToken?: string): Promise<BallotPaper> {
+  const supabase = await getServerClient();
+  const { data, error } = await supabase.schema('awards').rpc('public_ballot', {
+    p_edition_slug: slug ?? undefined,
+    p_exco_token: excoToken ?? undefined,
+  });
+
+  if (error) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        component: 'web.awards.getBallotPaper',
+        message: 'public_ballot failed',
+        error: error.message,
+      }),
+    );
+    return NO_PAPER;
+  }
+
+  const raw = data as unknown as {
+    edition: {
+      id: string;
+      slug: string;
+      name: string;
+      description: string | null;
+      phase: string;
+      voting_open_at: string | null;
+      voting_close_at: string | null;
+    } | null;
+    error?: string;
+    college?: College;
+    categories?: { id: string; name: string }[];
+    awards?: {
+      id: string;
+      category_id: string | null;
+      name: string;
+      description: string | null;
+      candidates:
+        | {
+            id: string;
+            full_name: string;
+            batch_year: number | null;
+            branch_label: string | null;
+            description: string | null;
+            photo_url: string | null;
+          }[]
+        | null;
+    }[];
+    exco_posts?: string[];
+  } | null;
+
+  if (raw?.error === 'invalid_token') return { ...NO_PAPER, invalidToken: true };
+  if (!raw?.edition) return NO_PAPER;
+
+  return {
+    edition: {
+      id: raw.edition.id,
+      slug: raw.edition.slug,
+      name: raw.edition.name,
+      description: raw.edition.description,
+      phase: raw.edition.phase as AwardsPhase,
+      votingOpenAt: raw.edition.voting_open_at,
+      votingCloseAt: raw.edition.voting_close_at,
+    },
+    college: raw.college ?? 'ex_student',
+    categories: raw.categories ?? [],
+    awards: (raw.awards ?? []).map((a) => ({
+      id: a.id,
+      categoryId: a.category_id,
+      name: a.name,
+      description: a.description,
+      candidates: (a.candidates ?? []).map((c) => ({
+        id: c.id,
+        fullName: c.full_name,
+        batchYear: c.batch_year,
+        branchLabel: c.branch_label,
+        description: c.description,
+        photoUrl: c.photo_url,
+      })),
+    })),
+    excoPosts: raw.exco_posts ?? [],
+    invalidToken: false,
+  };
+}
+
+export interface BallotInput {
+  readonly editionSlug: string;
+  readonly deviceId: string;
+  /** One candidate per award; awards the voter skipped are simply absent. */
+  readonly choices: readonly { awardId: string; candidateId: string }[];
+  readonly batchYear?: number | null;
+  readonly branchLabel?: string | null;
+  readonly excoToken?: string | null;
+  readonly excoPost?: string | null;
+  readonly excoName?: string | null;
+}
+
+const BALLOT_REASONS = {
+  unknown_edition: 'This ballot no longer exists.',
+  invalid_token: 'That voting link is no longer valid. Ask the secretariat for the current one.',
+  not_open_yet: 'Voting has not opened yet.',
+  closed: 'Voting has closed. Thank you.',
+  bad_device:
+    'Your browser is blocking the storage we use to keep one vote per person. Try again outside private browsing.',
+  exco_identity_required: 'Please choose your post and enter your name.',
+  bad_batch_year: 'Please give a batch year between 1953 and 2026.',
+  empty_ballot: 'Please choose at least one candidate before submitting.',
+  already_voted: 'A vote has already been cast from this device.',
+  throttled: 'Too many ballots from this connection. Please try again later.',
+} as const satisfies Record<string, string>;
+
+/** Cast one ballot. */
+export async function castBallot(input: BallotInput): Promise<NominationResult> {
+  if (!input.deviceId) return { ok: false, message: BALLOT_REASONS.bad_device };
+  if (input.choices.length === 0) return { ok: false, message: BALLOT_REASONS.empty_ballot };
+
+  const supabase = await getServerClient();
+  const { data, error } = await supabase.schema('awards').rpc('cast_ballot', {
+    p_edition_slug: input.editionSlug,
+    p_device_id: input.deviceId,
+    p_choices: input.choices.map((c) => ({
+      award_id: c.awardId,
+      candidate_id: c.candidateId,
+    })),
+    p_batch_year: input.batchYear ?? undefined,
+    p_branch_label: input.branchLabel?.trim() || undefined,
+    p_exco_token: input.excoToken || undefined,
+    p_exco_post: input.excoPost?.trim() || undefined,
+    p_exco_name: input.excoName?.trim() || undefined,
+    p_ip_hash: (await ipHash()) ?? undefined,
+  });
+
+  if (error) {
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        component: 'web.awards.castBallot',
+        message: 'cast_ballot failed',
+        code: error.code,
+        error: error.message,
+      }),
+    );
+    return { ok: false, message: 'We could not record your vote. Please try again in a moment.' };
+  }
+
+  const row = Array.isArray(data) ? data[0] : null;
+  if (row?.ok) return { ok: true };
+
+  return {
+    ok: false,
+    message:
+      (BALLOT_REASONS as Record<string, string | undefined>)[row?.reason ?? ''] ??
+      'We could not record your vote. Please try again.',
+  };
+}

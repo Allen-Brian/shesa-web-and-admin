@@ -90,12 +90,15 @@ export function AwardsHero({ edition }: { readonly edition: AwardsEdition }) {
 
         <p className="mt-6 max-w-2xl text-[14px] leading-[1.75] text-white/45">{line}</p>
 
-        {edition.phase === 'nominating' && (
+        {/* One call to action, and which one depends on the phase. Only the
+            public ballot is ever linked — the Exco door is reachable by its
+            token alone and appears nowhere on the site. */}
+        {(edition.phase === 'nominating' || edition.phase === 'voting') && (
           <Link
-            href="#nominate"
+            href={edition.phase === 'voting' ? '/awards/vote' : '#nominate'}
             className="group mt-10 inline-flex items-center gap-3 rounded-xs bg-primary px-7 py-4 text-sm font-medium tracking-wide text-white shadow-[0_24px_70px_-18px_rgba(139,21,51,0.8)] transition-transform duration-500 hover:-translate-y-0.5"
           >
-            Nominate someone
+            {edition.phase === 'voting' ? 'Cast your vote' : 'Nominate someone'}
             <span
               aria-hidden
               className="grid h-6 w-6 place-items-center rounded-xs bg-white/20 transition-transform duration-500 group-hover:translate-x-1"
