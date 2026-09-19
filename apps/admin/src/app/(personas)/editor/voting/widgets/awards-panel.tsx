@@ -40,7 +40,7 @@ import {
 import type { AwardRow, CategoryRow, EditionRow } from '../voting-types';
 
 import { CategoryManager } from './category-manager';
-import { CLAMPED_ROW_HEIGHT } from './clamped-cell';
+import { CLAMPED_ROW_HEIGHT, serialColumn } from './clamped-cell';
 
 const STANDALONE = '__standalone';
 const NEW_CATEGORY = '__new';
@@ -112,6 +112,7 @@ export function AwardsPanel({
 
   const columnDefs = useMemo<ColDef<AwardRow>[]>(
     () => [
+      serialColumn<AwardRow>(),
       {
         headerName: 'Award',
         field: 'name',

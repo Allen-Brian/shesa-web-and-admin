@@ -34,7 +34,7 @@ import {
 } from '../actions/voting-actions';
 import type { MergeSuggestion, NominationRow, NomineeRow } from '../voting-types';
 
-import { CLAMPED_ROW_HEIGHT, ClampedCell } from './clamped-cell';
+import { CLAMPED_ROW_HEIGHT, ClampedCell, serialColumn } from './clamped-cell';
 import { NomineePickerDialog } from './nominee-picker-dialog';
 import { NomineeDetailSheet } from './voting-sheets';
 
@@ -159,46 +159,50 @@ export function NomineesPanel({
 
   const columnDefs = useMemo<ColDef<NomineeRow>[]>(
     () => [
+      serialColumn<NomineeRow>(),
       {
         headerName: 'Person',
         field: 'displayName',
         flex: 2,
-        minWidth: 220,
+        minWidth: 200,
         cellRenderer: (p: ICellRendererParams<NomineeRow>) => {
           if (!p.data) return null;
-          const d = details.get(p.data.id);
           return (
-            <span className="flex h-full flex-col justify-center leading-tight">
-              <span className="flex items-center gap-2">
-                <span className="font-medium text-foreground">{p.data.displayName}</span>
-                {p.data.candidateId && (
-                  <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                    On the ballot
-                  </Badge>
-                )}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {[d?.batch, d?.branch].filter(Boolean).join(' · ') || 'No batch or branch given'}
-              </span>
+            <span className="flex h-full items-center gap-2">
+              <span className="font-medium text-foreground">{p.data.displayName}</span>
+              {p.data.candidateId && (
+                <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                  On the ballot
+                </Badge>
+              )}
             </span>
           );
         },
       },
       {
+        // Derived from the person's own nominations, and comma-joined when
+        // members disagreed — two different batch years for one name is
+        // itself worth seeing, since it usually means a wrong merge.
         headerName: 'Batch',
         colId: 'batch',
-        width: 110,
-        initialHide: true,
+        width: 120,
         valueGetter: (p) => (p.data ? (details.get(p.data.id)?.batch ?? '') : ''),
-        cellClass: 'text-xs text-muted-foreground',
+        cellRenderer: (p: ICellRendererParams<NomineeRow, string>) =>
+          p.value ? (
+            <span className="text-sm tabular-nums text-foreground">{p.value}</span>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          ),
       },
       {
         headerName: 'Branch',
         colId: 'branch',
-        width: 160,
-        initialHide: true,
+        flex: 1,
+        minWidth: 160,
         valueGetter: (p) => (p.data ? (details.get(p.data.id)?.branch ?? '') : ''),
-        cellClass: 'text-xs text-muted-foreground',
+        cellRenderer: (p: ICellRendererParams<NomineeRow, string>) => (
+          <ClampedCell text={p.value} className="text-sm text-foreground" />
+        ),
       },
       {
         headerName: 'Nominations',

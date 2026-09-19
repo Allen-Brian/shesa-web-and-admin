@@ -238,8 +238,6 @@ export async function loadCeremony(slug: string): Promise<LoadedCeremony | null>
 }
 
 export type EditionSummary = EditionRow & {
-  /** 1-based row number, so the table can show S/N without a client index. */
-  readonly serial: number;
   readonly awardCount: number;
   readonly nominationCount: number;
   /** Distinct people named across the ceremony's awards. */
@@ -315,9 +313,8 @@ export async function loadEditionSummaries(): Promise<readonly EditionSummary[]>
     ballotCount.set(b.edition_id, (ballotCount.get(b.edition_id) ?? 0) + 1);
   }
 
-  return editions.map((e, i) => ({
+  return editions.map((e) => ({
     ...e,
-    serial: i + 1,
     awardCount: awardCount.get(e.id) ?? 0,
     nominationCount: nomCount.get(e.id) ?? 0,
     nomineeCount: nomineeCount.get(e.id) ?? 0,

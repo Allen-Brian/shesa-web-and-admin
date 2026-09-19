@@ -26,6 +26,7 @@ import {
 import type { EditionSummary } from '../load-voting';
 import { watDate } from '../wat';
 
+import { serialColumn } from './clamped-cell';
 import { PHASE_COPY } from './phase-badge';
 
 interface Handlers {
@@ -48,15 +49,7 @@ export function buildCeremonyColumns({
   onToggleActive,
 }: Handlers): ColDef<EditionSummary>[] {
   return [
-    {
-      headerName: 'S/N',
-      field: 'serial',
-      width: 76,
-      maxWidth: 76,
-      sortable: false,
-      filter: false,
-      suppressMovable: true,
-    },
+    serialColumn<EditionSummary>(),
     {
       headerName: 'Live',
       colId: 'live',

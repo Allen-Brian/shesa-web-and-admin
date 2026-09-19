@@ -24,7 +24,7 @@ import {
 import type { NominationRow, NomineeRow } from '../voting-types';
 import { watDate } from '../wat';
 
-import { CLAMPED_ROW_HEIGHT, ClampedCell } from './clamped-cell';
+import { CLAMPED_ROW_HEIGHT, ClampedCell, serialColumn } from './clamped-cell';
 import { NomineePickerDialog } from './nominee-picker-dialog';
 import { NominationDetailSheet } from './voting-sheets';
 
@@ -99,6 +99,7 @@ export function NominationsPanel({
 
   const columnDefs = useMemo<ColDef<NominationRow>[]>(
     () => [
+      serialColumn<NominationRow>(),
       {
         headerName: 'As submitted',
         field: 'nomineeName',

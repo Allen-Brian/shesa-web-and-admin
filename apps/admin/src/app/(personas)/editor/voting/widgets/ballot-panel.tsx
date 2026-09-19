@@ -22,7 +22,7 @@ import { removeCandidates, type CandidateInput } from '../actions/voting-actions
 import type { AwardsPhase, CandidateRow } from '../voting-types';
 
 import { BLANK_CANDIDATE, CandidateDialog } from './candidate-dialog';
-import { CLAMPED_ROW_HEIGHT, ClampedCell } from './clamped-cell';
+import { CLAMPED_ROW_HEIGHT, ClampedCell, serialColumn } from './clamped-cell';
 
 /** What the briefing asks the Exco to supply before a name goes to a vote. */
 function missingFrom(c: CandidateRow): string[] {
@@ -96,6 +96,7 @@ export function BallotPanel({
 
   const columnDefs = useMemo<ColDef<CandidateRow>[]>(
     () => [
+      serialColumn<CandidateRow>(),
       {
         headerName: '',
         colId: 'photo',

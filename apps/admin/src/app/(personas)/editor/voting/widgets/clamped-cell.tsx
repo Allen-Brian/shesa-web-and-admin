@@ -1,5 +1,7 @@
 'use client';
 
+import type { ColDef } from '@shesa/ui';
+
 /**
  * A table cell that wraps to two lines and then stops.
  *
@@ -39,3 +41,29 @@ export function ClampedCell({
  * do not look like a different product.
  */
 export const CLAMPED_ROW_HEIGHT = 68;
+
+/**
+ * The row-number column every Voting table opens with.
+ *
+ * Read from the grid's own row index rather than from the data, so it counts
+ * what is actually on screen: sort by nominations and the leader is 1,
+ * filter to ungrouped and the remaining rows renumber from 1. A number
+ * stored on the row would keep the order the server happened to send and
+ * disagree with the table the moment anyone sorted it.
+ *
+ * Not sortable or filterable for the same reason — there is nothing to sort
+ * a position by.
+ */
+export function serialColumn<T>(): ColDef<T> {
+  return {
+    headerName: 'No.',
+    colId: 'serial',
+    width: 72,
+    maxWidth: 72,
+    sortable: false,
+    filter: false,
+    suppressMovable: true,
+    valueGetter: (p) => (p.node?.rowIndex ?? 0) + 1,
+    cellClass: 'text-xs text-muted-foreground tabular-nums',
+  };
+}
