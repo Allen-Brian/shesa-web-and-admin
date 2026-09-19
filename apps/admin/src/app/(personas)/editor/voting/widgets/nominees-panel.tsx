@@ -420,6 +420,7 @@ export function NomineesPanel({
         onRowClicked={(e: RowClickedEvent<NomineeRow>) => e.data && setViewing(e.data)}
         rowHeight={CLAMPED_ROW_HEIGHT}
         showColumnPicker={false}
+        selectionPinned={false}
         massActions={massActions}
       />
 

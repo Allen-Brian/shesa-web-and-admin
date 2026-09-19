@@ -1,12 +1,12 @@
 'use client';
 
 /**
- * A table cell that wraps to three lines and then stops.
+ * A table cell that wraps to two lines and then stops.
  *
  * Citations, award descriptions and lists of spellings are all free text a
  * member typed, so they have no length anyone controls. One line with an
  * ellipsis loses the sentence; unbounded wrapping gives one row the height
- * of a paragraph and pushes everything else off the screen. Three lines is
+ * of a paragraph and pushes everything else off the screen. Two lines is
  * enough to tell whether a citation is serious, and the row opens for the
  * rest.
  *
@@ -24,7 +24,7 @@ export function ClampedCell({
 
   return (
     <span className="flex h-full items-center py-2">
-      <span className={`line-clamp-3 whitespace-normal break-words leading-[1.45] ${className}`}>
+      <span className={`line-clamp-2 whitespace-normal break-words leading-[1.45] ${className}`}>
         {text}
       </span>
     </span>
@@ -34,7 +34,8 @@ export function ClampedCell({
 /**
  * Row height for a table carrying clamped text.
  *
- * Three lines at 12px on 1.45 leading is ~52px; the rest is the vertical
- * padding the other tables use.
+ * Two lines at 12px on 1.45 leading is ~35px, plus the vertical padding the
+ * other tables use — close enough to the 65px default that the voting tables
+ * do not look like a different product.
  */
-export const CLAMPED_ROW_HEIGHT = 84;
+export const CLAMPED_ROW_HEIGHT = 68;

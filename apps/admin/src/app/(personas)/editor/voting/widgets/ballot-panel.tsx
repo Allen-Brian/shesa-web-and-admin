@@ -265,6 +265,7 @@ export function BallotPanel({
             onRowClicked={onRowClicked}
             rowHeight={CLAMPED_ROW_HEIGHT}
             showColumnPicker={false}
+            selectionPinned={false}
             massActions={massActions}
           />
         </>

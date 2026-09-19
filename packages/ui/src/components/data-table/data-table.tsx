@@ -53,6 +53,13 @@ export interface DataTableProps<T = unknown> extends Omit<
   getRowId?: GridOptions<T>['getRowId'];
   /** Prepend a checkbox column for row selection + show MassActionsBar on selection. */
   selectable?: boolean;
+  /**
+   * Freeze the checkbox column to the left edge. Default true, which is what
+   * a wide table with horizontal scroll wants — the checkbox stays reachable
+   * while the columns slide under it. Pass false on a table that fits, where
+   * a frozen column only adds a seam.
+   */
+  selectionPinned?: boolean;
   /** Wired actions for the bottom popup when one or more rows are selected. */
   massActions?: MassActions<T>;
   /** Pagination on/off. Default true. */
@@ -90,6 +97,7 @@ export function DataTable<T>({
   getRowId,
   defaultColDef,
   selectable = true,
+  selectionPinned = true,
   massActions,
   pagination = true,
   pageSize: pageSizeProp = 8,
@@ -220,7 +228,7 @@ export function DataTable<T>({
                   ? {
                       width: 50,
                       maxWidth: 50,
-                      pinned: 'left',
+                      pinned: selectionPinned ? 'left' : undefined,
                       suppressHeaderMenuButton: true,
                       headerComponent: undefined,
                     }

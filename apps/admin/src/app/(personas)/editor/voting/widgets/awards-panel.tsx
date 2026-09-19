@@ -327,6 +327,7 @@ export function AwardsPanel({
         onRowClicked={onRowClicked}
         rowHeight={CLAMPED_ROW_HEIGHT}
         showColumnPicker={false}
+        selectionPinned={false}
         massActions={massActions}
       />
 

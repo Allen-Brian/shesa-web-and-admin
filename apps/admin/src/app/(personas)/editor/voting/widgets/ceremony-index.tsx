@@ -186,6 +186,7 @@ export function CeremonyIndex({ editions }: { readonly editions: readonly Editio
         onGridReady={(e) => setGridApi(e.api)}
         onRowClicked={onRowClicked}
         showColumnPicker={false}
+        selectionPinned={false}
         massActions={massActions}
       />
 
