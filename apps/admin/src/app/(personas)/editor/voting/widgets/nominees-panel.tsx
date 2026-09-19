@@ -6,6 +6,10 @@ import {
   Button,
   ConfirmDialog,
   DataTable,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
   EntityTablePanel,
   Input,
   toast,
@@ -13,8 +17,10 @@ import {
   type GridApi,
   type ICellRendererParams,
   type MassActions,
+  type RowClickedEvent,
 } from '@shesa/ui';
-import { Check, Combine, Layers, Merge, UserPlus } from 'lucide-react';
+import { DropdownMenuTrigger } from '@shesa/ui';
+import { Check, Combine, Layers, Merge, MoreHorizontal, Pencil, UserPlus, X } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 
 import {
@@ -28,7 +34,9 @@ import {
 } from '../actions/voting-actions';
 import type { MergeSuggestion, NominationRow, NomineeRow } from '../voting-types';
 
+import { CLAMPED_ROW_HEIGHT, ClampedCell } from './clamped-cell';
 import { NomineePickerDialog } from './nominee-picker-dialog';
+import { NomineeDetailSheet } from './voting-sheets';
 
 /**
  * The people nominated for one award, with how many times each was named.
@@ -64,7 +72,33 @@ export function NomineesPanel({
   const [merging, setMerging] = useState<MergeSuggestion | null>(null);
   const [dissolving, setDissolving] = useState<readonly NomineeRow[] | null>(null);
   const [mergingMany, setMergingMany] = useState<readonly NomineeRow[] | null>(null);
+  const [viewing, setViewing] = useState<NomineeRow | null>(null);
   const [pending, startTransition] = useTransition();
+
+  /**
+   * Batch, branch and every spelling, per person — derived from their own
+   * nominations rather than stored on the group, because a group is a name
+   * and the facts about the person live on what members submitted.
+   */
+  const details = useMemo(() => {
+    const m = new Map<
+      string,
+      { batch: string; branch: string; spellings: string; spellingCount: number }
+    >();
+    for (const b of nominees) {
+      const mine = nominations.filter((n) => n.nomineeId === b.id);
+      const spellings = [...new Set(mine.map((n) => n.nomineeName.trim()))];
+      const batches = [...new Set(mine.map((n) => n.nomineeBatchYear).filter(Boolean))];
+      const branches = [...new Set(mine.map((n) => n.nomineeBranchLabel).filter(Boolean))];
+      m.set(b.id, {
+        batch: batches.join(', '),
+        branch: branches.join(', '),
+        spellings: spellings.join(', '),
+        spellingCount: spellings.length,
+      });
+    }
+    return m;
+  }, [nominations, nominees]);
 
   const ungrouped = nominations.filter((n) => !n.nomineeId).length;
 
@@ -129,25 +163,47 @@ export function NomineesPanel({
         headerName: 'Person',
         field: 'displayName',
         flex: 2,
-        minWidth: 240,
+        minWidth: 220,
         cellRenderer: (p: ICellRendererParams<NomineeRow>) => {
           if (!p.data) return null;
+          const d = details.get(p.data.id);
           return (
-            <span className="flex h-full items-center gap-2">
-              <span className="font-medium text-foreground">{p.data.displayName}</span>
-              {p.data.candidateId && (
-                <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                  On the ballot
-                </Badge>
-              )}
+            <span className="flex h-full flex-col justify-center leading-tight">
+              <span className="flex items-center gap-2">
+                <span className="font-medium text-foreground">{p.data.displayName}</span>
+                {p.data.candidateId && (
+                  <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                    On the ballot
+                  </Badge>
+                )}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {[d?.batch, d?.branch].filter(Boolean).join(' · ') || 'No batch or branch given'}
+              </span>
             </span>
           );
         },
       },
       {
+        headerName: 'Batch',
+        colId: 'batch',
+        width: 110,
+        initialHide: true,
+        valueGetter: (p) => (p.data ? (details.get(p.data.id)?.batch ?? '') : ''),
+        cellClass: 'text-xs text-muted-foreground',
+      },
+      {
+        headerName: 'Branch',
+        colId: 'branch',
+        width: 160,
+        initialHide: true,
+        valueGetter: (p) => (p.data ? (details.get(p.data.id)?.branch ?? '') : ''),
+        cellClass: 'text-xs text-muted-foreground',
+      },
+      {
         headerName: 'Nominations',
         field: 'nominationCount',
-        width: 150,
+        width: 140,
         type: 'numericColumn',
         sort: 'desc',
         cellRenderer: (p: ICellRendererParams<NomineeRow, number>) => (
@@ -157,26 +213,23 @@ export function NomineesPanel({
         ),
       },
       {
+        // What members actually typed. A name here that is plainly somebody
+        // else is how a wrong merge gets caught, so it is worth the width.
         headerName: 'Spellings received',
         colId: 'spellings',
-        flex: 2,
-        minWidth: 220,
+        flex: 3,
+        minWidth: 240,
         sortable: false,
-        // What members actually typed, so a wrongly merged pair is visible
-        // without opening anything.
-        valueGetter: (p) => {
-          if (!p.data) return '';
-          const mine = nominations.filter((n) => n.nomineeId === p.data?.id);
-          const names = [...new Set(mine.map((n) => n.nomineeName.trim()))];
-          return names.join(' · ');
-        },
-        cellClass: 'text-xs text-muted-foreground',
+        valueGetter: (p) => (p.data ? (details.get(p.data.id)?.spellings ?? '') : ''),
+        cellRenderer: (p: ICellRendererParams<NomineeRow, string>) => (
+          <ClampedCell text={p.value} />
+        ),
       },
       {
         headerName: '',
         colId: 'actions',
-        width: 150,
-        maxWidth: 150,
+        width: 64,
+        maxWidth: 64,
         sortable: false,
         filter: false,
         suppressMovable: true,
@@ -184,38 +237,50 @@ export function NomineesPanel({
           if (!p.data) return null;
           const row = p.data;
           return (
-            <span className="flex h-full items-center justify-end gap-1">
-              {!row.candidateId && (
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={pending}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toBallot([row]);
-                  }}
-                >
-                  <UserPlus className="h-3.5 w-3.5" /> Ballot
-                </Button>
-              )}
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setRenaming({ id: row.id, value: row.displayName });
-                }}
-              >
-                Rename
-              </Button>
+            <span className="flex h-full items-center justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 rounded-md p-0"
+                    aria-label="Actions"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                  {!row.candidateId && (
+                    <DropdownMenuItem onClick={() => toBallot([row])}>
+                      <UserPlus className="h-4 w-4" />
+                      Add to ballot
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onClick={() => setRenaming({ id: row.id, value: row.displayName })}
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setDissolving([row])}
+                  >
+                    <X className="h-4 w-4" />
+                    Remove this person
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </span>
           );
         },
       },
     ],
-    // `nominations` is the only value read inside a renderer.
-    [nominations, pending],
+    // `toBallot` and the setters are stable for the grid's purposes.
+    [details],
   );
 
   const massActions = useMemo<MassActions<NomineeRow>>(
@@ -352,8 +417,24 @@ export function NomineesPanel({
         columnDefs={columnDefs}
         getRowId={(params) => params.data.id}
         onGridReady={(e) => setGridApi(e.api)}
+        onRowClicked={(e: RowClickedEvent<NomineeRow>) => e.data && setViewing(e.data)}
+        rowHeight={CLAMPED_ROW_HEIGHT}
         showColumnPicker={false}
         massActions={massActions}
+      />
+
+      {/* The table can only show a count and a few spellings. Opening a row
+          shows every citation and who wrote it, which is what the decision
+          to put someone on a ballot actually rests on. */}
+      <NomineeDetailSheet
+        nominee={viewing}
+        nominations={nominations}
+        onClose={() => setViewing(null)}
+        onAddToBallot={(n) => {
+          setViewing(null);
+          toBallot([n]);
+        }}
+        pending={pending}
       />
 
       {/* Rename inline rather than in a dialog — one field, and the value

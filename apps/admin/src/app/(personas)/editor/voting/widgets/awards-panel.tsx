@@ -40,6 +40,7 @@ import {
 import type { AwardRow, CategoryRow, EditionRow } from '../voting-types';
 
 import { CategoryManager } from './category-manager';
+import { CLAMPED_ROW_HEIGHT } from './clamped-cell';
 
 const STANDALONE = '__standalone';
 const NEW_CATEGORY = '__new';
@@ -133,7 +134,9 @@ export function AwardsPanel({
                 )}
               </span>
               {p.data.description && (
-                <span className="truncate text-xs text-muted-foreground">{p.data.description}</span>
+                <span className="line-clamp-2 whitespace-normal break-words text-xs leading-[1.45] text-muted-foreground">
+                  {p.data.description}
+                </span>
               )}
             </span>
           );
@@ -303,7 +306,7 @@ export function AwardsPanel({
             Headings that group the awards below. An award can also stand alone — Branch and Country
             Chapter have no parent heading.
           </p>
-          <CategoryManager editionId={edition.id} categories={categories} />
+          <CategoryManager editionId={edition.id} categories={categories} awards={awards} />
         </div>
       )}
 
@@ -322,6 +325,7 @@ export function AwardsPanel({
         getRowId={(params) => params.data.id}
         onGridReady={(e) => setGridApi(e.api)}
         onRowClicked={onRowClicked}
+        rowHeight={CLAMPED_ROW_HEIGHT}
         showColumnPicker={false}
         massActions={massActions}
       />

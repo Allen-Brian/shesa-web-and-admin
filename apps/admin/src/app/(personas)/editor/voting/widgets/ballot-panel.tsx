@@ -22,6 +22,7 @@ import { removeCandidates, type CandidateInput } from '../actions/voting-actions
 import type { AwardsPhase, CandidateRow } from '../voting-types';
 
 import { BLANK_CANDIDATE, CandidateDialog } from './candidate-dialog';
+import { CLAMPED_ROW_HEIGHT, ClampedCell } from './clamped-cell';
 
 /** What the briefing asks the Exco to supply before a name goes to a vote. */
 function missingFrom(c: CandidateRow): string[] {
@@ -154,9 +155,9 @@ export function BallotPanel({
         flex: 2,
         minWidth: 260,
         sortable: false,
-        valueFormatter: (p) => p.value ?? '—',
-        cellClass: 'text-xs text-muted-foreground',
-        tooltipField: 'accomplishments',
+        cellRenderer: (p: ICellRendererParams<CandidateRow, string>) => (
+          <ClampedCell text={p.value} />
+        ),
       },
       {
         headerName: 'Incomplete',
@@ -262,6 +263,7 @@ export function BallotPanel({
             getRowId={(params) => params.data.id}
             onGridReady={(e) => setGridApi(e.api)}
             onRowClicked={onRowClicked}
+            rowHeight={CLAMPED_ROW_HEIGHT}
             showColumnPicker={false}
             massActions={massActions}
           />

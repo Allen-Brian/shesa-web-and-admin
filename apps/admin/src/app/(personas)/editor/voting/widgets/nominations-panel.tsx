@@ -11,6 +11,7 @@ import {
   type GridApi,
   type ICellRendererParams,
   type MassActions,
+  type RowClickedEvent,
 } from '@shesa/ui';
 import { Unlink, Users } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
@@ -23,7 +24,9 @@ import {
 import type { NominationRow, NomineeRow } from '../voting-types';
 import { watDate } from '../wat';
 
+import { CLAMPED_ROW_HEIGHT, ClampedCell } from './clamped-cell';
 import { NomineePickerDialog } from './nominee-picker-dialog';
+import { NominationDetailSheet } from './voting-sheets';
 
 type Filter = 'all' | 'grouped' | 'ungrouped';
 
@@ -50,6 +53,7 @@ export function NominationsPanel({
   const [filter, setFilter] = useState<Filter>('all');
   const [grouping, setGrouping] = useState<readonly NominationRow[] | null>(null);
   const [confirm, setConfirm] = useState<readonly NominationRow[] | null>(null);
+  const [viewing, setViewing] = useState<NominationRow | null>(null);
   const [pending, startTransition] = useTransition();
 
   const nomineeName = useMemo(
@@ -164,8 +168,9 @@ export function NominationsPanel({
         flex: 3,
         minWidth: 280,
         sortable: false,
-        cellClass: 'text-xs text-muted-foreground',
-        tooltipField: 'citation',
+        cellRenderer: (p: ICellRendererParams<NominationRow, string>) => (
+          <ClampedCell text={p.value} />
+        ),
       },
       {
         headerName: 'Nominated by',
@@ -268,8 +273,16 @@ export function NominationsPanel({
         columnDefs={columnDefs}
         getRowId={(params) => params.data.id}
         onGridReady={(e) => setGridApi(e.api)}
+        onRowClicked={(e: RowClickedEvent<NominationRow>) => e.data && setViewing(e.data)}
+        rowHeight={CLAMPED_ROW_HEIGHT}
         showColumnPicker={false}
         massActions={massActions}
+      />
+
+      <NominationDetailSheet
+        nomination={viewing}
+        nomineeName={viewing?.nomineeId ? (nomineeName.get(viewing.nomineeId) ?? null) : null}
+        onClose={() => setViewing(null)}
       />
 
       <NomineePickerDialog
