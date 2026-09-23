@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Images } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/empty-state';
-import { MetricsBadge, MetricsProvider } from '@/components/ui/metrics-badge';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -118,10 +117,8 @@ export function Gallery({ albums }: GalleryProps) {
           </div>
         ) : (
           <>
-            <MetricsProvider kind="album" ids={albums.map((a) => a.id)}>
-              <AlbumFan albums={albums} />
-              <MobileAlbumScroll albums={albums} />
-            </MetricsProvider>
+            <AlbumFan albums={albums} />
+            <MobileAlbumScroll albums={albums} />
           </>
         )}
       </motion.div>
@@ -334,7 +331,6 @@ function AlbumStack({ album }: { readonly album: Album }) {
               {album.photos} photos
               <span aria-hidden>→</span>
             </p>
-            <MetricsBadge entityId={album.id} tone="light" className="mt-2" />
           </div>
         </div>
 

@@ -6,7 +6,6 @@ import { motion, type Variants } from 'framer-motion';
 import { Newspaper } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/empty-state';
-import { MetricsBadge, MetricsProvider } from '@/components/ui/metrics-badge';
 import type { HomeNewsItem } from '@/lib/home-data';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -96,60 +95,55 @@ export function News({ articles }: Props) {
           /* Three equal cards rather than one lead and a stack of rows —
              every story gets the same weight, and the row of tops and
              bottoms stays level however long a headline runs. */
-          <MetricsProvider kind="article" ids={articles.map((a) => a.id)}>
-            <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 md:mt-16 md:gap-8 lg:grid-cols-3">
-              {articles.map((article, i) => (
-                <motion.article
-                  key={article.id}
-                  initial={{ opacity: 0, y: 22 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.25 }}
-                  transition={{ duration: 0.7, delay: 0.05 + (i % 3) * 0.08, ease }}
-                  className="h-full"
+          <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 md:mt-16 md:gap-8 lg:grid-cols-3">
+            {articles.map((article, i) => (
+              <motion.article
+                key={article.id}
+                initial={{ opacity: 0, y: 22 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ duration: 0.7, delay: 0.05 + (i % 3) * 0.08, ease }}
+                className="h-full"
+              >
+                <Link
+                  href={`/news?id=${article.id}`}
+                  className="group flex h-full flex-col overflow-hidden rounded-xs border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_18px_40px_-12px_rgba(139,21,51,0.16)]"
                 >
-                  <Link
-                    href={`/news?id=${article.id}`}
-                    className="group flex h-full flex-col overflow-hidden rounded-xs border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_18px_40px_-12px_rgba(139,21,51,0.16)]"
-                  >
-                    <div className="relative aspect-3/2 shrink-0 overflow-hidden">
-                      <Image
-                        src={article.image}
-                        alt={article.title}
-                        fill
-                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                        quality={75}
-                        className="object-cover object-top transition-transform duration-1000 group-hover:scale-105"
-                      />
-                      <span className="absolute left-4 top-4 rounded-xs bg-white/95 px-2.5 py-1 font-heading text-[10px] font-medium uppercase tracking-[0.22em] text-primary backdrop-blur-sm">
-                        {article.category}
-                      </span>
-                    </div>
+                  <div className="relative aspect-3/2 shrink-0 overflow-hidden">
+                    <Image
+                      src={article.image}
+                      alt={article.title}
+                      fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      quality={75}
+                      className="object-cover object-top transition-transform duration-1000 group-hover:scale-105"
+                    />
+                    <span className="absolute left-4 top-4 rounded-xs bg-white/95 px-2.5 py-1 font-heading text-[10px] font-medium uppercase tracking-[0.22em] text-primary backdrop-blur-sm">
+                      {article.category}
+                    </span>
+                  </div>
 
-                    <div className="flex flex-1 flex-col p-5 md:p-6">
-                      <Meta date={article.date} author={article.author} />
-                      <h3
-                        className="mt-3 line-clamp-2 font-heading font-light leading-tight text-black transition-colors duration-500 group-hover:text-primary"
-                        style={{ fontSize: '1.15rem', letterSpacing: '-0.005em' }}
-                      >
-                        {article.title}
-                      </h3>
-                      {article.excerpt && (
-                        <p className="mt-3 line-clamp-3 text-[13.5px] leading-[1.7] text-black/60">
-                          {article.excerpt}
-                        </p>
-                      )}
-                      <span className="mt-auto flex items-center justify-between gap-3 pt-4">
-                        <span className="font-heading text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
-                          Read the story
-                        </span>
-                        <MetricsBadge entityId={article.id} />
-                      </span>
-                    </div>
-                  </Link>
-                </motion.article>
-              ))}
-            </div>
-          </MetricsProvider>
+                  <div className="flex flex-1 flex-col p-5 md:p-6">
+                    <Meta date={article.date} author={article.author} />
+                    <h3
+                      className="mt-3 line-clamp-2 font-heading font-light leading-tight text-black transition-colors duration-500 group-hover:text-primary"
+                      style={{ fontSize: '1.15rem', letterSpacing: '-0.005em' }}
+                    >
+                      {article.title}
+                    </h3>
+                    {article.excerpt && (
+                      <p className="mt-3 line-clamp-3 text-[13.5px] leading-[1.7] text-black/60">
+                        {article.excerpt}
+                      </p>
+                    )}
+                    <span className="mt-auto pt-4 font-heading text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
+                      Read the story
+                    </span>
+                  </div>
+                </Link>
+              </motion.article>
+            ))}
+          </div>
         )}
       </div>
     </section>
