@@ -31,6 +31,10 @@ interface Props {
   /// Targets tab). Rendered between the search input and the right-side
   /// controls so the table inherits a single, consistent header bar.
   filters?: React.ReactNode;
+  /// Optional slot for table-level actions (eg. Export). Sits beside the
+  /// Columns picker, left of Create, so every table puts the same kind of
+  /// control in the same place.
+  actions?: React.ReactNode;
 }
 
 /**
@@ -53,6 +57,7 @@ export function EntityTablePanel({
   onShowActiveOnlyChange,
   showActiveLabel = 'Show only active',
   filters,
+  actions,
 }: Props) {
   const showActiveSlotEnabled =
     showActiveOnly !== undefined && onShowActiveOnlyChange !== undefined;
@@ -92,6 +97,7 @@ export function EntityTablePanel({
             <Separator orientation="vertical" className="h-6" />
           </>
         )}
+        {actions}
         <ColumnPicker api={gridApi} />
         {!hideCreate && (
           <Button size="sm" disabled={!canCreate} onClick={onCreate}>

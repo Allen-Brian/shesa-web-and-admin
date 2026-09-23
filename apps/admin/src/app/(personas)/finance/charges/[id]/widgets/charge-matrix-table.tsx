@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Clock, Download } from 'lucide-react';
+import { Clock, FileText } from 'lucide-react';
 
 import { Button, DataTable, Input, type CellClickedEvent, type GridApi } from '@shesa/ui';
 
+import { ExportButton } from '@/components/export-button';
+
+import { buildChargeMatrixExport } from './charge-detail-export';
 import type {
   ChargeDetailMatrixProps,
   MatrixCell,
@@ -125,14 +128,18 @@ export function ChargeMatrixTable({
             </Button>
           )}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => exportChargeMatrixCsv({ summary, periods, members })}
-            className="gap-1.5"
+            className="gap-1.5 text-muted-foreground"
           >
-            <Download className="h-3.5 w-3.5" />
-            Export
+            <FileText className="h-3.5 w-3.5" />
+            CSV
           </Button>
+          <ExportButton
+            spec={() => buildChargeMatrixExport({ summary, periods, members })}
+            disabled={members.length === 0}
+          />
         </div>
       </div>
 

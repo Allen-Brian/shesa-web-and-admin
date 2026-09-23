@@ -27,9 +27,18 @@ export interface TransactionRow {
   readonly chargeShape: string | null;
   readonly scopeName: string;
   readonly payerLabel: string;
+  /**
+   * Contact details. For a public payment these come off the form, via
+   * `payments.metadata`; for a member payment they are resolved from
+   * `core.members`, so an exported sheet can be acted on by somebody
+   * who cannot click through to the member record.
+   */
   readonly payerEmail: string | null;
   readonly payerPhone: string | null;
   readonly payerLocation: string | null;
+  /** Batch scope name — members only, null for public payers. */
+  readonly payerBatch: string | null;
+  readonly payerMemberCode: string | null;
   readonly isAnonymousPayer: boolean;
   readonly amount: number;
   readonly currency: string;

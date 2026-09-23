@@ -1,10 +1,14 @@
 'use client';
 
-import { BarChart3, Download } from 'lucide-react';
+import { BarChart3, FileText } from 'lucide-react';
 
 import { Button, DataTable } from '@shesa/ui';
 
+import { ExportButton } from '@/components/export-button';
+
 import { buildReportColumns } from './report-columns';
+import { ReportNarrative } from './report-narrative';
+import { buildReportExport } from './reports-export';
 import { downloadCsv } from './reports-formatters';
 import { REPORTS, type ResultRow, type RunResult } from './reports-types';
 import { ResultInsights } from './result-insights';
@@ -25,8 +29,11 @@ export function ReportResultPanel({ result, scopeCurrency }: ReportResultPanelPr
     return (
       <div className="rounded-xl border border-dashed border-border p-10 text-center">
         <BarChart3 className="mx-auto mb-3 h-8 w-8 text-muted-foreground/60" />
-        <p className="text-sm text-muted-foreground">
-          Pick a report + scope above, then click <span className="font-medium">Run report</span>.
+        <p className="text-sm font-medium text-foreground">Nothing has been run yet.</p>
+        <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+          Choose a report above, tell it which scope and dates to cover, then press{' '}
+          <span className="font-medium text-foreground">Run report</span>. Nothing is changed by
+          running one — you can try as many as you like.
         </p>
       </div>
     );
@@ -55,6 +62,9 @@ export function ReportResultPanel({ result, scopeCurrency }: ReportResultPanelPr
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="flex flex-col gap-0.5">
+          <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+            Step 3 · The answer
+          </span>
           <h2 className="text-lg font-semibold text-foreground">
             {REPORTS.find((r) => r.value === result.report)?.label ?? result.report}
           </h2>
@@ -65,24 +75,40 @@ export function ReportResultPanel({ result, scopeCurrency }: ReportResultPanelPr
             {new Date(result.ranAt).toLocaleTimeString()}
           </span>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={exportCsv}
-          disabled={result.rows.length === 0}
-          className="gap-1.5"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Export CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* CSV stays for anyone feeding these rows into something
+              else; Excel is the one you would forward to a person. */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={exportCsv}
+            disabled={result.rows.length === 0}
+            className="gap-1.5 text-muted-foreground"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            CSV
+          </Button>
+          <ExportButton
+            spec={() => buildReportExport(result)}
+            label="Export Excel"
+            disabled={result.rows.length === 0}
+          />
+        </div>
       </div>
 
       {result.rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          No rows for this window. Try a wider range or a different scope.
+        <div className="rounded-xl border border-dashed border-border p-8 text-center">
+          <p className="text-sm font-medium text-foreground">
+            This report came back empty — and that is an answer too.
+          </p>
+          <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+            Nothing matched this scope and this window. Either nothing happened in that period, or
+            the window is too narrow. Try widening the dates or picking a different scope.
+          </p>
         </div>
       ) : (
         <>
+          <ReportNarrative result={result} scopeCurrency={scopeCurrency} />
           <ResultInsights result={result} scopeCurrency={scopeCurrency} />
           <DataTable<ResultRow>
             rowData={result.rows}

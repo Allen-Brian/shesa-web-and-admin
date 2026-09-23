@@ -89,7 +89,7 @@ export function buildGroupColumns(actions: GroupColumnActions): ColDef<SerialGro
       ),
     },
     {
-      headerName: '',
+      headerName: 'Actions',
       colId: 'row_actions',
       width: 150,
       sortable: false,

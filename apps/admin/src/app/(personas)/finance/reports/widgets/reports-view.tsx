@@ -70,9 +70,11 @@ export function ReportsView({ scopeOptions, groupOptions }: ReportsViewProps) {
           <BarChart className="h-6 w-6" />
           Reports
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Pick a report and a scope. Windowed reports respect the date preset below. An event group
-          narrows the rows to that group without changing the underlying scope.
+        <p className="max-w-3xl text-sm text-muted-foreground">
+          Choose a question, say which part of the association and which dates it should cover, then
+          run it. Every result is explained in plain words before the numbers, and can be exported
+          as a formatted Excel file to send on. Running a report only reads data — it never changes
+          anything.
         </p>
       </div>
 

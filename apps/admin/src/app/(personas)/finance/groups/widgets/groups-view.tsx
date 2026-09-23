@@ -15,6 +15,10 @@ import {
   type GridApi,
 } from '@shesa/ui';
 
+import { ExportButton } from '@/components/export-button';
+import { activeFilters } from '@/lib/export/filters';
+
+import { buildGroupsExport } from './groups-export';
 import { buildGroupColumns } from './group-columns';
 import { CreateGroupDialog } from './create-group-dialog';
 import { initialCreateGroup } from './groups-helpers';
@@ -97,6 +101,17 @@ export function GroupsView({ groups }: GroupsViewProps) {
         canCreate={true}
         createLabel="New group"
         onCreate={openCreate}
+        actions={
+          <ExportButton
+            spec={() =>
+              buildGroupsExport(
+                filtered,
+                activeFilters({ Search: search.trim(), Status: statusFilter }),
+              )
+            }
+            disabled={filtered.length === 0}
+          />
+        }
         filters={
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
             <SelectTrigger className="h-8 w-36 text-xs">

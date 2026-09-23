@@ -94,6 +94,12 @@ const inputSchema = z
     paymentMethod: z.string().min(1).max(40),
     /** `cms.agm_registrations.reference`, so the two records can be joined. */
     reference: z.string().max(60).optional(),
+    /**
+     * Attire orders only. Kept on the intent — and from there on the
+     * settled payment — so the size is readable as data wherever the
+     * order is, not just as words inside the gateway description.
+     */
+    attireSize: z.string().max(10).optional(),
     /** Free text from the payer — "in memory of…", "from the Douala chapter". */
     note: z.string().max(500).optional(),
     description: z.string().min(1).max(200),
@@ -239,6 +245,7 @@ export async function initiatePublicPayment(req: Request): Promise<Response> {
         source: 'public_agm_form',
         form_payment_method: input.paymentMethod,
         agm_reference: input.reference ?? null,
+        attire_size: input.attireSize ?? null,
       },
     } as never)
     .select('id')
@@ -304,6 +311,7 @@ export async function initiatePublicPayment(req: Request): Promise<Response> {
           source: 'public_agm_form',
           form_payment_method: input.paymentMethod,
           agm_reference: input.reference ?? null,
+          attire_size: input.attireSize ?? null,
         },
         updated_at: new Date().toISOString(),
       } as never)

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { loadGroupBySlug } from '@/lib/finance/groups/load-group';
+import { loadMemberContacts } from '@/lib/finance/member-contacts';
 import { getServerClient } from '@/lib/supabase-server';
 
 import { DonationsView } from '../../../donations/widgets/donations-view';
@@ -83,22 +84,17 @@ export default async function GroupDonationsPage({ params }: Props) {
   const memberIds = Array.from(
     new Set(paymentsData.map((p) => p.payer_member_id).filter((id): id is string => !!id)),
   );
-  const [{ data: scopeRows }, { data: memberRows }] = await Promise.all([
+  const [{ data: scopeRows }, memberById] = await Promise.all([
     scopeIds.length
       ? supabase.schema('core').from('scopes').select('id, name, currency_code').in('id', scopeIds)
       : Promise.resolve({ data: [] }),
-    memberIds.length
-      ? supabase.schema('core').from('members').select('id, full_name').in('id', memberIds)
-      : Promise.resolve({ data: [] }),
+    loadMemberContacts(supabase, memberIds),
   ]);
   const scopeById = new Map(
     ((scopeRows ?? []) as Array<{ id: string; name: string; currency_code: string }>).map((s) => [
       s.id,
       s,
     ]),
-  );
-  const memberById = new Map(
-    ((memberRows ?? []) as Array<{ id: string; full_name: string }>).map((m) => [m.id, m]),
   );
   const campaignChargeIds = new Set(campaignsData.map((c) => c.id));
   const chargeById = new Map(campaignsData.map((c) => [c.id, c]));
@@ -145,9 +141,15 @@ export default async function GroupDonationsPage({ params }: Props) {
       const scope = scopeById.get(p.scope_id);
       const charge = p.charge_id ? chargeById.get(p.charge_id) : null;
       const member = p.payer_member_id ? memberById.get(p.payer_member_id) : null;
-      const meta = (p.metadata ?? {}) as { donor_name?: string; public_donation?: boolean };
+      const meta = (p.metadata ?? {}) as {
+        donor_name?: string;
+        donor_email?: string;
+        payer_email?: string;
+        payer_phone?: string;
+        public_donation?: boolean;
+      };
       const donorLabel =
-        member?.full_name ??
+        member?.fullName ??
         meta.donor_name ??
         (meta.public_donation ? 'Anonymous donor' : 'Walk-in');
       return {
@@ -155,6 +157,10 @@ export default async function GroupDonationsPage({ params }: Props) {
         campaignName: charge?.name ?? '—',
         scopeName: scope?.name ?? '—',
         donorLabel,
+        donorEmail: meta.donor_email ?? meta.payer_email ?? member?.email ?? null,
+        donorPhone: meta.payer_phone ?? member?.phone ?? null,
+        donorBatch: member?.batchName ?? null,
+        donorMemberCode: member?.memberCode ?? null,
         isMember: !!member,
         isPublic: !!meta.public_donation,
         amount: p.amount,

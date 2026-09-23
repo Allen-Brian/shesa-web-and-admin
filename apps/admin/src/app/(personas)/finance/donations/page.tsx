@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import { loadMemberContacts } from '@/lib/finance/member-contacts';
 import { getServerClient } from '@/lib/supabase-server';
 
 import { DonationsView } from './widgets/donations-view';
@@ -49,11 +50,6 @@ interface RawScopeRow {
   readonly scope_type: string;
   readonly chapter_kind: string | null;
   readonly currency_code: string;
-}
-
-interface RawMemberRow {
-  readonly id: string;
-  readonly full_name: string;
 }
 
 /**
@@ -125,10 +121,7 @@ export default async function DonationsPage() {
   const memberIds = Array.from(
     new Set(paymentsData.map((p) => p.payer_member_id).filter((id): id is string => !!id)),
   );
-  const { data: memberRows } = memberIds.length
-    ? await supabase.schema('core').from('members').select('id, full_name').in('id', memberIds)
-    : { data: [] as RawMemberRow[] };
-  const memberById = new Map(((memberRows ?? []) as RawMemberRow[]).map((m) => [m.id, m]));
+  const memberById = await loadMemberContacts(supabase, memberIds);
 
   const reversedIds = new Set(
     paymentsData.map((p) => p.reverses_payment_id).filter((id): id is string => !!id),
@@ -179,10 +172,13 @@ export default async function DonationsPage() {
       const member = p.payer_member_id ? memberById.get(p.payer_member_id) : null;
       const meta = (p.metadata ?? {}) as {
         donor_name?: string;
+        donor_email?: string;
+        payer_email?: string;
+        payer_phone?: string;
         public_donation?: boolean;
       };
       const donorLabel =
-        member?.full_name ??
+        member?.fullName ??
         meta.donor_name ??
         (meta.public_donation ? 'Anonymous donor' : 'Walk-in');
       const groupId = charge?.group_id ?? null;
@@ -191,6 +187,13 @@ export default async function DonationsPage() {
         campaignName: charge?.name ?? '—',
         scopeName: scope?.name ?? '—',
         donorLabel,
+        // Walk-in donors type their details on the entry form; members
+        // are resolved from their record. Either way a sheet of
+        // donations leaves here with a way to thank the donor.
+        donorEmail: meta.donor_email ?? meta.payer_email ?? member?.email ?? null,
+        donorPhone: meta.payer_phone ?? member?.phone ?? null,
+        donorBatch: member?.batchName ?? null,
+        donorMemberCode: member?.memberCode ?? null,
         isMember: !!member,
         isPublic: !!meta.public_donation,
         amount: p.amount,

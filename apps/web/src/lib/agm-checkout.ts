@@ -53,6 +53,12 @@ export interface CheckoutInput {
   readonly paymentMethod: string;
   /** The `cms.agm_registrations` reference, so the two records join up. */
   readonly reference: string;
+  /**
+   * Attire orders only. Rides through to the payment's metadata so the
+   * secretariat can read sizes off the payments table rather than
+   * cross-referencing every order against the registrations list.
+   */
+  readonly attireSize?: string;
   /** Shown to the payer on the gateway's page. */
   readonly description: string;
 }
@@ -127,6 +133,7 @@ export async function openAgmCheckout(input: CheckoutInput): Promise<CheckoutRes
         phone: input.phone.trim(),
         paymentMethod: input.paymentMethod,
         reference: input.reference,
+        attireSize: input.attireSize,
         description: input.description,
         // `{intentId}` is substituted by the Edge Function, which is the
         // only side that knows the id it just created.

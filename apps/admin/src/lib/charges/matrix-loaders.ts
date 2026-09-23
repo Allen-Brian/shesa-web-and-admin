@@ -2,6 +2,8 @@ import 'server-only';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { loadMemberContacts, type MemberContact } from '@/lib/finance/member-contacts';
+
 import type { RawObligation, RawPayment } from './charge-detail-raw-types';
 
 // Same widening rationale as the branch-import helpers — per-query
@@ -44,19 +46,19 @@ export async function loadPaymentsByObligations(
   return (data ?? []) as RawPayment[];
 }
 
+/**
+ * Members behind the obligations, with their contact details.
+ *
+ * This used to resolve names only, which was all the matrix rendered.
+ * The exported sheet is chased from — "who still owes, and how do I
+ * reach them" is one question, not two — so it resolves the full
+ * contact record and the matrix carries it through.
+ */
 export async function loadMemberNames(
   supabase: AnySupabaseClient,
   memberIds: readonly string[],
-): Promise<Map<string, string>> {
-  if (memberIds.length === 0) return new Map();
-  const { data } = await supabase
-    .schema('core')
-    .from('members')
-    .select('id, full_name')
-    .in('id', memberIds as string[]);
-  return new Map(
-    ((data ?? []) as Array<{ id: string; full_name: string }>).map((m) => [m.id, m.full_name]),
-  );
+): Promise<Map<string, MemberContact>> {
+  return loadMemberContacts(supabase, memberIds);
 }
 
 /**

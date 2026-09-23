@@ -5,10 +5,16 @@ import { REPORTS } from './reports-types';
 
 /**
  * Card grid that lets the operator pick a report by category instead
- * of scrolling through a plain select. Each card carries the report's
- * icon, description, and a "Windowed / Point-in-time" affordance so
- * the operator knows whether the date presets will apply before they
- * click.
+ * of scrolling through a plain select.
+ *
+ * Each card leads with the question the report answers rather than its
+ * name, because somebody arriving here has a question, not a report
+ * key — "who still owes us money" is findable, "Arrears" is only
+ * findable if you already knew. The name and the technical one-liner
+ * stay underneath for the people who do.
+ *
+ * "Covers a date range" / "As things stand today" replaces the older
+ * "Windowed / Point-in-time" for the same reason.
  */
 export function ReportCataloguePicker({
   value,
@@ -19,9 +25,12 @@ export function ReportCataloguePicker({
 }) {
   return (
     <div>
-      <span className="mb-2 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        Report
-      </span>
+      <div className="mb-2 flex flex-col gap-0.5">
+        <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+          Step 1 · Choose a report
+        </span>
+        <span className="text-sm text-muted-foreground">Pick the question you want answered.</span>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {REPORTS.map((r) => {
           const active = value === r.value;
@@ -43,10 +52,15 @@ export function ReportCataloguePicker({
                 <Icon className="h-4 w-4" />
               </div>
               <div className="flex min-w-0 flex-col gap-1">
-                <span className="text-sm font-semibold text-foreground">{r.label}</span>
-                <span className="text-xs text-muted-foreground">{r.description}</span>
+                <span className="text-sm font-semibold leading-snug text-foreground">
+                  {r.question}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground/70">{r.label}</span> ·{' '}
+                  {r.description}
+                </span>
                 <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80">
-                  {r.usesDates ? 'Windowed' : 'Point-in-time'}
+                  {r.usesDates ? 'Covers a date range' : 'As things stand today'}
                 </span>
               </div>
             </button>

@@ -29,6 +29,15 @@ export interface DonationRow {
   readonly campaignName: string;
   readonly scopeName: string;
   readonly donorLabel: string;
+  /**
+   * How to reach the donor — from the walk-in form for public gifts,
+   * from `core.members` for member gifts. Carried so an exported
+   * donations sheet can be thanked from directly.
+   */
+  readonly donorEmail: string | null;
+  readonly donorPhone: string | null;
+  readonly donorBatch: string | null;
+  readonly donorMemberCode: string | null;
   readonly isMember: boolean;
   readonly isPublic: boolean;
   readonly amount: number;

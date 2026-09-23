@@ -17,6 +17,10 @@ import {
   type MassActions,
 } from '@shesa/ui';
 
+import { ExportButton } from '@/components/export-button';
+import { activeFilters } from '@/lib/export/filters';
+
+import { buildContributionsExport } from './contributions-export';
 import { buildContributionColumns } from './contribution-columns';
 import { ContributionsDialogs } from './contributions-dialogs';
 import { initialCreate, suggestExtendedCloseDate } from './contributions-helpers';
@@ -181,6 +185,17 @@ export function ContributionsView({
           setCreateForm(initialCreate(defaultScopeId));
           setCreateOpen(true);
         }}
+        actions={
+          <ExportButton
+            spec={() =>
+              buildContributionsExport(
+                filtered,
+                activeFilters({ Search: search.trim(), Lifecycle: lifecycleFilter }),
+              )
+            }
+            disabled={filtered.length === 0}
+          />
+        }
         filters={
           <Select
             value={lifecycleFilter}

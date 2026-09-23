@@ -69,6 +69,10 @@ export async function orderAttire(input: AttireOrderInput): Promise<AttireOrderR
     phone: input.phone,
     paymentMethod: input.paymentOption,
     reference: recorded.reference,
+    // Carried as a field as well as inside the description: the
+    // description is copy for the payer's gateway page, and the
+    // secretariat needs the size as data they can sort a table by.
+    attireSize: input.size,
     description: `SHESA AGM 2026 attire — ${quantity} × size ${input.size}`,
   });
   if (!checkout.ok) return recorded;

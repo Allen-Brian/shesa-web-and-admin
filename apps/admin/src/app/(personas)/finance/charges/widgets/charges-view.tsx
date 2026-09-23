@@ -13,10 +13,13 @@ import {
   type MassActions,
 } from '@shesa/ui';
 
+import { ExportButton } from '@/components/export-button';
 import { FilterChips } from '@/components/filters/filter-chips';
 import { FilterDropdown } from '@/components/filters/filter-dropdown';
+import { activeFilters, filterValuesToMeta } from '@/lib/export/filters';
 import { useFilterState } from '@/lib/filters/use-filter-state';
 
+import { buildChargesExport } from './charges-export';
 import { buildChargeColumns } from './charge-columns';
 import { CreateChargeDialog } from './create-charge-dialog';
 import { ChargesKpiStrip } from './charges-kpi-strip';
@@ -214,6 +217,17 @@ export function ChargesView({
         canCreate={scopeOptions.length > 0}
         createLabel="New charge"
         onCreate={openCreate}
+        actions={
+          <ExportButton
+            spec={() =>
+              buildChargesExport(filtered, [
+                ...activeFilters({ Search: search.trim() }),
+                ...filterValuesToMeta(filterState.values),
+              ])
+            }
+            disabled={filtered.length === 0}
+          />
+        }
         filters={
           <FilterDropdown
             dimensions={CHARGES_FILTER_CONFIG}

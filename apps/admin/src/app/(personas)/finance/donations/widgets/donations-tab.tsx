@@ -14,6 +14,10 @@ import {
   type GridApi,
 } from '@shesa/ui';
 
+import { ExportButton } from '@/components/export-button';
+import { activeFilters } from '@/lib/export/filters';
+
+import { buildDonationsExport } from './donations-export';
 import type { DonationRow, DonorFilter, SerialDonationRow } from './donations-types';
 
 interface DonationsTabProps {
@@ -66,6 +70,17 @@ export function DonationsTab({
         canCreate={canWalkIn}
         createLabel="Record walk-in"
         onCreate={onOpenWalkIn}
+        actions={
+          <ExportButton
+            spec={() =>
+              buildDonationsExport(
+                filtered,
+                activeFilters({ Search: search.trim(), Donor: donorFilter }),
+              )
+            }
+            disabled={filtered.length === 0}
+          />
+        }
         filters={
           <Select value={donorFilter} onValueChange={(v) => setDonorFilter(v as DonorFilter)}>
             <SelectTrigger className="h-8 w-40 text-xs">

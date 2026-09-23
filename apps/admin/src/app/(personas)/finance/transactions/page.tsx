@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { activeFinanceScope } from '@/lib/finance/active-scope';
+import { loadMemberContacts } from '@/lib/finance/member-contacts';
 import { getServerClient } from '@/lib/supabase-server';
 
 import { TransactionsView } from './widgets/transactions-view';
@@ -41,11 +42,6 @@ interface RawScopeRow {
   readonly id: string;
   readonly name: string;
   readonly slug: string;
-}
-
-interface RawMemberRow {
-  readonly id: string;
-  readonly full_name: string;
 }
 
 interface RawReconciliationRow {
@@ -157,16 +153,13 @@ export default async function TransactionsPage() {
     new Set(paymentsData.map((p) => p.payer_member_id).filter((id): id is string => !!id)),
   );
 
-  const [{ data: scopeRows }, { data: memberRows }] = await Promise.all([
+  const [{ data: scopeRows }, memberById] = await Promise.all([
     scopeIds.length
       ? supabase.schema('core').from('scopes').select('id, name, slug').in('id', scopeIds)
       : Promise.resolve({ data: [] as RawScopeRow[] }),
-    memberIds.length
-      ? supabase.schema('core').from('members').select('id, full_name').in('id', memberIds)
-      : Promise.resolve({ data: [] as RawMemberRow[] }),
+    loadMemberContacts(supabase, memberIds),
   ]);
   const scopeById = new Map(((scopeRows ?? []) as RawScopeRow[]).map((s) => [s.id, s]));
-  const memberById = new Map(((memberRows ?? []) as RawMemberRow[]).map((m) => [m.id, m]));
   const chargeById = new Map(chargesData.map((c) => [c.id, c]));
 
   // Charges referenced by payments but no longer active (archived / closed)
@@ -210,10 +203,16 @@ export default async function TransactionsPage() {
       chargeName: charge?.name ?? '—',
       chargeShape: charge?.shape ?? null,
       scopeName: scope?.name ?? '—',
-      payerLabel: member?.full_name ?? donorLabel ?? '—',
-      payerEmail: meta.donor_email ?? meta.payer_email ?? null,
-      payerPhone: meta.payer_phone ?? null,
+      payerLabel: member?.fullName ?? donorLabel ?? '—',
+      // The form's own answer wins where there is one — a member who
+      // typed a different number on the day is telling us where to
+      // reach them about this payment. The member record is the
+      // fallback, not the override.
+      payerEmail: meta.donor_email ?? meta.payer_email ?? member?.email ?? null,
+      payerPhone: meta.payer_phone ?? member?.phone ?? null,
       payerLocation: meta.payer_location ?? null,
+      payerBatch: member?.batchName ?? null,
+      payerMemberCode: member?.memberCode ?? null,
       isAnonymousPayer: isAnon,
       amount: p.amount,
       currency: p.currency,

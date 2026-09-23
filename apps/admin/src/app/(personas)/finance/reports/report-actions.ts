@@ -1,5 +1,6 @@
 'use server';
 
+import { loadMemberContacts } from '@/lib/finance/member-contacts';
 import { getServerClient } from '@/lib/supabase-server';
 
 /**
@@ -37,6 +38,16 @@ export interface ArrearsRow {
   amount_owed: number;
   amount_paid: number;
   arrears: number;
+  /**
+   * Resolved after the RPC, not by it. Arrears is the one report whose
+   * whole purpose is to be acted on — somebody has to contact each of
+   * these people — and a list of names with no contact details makes
+   * that a second piece of research per row.
+   */
+  member_email?: string | null;
+  member_phone?: string | null;
+  member_batch?: string | null;
+  member_code?: string | null;
 }
 
 export interface TreasuryStatementRow {
@@ -119,10 +130,8 @@ export async function runReport(
           .schema('finance')
           .rpc('get_arrears', { p_scope_id: scopeId } as never);
         if (error) return { ok: false, message: error.message };
-        return {
-          ok: true,
-          data: { report: 'arrears', rows: coerceRows(data) as unknown as ArrearsRow[] },
-        };
+        const rows = coerceRows(data) as unknown as ArrearsRow[];
+        return { ok: true, data: { report: 'arrears', rows: await withMemberContacts(rows) } };
       }
       case 'treasury_statement': {
         const { data, error } = await supabase.schema('finance').rpc('get_treasury_statement', {
@@ -200,4 +209,33 @@ export async function runReport(
 function coerceRows(data: unknown): Record<string, unknown>[] {
   if (!Array.isArray(data)) return [];
   return data as Record<string, unknown>[];
+}
+
+/**
+ * Attaches contact details to arrears rows.
+ *
+ * One extra round trip for the whole report rather than a widened RPC:
+ * the reporting functions are SECURITY DEFINER and shared with the Exco
+ * mirror, and adding personal columns to one would hand them to every
+ * caller of it. Here the lookup runs as the signed-in user, so RLS on
+ * `core.members` decides what comes back — somebody who cannot see a
+ * member's phone number does not get it in their export either.
+ */
+async function withMemberContacts(rows: ArrearsRow[]): Promise<ArrearsRow[]> {
+  const memberIds = Array.from(new Set(rows.map((r) => r.member_id).filter(Boolean)));
+  if (memberIds.length === 0) return rows;
+
+  const supabase = await getServerClient();
+  const contacts = await loadMemberContacts(supabase, memberIds);
+
+  return rows.map((r) => {
+    const c = contacts.get(r.member_id);
+    return {
+      ...r,
+      member_email: c?.email ?? null,
+      member_phone: c?.phone ?? null,
+      member_batch: c?.batchName ?? null,
+      member_code: c?.memberCode ?? null,
+    };
+  });
 }

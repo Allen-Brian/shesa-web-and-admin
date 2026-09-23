@@ -48,6 +48,15 @@ interface ReportControlsCardProps {
 export function ReportControlsCard(props: ReportControlsCardProps) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+      <div className="flex flex-col gap-0.5">
+        <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+          Step 2 · Choose what it should cover
+        </span>
+        <span className="text-sm text-muted-foreground">
+          Which branch or chapter, and over what dates.
+        </span>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="scope">Scope</Label>
@@ -136,8 +145,10 @@ export function ReportControlsCard(props: ReportControlsCardProps) {
         </div>
       )}
 
-      <div className="flex items-center justify-end gap-3">
-        <span className="text-xs text-muted-foreground">{props.summaryLine}</span>
+      <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border pt-3">
+        <span className="mr-auto text-xs text-muted-foreground">
+          About to run: <span className="font-medium text-foreground">{props.summaryLine}</span>
+        </span>
         <Button
           type="button"
           size="sm"

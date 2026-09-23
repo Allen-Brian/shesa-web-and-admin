@@ -43,6 +43,19 @@ export interface ReportCatalogueEntry {
   readonly usesDates: boolean;
   /** Tailwind class fragment used for the card's icon avatar. */
   readonly iconClass: string;
+  /**
+   * The plain question this report answers, written the way someone
+   * would ask it out loud.
+   *
+   * The catalogue used to offer only the report's name and a technical
+   * one-liner, which works if you already know the six reports. Anyone
+   * else has to pick one, run it, and read the result to find out
+   * whether it was the one they wanted. Asking the question on the card
+   * lets them recognise their own question before they click.
+   */
+  readonly question: string;
+  /** One sentence on how to read the result once it is on screen. */
+  readonly readAs: string;
 }
 
 /** Every report the drop-in catalogue picker can offer. */
@@ -51,6 +64,8 @@ export const REPORTS: readonly ReportCatalogueEntry[] = [
     value: 'collections',
     label: 'Collections',
     description: 'Money in per charge over a period.',
+    question: 'How much money came in, and what was it for?',
+    readAs: 'One row per charge. The Total column is what that charge brought in over the window.',
     icon: HandCoins,
     usesDates: true,
     iconClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
@@ -59,6 +74,9 @@ export const REPORTS: readonly ReportCatalogueEntry[] = [
     value: 'arrears',
     label: 'Arrears',
     description: 'Who owes — open + partial obligations per member.',
+    question: 'Who still owes us money, and how much?',
+    readAs:
+      'One row per member per unpaid charge. Arrears is what is still outstanding after anything already paid.',
     icon: AlertCircle,
     usesDates: false,
     iconClass: 'bg-destructive/10 text-destructive',
@@ -67,6 +85,8 @@ export const REPORTS: readonly ReportCatalogueEntry[] = [
     value: 'treasury_statement',
     label: 'Treasury statement',
     description: 'Opening · income · expenses · closing.',
+    question: 'What did we start with, what moved, and what is left?',
+    readAs: 'Opening plus income minus expenses equals closing. One row per currency.',
     icon: Wallet,
     usesDates: true,
     iconClass: 'bg-primary/10 text-primary',
@@ -75,6 +95,8 @@ export const REPORTS: readonly ReportCatalogueEntry[] = [
     value: 'payment_method_breakdown',
     label: 'Payment methods',
     description: 'How money arrived (cash / MoMo / Orange / …).',
+    question: 'How are people actually paying us?',
+    readAs: 'One row per method. The donut shows each method’s share of the money collected.',
     icon: CreditCard,
     usesDates: true,
     iconClass: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
@@ -83,6 +105,8 @@ export const REPORTS: readonly ReportCatalogueEntry[] = [
     value: 'expense_report_by_category',
     label: 'Expenses by category',
     description: 'Recorded + approved expenses grouped by category.',
+    question: 'What are we spending our money on?',
+    readAs: 'One row per category. The donut shows where the largest share of spend went.',
     icon: Tag,
     usesDates: true,
     iconClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
@@ -91,6 +115,9 @@ export const REPORTS: readonly ReportCatalogueEntry[] = [
     value: 'donation_report',
     label: 'Donations',
     description: 'Freewill income per campaign, named vs anonymous split.',
+    question: 'How is our fundraising doing, and who is giving?',
+    readAs:
+      'One row per campaign. Named and Anonymous split the donor count; they add up to Donations.',
     icon: Gift,
     usesDates: true,
     iconClass: 'bg-violet-500/15 text-violet-700 dark:text-violet-400',

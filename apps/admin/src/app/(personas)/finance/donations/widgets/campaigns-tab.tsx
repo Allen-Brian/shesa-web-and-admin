@@ -14,6 +14,10 @@ import {
   type GridApi,
 } from '@shesa/ui';
 
+import { ExportButton } from '@/components/export-button';
+import { activeFilters } from '@/lib/export/filters';
+
+import { buildCampaignsExport } from './donations-export';
 import type { CampaignLifecycleFilter, CampaignRow, SerialCampaignRow } from './donations-types';
 
 interface CampaignsTabProps {
@@ -64,6 +68,17 @@ export function CampaignsTab({
         canCreate={canCreate}
         createLabel="New campaign"
         onCreate={onOpenNewCampaign}
+        actions={
+          <ExportButton
+            spec={() =>
+              buildCampaignsExport(
+                filtered,
+                activeFilters({ Search: search.trim(), Lifecycle: lifecycle }),
+              )
+            }
+            disabled={filtered.length === 0}
+          />
+        }
         filters={
           <Select
             value={lifecycle}

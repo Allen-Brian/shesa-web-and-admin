@@ -5,6 +5,11 @@ import { Wallet } from 'lucide-react';
 
 import { DataTable, EntityTablePanel, type GridApi } from '@shesa/ui';
 
+import { ExportButton } from '@/components/export-button';
+import { activeFilters } from '@/lib/export/filters';
+
+import { buildExpensesExport } from './expenses-export';
+
 import { buildExpenseColumns } from './expense-columns';
 import { buildExpenseKpis } from './expenses-kpis';
 import { ExpensesKpiStrip } from './expenses-kpi-strip';
@@ -132,6 +137,27 @@ export function ExpensesView({
           setRecordForm(initialRecord(scopeOptions));
           setRecordOpen(true);
         }}
+        actions={
+          <ExportButton
+            spec={() =>
+              buildExpensesExport(
+                filtered,
+                activeFilters({
+                  Search: search.trim(),
+                  Status: statusFilter === 'all' ? null : statusFilter.replaceAll('_', ' '),
+                  Category: categoryOptions.find((c) => c.key === categoryFilter)?.name ?? null,
+                  'Event group':
+                    groupFilter === 'all'
+                      ? null
+                      : groupFilter === 'none'
+                        ? 'Not in a group'
+                        : (groupOptions.find((g) => g.id === groupFilter)?.name ?? null),
+                }),
+              )
+            }
+            disabled={filtered.length === 0}
+          />
+        }
         filters={
           <ExpensesTableFilters
             categoryOptions={categoryOptions}

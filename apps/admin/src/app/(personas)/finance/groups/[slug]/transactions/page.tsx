@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 import { loadGroupBySlug } from '@/lib/finance/groups/load-group';
+import { loadMemberContacts } from '@/lib/finance/member-contacts';
 import { getServerClient } from '@/lib/supabase-server';
 
 import { TransactionsView } from '../../../transactions/widgets/transactions-view';
@@ -147,19 +148,14 @@ export default async function GroupTransactionsPage({ params }: Props) {
     new Set(payments.map((p) => p.payer_member_id).filter((id): id is string => !!id)),
   );
 
-  const [{ data: scopeRows }, { data: memberRows }] = await Promise.all([
+  const [{ data: scopeRows }, memberById] = await Promise.all([
     scopeIds.length
       ? supabase.schema('core').from('scopes').select('id, name, slug').in('id', scopeIds)
       : Promise.resolve({ data: [] as Array<{ id: string; name: string; slug: string }> }),
-    memberIds.length
-      ? supabase.schema('core').from('members').select('id, full_name').in('id', memberIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; full_name: string }> }),
+    loadMemberContacts(supabase, memberIds),
   ]);
   const scopeById = new Map(
     ((scopeRows ?? []) as Array<{ id: string; name: string; slug: string }>).map((s) => [s.id, s]),
-  );
-  const memberById = new Map(
-    ((memberRows ?? []) as Array<{ id: string; full_name: string }>).map((m) => [m.id, m]),
   );
   const chargeById = new Map(charges.map((c) => [c.id, c]));
 
@@ -186,10 +182,12 @@ export default async function GroupTransactionsPage({ params }: Props) {
       chargeName: charge?.name ?? '—',
       chargeShape: charge?.shape ?? null,
       scopeName: scope?.name ?? '—',
-      payerLabel: member?.full_name ?? donorLabel ?? '—',
-      payerEmail: meta.donor_email ?? meta.payer_email ?? null,
-      payerPhone: meta.payer_phone ?? null,
+      payerLabel: member?.fullName ?? donorLabel ?? '—',
+      payerEmail: meta.donor_email ?? meta.payer_email ?? member?.email ?? null,
+      payerPhone: meta.payer_phone ?? member?.phone ?? null,
       payerLocation: meta.payer_location ?? null,
+      payerBatch: member?.batchName ?? null,
+      payerMemberCode: member?.memberCode ?? null,
       isAnonymousPayer: isAnon,
       amount: p.amount,
       currency: p.currency,

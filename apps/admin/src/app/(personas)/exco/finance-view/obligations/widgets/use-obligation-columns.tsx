@@ -97,7 +97,7 @@ export function useObligationColumns({
         ),
       },
       {
-        headerName: '',
+        headerName: 'Actions',
         colId: 'row_pay',
         width: 130,
         sortable: false,

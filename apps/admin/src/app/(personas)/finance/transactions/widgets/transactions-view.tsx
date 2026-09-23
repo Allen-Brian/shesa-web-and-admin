@@ -5,6 +5,10 @@ import { TextAlignJustify } from 'lucide-react';
 
 import { DataTable, EntityTablePanel, toast, type GridApi, type MassActions } from '@shesa/ui';
 
+import { ExportButton } from '@/components/export-button';
+import { activeFilters, windowLabel } from '@/lib/export/filters';
+
+import { buildTransactionsExport } from './transactions-export';
 import { ReconcileTransactionDialog } from './reconcile-transaction-dialog';
 import { ReceiptPreviewDialog } from './receipt-preview-dialog';
 import { RecordTransactionDialog } from './record-transaction-dialog';
@@ -14,7 +18,12 @@ import { buildTransactionColumns } from './transaction-columns';
 import { TransactionsKpiStrip } from './transactions-kpi-strip';
 import { TransactionsTableFilters } from './transactions-table-filters';
 import { buildPaymentKpis } from './transactions-kpis';
-import { buildVerifyUrl, collectReversedIds, initialRecord } from './transactions-helpers';
+import {
+  buildVerifyUrl,
+  collectReversedIds,
+  formatMethod,
+  initialRecord,
+} from './transactions-helpers';
 import type {
   ChargeOption,
   MethodFilter,
@@ -106,6 +115,19 @@ export function TransactionsView({ transactions, chargeOptions, baseUrl }: Trans
     dateFrom,
     dateTo,
   ]);
+
+  const exportMeta = useMemo(
+    () =>
+      activeFilters({
+        Search: search.trim(),
+        Method: methodFilter === 'all' ? null : formatMethod(methodFilter),
+        Source: sourceFilter === 'all' ? null : sourceFilter === 'auto' ? 'Website' : 'Manual',
+        Reconciliation: reconciliationFilter,
+        'Paid for': reasonFilter,
+        Window: windowLabel(dateFrom, dateTo),
+      }),
+    [search, methodFilter, sourceFilter, reconciliationFilter, reasonFilter, dateFrom, dateTo],
+  );
 
   const copyUrl = async (url: string) => {
     try {
@@ -207,6 +229,12 @@ export function TransactionsView({ transactions, chargeOptions, baseUrl }: Trans
         canCreate={chargeOptions.length > 0}
         createLabel="Record transaction"
         onCreate={openRecord}
+        actions={
+          <ExportButton
+            spec={() => buildTransactionsExport(filtered, reversedIds, exportMeta)}
+            disabled={filtered.length === 0}
+          />
+        }
         filters={
           <TransactionsTableFilters
             methodFilter={methodFilter}

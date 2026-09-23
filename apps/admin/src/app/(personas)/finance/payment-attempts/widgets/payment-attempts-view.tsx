@@ -16,8 +16,11 @@ import {
   type GridApi,
 } from '@shesa/ui';
 
+import { ExportButton } from '@/components/export-button';
 import { GatewayDetailSheet } from '@/components/finance/gateway-detail-sheet';
+import { activeFilters } from '@/lib/export/filters';
 
+import { buildPaymentAttemptsExport } from './payment-attempts-export';
 import { buildPaymentAttemptColumns } from './payment-attempt-columns';
 import type {
   AttemptStatusFilter,
@@ -111,6 +114,17 @@ export function PaymentAttemptsView({ attempts }: Props) {
         canCreate={false}
         createLabel=""
         onCreate={() => undefined}
+        actions={
+          <ExportButton
+            spec={() =>
+              buildPaymentAttemptsExport(
+                filtered,
+                activeFilters({ Search: search.trim(), Status: status }),
+              )
+            }
+            disabled={filtered.length === 0}
+          />
+        }
         filters={
           <Select value={status} onValueChange={(v) => setStatus(v as AttemptStatusFilter)}>
             <SelectTrigger className="h-8 w-44 text-xs">

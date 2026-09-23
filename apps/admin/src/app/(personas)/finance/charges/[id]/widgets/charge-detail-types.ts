@@ -47,6 +47,16 @@ export interface MatrixCell {
 export interface MatrixMember {
   readonly memberId: string;
   readonly fullName: string;
+  /**
+   * Contact details and batch, for members. Null on scope-body rows,
+   * which are a collective rather than a person. Carried so the
+   * exported collection sheet can be chased from directly — "who is
+   * behind, and how do I reach them" is one question.
+   */
+  readonly email?: string | null;
+  readonly phone?: string | null;
+  readonly batchName?: string | null;
+  readonly memberCode?: string | null;
   readonly cells: readonly (MatrixCell | null)[];
   /**
    * The earliest active/passive membership joined_at at this charge's
@@ -100,6 +110,9 @@ export interface PoolPayment {
   readonly payerEmail?: string | null;
   readonly payerPhone?: string | null;
   readonly payerLocation?: string | null;
+  /** Members only — resolved from `core.members` so exports can reach them. */
+  readonly payerBatch?: string | null;
+  readonly payerMemberCode?: string | null;
   readonly isAnonymous?: boolean;
   readonly memo?: string | null;
   readonly externalRef?: string | null;
@@ -108,6 +121,15 @@ export interface PoolPayment {
   readonly reconciliationNotes?: string | null;
   /** Units bought — ticketed/attire purchases carry this in metadata. */
   readonly quantity?: number | null;
+  /**
+   * The size the buyer picked, on attire orders. Null everywhere else.
+   *
+   * Written into `payments.metadata.attire_size` by the settlement
+   * path. Orders placed before that field existed are resolved from
+   * `cms.agm_registrations` at load time, joined on the
+   * `agm_reference` both records carry.
+   */
+  readonly attireSize?: string | null;
 }
 
 export interface PaymentMethodStat {

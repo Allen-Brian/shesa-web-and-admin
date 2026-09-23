@@ -4,6 +4,7 @@ import type {
   ChargeSummary,
   PoolPayment,
 } from '@/app/(personas)/finance/charges/[id]/widgets/charge-detail-types';
+import { loadMemberContacts } from '@/lib/finance/member-contacts';
 import { getServerClient } from '@/lib/supabase-server';
 
 import {
@@ -20,6 +21,57 @@ interface ReconRow {
   readonly reconciled_at: string | null;
   readonly matched_ref: string | null;
   readonly notes: string | null;
+}
+
+/**
+ * Attire sizes for payments whose metadata does not carry one.
+ *
+ * The settlement path writes `metadata.attire_size` now, but orders
+ * placed before it did carry the size only in the text of the gateway
+ * description. It has always been recorded properly in
+ * `cms.agm_registrations`, which joins to a payment on the
+ * `agm_reference` both sides keep.
+ *
+ * Read-time rather than a backfill migration, because `finance.payments`
+ * is append-only by trigger — every UPDATE and DELETE is blocked — and
+ * reaching past that guard to annotate old rows would cost more than
+ * the annotation is worth. A join gets the same answer, costs one
+ * query, covers every historical order, and keeps the ledger's
+ * invariant exactly as it is.
+ *
+ * Reads as the signed-in user: the RLS policy on that table admits
+ * `treasury.read` / `finance.read`, which is who is looking at this
+ * page. A viewer without it simply gets no sizes rather than an error.
+ */
+async function loadAttireSizes(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  payments: readonly RawPayment[],
+): Promise<Map<string, string>> {
+  const references = Array.from(
+    new Set(
+      payments
+        .map((p) => {
+          const meta = (p.metadata ?? {}) as { attire_size?: string; agm_reference?: string };
+          return meta.attire_size ? null : (meta.agm_reference ?? null);
+        })
+        .filter((r): r is string => !!r),
+    ),
+  );
+  if (references.length === 0) return new Map();
+
+  const { data } = await supabase
+    .schema('cms')
+    .from('agm_registrations')
+    .select('reference, attire_size')
+    .eq('kind', 'attire')
+    .in('reference', references);
+
+  return new Map(
+    ((data ?? []) as Array<{ reference: string; attire_size: string | null }>)
+      .filter((r) => !!r.attire_size)
+      .map((r) => [r.reference, r.attire_size as string]),
+  );
 }
 
 /**
@@ -56,10 +108,8 @@ export async function loadPoolChargeDetail(
     new Set(payments.map((p) => p.payer_member_id).filter((x): x is string => !!x)),
   );
 
-  const [{ data: memberRows }, { data: receiptRows }, { data: reconRows }] = await Promise.all([
-    memberIds.length
-      ? supabase.schema('core').from('members').select('id, full_name').in('id', memberIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; full_name: string }> }),
+  const [memberById, { data: receiptRows }, { data: reconRows }] = await Promise.all([
+    loadMemberContacts(supabase, memberIds),
     paymentIds.length
       ? supabase
           .schema('finance')
@@ -78,12 +128,6 @@ export async function loadPoolChargeDetail(
       : Promise.resolve({ data: [] as ReconRow[] }),
   ]);
 
-  const memberById = new Map(
-    ((memberRows ?? []) as Array<{ id: string; full_name: string }>).map((m) => [
-      m.id,
-      m.full_name,
-    ]),
-  );
   const receiptByPayment = new Map(
     (
       (receiptRows ?? []) as Array<{ token: string; payment_id: string; receipt_number: string }>
@@ -100,6 +144,8 @@ export async function loadPoolChargeDetail(
     collected += p.reverses_payment_id ? -amt : amt;
   }
 
+  const sizeByReference = await loadAttireSizes(supabase, payments);
+
   const poolPayments: PoolPayment[] = payments.map((p) => {
     const meta = (p.metadata ?? {}) as {
       donor_name?: string;
@@ -110,6 +156,8 @@ export async function loadPoolChargeDetail(
       payer_location?: string;
       note?: string;
       quantity?: number;
+      attire_size?: string;
+      agm_reference?: string;
       public_donation?: boolean;
       public_ticket_purchase?: boolean;
     };
@@ -128,10 +176,10 @@ export async function loadPoolChargeDetail(
     const receipt = receiptByPayment.get(p.id);
     const recon = reconByPayment.get(p.id);
     const isMember = !!p.payer_member_id;
+    const member = p.payer_member_id ? memberById.get(p.payer_member_id) : null;
     return {
       id: p.id,
-      payerLabel:
-        (p.payer_member_id ? memberById.get(p.payer_member_id) : null) ?? fallbackLabel ?? '—',
+      payerLabel: member?.fullName ?? fallbackLabel ?? '—',
       amount: p.amount,
       currency: p.currency,
       method: p.method,
@@ -142,9 +190,11 @@ export async function loadPoolChargeDetail(
       receiptNumber: receipt?.receipt_number ?? null,
       reconciled: !!recon,
       isReversedOriginal: reversedOriginalIds.has(p.id),
-      payerEmail: meta.donor_email ?? meta.payer_email ?? null,
-      payerPhone: meta.payer_phone ?? null,
+      payerEmail: meta.donor_email ?? meta.payer_email ?? member?.email ?? null,
+      payerPhone: meta.payer_phone ?? member?.phone ?? null,
       payerLocation: meta.payer_location ?? null,
+      payerBatch: member?.batchName ?? null,
+      payerMemberCode: member?.memberCode ?? null,
       isAnonymous: !isMember && !!(meta.public_donation || meta.public_ticket_purchase || anonName),
       memo: meta.note ?? null,
       externalRef: p.external_ref ?? null,
@@ -152,6 +202,9 @@ export async function loadPoolChargeDetail(
       reconciliationMatchedRef: recon?.matched_ref ?? null,
       reconciliationNotes: recon?.notes ?? null,
       quantity: typeof meta.quantity === 'number' ? meta.quantity : null,
+      attireSize:
+        meta.attire_size ??
+        (meta.agm_reference ? (sizeByReference.get(meta.agm_reference) ?? null) : null),
     };
   });
 

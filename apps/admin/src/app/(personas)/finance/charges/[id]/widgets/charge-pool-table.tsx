@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDownRight, ArrowUpRight, BadgeCheck, Download } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, FileText } from 'lucide-react';
 
 import {
   Badge,
@@ -16,9 +16,12 @@ import {
   type MassActions,
 } from '@shesa/ui';
 
+import { ExportButton } from '@/components/export-button';
+import { PaymentStateChip, settlementOf } from '@/components/finance/payment-state-chip';
 import { formatShortDay, formatTime24 } from '@/lib/format/date-time';
 
 import { markReconciled, undoReconciliation } from '../../../transactions/transaction-actions';
+import { buildChargePoolExport } from './charge-detail-export';
 import { ChargePoolPaymentSheet } from './charge-pool-payment-sheet';
 import type { ChargeDetailPoolProps, PoolRow } from './charge-detail-types';
 import { downloadCsv, formatMethod, getInitials, slugify } from './shared-formatters';
@@ -39,12 +42,28 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
   const [detail, setDetail] = useState<PoolRow | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Search reaches the size and the contact details too, now that they
+  // are on the table — an operator looking for "XL" or chasing a phone
+  // number should not have to eyeball the column.
   const filtered = useMemo<readonly PoolRow[]>(() => {
     const q = search.trim().toLowerCase();
     return poolPayments
-      .filter((p) => (q ? p.payerLabel.toLowerCase().includes(q) : true))
+      .filter((p) =>
+        q
+          ? p.payerLabel.toLowerCase().includes(q) ||
+            (p.attireSize ?? '').toLowerCase() === q ||
+            (p.payerEmail ?? '').toLowerCase().includes(q) ||
+            (p.payerPhone ?? '').toLowerCase().includes(q)
+          : true,
+      )
       .map((p, i) => ({ ...p, serial: i + 1 }));
   }, [poolPayments, search]);
+
+  const hasSizes = useMemo(() => poolPayments.some((p) => !!p.attireSize), [poolPayments]);
+  const hasContacts = useMemo(
+    () => poolPayments.some((p) => !!p.payerEmail || !!p.payerPhone),
+    [poolPayments],
+  );
 
   const runReconcile = (ids: readonly string[], onDone: () => void) => {
     if (ids.length === 0) return;
@@ -128,6 +147,65 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
             </div>
           ) : null,
       },
+      // Size and contact only appear when the data has them. A blank
+      // "Size" column on a ticket charge, or an empty "Contact" on a
+      // charge paid entirely by signed-in members, is a column the
+      // operator has to scan past on every row for nothing.
+      ...(hasSizes
+        ? [
+            {
+              headerName: 'Size',
+              field: 'attireSize' as const,
+              width: 90,
+              cellRenderer: (p: ICellRendererParams<PoolRow>) =>
+                p.data?.attireSize ? (
+                  <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary">
+                    {p.data.attireSize}
+                  </Badge>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                ),
+            },
+          ]
+        : []),
+      ...(hasContacts
+        ? [
+            {
+              headerName: 'Contact',
+              colId: 'contact',
+              width: 210,
+              autoHeight: true,
+              sortable: false,
+              cellRenderer: (p: ICellRendererParams<PoolRow>) => {
+                if (!p.data) return null;
+                const { payerEmail, payerPhone } = p.data;
+                if (!payerEmail && !payerPhone) {
+                  return <span className="text-xs text-muted-foreground">—</span>;
+                }
+                return (
+                  <div className="flex min-w-0 flex-col justify-center py-1 leading-tight">
+                    {payerEmail && (
+                      <a
+                        href={`mailto:${payerEmail}`}
+                        className="truncate text-[12.5px] text-foreground hover:text-primary"
+                      >
+                        {payerEmail}
+                      </a>
+                    )}
+                    {payerPhone && (
+                      <a
+                        href={`tel:${payerPhone.replace(/\s+/g, '')}`}
+                        className="truncate text-[11px] tabular-nums text-muted-foreground hover:text-primary"
+                      >
+                        {payerPhone}
+                      </a>
+                    )}
+                  </div>
+                );
+              },
+            },
+          ]
+        : []),
       {
         headerName: 'Amount',
         field: 'amount',
@@ -167,63 +245,21 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
           );
         },
       },
+      // Settlement and reconciliation in one chip, the same way the
+      // mainstream Transactions table draws them — see
+      // `PaymentStateChip` for why they stay two facts in one pill.
       {
-        headerName: 'Status',
-        colId: 'status',
-        width: 130,
-        cellRenderer: (p: ICellRendererParams<PoolRow>) => {
-          if (!p.data) return null;
-          if (p.data.isReversal) {
-            return (
-              <Badge
-                variant="outline"
-                className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-              >
-                Reversal
-              </Badge>
-            );
-          }
-          if (p.data.isReversedOriginal) {
-            return (
-              <Badge
-                variant="outline"
-                className="border-destructive/40 bg-destructive/10 text-destructive"
-              >
-                Reversed
-              </Badge>
-            );
-          }
-          return (
-            <Badge
-              variant="outline"
-              className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-            >
-              Cleared
-            </Badge>
-          );
-        },
-      },
-      {
-        headerName: 'Reconciled',
+        headerName: 'State',
         field: 'reconciled',
-        width: 140,
+        width: 150,
         cellRenderer: (p: ICellRendererParams<PoolRow>) => {
           if (!p.data) return null;
-          return p.data.reconciled ? (
-            <Badge
-              variant="outline"
-              className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-            >
-              <BadgeCheck className="h-3 w-3" />
-              Reconciled
-            </Badge>
-          ) : (
-            <Badge
-              variant="outline"
-              className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-            >
-              Pending
-            </Badge>
+          return (
+            <PaymentStateChip
+              settlement={settlementOf(p.data.isReversal, !!p.data.isReversedOriginal)}
+              reconciled={!!p.data.reconciled}
+              reconciledAt={p.data.reconciledAt}
+            />
           );
         },
       },
@@ -267,6 +303,9 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
     const header = [
       'Date',
       'Payer',
+      'Email',
+      'Phone',
+      'Size',
       'Amount',
       'Currency',
       'Method',
@@ -277,6 +316,9 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
     const rows: string[][] = poolPayments.map((p) => [
       p.createdAt,
       p.payerLabel,
+      p.payerEmail ?? '',
+      p.payerPhone ?? '',
+      p.attireSize ?? '',
       p.amount.toFixed(2),
       p.currency,
       formatMethod(p.method),
@@ -302,10 +344,19 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
             {filtered.length} of {poolPayments.length}{' '}
             {poolPayments.length === 1 ? 'payment' : 'payments'}
           </span>
-          <Button variant="outline" size="sm" onClick={exportCsv} className="gap-1.5">
-            <Download className="h-3.5 w-3.5" />
-            Export CSV
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={exportCsv}
+            className="gap-1.5 text-muted-foreground"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            CSV
           </Button>
+          <ExportButton
+            spec={() => buildChargePoolExport(summary, filtered, formatMethod)}
+            disabled={filtered.length === 0}
+          />
         </div>
       </div>
       <DataTable<PoolRow>

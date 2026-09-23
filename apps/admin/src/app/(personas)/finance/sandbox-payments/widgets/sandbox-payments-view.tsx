@@ -5,8 +5,11 @@ import { FlaskConical } from 'lucide-react';
 
 import { Alert, AlertDescription, DataTable, EntityTablePanel, type GridApi } from '@shesa/ui';
 
+import { ExportButton } from '@/components/export-button';
 import { GatewayDetailSheet } from '@/components/finance/gateway-detail-sheet';
+import { activeFilters } from '@/lib/export/filters';
 
+import { buildSandboxPaymentsExport } from './sandbox-payments-export';
 import { buildSandboxPaymentColumns } from './sandbox-payment-columns';
 import type { SandboxPaymentRow, SerialSandboxPaymentRow } from './sandbox-payment-types';
 
@@ -98,6 +101,17 @@ export function SandboxPaymentsView({ payments, mode }: Props) {
         canCreate={false}
         createLabel=""
         onCreate={() => undefined}
+        actions={
+          <ExportButton
+            spec={() =>
+              buildSandboxPaymentsExport(
+                filtered,
+                activeFilters({ Search: search.trim(), Mode: mode }),
+              )
+            }
+            disabled={filtered.length === 0}
+          />
+        }
       />
       <DataTable<SerialSandboxPaymentRow>
         rowData={filtered as SerialSandboxPaymentRow[]}

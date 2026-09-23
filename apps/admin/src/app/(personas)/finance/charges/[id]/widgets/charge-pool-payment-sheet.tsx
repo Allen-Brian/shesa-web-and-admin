@@ -136,11 +136,21 @@ export function ChargePoolPaymentSheet({
                       {summary.scopeName} · {summary.shape}
                     </span>
                   </div>
-                  {payment.quantity != null && payment.quantity > 0 && (
-                    <Badge variant="outline" className="shrink-0 border-border">
-                      ×{payment.quantity}
-                    </Badge>
-                  )}
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {payment.attireSize && (
+                      <Badge
+                        variant="outline"
+                        className="border-primary/30 bg-primary/5 text-primary"
+                      >
+                        Size {payment.attireSize}
+                      </Badge>
+                    )}
+                    {payment.quantity != null && payment.quantity > 0 && (
+                      <Badge variant="outline" className="border-border">
+                        ×{payment.quantity}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </Section>
 

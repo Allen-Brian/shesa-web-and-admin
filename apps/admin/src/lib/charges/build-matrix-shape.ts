@@ -4,6 +4,7 @@ import type {
   MatrixPeriod,
   PoolPayment,
 } from '@/app/(personas)/finance/charges/[id]/widgets/charge-detail-types';
+import type { MemberContact } from '@/lib/finance/member-contacts';
 
 import type { RawObligation, RawPayment } from './charge-detail-raw-types';
 
@@ -112,18 +113,21 @@ export function pickMatrixVariant(obligations: readonly RawObligation[]): 'membe
  */
 export function buildMatrixPaymentLog(
   payments: readonly RawPayment[],
-  memberById: ReadonlyMap<string, string>,
+  memberById: ReadonlyMap<string, MemberContact>,
 ): PoolPayment[] {
   return payments
     .map((p): PoolPayment => {
       const meta = (p.metadata ?? {}) as { donor_name?: string; public_donation?: boolean };
+      const member = p.payer_member_id ? memberById.get(p.payer_member_id) : null;
       const label =
-        (p.payer_member_id ? memberById.get(p.payer_member_id) : null) ??
-        meta.donor_name ??
-        (meta.public_donation ? 'Anonymous donor' : '—');
+        member?.fullName ?? meta.donor_name ?? (meta.public_donation ? 'Anonymous donor' : '—');
       return {
         id: p.id,
         payerLabel: label,
+        payerEmail: member?.email ?? null,
+        payerPhone: member?.phone ?? null,
+        payerBatch: member?.batchName ?? null,
+        payerMemberCode: member?.memberCode ?? null,
         amount: p.amount,
         currency: p.currency,
         method: p.method,
@@ -143,7 +147,7 @@ export function buildMatrixPaymentLog(
  */
 export function assembleMatrixMembers(input: {
   readonly memberIds: readonly string[];
-  readonly memberById: ReadonlyMap<string, string>;
+  readonly memberById: ReadonlyMap<string, MemberContact>;
   readonly joinedAtByMember: ReadonlyMap<string, string | null>;
   readonly scopeBodyIds: readonly string[];
   readonly scopeBodyById: ReadonlyMap<string, { name: string; scope_type: string }>;
@@ -151,16 +155,23 @@ export function assembleMatrixMembers(input: {
   readonly allPeriods: readonly MatrixPeriod[];
   readonly paidByObligation: ReadonlyMap<string, number>;
 }): MatrixMember[] {
-  const memberRows: MatrixMember[] = input.memberIds.map((mid) => ({
-    memberId: mid,
-    fullName: input.memberById.get(mid) ?? '(unknown)',
-    joinedAt: input.joinedAtByMember.get(mid) ?? null,
-    cells: buildMatrixCells(
-      input.allPeriods,
-      input.obligations.filter((o) => o.party_id === mid && o.party_type === 'member'),
-      input.paidByObligation,
-    ),
-  }));
+  const memberRows: MatrixMember[] = input.memberIds.map((mid) => {
+    const member = input.memberById.get(mid);
+    return {
+      memberId: mid,
+      fullName: member?.fullName ?? '(unknown)',
+      email: member?.email ?? null,
+      phone: member?.phone ?? null,
+      batchName: member?.batchName ?? null,
+      memberCode: member?.memberCode ?? null,
+      joinedAt: input.joinedAtByMember.get(mid) ?? null,
+      cells: buildMatrixCells(
+        input.allPeriods,
+        input.obligations.filter((o) => o.party_id === mid && o.party_type === 'member'),
+        input.paidByObligation,
+      ),
+    };
+  });
   const scopeBodyRows: MatrixMember[] = input.scopeBodyIds.map((sid) => {
     const scope = input.scopeBodyById.get(sid);
     return {

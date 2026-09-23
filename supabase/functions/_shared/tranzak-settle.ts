@@ -287,6 +287,8 @@ async function settlementMetadata(
     note: intent.note,
     source: meta.source ?? null,
     agm_reference: meta.agm_reference ?? null,
+    /** Attire orders only; null on every other charge. */
+    attire_size: meta.attire_size ?? null,
 
     // ── What it was for ──
     ...reason,
