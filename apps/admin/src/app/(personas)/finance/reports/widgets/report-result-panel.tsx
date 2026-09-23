@@ -29,8 +29,8 @@ export function ReportResultPanel({ result, scopeCurrency }: ReportResultPanelPr
     return (
       <div className="rounded-xl border border-dashed border-border p-10 text-center">
         <BarChart3 className="mx-auto mb-3 h-8 w-8 text-muted-foreground/60" />
-        <p className="text-sm font-medium text-foreground">Nothing has been run yet.</p>
-        <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+        <p className="text-base font-medium text-foreground">Nothing has been run yet.</p>
+        <p className="mx-auto mt-1 max-w-md text-base text-muted-foreground">
           Choose a report above, tell it which scope and dates to cover, then press{' '}
           <span className="font-medium text-foreground">Run report</span>. Nothing is changed by
           running one — you can try as many as you like.
@@ -62,13 +62,13 @@ export function ReportResultPanel({ result, scopeCurrency }: ReportResultPanelPr
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+          <span className="text-sm font-semibold uppercase tracking-wider text-primary">
             Step 3 · The answer
           </span>
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="text-xl font-semibold text-foreground">
             {REPORTS.find((r) => r.value === result.report)?.label ?? result.report}
           </h2>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {result.scopeName}
             {result.groupName ? ` · ${result.groupName}` : ''} · {result.windowLabel} ·{' '}
             {result.rows.length} row{result.rows.length === 1 ? '' : 's'} · ran{' '}
@@ -98,10 +98,10 @@ export function ReportResultPanel({ result, scopeCurrency }: ReportResultPanelPr
 
       {result.rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-8 text-center">
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-base font-medium text-foreground">
             This report came back empty — and that is an answer too.
           </p>
-          <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+          <p className="mx-auto mt-1 max-w-md text-base text-muted-foreground">
             Nothing matched this scope and this window. Either nothing happened in that period, or
             the window is too narrow. Try widening the dates or picking a different scope.
           </p>

@@ -24,7 +24,7 @@ export function ReportBarChartPanel({
 }) {
   return (
     <GradientPanel className="flex flex-col gap-3 p-5">
-      <span className="text-sm font-medium text-foreground">{title}</span>
+      <span className="text-base font-semibold text-foreground">{title}</span>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart
           data={data as { name: string; value: number }[]}

@@ -49,10 +49,10 @@ export function ReportControlsCard(props: ReportControlsCardProps) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
       <div className="flex flex-col gap-0.5">
-        <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+        <span className="text-sm font-semibold uppercase tracking-wider text-primary">
           Step 2 · Choose what it should cover
         </span>
-        <span className="text-sm text-muted-foreground">
+        <span className="text-base text-muted-foreground">
           Which branch or chapter, and over what dates.
         </span>
       </div>
@@ -112,7 +112,7 @@ export function ReportControlsCard(props: ReportControlsCardProps) {
                     key={p.key}
                     type="button"
                     onClick={() => props.onPresetChange(p.key)}
-                    className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                    className={`inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                       active
                         ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -136,7 +136,7 @@ export function ReportControlsCard(props: ReportControlsCardProps) {
               value={props.customFrom}
               onChange={props.onCustomFromChange}
             />
-            <span className="text-xs text-muted-foreground">Leave empty for from-beginning.</span>
+            <span className="text-sm text-muted-foreground">Leave empty for from-beginning.</span>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="to">To</Label>
@@ -146,7 +146,7 @@ export function ReportControlsCard(props: ReportControlsCardProps) {
       )}
 
       <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border pt-3">
-        <span className="mr-auto text-xs text-muted-foreground">
+        <span className="mr-auto text-sm text-muted-foreground">
           About to run: <span className="font-medium text-foreground">{props.summaryLine}</span>
         </span>
         <Button

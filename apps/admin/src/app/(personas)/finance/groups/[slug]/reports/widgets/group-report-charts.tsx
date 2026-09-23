@@ -53,13 +53,13 @@ const PALETTE = [
   '#64748b',
 ];
 
-const AXIS_TICK = { fill: 'var(--color-muted-foreground)', fontSize: 11 } as const;
+const AXIS_TICK = { fill: 'var(--color-muted-foreground)', fontSize: 13 } as const;
 
 const tooltipStyle: React.CSSProperties = {
   background: 'var(--color-popover)',
   border: '1px solid var(--color-border)',
   borderRadius: 8,
-  fontSize: 12,
+  fontSize: 14,
   color: 'var(--color-popover-foreground)',
 };
 
@@ -85,8 +85,8 @@ export function ChartCard({
   return (
     <GradientPanel className={`flex flex-col gap-3 p-5 ${className ?? ''}`}>
       <div className="flex flex-col gap-0.5">
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        {subtitle && <p className="text-xs leading-relaxed text-muted-foreground">{subtitle}</p>}
+        <h3 className="text-base font-semibold text-foreground">{title}</h3>
+        {subtitle && <p className="text-sm leading-relaxed text-muted-foreground">{subtitle}</p>}
       </div>
       {children}
     </GradientPanel>
@@ -95,7 +95,7 @@ export function ChartCard({
 
 export function EmptyChart({ message }: { readonly message: string }) {
   return (
-    <div className="flex h-44 items-center justify-center rounded-lg border border-dashed border-border px-6 text-center text-xs italic text-muted-foreground">
+    <div className="flex h-44 items-center justify-center rounded-lg border border-dashed border-border px-6 text-center text-sm italic text-muted-foreground">
       {message}
     </div>
   );
@@ -159,7 +159,7 @@ export function CumulativeCurve({
           height={28}
           iconType="plainline"
           formatter={(v) => (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {v === 'cumulativeIncome' ? 'Raised so far' : 'Net after spending'}
             </span>
           )}
@@ -219,7 +219,7 @@ export function DailyBars({
           verticalAlign="top"
           height={28}
           formatter={(v) => (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {v === 'income' ? 'Money in' : 'Money out'}
             </span>
           )}
@@ -331,7 +331,7 @@ export function SharePie({
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <ul className="flex flex-col gap-2 text-xs lg:min-w-60">
+      <ul className="flex flex-col gap-2 text-sm lg:min-w-60">
         {data.map((d, i) => (
           <li key={d.name} className="flex items-center gap-2">
             <span

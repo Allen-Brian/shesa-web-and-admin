@@ -19,14 +19,14 @@ export const CHART_PALETTE = [
 
 export const AXIS_TICK = {
   fill: 'var(--color-muted-foreground)',
-  fontSize: 11,
+  fontSize: 13,
 } as const;
 
 export const tooltipStyle: React.CSSProperties = {
   background: 'var(--color-popover)',
   border: '1px solid var(--color-border)',
   borderRadius: 8,
-  fontSize: 12,
+  fontSize: 14,
   color: 'var(--color-popover-foreground)',
 };
 

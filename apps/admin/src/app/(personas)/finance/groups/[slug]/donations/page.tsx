@@ -143,14 +143,20 @@ export default async function GroupDonationsPage({ params }: Props) {
       const member = p.payer_member_id ? memberById.get(p.payer_member_id) : null;
       const meta = (p.metadata ?? {}) as {
         donor_name?: string;
+        payer_name?: string;
         donor_email?: string;
         payer_email?: string;
         payer_phone?: string;
         public_donation?: boolean;
       };
+      // `donor_name` is what the donation form writes; a ticket or
+      // attire purchase writes `payer_name`. Checking only the first
+      // made every public buyer render as "Walk-in" — they had given
+      // us their name, we just looked in the wrong key.
       const donorLabel =
         member?.fullName ??
         meta.donor_name ??
+        meta.payer_name ??
         (meta.public_donation ? 'Anonymous donor' : 'Walk-in');
       return {
         id: p.id,

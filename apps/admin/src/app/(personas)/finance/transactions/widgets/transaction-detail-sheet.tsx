@@ -86,7 +86,10 @@ export function TransactionDetailSheet({
 
   return (
     <Sheet open={!!target} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col gap-0 overflow-hidden rounded-l-2xl p-0 sm:max-w-md"
+      >
         {target && (
           <>
             <SheetHeader className="[background-image:var(--gradient-primary)] px-6 py-6 pr-14 text-white">
@@ -130,8 +133,8 @@ export function TransactionDetailSheet({
               )}
             </div>
 
-            <div className="flex-1 space-y-3 overflow-y-auto bg-muted/20 px-4 py-4">
-              <Section icon={Target} tone="primary" title="Paid for">
+            <div className="flex-1 overflow-y-auto px-6">
+              <Section icon={Target} title="Paid for">
                 <p className="text-sm font-semibold text-foreground">{target.chargeName}</p>
                 <p className="text-xs text-muted-foreground">
                   {target.scopeName}
@@ -139,7 +142,7 @@ export function TransactionDetailSheet({
                 </p>
               </Section>
 
-              <Section icon={User} tone="sky" title="Payer">
+              <Section icon={User} title="Payer">
                 <p className="text-sm font-semibold text-foreground">{target.payerLabel}</p>
                 <div className="mt-1.5 flex flex-col gap-1">
                   {target.payerEmail && (
@@ -168,13 +171,13 @@ export function TransactionDetailSheet({
               </Section>
 
               {target.memo && (
-                <Section icon={StickyNote} tone="amber" title="Note">
+                <Section icon={StickyNote} title="Note">
                   <p className="text-sm leading-relaxed text-foreground">{target.memo}</p>
                 </Section>
               )}
 
               {target.externalRef && (
-                <Section icon={Hash} tone="violet" title="External reference">
+                <Section icon={Hash} title="External reference">
                   <div className="flex items-center gap-2">
                     <code className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-1 font-mono text-xs text-foreground">
                       {target.externalRef}
@@ -192,30 +195,28 @@ export function TransactionDetailSheet({
               )}
 
               {target.gatewayProvider && (
-                <Section icon={Building2} tone="sky" title="Gateway">
+                <Section icon={Building2} title="Gateway">
                   <p className="text-sm font-semibold capitalize text-foreground">
                     {target.gatewayProvider}
                   </p>
 
                   {target.gatewayAmount != null && (
-                    <div className="mt-2 grid grid-cols-3 gap-2">
+                    <div className="mt-2 grid grid-cols-3 divide-x divide-border rounded-lg bg-muted/40">
                       <GatewayFigure
                         label="Gross"
                         value={target.gatewayAmount}
                         currency={target.gatewayCurrency}
-                        tone="neutral"
                       />
                       <GatewayFigure
                         label="Fee"
                         value={target.gatewayFee}
                         currency={target.gatewayCurrency}
-                        tone="cost"
                       />
                       <GatewayFigure
                         label="Net"
                         value={target.gatewayNetAmount}
                         currency={target.gatewayCurrency}
-                        tone="received"
+                        emphasis
                       />
                     </div>
                   )}
@@ -232,7 +233,7 @@ export function TransactionDetailSheet({
               )}
 
               {target.receiptNumber && (
-                <Section icon={ReceiptIcon} tone="primary" title="Receipt">
+                <Section icon={ReceiptIcon} title="Receipt">
                   <p className="font-mono text-sm font-semibold text-foreground">
                     {target.receiptNumber}
                   </p>
@@ -245,7 +246,7 @@ export function TransactionDetailSheet({
               )}
 
               {target.reconciled && (
-                <Section icon={BadgeCheck} tone="emerald" title="Reconciliation">
+                <Section icon={BadgeCheck} title="Reconciliation">
                   {target.reconciledAt && (
                     <p className="text-xs text-muted-foreground">
                       Matched {formatShortDay(target.reconciledAt)} ·{' '}
@@ -313,42 +314,30 @@ export function TransactionDetailSheet({
   );
 }
 
-type Tone = 'primary' | 'sky' | 'emerald' | 'amber' | 'violet';
-
-const TONES: Record<Tone, string> = {
-  primary: 'bg-primary/10 text-primary',
-  sky: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
-  emerald: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
-  amber: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
-  violet: 'bg-violet-500/15 text-violet-700 dark:text-violet-400',
-};
-
 /**
- * One labelled card. The tinted icon is the anchor the eye lands on
- * when scanning the sheet for a particular field, which is what the
- * operator is almost always doing.
+ * One labelled block, separated from its neighbour by a hairline.
+ *
+ * Cards were wrong here. The sheet is already a card — a panel floating
+ * over the page — and boxing each field inside it again drew five more
+ * borders the reader has to look past to reach the one line they came
+ * for. A quiet label and a rule do the same work and leave the values
+ * as the only things with any weight.
  */
 function Section({
   icon: Icon,
-  tone,
   title,
   children,
 }: {
   readonly icon: LucideIcon;
-  readonly tone: Tone;
   readonly title: string;
   readonly children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-3.5 shadow-sm">
-      <div className="mb-2 flex items-center gap-2">
-        <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md ${TONES[tone]}`}>
-          <Icon className="h-3.5 w-3.5" aria-hidden />
-        </span>
-        <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          {title}
-        </h3>
-      </div>
+    <section className="border-b border-border py-4 last:border-b-0">
+      <h3 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <Icon className="h-3.5 w-3.5 shrink-0 opacity-60" aria-hidden />
+        {title}
+      </h3>
       {children}
     </section>
   );
@@ -358,30 +347,30 @@ function Section({
  * One of the three gateway figures. Renders an em dash rather than a
  * zero when the gateway did not report a value — a missing fee and a
  * zero fee are different facts.
+ *
+ * All three are drawn the same, in one quiet strip. Colouring them
+ * separately made a routine settlement look like three warnings; what
+ * actually matters is the net, so that is the only one given weight.
  */
 function GatewayFigure({
   label,
   value,
   currency,
-  tone,
+  emphasis = false,
 }: {
   readonly label: string;
   readonly value: number | null;
   readonly currency: string | null;
-  readonly tone: 'neutral' | 'cost' | 'received';
+  readonly emphasis?: boolean;
 }) {
-  const styles = {
-    neutral: 'border-border bg-muted/40 text-foreground',
-    cost: 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400',
-    received: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
-  }[tone];
-
   return (
-    <div className={`flex flex-col gap-0.5 rounded-lg border px-2 py-1.5 leading-tight ${styles}`}>
-      <span className="text-[9.5px] font-semibold uppercase tracking-wider opacity-70">
+    <div className="flex flex-col gap-0.5 px-2.5 py-2 leading-tight">
+      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
-      <span className="text-sm font-semibold tabular-nums">
+      <span
+        className={`text-sm tabular-nums ${emphasis ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}
+      >
         {value == null
           ? '—'
           : `${new Intl.NumberFormat('fr-CM', { maximumFractionDigits: 0 }).format(value)} ${

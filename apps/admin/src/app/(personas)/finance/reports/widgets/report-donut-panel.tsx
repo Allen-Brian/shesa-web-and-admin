@@ -24,7 +24,7 @@ export function ReportDonutPanel({
   return (
     <GradientPanel className="flex flex-col gap-3 p-5 lg:flex-row lg:items-center">
       <div className="flex-1">
-        <span className="mb-2 block text-sm font-medium text-foreground">{title}</span>
+        <span className="mb-2 block text-base font-semibold text-foreground">{title}</span>
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
             <Pie
@@ -47,7 +47,7 @@ export function ReportDonutPanel({
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <ul className="flex flex-col gap-1.5 text-xs lg:min-w-56">
+      <ul className="flex flex-col gap-2 text-sm lg:min-w-56">
         {data.map((d, idx) => {
           const pct = (d.value / total) * 100;
           return (

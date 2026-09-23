@@ -63,14 +63,14 @@ export function ReportsView({ scopeOptions, groupOptions }: ReportsViewProps) {
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Finance
         </div>
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
           <BarChart className="h-6 w-6" />
           Reports
         </h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">
+        <p className="max-w-3xl text-base text-muted-foreground">
           Choose a question, say which part of the association and which dates it should cover, then
           run it. Every result is explained in plain words before the numbers, and can be exported
           as a formatted Excel file to send on. Running a report only reads data — it never changes

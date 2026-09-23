@@ -33,9 +33,25 @@ const MUTED = 'FF6B6B6B';
 const HAIRLINE = 'FFE7E1E3';
 const WHITE = 'FFFFFFFF';
 
+/**
+ * Everything on the sheet is set 1.75× the size a spreadsheet would
+ * default to. These are read on a projector in a meeting and printed
+ * for people who are not looking for an excuse to squint.
+ *
+ * Column widths scale with it. Excel measures a column in characters
+ * of the *workbook's* default font, so leaving widths alone while
+ * enlarging the text is precisely how figures end up hidden behind
+ * `####` — the two have to move together.
+ */
+const SCALE = 1.75;
+const pt = (base: number) => Math.round(base * SCALE * 2) / 2;
+
 /** Widest a column may grow before its content wraps instead. */
-const MAX_WIDTH = 52;
-const MIN_WIDTH = 9;
+const MAX_WIDTH = Math.round(44 * SCALE);
+const MIN_WIDTH = Math.round(7 * SCALE);
+
+/** ~40px, the row height asked for. Excel counts points, not pixels. */
+const DATA_ROW_HEIGHT = 30;
 
 export type CellValue = string | number | Date | null | undefined;
 
@@ -72,8 +88,8 @@ export interface ExportSpec<T> {
   readonly orientation?: 'portrait' | 'landscape';
 }
 
-/** Rows 1-7 are the letterhead; the table header lands on row 8. */
-const HEADER_ROW = 8;
+/** Rows 1-6 are the letterhead; the table header lands on row 7. */
+const HEADER_ROW = 7;
 
 /**
  * Builds the workbook and hands it to the browser as a download.
@@ -103,10 +119,13 @@ export async function exportToExcel<T>(spec: ExportSpec<T>): Promise<number> {
 
   writeLetterhead(ws, spec, lastCol);
   writeHeaderRow(ws, columns);
+  // Widths are settled before the body is written: whether a row needs
+  // to wrap — and so whether it can take a fixed height — depends on
+  // how wide its columns ended up.
+  const widths = sizeColumns(ws, spec.rows, columns);
   const firstDataRow = HEADER_ROW + 1;
-  const written = writeDataRows(ws, spec.rows, columns, firstDataRow);
+  const written = writeDataRows(ws, spec.rows, columns, firstDataRow, widths);
   writeTotalsRow(ws, spec.rows, columns, firstDataRow + written);
-  sizeColumns(ws, spec.rows, columns);
 
   // AutoFilter over the header + data so the recipient can slice the
   // sheet without rebuilding it. Skipped on an empty export, where
@@ -136,51 +155,60 @@ function writeLetterhead<T>(ws: Worksheet, spec: ExportSpec<T>, lastCol: number)
     return ws.getCell(row, 1);
   };
 
-  // Row 1 carries no text — the crest floats over it.
-  ws.getRow(1).height = 46;
-
-  const org = span(2);
+  // The crest and the organisation's name share one merged cell,
+  // spanning the table exactly like the title beneath it. The crest
+  // floats inside that cell and the text is indented clear of it, so
+  // the masthead reads as one band rather than as a small picture
+  // sitting in the first column with a caption below it.
+  const org = span(1);
   org.value = 'SHESA CONNECT';
-  org.font = { name: 'Calibri', size: 10, bold: true, color: { argb: PRIMARY } };
-  ws.getRow(2).height = 16;
+  org.font = { name: 'Calibri', size: pt(11), bold: true, color: { argb: PRIMARY } };
+  org.alignment = { vertical: 'middle', horizontal: 'left', indent: 7 };
+  ws.getRow(1).height = 52;
 
-  const title = span(3);
+  const title = span(2);
   title.value = spec.title;
-  title.font = { name: 'Calibri', size: 19, bold: true, color: { argb: INK } };
-  ws.getRow(3).height = 27;
+  title.font = { name: 'Calibri', size: pt(17), bold: true, color: { argb: INK } };
+  title.alignment = { vertical: 'middle', horizontal: 'left' };
+  ws.getRow(2).height = 40;
 
-  const subtitle = span(4);
+  const subtitle = span(3);
   subtitle.value = spec.subtitle ?? '';
-  subtitle.font = { name: 'Calibri', size: 10.5, color: { argb: MUTED } };
-  ws.getRow(4).height = 15;
+  subtitle.font = { name: 'Calibri', size: pt(10.5), color: { argb: MUTED } };
+  subtitle.alignment = { vertical: 'middle', horizontal: 'left' };
+  ws.getRow(3).height = 26;
 
+  // Who made this and when. "By Finance Portal" is not decoration —
+  // these sheets get forwarded, and the next person to open one needs
+  // to know what produced it and whether it is still current.
   const metaLine = [
-    `Generated ${new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}`,
+    `Generated ${new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })} by Finance Portal`,
     `${spec.rows.length} ${spec.rows.length === 1 ? 'row' : 'rows'}`,
     ...(spec.meta ?? []).map((m) => `${m.label}: ${m.value}`),
   ].join('  ·  ');
-  const meta = span(5);
+  const meta = span(4);
   meta.value = metaLine;
-  meta.font = { name: 'Calibri', size: 9, italic: true, color: { argb: MUTED } };
-  ws.getRow(5).height = 14;
+  meta.font = { name: 'Calibri', size: pt(9), italic: true, color: { argb: MUTED } };
+  meta.alignment = { vertical: 'middle', horizontal: 'left' };
+  ws.getRow(4).height = 24;
 
-  // Row 6 is the rule itself — a 4pt row filled burgundy reads as a
+  // Row 5 is the rule itself — a short row filled burgundy reads as a
   // drawn line and survives both printing and PDF export, which a cell
   // border on a merged range does not always do.
-  const rule = span(6);
+  const rule = span(5);
   rule.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PRIMARY } };
-  ws.getRow(6).height = 4;
+  ws.getRow(5).height = 5;
 
-  ws.getRow(7).height = 8;
+  ws.getRow(6).height = 10;
 }
 
 function writeHeaderRow<T>(ws: Worksheet, columns: readonly ExportColumn<T>[]): void {
   const row = ws.getRow(HEADER_ROW);
-  row.height = 26;
+  row.height = 38;
   columns.forEach((col, i) => {
     const cell = row.getCell(i + 1);
     cell.value = col.header;
-    cell.font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: WHITE } };
+    cell.font = { name: 'Calibri', size: pt(10.5), bold: true, color: { argb: WHITE } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PRIMARY } };
     cell.alignment = { vertical: 'middle', horizontal: col.align ?? 'left', wrapText: true };
     cell.border = {
@@ -198,21 +226,25 @@ function writeDataRows<T>(
   rows: readonly T[],
   columns: readonly ExportColumn<T>[],
   firstDataRow: number,
+  widths: readonly number[],
 ): number {
   rows.forEach((source, r) => {
     const row = ws.getRow(firstDataRow + r);
     const banded = r % 2 === 1;
+    let wraps = false;
+
     columns.forEach((col, c) => {
       const cell = row.getCell(c + 1);
       const value = col.value(source);
       cell.value = value ?? '';
-      cell.font = { name: 'Calibri', size: 10, color: { argb: INK } };
+      cell.font = { name: 'Calibri', size: pt(10), color: { argb: INK } };
       if (col.numFmt) cell.numFmt = col.numFmt;
       cell.alignment = {
         vertical: 'middle',
         horizontal: col.align ?? (typeof value === 'number' ? 'right' : 'left'),
         wrapText: true,
       };
+      if (displayLength(value, col.numFmt) > (widths[c] ?? MAX_WIDTH)) wraps = true;
       if (banded) {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BAND } };
       }
@@ -222,6 +254,12 @@ function writeDataRows<T>(
         right: { style: 'hair', color: { argb: HAIRLINE } },
       };
     });
+
+    // A fixed height on a row whose text wraps would cut the second
+    // line off, which is the one failure this whole file exists to
+    // avoid. Those rows are left unset so Excel fits them itself;
+    // every other row takes the taller, more legible height.
+    if (!wraps) row.height = DATA_ROW_HEIGHT;
   });
   return rows.length;
 }
@@ -242,7 +280,7 @@ function writeTotalsRow<T>(
   if (totalled.length === 0 || rows.length === 0) return;
 
   const row = ws.getRow(rowNumber);
-  row.height = 22;
+  row.height = DATA_ROW_HEIGHT;
   columns.forEach((col, c) => {
     const cell = row.getCell(c + 1);
     if (c === 0) {
@@ -256,7 +294,7 @@ function writeTotalsRow<T>(
       cell.value = sum;
       if (col.numFmt) cell.numFmt = col.numFmt;
     }
-    cell.font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: WHITE } };
+    cell.font = { name: 'Calibri', size: pt(10.5), bold: true, color: { argb: WHITE } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PRIMARY_DEEP } };
     cell.alignment = {
       vertical: 'middle',
@@ -275,27 +313,39 @@ function sizeColumns<T>(
   ws: Worksheet,
   rows: readonly T[],
   columns: readonly ExportColumn<T>[],
-): void {
-  columns.forEach((col, i) => {
-    if (col.width) {
-      ws.getColumn(i + 1).width = col.width;
-      return;
-    }
-    let widest = col.header.length;
-    for (const source of rows) {
-      const len = displayLength(col.value(source), col.numFmt);
-      if (len > widest) widest = len;
-    }
-    // +3 covers the cell's own padding and the autofilter arrow that
-    // sits inside the header cell.
-    ws.getColumn(i + 1).width = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, widest + 3));
+): number[] {
+  return columns.map((col, i) => {
+    // A caller's explicit width is stated in ordinary characters, so
+    // it scales with the type like everything else. Taking it
+    // literally would clip exactly the narrow columns — dates, codes,
+    // currencies — that were sized by hand to fit.
+    const measured = col.width
+      ? col.width
+      : Math.max(
+          col.header.length,
+          ...rows.map((source) => displayLength(col.value(source), col.numFmt)),
+          0,
+        ) + 3; // padding + the autofilter arrow inside the header cell
+
+    const width = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.ceil(measured * SCALE)));
+    ws.getColumn(i + 1).width = width;
+    // Returned in characters at the sheet's own type size, which is
+    // what the wrap test needs to compare against.
+    return Math.floor(width / SCALE);
   });
 }
 
 /** Rough printed width of a value, in characters. */
 function displayLength(value: CellValue, numFmt?: string): number {
   if (value == null) return 0;
-  if (value instanceof Date) return 18;
+  if (value instanceof Date) {
+    // The format string is a good proxy for the rendered width —
+    // `dd mmm yyyy` really does print about eleven characters. A flat
+    // guess here overestimated every dated column, which made every
+    // row containing a date look as though it needed to wrap and cost
+    // them all the taller row height.
+    return Math.max(10, numFmt?.length ?? 12);
+  }
   if (typeof value === 'number') {
     // Grouped thousands and any currency suffix in the format string
     // both widen the printed figure beyond `String(value)`.
@@ -325,9 +375,12 @@ async function attachLogo(wb: Workbook, ws: Worksheet): Promise<void> {
     if (!res.ok) return;
     const buffer = await res.arrayBuffer();
     const imageId = wb.addImage({ buffer, extension: 'png' });
+    // Sits inside the merged masthead cell, left of the indented
+    // "SHESA CONNECT". Absolute so it keeps its size when the
+    // recipient resizes a column.
     ws.addImage(imageId, {
-      tl: { col: 0.12, row: 0.15 },
-      ext: { width: 52, height: 52 },
+      tl: { col: 0.12, row: 0.08 },
+      ext: { width: 58, height: 58 },
       editAs: 'absolute',
     });
   } catch {

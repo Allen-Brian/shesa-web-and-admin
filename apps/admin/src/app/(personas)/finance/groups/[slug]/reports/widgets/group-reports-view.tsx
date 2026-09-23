@@ -66,10 +66,10 @@ export function GroupReportsView({ data }: { readonly data: GroupReportData }) {
     <section className="flex flex-col gap-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
             How {data.name} is doing
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Everything recorded against this group, {periodLabel(data)}.
           </p>
         </div>
@@ -193,20 +193,23 @@ export function GroupReportsView({ data }: { readonly data: GroupReportData }) {
           {s.topPayers.length === 0 ? (
             <EmptyChart message="No named contributors yet." />
           ) : (
-            <ol className="flex flex-col gap-1.5">
+            /* A plain divided list. These were cards sitting inside a
+               card, which drew a border around every name and made ten
+               contributors read as ten separate panels rather than one
+               ranking. */
+            <ol className="divide-y divide-border">
               {s.topPayers.map((p, i) => (
-                <li
-                  key={p.name}
-                  className="flex items-center gap-3 rounded-lg border border-border bg-card/60 px-3 py-2"
-                >
-                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/10 text-[11px] font-semibold tabular-nums text-primary">
+                <li key={p.name} className="flex items-center gap-3 py-2.5">
+                  <span className="w-5 shrink-0 text-right text-sm font-semibold tabular-nums text-muted-foreground">
                     {i + 1}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-sm text-foreground">{p.name}</span>
-                  <span className="shrink-0 text-[11px] text-muted-foreground">
+                  <span className="min-w-0 flex-1 truncate text-base text-foreground">
+                    {p.name}
+                  </span>
+                  <span className="shrink-0 text-sm text-muted-foreground">
                     {p.payments} payment{p.payments === 1 ? '' : 's'}
                   </span>
-                  <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+                  <span className="shrink-0 text-base font-semibold tabular-nums text-foreground">
                     {formatCompactMoney(p.total, currency)}
                   </span>
                 </li>
@@ -227,8 +230,8 @@ export function GroupReportsView({ data }: { readonly data: GroupReportData }) {
               .map((c) => (
                 <div key={c.name} className="flex flex-col gap-1.5">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="text-sm font-medium text-foreground">{c.name}</span>
-                    <span className="text-xs tabular-nums text-muted-foreground">
+                    <span className="text-base font-medium text-foreground">{c.name}</span>
+                    <span className="text-sm tabular-nums text-muted-foreground">
                       {money(c.collected)} of {money(c.expected)} ·{' '}
                       <span
                         className={
@@ -255,7 +258,7 @@ export function GroupReportsView({ data }: { readonly data: GroupReportData }) {
         </ChartCard>
       )}
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Every figure here also appears in the mainstream ledger — a group is a lens on the books,
         not a separate set of them.
       </p>
@@ -340,7 +343,7 @@ function Narrative({
           <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-primary">
             In plain words
           </h3>
-          <p className="text-sm leading-relaxed text-foreground">{lines.join(' ')}</p>
+          <p className="text-base leading-relaxed text-foreground">{lines.join(' ')}</p>
         </div>
       </div>
     </GradientPanel>
@@ -381,12 +384,12 @@ function Kpi({
         <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md ${KPI_TONES[tone]}`}>
           <Icon className="h-3.5 w-3.5" aria-hidden />
         </span>
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <span className="text-sm font-medium text-muted-foreground">{label}</span>
       </div>
-      <span className="text-2xl font-semibold leading-none tabular-nums text-foreground">
+      <span className="text-[1.75rem] font-semibold leading-none tabular-nums text-foreground">
         {value}
       </span>
-      <span className="text-[11px] leading-snug text-muted-foreground">{hint}</span>
+      <span className="text-xs leading-snug text-muted-foreground">{hint}</span>
     </GradientPanel>
   );
 }

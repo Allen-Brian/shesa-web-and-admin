@@ -49,11 +49,11 @@ export function ReportNarrative({
           <Lightbulb className="h-4 w-4" aria-hidden />
         </span>
         <div className="flex min-w-0 flex-col gap-1.5">
-          <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-primary">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
             In plain words
           </h3>
-          <p className="text-sm leading-relaxed text-foreground">{sentences.join(' ')}</p>
-          {entry && <p className="text-xs leading-relaxed text-muted-foreground">{entry.readAs}</p>}
+          <p className="text-base leading-relaxed text-foreground">{sentences.join(' ')}</p>
+          {entry && <p className="text-sm leading-relaxed text-muted-foreground">{entry.readAs}</p>}
         </div>
       </div>
     </section>

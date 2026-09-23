@@ -26,10 +26,12 @@ export function ReportCataloguePicker({
   return (
     <div>
       <div className="mb-2 flex flex-col gap-0.5">
-        <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+        <span className="text-sm font-semibold uppercase tracking-wider text-primary">
           Step 1 · Choose a report
         </span>
-        <span className="text-sm text-muted-foreground">Pick the question you want answered.</span>
+        <span className="text-base text-muted-foreground">
+          Pick the question you want answered.
+        </span>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {REPORTS.map((r) => {
@@ -52,14 +54,14 @@ export function ReportCataloguePicker({
                 <Icon className="h-4 w-4" />
               </div>
               <div className="flex min-w-0 flex-col gap-1">
-                <span className="text-sm font-semibold leading-snug text-foreground">
+                <span className="text-base font-semibold leading-snug text-foreground">
                   {r.question}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   <span className="font-medium text-foreground/70">{r.label}</span> ·{' '}
                   {r.description}
                 </span>
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                <span className="text-[11.5px] font-medium uppercase tracking-wider text-muted-foreground/80">
                   {r.usesDates ? 'Covers a date range' : 'As things stand today'}
                 </span>
               </div>
