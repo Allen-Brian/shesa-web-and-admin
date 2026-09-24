@@ -21,6 +21,7 @@ import {
   SheetHeader,
   SheetTitle,
   toast,
+  Private,
 } from '@shesa/ui';
 
 import { formatShortDay, formatTime24 } from '@/lib/format/date-time';
@@ -155,7 +156,7 @@ export function ChargePoolPaymentSheet({
               </Section>
 
               <Section title="Payer">
-                <div className="flex flex-col gap-1.5">
+                <Private as="block" className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2">
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-medium text-muted-foreground">
                       {getInitials(payment.payerLabel)}
@@ -192,7 +193,7 @@ export function ChargePoolPaymentSheet({
                       value={payment.payerLocation}
                     />
                   )}
-                </div>
+                </Private>
               </Section>
 
               {payment.memo && (

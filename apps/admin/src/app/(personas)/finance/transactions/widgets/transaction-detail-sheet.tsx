@@ -21,6 +21,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Badge,
   Button,
+  Private,
   Sheet,
   SheetContent,
   SheetDescription,
@@ -52,16 +53,16 @@ interface Props {
  *
  * The figure is the reason the sheet is open, so it is given the whole
  * top of the panel on the brand gradient and nothing competes with it.
- * Everything under that is reference material, and is banded into
- * labelled cards with a tinted icon apiece — the operator is usually
- * scanning for one specific field (a phone number, a gateway ref, the
- * reconciliation note), and colour-coded anchors find it faster than a
- * uniform run of grey rows does.
+ * Everything under that is reference material: quiet labels separated
+ * by hairlines, because the panel is already a card and boxing each
+ * field inside it again only adds borders to look past.
  *
- * The gateway block keeps gross, fee and net apart and tints them by
- * what they mean: the fee is money lost, the net is what the treasury
- * actually received. A payment that reconciles at gross can still leave
- * the books short, and colour is what makes that gap noticeable.
+ * The gateway block keeps gross, fee and net apart — the treasury
+ * received the net, not the gross, and a payment that reconciles at
+ * gross can still leave the books short.
+ *
+ * Names and contact details sit inside `Private`, so the whole sheet
+ * can be shown on a projector without showing who paid.
  */
 export function TransactionDetailSheet({
   target,
@@ -88,7 +89,7 @@ export function TransactionDetailSheet({
     <Sheet open={!!target} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="flex w-full flex-col gap-0 overflow-hidden rounded-l-2xl p-0 sm:max-w-md"
+        className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
       >
         {target && (
           <>
@@ -143,8 +144,10 @@ export function TransactionDetailSheet({
               </Section>
 
               <Section icon={User} title="Payer">
-                <p className="text-sm font-semibold text-foreground">{target.payerLabel}</p>
-                <div className="mt-1.5 flex flex-col gap-1">
+                <Private>
+                  <p className="text-sm font-semibold text-foreground">{target.payerLabel}</p>
+                </Private>
+                <Private as="block" className="mt-1.5 flex flex-col gap-1">
                   {target.payerEmail && (
                     <ContactLine
                       icon={Mail}
@@ -167,7 +170,7 @@ export function TransactionDetailSheet({
                       No contact details on record.
                     </span>
                   )}
-                </div>
+                </Private>
               </Section>
 
               {target.memo && (

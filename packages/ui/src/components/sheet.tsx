@@ -26,8 +26,15 @@ const SheetOverlay = React.forwardRef<
 ));
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
+/**
+ * The panel floats on its own margin with a shadow and rounded corners,
+ * so the border was drawing a second edge a pixel outside the one the
+ * shadow already describes — most visible where it cut across the
+ * rounded corners. The border-width is kept and only the colour is
+ * dropped, so nothing shifts by the two pixels removing it would cost.
+ */
 const sheetVariants = cva(
-  'fixed z-50 gap-4 rounded-xl bg-background m-2 p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500',
+  'fixed z-50 gap-4 rounded-xl border-transparent bg-background m-2 p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500',
   {
     variants: {
       side: {

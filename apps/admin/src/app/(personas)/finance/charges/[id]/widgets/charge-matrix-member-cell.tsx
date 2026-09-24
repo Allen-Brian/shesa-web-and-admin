@@ -1,5 +1,7 @@
 import { Building2 } from 'lucide-react';
 
+import { Private } from '@shesa/ui';
+
 import type { MatrixRow } from './charge-detail-types';
 import { formatMoney, getInitials } from './shared-formatters';
 
@@ -34,10 +36,17 @@ export function ChargeMatrixMemberCell({
               : 'bg-muted text-muted-foreground'
         }`}
       >
-        {isScopeBody ? <Building2 className="h-4 w-4" /> : initials}
+        {isScopeBody ? <Building2 className="h-4 w-4" /> : <Private>{initials}</Private>}
       </div>
       <div className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-sm font-medium text-foreground">{member.fullName}</span>
+        <Private>
+          <span
+            className="block truncate text-sm font-medium text-foreground"
+            title={member.fullName}
+          >
+            {member.fullName}
+          </span>
+        </Private>
         <span className="truncate text-[11px] text-muted-foreground tabular-nums">
           {isScopeBody && member.scopeType && (
             <span className="mr-1 capitalize italic">{member.scopeType} · as body ·</span>

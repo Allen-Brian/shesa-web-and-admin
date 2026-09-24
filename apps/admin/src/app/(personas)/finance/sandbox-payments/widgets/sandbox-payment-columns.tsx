@@ -1,4 +1,4 @@
-import { Badge, type ColDef, type ICellRendererParams } from '@shesa/ui';
+import { Badge, Private, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
 import type { SerialSandboxPaymentRow } from './sandbox-payment-types';
 
@@ -72,15 +72,21 @@ export function buildSandboxPaymentColumns(): ColDef<SerialSandboxPaymentRow>[] 
     {
       headerName: 'Payer',
       field: 'payerLabel',
-      flex: 1.3,
-      minWidth: 160,
+      flex: 1.5,
+      minWidth: 220,
       cellRenderer: (p: ICellRendererParams<SerialSandboxPaymentRow, string>) =>
         p.data ? (
-          <div className="flex flex-col leading-tight">
-            <span className="text-foreground">{p.data.payerLabel}</span>
-            <span className="text-xs text-muted-foreground">
-              {p.data.payerPhone ?? p.data.payerEmail ?? '—'}
-            </span>
+          <div className="flex min-w-0 flex-col leading-tight">
+            <Private>
+              <span className="block truncate text-foreground" title={p.data.payerLabel}>
+                {p.data.payerLabel}
+              </span>
+            </Private>
+            <Private>
+              <span className="block truncate text-xs text-muted-foreground">
+                {p.data.payerPhone ?? p.data.payerEmail ?? '—'}
+              </span>
+            </Private>
           </div>
         ) : null,
     },

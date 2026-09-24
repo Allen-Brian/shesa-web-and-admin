@@ -11,7 +11,7 @@ import {
   Wallet,
 } from 'lucide-react';
 
-import { GradientPanel } from '@shesa/ui';
+import { GradientPanel, Private } from '@shesa/ui';
 
 import { ExportButton } from '@/components/export-button';
 import { formatCompactMoney, formatMoney } from '@/lib/finance/format-money';
@@ -203,9 +203,11 @@ export function GroupReportsView({ data }: { readonly data: GroupReportData }) {
                   <span className="w-5 shrink-0 text-right text-sm font-semibold tabular-nums text-muted-foreground">
                     {i + 1}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-base text-foreground">
-                    {p.name}
-                  </span>
+                  <Private className="min-w-0 flex-1">
+                    <span className="block truncate text-base text-foreground" title={p.name}>
+                      {p.name}
+                    </span>
+                  </Private>
                   <span className="shrink-0 text-sm text-muted-foreground">
                     {p.payments} payment{p.payments === 1 ? '' : 's'}
                   </span>

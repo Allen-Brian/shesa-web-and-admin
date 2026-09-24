@@ -6,6 +6,7 @@ import type { GridApi } from 'ag-grid-community';
 import { Button } from './button';
 import { Checkbox } from './checkbox';
 import { ColumnPicker } from './data-table/column-picker';
+import { PrivacyToggle } from './privacy';
 import { Separator } from './separator';
 
 interface Props {
@@ -98,6 +99,9 @@ export function EntityTablePanel({
           </>
         )}
         {actions}
+        {/* Renders itself only under a PrivacyProvider, so tables on
+            surfaces without a presentation mode are unaffected. */}
+        <PrivacyToggle />
         <ColumnPicker api={gridApi} />
         {!hideCreate && (
           <Button size="sm" disabled={!canCreate} onClick={onCreate}>

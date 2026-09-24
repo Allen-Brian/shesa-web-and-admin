@@ -1,4 +1,4 @@
-import { Badge, type ColDef, type ICellRendererParams } from '@shesa/ui';
+import { Badge, Private, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
 import type { SerialPaymentAttemptRow } from './payment-attempt-types';
 
@@ -94,22 +94,28 @@ export function buildPaymentAttemptColumns(): ColDef<SerialPaymentAttemptRow>[] 
     {
       headerName: 'Payer',
       field: 'payerLabel',
-      flex: 1.3,
-      minWidth: 170,
+      flex: 1.5,
+      minWidth: 220,
       cellRenderer: (p: ICellRendererParams<SerialPaymentAttemptRow, string>) =>
         p.data ? (
-          <div className="flex flex-col leading-tight">
-            <span className="text-foreground">
-              {p.data.payerLabel}
+          <div className="flex min-w-0 flex-col leading-tight">
+            <span className="flex min-w-0 items-baseline gap-1.5">
+              <Private className="min-w-0 flex-1">
+                <span className="block truncate text-foreground" title={p.data.payerLabel}>
+                  {p.data.payerLabel}
+                </span>
+              </Private>
               {p.data.isMember && (
-                <span className="ml-1.5 text-[10px] uppercase tracking-wide text-primary">
+                <span className="shrink-0 text-[10px] uppercase tracking-wide text-primary">
                   member
                 </span>
               )}
             </span>
-            <span className="text-xs text-muted-foreground">
-              {p.data.payerPhone ?? p.data.payerEmail ?? '—'}
-            </span>
+            <Private>
+              <span className="block truncate text-xs text-muted-foreground">
+                {p.data.payerPhone ?? p.data.payerEmail ?? '—'}
+              </span>
+            </Private>
           </div>
         ) : null,
     },

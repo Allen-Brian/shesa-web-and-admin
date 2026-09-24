@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { PrivacyProvider } from '@shesa/ui';
+
 import { AppShell } from '@/components/app-shell';
 import { loadSidebarGroups } from '@/lib/finance/groups/load-sidebar-groups';
 import { getServerClient } from '@/lib/supabase-server';
@@ -106,7 +108,10 @@ export default async function FinanceLayout({ children }: { readonly children: R
       isGlobalFinance={isGlobalFinance}
       sidebarGroups={sidebarGroups}
     >
-      {children}
+      {/* Wraps the whole persona rather than each table, so the blur
+          survives moving between Transactions, a charge and back — a
+          presentation is not one page. */}
+      <PrivacyProvider>{children}</PrivacyProvider>
     </AppShell>
   );
 }

@@ -1,5 +1,7 @@
 import { Receipt } from 'lucide-react';
 
+import { Private } from '@shesa/ui';
+
 import { GroupChip } from '@/components/finance/group-chip';
 
 import type { SerialRow } from './expenses-types';
@@ -19,7 +21,11 @@ export function ExpensePayeeCell({ row }: { readonly row: SerialRow }) {
         <Receipt className="h-4 w-4" />
       </div>
       <div className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-sm font-medium text-foreground">{row.payee}</span>
+        <Private>
+          <span className="block truncate text-sm font-medium text-foreground" title={row.payee}>
+            {row.payee}
+          </span>
+        </Private>
         <div className="flex min-w-0 items-center gap-1.5">
           <span className="truncate text-xs text-muted-foreground">
             {row.scopeName}

@@ -1,6 +1,6 @@
 import { Undo2 } from 'lucide-react';
 
-import { Badge, Button, type ColDef, type ICellRendererParams } from '@shesa/ui';
+import { Badge, Button, Private, type ColDef, type ICellRendererParams } from '@shesa/ui';
 
 import { DonationCampaignCell } from './donation-campaign-cell';
 import { formatMethod } from './donations-helpers';
@@ -40,14 +40,18 @@ export function buildDonationColumns(actions: DonationColumnActions): ColDef<Ser
       headerName: 'Donor',
       field: 'donorLabel',
       flex: 1.5,
-      minWidth: 180,
+      minWidth: 200,
       cellRenderer: (p: ICellRendererParams<SerialDonationRow, string>) => {
         if (!p.data) return null;
         const row = p.data;
         return (
-          <div className="flex flex-col leading-tight">
-            <span className="text-foreground">{row.donorLabel}</span>
-            <span className="text-xs text-muted-foreground">
+          <div className="flex min-w-0 flex-col leading-tight">
+            <Private>
+              <span className="block truncate text-foreground" title={row.donorLabel}>
+                {row.donorLabel}
+              </span>
+            </Private>
+            <span className="truncate text-xs text-muted-foreground">
               {row.isMember ? 'Member' : row.isPublic ? 'Public site' : 'Walk-in'}
             </span>
           </div>

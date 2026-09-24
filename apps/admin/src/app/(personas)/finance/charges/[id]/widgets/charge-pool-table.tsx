@@ -9,6 +9,7 @@ import {
   Button,
   DataTable,
   Input,
+  Private,
   toast,
   type ColDef,
   type GridApi,
@@ -137,13 +138,20 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
         minWidth: 220,
         cellRenderer: (p: ICellRendererParams<PoolRow>) =>
           p.data ? (
-            <div className="flex h-full items-center gap-2.5 py-1">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                {getInitials(p.data.payerLabel)}
-              </div>
-              <span className="truncate text-sm font-medium text-foreground">
-                {p.data.payerLabel}
-              </span>
+            <div className="flex h-full min-w-0 items-center gap-2.5 py-1">
+              <Private>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                  {getInitials(p.data.payerLabel)}
+                </span>
+              </Private>
+              <Private className="min-w-0 flex-1">
+                <span
+                  className="block truncate text-sm font-medium text-foreground"
+                  title={p.data.payerLabel}
+                >
+                  {p.data.payerLabel}
+                </span>
+              </Private>
             </div>
           ) : null,
       },
@@ -173,7 +181,8 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
             {
               headerName: 'Contact',
               colId: 'contact',
-              width: 210,
+              flex: 1.2,
+              minWidth: 230,
               autoHeight: true,
               sortable: false,
               cellRenderer: (p: ICellRendererParams<PoolRow>) => {
@@ -183,24 +192,27 @@ export function ChargePoolTable({ summary, poolPayments }: ChargeDetailPoolProps
                   return <span className="text-xs text-muted-foreground">—</span>;
                 }
                 return (
-                  <div className="flex min-w-0 flex-col justify-center py-1 leading-tight">
-                    {payerEmail && (
-                      <a
-                        href={`mailto:${payerEmail}`}
-                        className="truncate text-[12.5px] text-foreground hover:text-primary"
-                      >
-                        {payerEmail}
-                      </a>
-                    )}
-                    {payerPhone && (
-                      <a
-                        href={`tel:${payerPhone.replace(/\s+/g, '')}`}
-                        className="truncate text-[11px] tabular-nums text-muted-foreground hover:text-primary"
-                      >
-                        {payerPhone}
-                      </a>
-                    )}
-                  </div>
+                  <Private as="block">
+                    <div className="flex min-w-0 flex-col justify-center py-1 leading-tight">
+                      {payerEmail && (
+                        <a
+                          href={`mailto:${payerEmail}`}
+                          title={payerEmail}
+                          className="truncate text-[12.5px] text-foreground hover:text-primary"
+                        >
+                          {payerEmail}
+                        </a>
+                      )}
+                      {payerPhone && (
+                        <a
+                          href={`tel:${payerPhone.replace(/\s+/g, '')}`}
+                          className="truncate text-[11px] tabular-nums text-muted-foreground hover:text-primary"
+                        >
+                          {payerPhone}
+                        </a>
+                      )}
+                    </div>
+                  </Private>
                 );
               },
             },

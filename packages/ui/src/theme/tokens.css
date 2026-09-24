@@ -218,3 +218,39 @@ select:-webkit-autofill {
 .ag-cell.ag-focused:not(:focus-visible) {
   outline: none;
 }
+
+/* AG Grid: keep overlong cell text inside its column.
+ *
+ * Every admin table sets `display:flex` on its cells so multi-line
+ * renderers centre vertically. That has a side effect: a flex container
+ * is not a block container, so AG Grid's own `text-overflow: ellipsis`
+ * stops applying and a name wider than its column is simply cut off
+ * mid-character with nothing to say it was cut.
+ *
+ * Restoring it on the value wrapper fixes the plain-text columns, and
+ * `min-width: 0` lets renderers that already use `truncate` actually
+ * shrink — a flex item refuses to go below its content width without
+ * it, so those were overflowing rather than ellipsing.
+ *
+ * Columns that opt into `wrapText` are excluded: they asked for the
+ * text to run onto a second line, which is the opposite of this. */
+.ag-cell > .ag-cell-value,
+.ag-cell > .ag-cell-wrapper > .ag-cell-value {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ag-cell:not(.ag-cell-wrap-text) > .ag-cell-value,
+.ag-cell:not(.ag-cell-wrap-text) > .ag-cell-wrapper > .ag-cell-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Header labels get the same treatment — a truncated column heading is
+ * better than one that overlaps its neighbour. */
+.ag-header-cell-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
