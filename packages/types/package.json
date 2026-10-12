@@ -1,0 +1,25 @@
+{
+  "name": "@shesa/types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cross-package shared TypeScript types. Root of the type graph — imports nothing.",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./*": {
+      "types": "./src/*.ts",
+      "import": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@shesa/tsconfig": "workspace:*",
+    "typescript": "^5.7.2"
+  }
+}

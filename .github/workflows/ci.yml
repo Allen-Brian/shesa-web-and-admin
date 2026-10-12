@@ -1,0 +1,88 @@
+name: CI
+
+# Runs on every PR and every push to a long-lived branch. Serves two
+# roles: fast feedback for authors, and the required-status gate that
+# branch protection enforces on develop / master.
+#
+# Deliberately excludes the DB tests (pgTAP) — those live in db-test.yml
+# so a docker-compose spin-up failure doesn't fail the whole matrix.
+# Branch protection lists both `ci` AND `db-test` as required checks.
+
+on:
+  pull_request:
+  push:
+    branches: [develop, master]
+
+concurrency:
+  # One in-flight run per branch — cancels older runs when a newer push
+  # arrives on the same ref. PRs use head_ref; branch pushes use ref.
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Dummy values so the Zod checks in packages/config/src/env.{server,client}.ts
+  # pass at module load. Real values are per-env GitHub secrets consumed by
+  # the deploy workflows, not CI.
+  APP_ENV: local
+  NEXT_PUBLIC_APP_ENV: local
+  APP_BASE_DOMAIN: shesa.test
+  NEXT_PUBLIC_APP_BASE_DOMAIN: shesa.test
+  SUPABASE_URL: http://127.0.0.1:54321
+  NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+  SUPABASE_ANON_KEY: ci-dummy-anon-key
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-dummy-anon-key
+  SUPABASE_SERVICE_ROLE_KEY: ci-dummy-service-role-key
+  SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+  RESEND_API_KEY: ci-dummy-resend-key
+  EMAIL_FROM: Shesa CI <ci@shesa.test>
+  SMS_PROVIDER_MODE: stub
+  NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
+  NEXT_PUBLIC_WEB_APP_URL: http://web.shesa.test:3000
+  NEXT_PUBLIC_ADMIN_APP_URL: http://admin.shesa.test:3002
+
+jobs:
+  ci:
+    name: lint + typecheck + test + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Fetch enough history for turbo's affected-detection against the
+          # base branch (default is a shallow clone).
+          fetch-depth: 2
+
+      - uses: pnpm/action-setup@v4
+        with:
+          # Matches the packageManager pin in the root package.json.
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Runs before lint: a filename violation is cheap to detect and the
+      # standard only holds if something enforces it (frontend.md §5).
+      - name: Filenames
+        run: pnpm check:filenames
+
+      # The Deno copy of the import validator is generated, not hand-kept.
+      # This is what stops it drifting from packages/domain again (SEC-19).
+      - name: Deno mirrors
+        run: pnpm check:deno-mirrors
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build (all workspaces)
+        run: pnpm build

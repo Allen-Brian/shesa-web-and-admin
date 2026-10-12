@@ -1,0 +1,144 @@
+# Dockerfile.next.prod — production image for Next.js apps (auth, web).
+#
+# Multi-stage build:
+#   1. `deps` — install workspace deps (cacheable layer)
+#   2. `builder` — build the requested app's `next standalone` output
+#   3. `runner` — minimal alpine image with just node + the standalone
+#      output, running as a non-root user
+#
+# The runtime image is intentionally tiny (~180 MB) — no pnpm, no source,
+# no node_modules outside what `next build --output standalone` traces
+# as reachable.
+#
+# Consumed by both deploy-staging.yml and deploy-production.yml with
+# APP_DIR (auth | web) + APP_PORT (3001 | 3000) build args. One
+# dockerfile, one build recipe, per-app tags in the registry.
+
+# ─────────────────────────────────────────────────────────────────────
+# Stage 1: install workspace deps
+# ─────────────────────────────────────────────────────────────────────
+FROM node:22-alpine AS deps
+RUN corepack enable
+
+WORKDIR /app
+# Copy just the manifests first so this layer only busts when a
+# package.json or the lockfile changes. Everything else piggybacks
+# on cache when only source files change.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps ./apps
+COPY packages ./packages
+# Strip the app source; the deps stage only needs manifests to resolve
+# the workspace graph.
+RUN find apps packages -mindepth 2 -maxdepth 2 -type d -not -name node_modules \
+        -exec sh -c 'ls "$1"/package.json 2>/dev/null || rm -rf "$1"' _ {} \;
+
+ARG APP_DIR
+RUN test -n "$APP_DIR" || (echo "APP_DIR build arg required" && exit 1)
+
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    PNPM_STORE_DIR=/pnpm/store pnpm install --frozen-lockfile --filter "@shesa/${APP_DIR}..."
+
+# ─────────────────────────────────────────────────────────────────────
+# Stage 2: build the requested app
+# ─────────────────────────────────────────────────────────────────────
+FROM node:22-alpine AS builder
+RUN corepack enable
+
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps ./apps
+COPY --from=deps /app/packages ./packages
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+
+# Full source (deps stage only kept manifests).
+COPY apps ./apps
+COPY packages ./packages
+
+ARG APP_DIR
+RUN test -n "$APP_DIR" || (echo "APP_DIR build arg required" && exit 1)
+
+# Next 15 needs `output: 'standalone'` in next.config.ts to produce the
+# minimal runnable server. We patch every next.config on the fly so the
+# app source doesn't have to hard-code prod-only concerns.
+RUN node -e "const f='apps/${APP_DIR}/next.config.ts'; \
+             const fs=require('fs'); \
+             let s=fs.readFileSync(f,'utf8'); \
+             if(!s.includes('output:')) { \
+               s=s.replace('reactStrictMode: true,', \"reactStrictMode: true,\n  output: 'standalone',\"); \
+               fs.writeFileSync(f, s); \
+             }"
+
+# Per-env values that Next inlines into the client bundle at build time.
+# The workflow passes real values via --build-arg; the defaults below
+# just let a local `docker build` succeed without extra flags.
+ARG NEXT_PUBLIC_APP_ENV=production
+ARG NEXT_PUBLIC_APP_BASE_DOMAIN=shesaconnect.com
+ARG NEXT_PUBLIC_WEB_APP_URL=https://shesaconnect.com
+ARG NEXT_PUBLIC_AUTH_APP_URL=https://auth.shesaconnect.com
+ARG NEXT_PUBLIC_EXCO_APP_URL=https://exco.shesaconnect.com
+ARG NEXT_PUBLIC_FINANCE_APP_URL=https://finance.shesaconnect.com
+
+# Zod schemas in packages/config parse process.env at module load, which
+# means `next build` needs enough env to satisfy them. Dummy values are
+# fine for BUILD time — every non-public runtime value comes from Docker
+# Swarm secrets when the container starts.
+ENV APP_ENV=production \
+    NEXT_PUBLIC_APP_ENV=${NEXT_PUBLIC_APP_ENV} \
+    APP_BASE_DOMAIN=${NEXT_PUBLIC_APP_BASE_DOMAIN} \
+    NEXT_PUBLIC_APP_BASE_DOMAIN=${NEXT_PUBLIC_APP_BASE_DOMAIN} \
+    SUPABASE_URL=https://build.time.placeholder.example.com \
+    NEXT_PUBLIC_SUPABASE_URL=https://build.time.placeholder.example.com \
+    SUPABASE_ANON_KEY=build-time-placeholder \
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=build-time-placeholder \
+    SUPABASE_SERVICE_ROLE_KEY=build-time-placeholder \
+    SUPABASE_DB_URL=postgresql://placeholder@placeholder/placeholder \
+    RESEND_API_KEY=build-time-placeholder \
+    EMAIL_FROM='Shesa <build@placeholder.example.com>' \
+    SMS_PROVIDER_MODE=stub \
+    NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000 \
+    NEXT_PUBLIC_WEB_APP_URL=${NEXT_PUBLIC_WEB_APP_URL} \
+    NEXT_PUBLIC_AUTH_APP_URL=${NEXT_PUBLIC_AUTH_APP_URL} \
+    NEXT_PUBLIC_EXCO_APP_URL=${NEXT_PUBLIC_EXCO_APP_URL} \
+    NEXT_PUBLIC_FINANCE_APP_URL=${NEXT_PUBLIC_FINANCE_APP_URL}
+
+RUN pnpm --filter "@shesa/${APP_DIR}" build
+
+# ─────────────────────────────────────────────────────────────────────
+# Stage 3: minimal runtime
+# ─────────────────────────────────────────────────────────────────────
+FROM node:22-alpine AS runner
+ARG APP_DIR
+ARG APP_PORT
+RUN test -n "$APP_DIR" -a -n "$APP_PORT" || (echo "APP_DIR + APP_PORT build args required" && exit 1)
+
+RUN apk add --no-cache tini
+
+# Non-root user for the running process. `node` (uid 1000) already
+# exists in node:22-alpine; reuse it rather than creating a duplicate.
+WORKDIR /app
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=${APP_PORT} \
+    HOSTNAME=0.0.0.0 \
+    APP_DIR=${APP_DIR}
+
+# `next build --output standalone` produces:
+#   apps/<APP_DIR>/.next/standalone/       — self-contained server
+#   apps/<APP_DIR>/.next/static/           — static assets
+#   apps/<APP_DIR>/public/                 — public/ tree
+#
+# The runner needs the standalone output + static + public. Everything
+# else (node_modules outside what standalone traced, source, pnpm) is
+# omitted — that's the whole point of the standalone bundle.
+COPY --from=builder --chown=node:node /app/apps/${APP_DIR}/.next/standalone ./
+COPY --from=builder --chown=node:node /app/apps/${APP_DIR}/.next/static ./apps/${APP_DIR}/.next/static
+COPY --from=builder --chown=node:node /app/apps/${APP_DIR}/public ./apps/${APP_DIR}/public
+
+USER node
+EXPOSE ${APP_PORT}
+
+# Tini reaps zombies + forwards signals — Node handles most SIGTERM
+# cases fine on its own but tini is 100 KB of insurance for the
+# swarm-triggered rolling redeploys we want to be graceful.
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["sh", "-c", "node apps/${APP_DIR}/server.js"]

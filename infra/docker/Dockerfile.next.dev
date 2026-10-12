@@ -1,0 +1,63 @@
+# Dockerfile.next.dev — base dev image for every Shesa Next.js app.
+#
+# ONE Dockerfile for all five apps (web, auth, exco, finance, connect).
+# Each app's service in docker-compose.dev.yml passes its own APP_DIR +
+# APP_PORT build args; the rest of the setup (Node + pnpm + non-root user
+# + pnpm store at /pnpm) is identical across apps, so duplicating it into
+# five per-app Dockerfile.dev wrappers would just be drift waiting to happen.
+#
+# Hot reload comes from a bind-mount in docker-compose.dev.yml, not from
+# baking the source into the image — that's why install + dev run at
+# container start (CMD), not at image build (RUN).
+#
+# The PROD image is a separate multi-stage Dockerfile.next (added in E14)
+# that strips everything except the .next build output.
+
+FROM node:22-alpine
+
+# Corepack ships with Node 22 — use it so the project's packageManager
+# pin (pnpm@9.15.0) is honored even inside the container. `corepack
+# enable` is idempotent.
+RUN corepack enable
+
+# Non-root would be nicer, but Docker creates anonymous volumes (the ones
+# we mount over /app/node_modules etc. to mask the host's macOS binaries)
+# as root:root with no inheritance, which would EACCES every `pnpm
+# install`. On macOS Docker Desktop the UID is remapped to the host user
+# at the bind-mount boundary, so running as root inside doesn't leak
+# root-owned files onto the host. For Linux CI a proper entrypoint with
+# `chown` would be the correct fix — but for local dev on Mac this is
+# both simpler and equivalent in practice.
+
+# pnpm's content-addressable store, persisted across container recreates
+# via the named volume mounted at /pnpm/store in compose.
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+ENV PNPM_STORE_DIR=/pnpm/store
+RUN mkdir -p /pnpm/store
+
+# Which app this image runs and on which port. Compose passes these per
+# service so a single Dockerfile drives every app. Default APP_DIR=auth
+# is convenience for ad-hoc `docker build` invocations.
+ARG APP_DIR=auth
+ARG APP_PORT=3001
+ENV APP_DIR=${APP_DIR}
+ENV APP_PORT=${APP_PORT}
+
+# WORKDIR /app is the bind-mount target for the whole repo. The container
+# `cd`s into the app's sub-directory in the entrypoint script below so
+# `pnpm dev` runs the right package's script.
+WORKDIR /app
+EXPOSE ${APP_PORT}
+
+# USER stays default (root) — see anon-volume note above.
+
+# Install just this app's workspace deps (with the trailing `...`,
+# pnpm follows the transitive workspace dep graph but skips siblings
+# the app doesn't need). Then start the app's dev server via the
+# package's own `dev` script (which knows its own --port + --hostname).
+#
+# Install runs at CONTAINER START rather than image build because the
+# source tree (including pnpm-lock.yaml) is bind-mounted in — baking
+# it at build time would force a rebuild on every lockfile change.
+CMD ["sh", "-c", "pnpm install --frozen-lockfile --filter @shesa/${APP_DIR}... && pnpm --filter @shesa/${APP_DIR} dev"]

@@ -1,0 +1,199 @@
+name: Deploy — production
+
+# Same shape as deploy-staging.yml but on push to master and gated by a
+# GITHUB ENVIRONMENT PROTECTION RULE (manual approval + optional
+# waiters). Configured under Settings → Environments → production.
+#
+# See deploy-staging.yml for the shape of each step — comments are not
+# repeated verbatim to keep this file focused on the prod differences.
+
+on:
+  workflow_run:
+    workflows: [CI, 'DB test (pgTAP)']
+    types: [completed]
+    branches: [master]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  ENVIRONMENT: production
+
+jobs:
+  gate:
+    name: gate
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - name: Verify both required workflows succeeded for this SHA
+        id: check
+        uses: actions/github-script@v7
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        with:
+          script: |
+            const required = ['CI', 'DB test (pgTAP)'];
+            const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head_sha: process.env.HEAD_SHA,
+              status: 'completed',
+            });
+            const passed = new Set(
+              data.workflow_runs
+                .filter(r => r.conclusion === 'success')
+                .map(r => r.name)
+            );
+            const missing = required.filter(n => !passed.has(n));
+            if (missing.length) {
+              core.info(`Waiting on: ${missing.join(', ')}`);
+              core.setOutput('ready', 'false');
+            } else {
+              core.setOutput('ready', 'true');
+            }
+
+  migrate:
+    name: apply migrations to production Supabase
+    needs: gate
+    if: needs.gate.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    # `environment: production` triggers the manual-approval gate
+    # configured under Settings → Environments → production before
+    # this job starts. NO migration hits prod without a human click.
+    environment: production
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.108.0
+      - name: Link Supabase project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
+      - name: Push migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push
+
+  deploy:
+    name: build images + docker stack deploy
+    needs: [gate, migrate]
+    if: needs.gate.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    # Approval already granted for migrate; production environment
+    # protection may add a second reviewer check for deploy too if
+    # you'd rather split the approval per step.
+    environment: production
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Post-pivot (ADR-0040): two apps — web + admin. Both are Next.js
+      # so both use Dockerfile.next.prod.
+      - name: Build + push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile.next.prod
+          build-args: |
+            APP_DIR=web
+            APP_PORT=3000
+            NEXT_PUBLIC_APP_ENV=production
+            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
+            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
+            NEXT_PUBLIC_ADMIN_APP_URL=https://${{ vars.ADMIN_DOMAIN }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/shesa-web:production
+            ghcr.io/${{ github.repository_owner }}/shesa-web:production-${{ github.sha }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build + push admin image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile.next.prod
+          build-args: |
+            APP_DIR=admin
+            APP_PORT=3002
+            NEXT_PUBLIC_APP_ENV=production
+            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
+            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
+            NEXT_PUBLIC_ADMIN_APP_URL=https://${{ vars.ADMIN_DOMAIN }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/shesa-admin:production
+            ghcr.io/${{ github.repository_owner }}/shesa-admin:production-${{ github.sha }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy stack to production VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          envs: SHESA_ENV,SHESA_IMAGE_TAG,GHCR_OWNER,APP_BASE_DOMAIN,WEB_DOMAIN,ADMIN_DOMAIN,LETSENCRYPT_EMAIL,GHCR_TOKEN,GHCR_ACTOR
+          script: |
+            set -euo pipefail
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_ACTOR" --password-stdin
+            cd /opt/shesa
+            git fetch origin master
+            git reset --hard origin/master
+            docker stack deploy -c infra/swarm/docker-compose.prod.yml shesa
+        env:
+          SHESA_ENV: production
+          SHESA_IMAGE_TAG: production-${{ github.sha }}
+          GHCR_OWNER: ${{ github.repository_owner }}
+          APP_BASE_DOMAIN: ${{ vars.APP_BASE_DOMAIN }}
+          WEB_DOMAIN: ${{ vars.WEB_DOMAIN }}
+          ADMIN_DOMAIN: ${{ vars.ADMIN_DOMAIN }}
+          LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_ACTOR: ${{ github.actor }}
+
+# ─────────────────────────────────────────────────────────────────────
+# REQUIRED SECRETS (production environment)
+# ─────────────────────────────────────────────────────────────────────
+# Configured under Settings → Environments → production → Secrets. The
+# environment ALSO needs a protection rule for `Required reviewers`
+# (Settings → Environments → production → Deployment protection rules)
+# so `migrate` + `deploy` both wait for a human click before running.
+#
+#   SSH_HOST                 — production Contabo VPS IP or DNS
+#   SSH_USER                 — deploy user with docker group
+#   SSH_PRIVATE_KEY          — matching authorized_keys entry
+#   SUPABASE_ACCESS_TOKEN    — personal access token
+#   SUPABASE_DB_PASSWORD     — Postgres password
+#
+# REQUIRED VARIABLES (production environment, non-secret)
+#
+#   SUPABASE_PROJECT_REF     — production project's ref
+#   APP_BASE_DOMAIN          — cookie base domain (e.g. `shesaconnect.com`)
+#   WEB_DOMAIN               — e.g. `shesaconnect.com`
+#   ADMIN_DOMAIN             — e.g. `admin.shesaconnect.com`
+#   LETSENCRYPT_EMAIL        — inbox that gets ACME expiry notices
+#
+# The production VPS is intentionally DEFERRED until staging has been
+# validated end-to-end. This workflow ships now so the plumbing is
+# reviewable, but it won't run green until you (a) provision the second
+# Contabo instance, (b) populate the production environment's secrets,
+# and (c) approve the deployment when the first push to master lands.

@@ -1,0 +1,11 @@
+member_code,email,phone,full_name,display_name,batch_entry_year,house,network,field,entry_year,exit_year,current_country,current_region_state,current_city
+,sarah.njumbe@example.com,,,,,,,,,,,,
+,,+237 670 000 002,,,,,,,,,,,
+SH-2018-042,,,,,,,,,,,,,
+,new.member.one@example.com,+237 670 100 001,Bih Bertrand Che,Bertrand,2019,St Thomas,Shesa Tech,Software Engineering,2019,2026,CM,South-West,Buea
+,new.member.two@example.com,+237 670 100 002,Ngum Estelle Fon,Estelle,2020,St Francis,Shesa Legal,Public Interest Law,2020,2027,CM,Centre,Yaoundé
+,new.member.three@example.com,+237 670 100 003,Wanki Nkem Kingsley,Kingsley,2018,St John,Shesa Santé,Radiology,2018,2025,CM,Littoral,Douala
+,new.member.four@example.com,+237 670 100 004,Fon Nkeng Alice,Alice,2021,St Peter,Shesa Gov,Public Policy,2021,2028,GB,England,London
+,new.member.five@example.com,+237 670 100 005,Awasum Beltus Nde,Beltus,2017,St Thomas,Shesa Education,School Leadership,2017,2024,US,New York,New York
+,new.member.six@example.com,+237 670 100 006,Enow Michelle Yenn,Michelle,2022,St John,Shesa Tech,Cybersecurity,2022,2029,CA,Ontario,Toronto
+,new.member.seven@example.com,+237 670 100 007,Ashu Bruno Ngwa,Bruno,2019,St Francis,Shesa Legal,Commercial Law,2019,2026,DE,Berlin,Berlin

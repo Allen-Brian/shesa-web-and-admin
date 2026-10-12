@@ -1,0 +1,49 @@
+name: DB test (pgTAP)
+
+# Boots the Supabase CLI's local stack in the runner, applies every
+# migration under supabase/migrations, and runs the pgTAP suite in
+# supabase/tests/. This is the RLS / permission-checker / audit /
+# storage-policy safety net — a red run here is a hard merge block.
+#
+# Runs as a SEPARATE workflow from ci.yml (rather than another job in
+# the same file) so a runner-side supabase boot flake fails only THIS
+# check without also holding up the lint + typecheck signal, and so
+# branch protection can require it independently.
+
+on:
+  pull_request:
+    paths:
+      # Skip when a PR doesn't touch anything DB-related.
+      - 'supabase/**'
+      - 'packages/supabase/**'
+      - '.github/workflows/db-test.yml'
+  push:
+    branches: [develop, master]
+
+concurrency:
+  group: db-test-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pgtap:
+    name: pgTAP
+    runs-on: ubuntu-latest
+    # Bump-worthy if `supabase start` boot time grows — currently ~1-2 min.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          # Track the version pinned in the root package.json's devDeps
+          # so local + CI use the same CLI shape.
+          version: 2.108.0
+
+      - name: Start local Supabase
+        run: supabase start --exclude imgproxy,pooler,studio,mailpit,inbucket,edge-runtime,realtime,storage-api,vector,analytics
+        # The excluded services aren't needed to run migrations or pgTAP;
+        # trimming them shaves ~40 s off boot and reduces the memory
+        # footprint on the runner.
+
+      - name: Run pgTAP suite
+        run: supabase test db

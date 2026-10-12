@@ -1,0 +1,29 @@
+# Caddy reverse proxy — LOCAL DEV
+#
+# Routes *.shesa.test (resolved via /etc/hosts to 127.0.0.1) to the
+# corresponding app container in docker-compose.dev.yml.
+#
+# Post-pivot (ADR-0040): two apps only — admin + web, both Next.js.
+# The retired auth / exco / finance vhosts are gone.
+#
+# HTTP only (no TLS) — local dev cookies are set without `Secure` so the
+# browser accepts them on http://*.shesa.test. The prod Caddyfile uses
+# HTTPS with Let's Encrypt — see Caddyfile.prod.
+
+{
+	# Disable auto-HTTPS for *.shesa.test — local HTTP is intentional.
+	auto_https off
+	admin off
+}
+
+# Admin app (apps/admin, port 3002). Owns its own login pages; writes
+# the apex-scoped session cookie so it's readable on web.shesa.test.
+admin.shesa.test:80 {
+	reverse_proxy admin:3002
+}
+
+# Public web app (apps/web, port 3000). Fully public; consumes the
+# session cookie only for `signed in as X` UI hints — no gated routes.
+web.shesa.test:80 {
+	reverse_proxy web:3000
+}

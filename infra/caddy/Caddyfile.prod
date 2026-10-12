@@ -1,0 +1,59 @@
+# Caddy reverse proxy — STAGING & PRODUCTION
+#
+# Sits behind Cloudflare (Full Strict mode). Caddy gets its own
+# Let's Encrypt cert via ACME for every app host, so both TLS legs are
+# real certs (not Cloudflare origin certs). This keeps Caddy portable —
+# moving off Cloudflare doesn't require regenerating certs.
+#
+# Same file drives staging and production. Each app's hostname is a
+# separate env var so the two envs can use different domain shapes
+# (staging uses siblings under shesaconnect.com; production uses the
+# apex + subdomain shape). The compose stack exports WEB_DOMAIN and
+# ADMIN_DOMAIN on the caddy container.
+#
+# Post-pivot (ADR-0040): only web + admin exist. The retired
+# auth/exco/finance vhosts were dropped in the same migration.
+
+{
+	# Real email here when Caddy gets its own — used by Let's Encrypt for
+	# expiry notifications. Override per env via LETSENCRYPT_EMAIL.
+	email {$LETSENCRYPT_EMAIL}
+
+	# Trust Cloudflare's X-Forwarded-For so logs show real client IPs,
+	# not Cloudflare edge IPs. The full Cloudflare IP list is published
+	# at https://www.cloudflare.com/ips/ and rotates infrequently.
+	servers {
+		trusted_proxies cloudflare
+	}
+}
+
+# Shared security-header snippet — applied per vhost via `import`.
+# Keeps each app block short and consistent.
+(security_headers) {
+	header X-Frame-Options "SAMEORIGIN"
+	header X-Content-Type-Options "nosniff"
+	header Referrer-Policy "strict-origin-when-cross-origin"
+	header Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	# HSTS: preload not enabled until we're sure we won't need to roll
+	# back the apex to http (unlikely, but preloading is one-way).
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+}
+
+# ─────────────────────────────────────────────────────────────────────
+# web — the public website (Next.js SSR)
+# ─────────────────────────────────────────────────────────────────────
+{$WEB_DOMAIN} {
+	encode gzip zstd
+	import security_headers
+	reverse_proxy web:3000
+}
+
+# ─────────────────────────────────────────────────────────────────────
+# admin — merged admin app (Next.js). Hosts Exco / Finance / Editor
+# personas per ADR-0040. Owns its own login pages.
+# ─────────────────────────────────────────────────────────────────────
+{$ADMIN_DOMAIN} {
+	encode gzip zstd
+	import security_headers
+	reverse_proxy admin:3002
+}

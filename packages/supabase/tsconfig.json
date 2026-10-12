@@ -1,0 +1,8 @@
+{
+  "extends": "@shesa/tsconfig/nextjs",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

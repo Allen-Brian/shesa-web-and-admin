@@ -1,0 +1,167 @@
+# docker-compose.prod.yml — Docker Swarm stack for staging + production.
+#
+# Deployed by `docker stack deploy -c infra/swarm/docker-compose.prod.yml shesa`
+# from the deploy-staging.yml / deploy-production.yml GitHub Actions
+# workflows. One VPS per env (staging + prod are separate hosts per
+# ADR-0026); this same file drives both.
+#
+# Env-specific values (image tag, apex domain, Supabase URL, etc.)
+# come from Docker Swarm secrets + config + environment variables
+# populated by the deploy workflow's SSH step before `docker stack
+# deploy` runs.
+#
+# Rolling redeploys per service — `update_config` orchestrates one
+# replica at a time with a health check gate so a broken build doesn't
+# take the whole tier offline.
+
+# ─────────────────────────────────────────────────────────────────────
+# SERVICES
+# ─────────────────────────────────────────────────────────────────────
+services:
+  caddy:
+    # Caddy is the ingress. Publishes 80/443, terminates the
+    # Let's Encrypt cert, reverse-proxies each subdomain to the right
+    # app service. Cloudflare sits in front of Caddy (Full Strict).
+    image: caddy:2-alpine
+    ports:
+      - target: 80
+        published: 80
+        mode: host
+      - target: 443
+        published: 443
+        mode: host
+    configs:
+      - source: caddyfile-prod
+        target: /etc/caddy/Caddyfile
+    volumes:
+      # Persist ACME state so a redeploy doesn't force a fresh cert
+      # issuance (Let's Encrypt rate-limits at 50 certs / week / domain).
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-ops@shesaconnect.com}
+      # Per-app hostnames — Caddy vhosts interpolate these directly.
+      # Staging uses sibling shape (staging-<app>.shesaconnect.com);
+      # production will use apex + subdomain. Same Caddyfile, different
+      # values.
+      WEB_DOMAIN: ${WEB_DOMAIN}
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN}
+    networks:
+      - shesa
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+
+  web:
+    image: ghcr.io/${GHCR_OWNER}/shesa-web:${SHESA_IMAGE_TAG}
+    environment:
+      APP_ENV: ${SHESA_ENV}
+      NEXT_PUBLIC_APP_ENV: ${SHESA_ENV}
+      APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
+      NEXT_PUBLIC_APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
+      NEXT_PUBLIC_WEB_APP_URL: https://${WEB_DOMAIN}
+      NEXT_PUBLIC_ADMIN_APP_URL: https://${ADMIN_DOMAIN}
+    secrets:
+      - supabase_url
+      - supabase_anon_key
+      - supabase_service_role_key
+      - supabase_db_url
+      - resend_api_key
+      - next_server_actions_encryption_key
+    networks:
+      - shesa
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+
+  admin:
+    # Merged admin app (Next.js) — hosts Exco / Finance / Editor personas
+    # per ADR-0040. Owns its own login pages; no separate apps/auth.
+    # `APP_BASE_DOMAIN` sets the cookie's `Domain=.${APP_BASE_DOMAIN}`
+    # attribute so cross-app sharing stays possible for future use.
+    image: ghcr.io/${GHCR_OWNER}/shesa-admin:${SHESA_IMAGE_TAG}
+    environment:
+      APP_ENV: ${SHESA_ENV}
+      NEXT_PUBLIC_APP_ENV: ${SHESA_ENV}
+      APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
+      NEXT_PUBLIC_APP_BASE_DOMAIN: ${APP_BASE_DOMAIN}
+      NEXT_PUBLIC_WEB_APP_URL: https://${WEB_DOMAIN}
+      NEXT_PUBLIC_ADMIN_APP_URL: https://${ADMIN_DOMAIN}
+    secrets:
+      - supabase_url
+      - supabase_anon_key
+      - supabase_service_role_key
+      - supabase_db_url
+      - resend_api_key
+      - next_server_actions_encryption_key
+    networks:
+      - shesa
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+
+# ─────────────────────────────────────────────────────────────────────
+# NETWORKS
+# ─────────────────────────────────────────────────────────────────────
+networks:
+  # Overlay network — services on the same swarm node reach each other
+  # by service name (`auth`, `web`, etc.). Ingress-only for caddy.
+  shesa:
+    driver: overlay
+    attachable: true
+
+# ─────────────────────────────────────────────────────────────────────
+# CONFIGS
+# ─────────────────────────────────────────────────────────────────────
+configs:
+  # The Caddyfile is a non-secret config, so use `configs` rather than
+  # `secrets`. Bumping the version suffix on the source name triggers a
+  # rolling redeploy of Caddy the next time `docker stack deploy` runs.
+  caddyfile-prod:
+    file: ../caddy/Caddyfile.prod
+
+# ─────────────────────────────────────────────────────────────────────
+# SECRETS
+# ─────────────────────────────────────────────────────────────────────
+# Provisioned ONCE per VPS with `docker secret create`; see
+# infra/swarm/secrets.md for the exact commands. Never in the compose
+# file itself.
+secrets:
+  supabase_url:
+    external: true
+  supabase_anon_key:
+    external: true
+  supabase_service_role_key:
+    external: true
+  supabase_db_url:
+    external: true
+  resend_api_key:
+    external: true
+  next_server_actions_encryption_key:
+    external: true
+
+# ─────────────────────────────────────────────────────────────────────
+# VOLUMES
+# ─────────────────────────────────────────────────────────────────────
+volumes:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,352 @@
+/**
+ * Admin app global styles. Delegates all design-token + Tailwind wiring
+ * to @shesa/ui — `@import`-ing its tokens.css (which itself imports
+ * `tailwindcss` + declares the @theme block + calls @source on the ui
+ * package's components).
+ */
+
+@import '@shesa/ui/styles/tokens.css';
+
+/* Quill Snow theme — the rich-text editor used on the announcements /
+ * events create pages. Global so client components can render the
+ * editor without each having to import the stylesheet themselves;
+ * scoped to .ql-* classes so nothing outside the editor is affected.
+ */
+@import 'quill/dist/quill.snow.css';
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    background: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Utility: hide scrollbars across browsers while keeping the element
+ * scrollable. Used on the announcements form's settings sidebar so the
+ * body-content column stays visually stable while the admin scrolls
+ * through publication settings. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * Custom Quill styling — matches the announcements create reference
+ * (docs/product/entities.md#events + Vue template the design uses).
+ *
+ * Overrides Quill Snow's defaults for: toolbar chrome, picker labels
+ * ("Heading 1" / "Font Family" / "Small" text rather than raw values),
+ * button sizing, active/hover states, editor body background. Kept
+ * unlayered so higher-specificity `.ql-*` selectors win
+ * against the imported Quill Snow rules above.
+ * ────────────────────────────────────────────────────────────────*/
+
+.quill-container {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-background);
+  overflow: hidden;
+}
+
+/* ── Toolbar row ──────────────────────────────────────────────── */
+.ql-toolbar.ql-snow {
+  border: none !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  background: var(--color-background);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 12px !important;
+}
+
+/* Icon buttons — square, rounded, hover/active feedback */
+.ql-toolbar.ql-snow button {
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  border-radius: 6px;
+  color: var(--color-foreground);
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.ql-toolbar.ql-snow button:hover {
+  background: var(--color-muted);
+}
+.ql-toolbar.ql-snow button.ql-active,
+.ql-toolbar.ql-snow button.ql-active .ql-stroke {
+  background: var(--color-muted);
+  color: var(--color-primary);
+  stroke: var(--color-primary);
+}
+.ql-toolbar.ql-snow .ql-stroke {
+  stroke: currentColor;
+}
+.ql-toolbar.ql-snow .ql-fill {
+  fill: currentColor;
+}
+
+/* Formal group separators — light divider between logical groups */
+.ql-toolbar.ql-snow .ql-formats {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  margin: 0 !important;
+  border-right: 1px solid var(--color-border);
+}
+.ql-toolbar.ql-snow .ql-formats:last-child {
+  border-right: none;
+}
+
+/* ── Pickers (Heading, Font, Size) — button-like with label text ── */
+.ql-toolbar.ql-snow .ql-picker {
+  color: var(--color-foreground);
+  font-size: 13px;
+  line-height: 1.2;
+  height: 30px;
+}
+.ql-toolbar.ql-snow .ql-picker-label {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 6px !important;
+  color: var(--color-foreground) !important;
+  background: var(--color-background);
+  font-weight: 500;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.ql-toolbar.ql-snow .ql-picker-label:hover {
+  background: var(--color-muted);
+}
+.ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-label {
+  background: var(--color-muted);
+  border-color: var(--color-input) !important;
+}
+.ql-toolbar.ql-snow .ql-picker-label svg {
+  right: 4px;
+}
+
+/* Alignment picker — Quill's align picker shows an icon that reads
+ * the *current* alignment. Its default rendering is tiny (12px caret
+ * only). Give the icon proper size and space so it reads at a glance,
+ * and expand the label so the icon isn't cropped. */
+.ql-toolbar.ql-snow .ql-picker.ql-align .ql-picker-label {
+  width: 42px;
+  padding: 6px 8px !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-align .ql-picker-label svg {
+  width: 18px;
+  height: 18px;
+  position: static;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-align .ql-picker-item svg {
+  width: 18px;
+  height: 18px;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-align .ql-picker-item {
+  padding: 6px 10px;
+}
+/* The align picker's options popover inherits Quill's default
+ * `min-width: 100%` — 100% of the 42-px picker button. That squeezes
+ * the alignment icons together. Give the dropdown a proper roomy
+ * width matched to the icon set. */
+.ql-toolbar.ql-snow .ql-picker.ql-align .ql-picker-options {
+  min-width: 56px !important;
+  width: 56px;
+}
+
+/* Options dropdown — mix the card token with a touch of foreground
+ * so the popover reads as a distinct surface. In dark mode
+ * `--color-popover` and `--color-card` both resolve to hsl(0 0% 7%)
+ * — indistinguishable from the surrounding editor without a nudge.
+ * The strong outline + shadow keep it legible on both themes. */
+.ql-toolbar.ql-snow .ql-picker-options {
+  border: 1px solid var(--color-border) !important;
+  border-radius: 8px !important;
+  background: color-mix(in srgb, var(--color-popover) 100%, var(--color-foreground) 8%) !important;
+  color: var(--color-popover-foreground) !important;
+  box-shadow:
+    0 12px 32px -8px rgb(0 0 0 / 0.5),
+    0 0 0 1px var(--color-border);
+  padding: 4px !important;
+  margin-top: 4px;
+  z-index: 30;
+  opacity: 1 !important;
+}
+.ql-toolbar.ql-snow .ql-picker-item {
+  color: var(--color-popover-foreground) !important;
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+.ql-toolbar.ql-snow .ql-picker-item:hover,
+.ql-toolbar.ql-snow .ql-picker-item.ql-selected {
+  background: var(--color-muted) !important;
+  color: var(--color-primary) !important;
+}
+
+/* Heading picker — always show a friendly text label ------------ */
+.ql-toolbar.ql-snow .ql-picker.ql-header .ql-picker-label::before {
+  content: 'Normal' !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-header .ql-picker-label[data-value='1']::before {
+  content: 'Heading 1' !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-header .ql-picker-label[data-value='2']::before {
+  content: 'Heading 2' !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-header .ql-picker-label[data-value='3']::before {
+  content: 'Heading 3' !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-header .ql-picker-label[data-value='4']::before {
+  content: 'Heading 4' !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-header .ql-picker-label[data-value='5']::before {
+  content: 'Heading 5' !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-header .ql-picker-label[data-value='6']::before {
+  content: 'Heading 6' !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-header .ql-picker-item[data-value]::before {
+  font-weight: 600;
+}
+
+/* Font picker — "Font Family" as the empty-state label ---------- */
+.ql-toolbar.ql-snow .ql-picker.ql-font .ql-picker-label::before,
+.ql-toolbar.ql-snow .ql-picker.ql-font .ql-picker-label:not([data-value])::before {
+  content: 'Font Family' !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-font .ql-picker-label[data-value='serif']::before {
+  content: 'Serif' !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-font .ql-picker-label[data-value='monospace']::before {
+  content: 'Monospace' !important;
+}
+
+/* Size picker — human labels rather than raw values ------------- */
+.ql-toolbar.ql-snow .ql-picker.ql-size .ql-picker-label::before,
+.ql-toolbar.ql-snow .ql-picker.ql-size .ql-picker-label:not([data-value])::before {
+  content: 'Small' !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-size .ql-picker-label[data-value='small']::before {
+  content: 'Small' !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-size .ql-picker-label[data-value='large']::before {
+  content: 'Large' !important;
+}
+.ql-toolbar.ql-snow .ql-picker.ql-size .ql-picker-label[data-value='huge']::before {
+  content: 'Huge' !important;
+}
+
+/* ── Editor body ─────────────────────────────────────────────── */
+.ql-container.ql-snow {
+  border: none !important;
+  font-family: inherit;
+  /* Keep floating children (link tooltip, offscreen clipboard) pinned
+   * inside the editor's box so they can't overlay the next form section. */
+  position: relative;
+  overflow: hidden;
+}
+.ql-editor {
+  min-height: 400px;
+  padding: 18px 22px !important;
+  background: var(--color-card);
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--color-foreground);
+  overflow-y: auto;
+}
+/* The `<div className="quill-container">` wrapper Quill mounts into.
+ * A rounded, clipped box gives the whole editor a clean footprint and
+ * — crucially — prevents any absolute-positioned Quill child (the
+ * offscreen clipboard, the link tooltip) from painting outside its
+ * bounds and covering the milestones / impact sections that follow. */
+.quill-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  /* Full CSS containment — anything positioned inside this container
+   * (Quill's link tooltip, clipboard, picker options) is clipped by
+   * the paint layer AND kept out of the parent's layout box. That
+   * makes it impossible for the editor to visually leak into the
+   * milestone / impact editors that follow below. */
+  contain: layout paint;
+  isolation: isolate;
+}
+.ql-clipboard {
+  position: absolute !important;
+  left: -9999px !important;
+  top: 0 !important;
+}
+.ql-snow .ql-tooltip.ql-hidden {
+  display: none !important;
+}
+.ql-toolbar.ql-snow {
+  background: var(--color-card) !important;
+}
+.ql-editor.ql-blank::before {
+  color: var(--color-muted-foreground) !important;
+  font-style: normal !important;
+  left: 22px !important;
+  right: 22px !important;
+}
+
+/* Tooltip (link popup) — align to the app's surface tokens */
+.ql-snow .ql-tooltip {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-popover);
+  color: var(--color-popover-foreground);
+  box-shadow:
+    0 6px 20px rgb(0 0 0 / 0.08),
+    0 2px 4px rgb(0 0 0 / 0.03);
+}
+.ql-snow .ql-tooltip input[type='text'] {
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-foreground);
+  background: var(--color-background);
+  padding: 4px 6px;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * Charge-detail matrix — period column headers.
+ *
+ * `.ag-header-current` marks today's period cell in the collection
+ * matrix. Adds a subtle primary tint + bold text so operators can
+ * find the active month at a glance while scrolling horizontally.
+ * `.ag-header-upcoming` softens the future-period columns so they
+ * read as pipeline rather than committed data.
+ * ────────────────────────────────────────────────────────────────*/
+
+.ag-header-current {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent) !important;
+  color: var(--color-primary) !important;
+  font-weight: 600;
+}
+.ag-header-current .ag-header-cell-text {
+  color: var(--color-primary);
+}
+
+.ag-header-upcoming {
+  background: color-mix(in srgb, var(--color-muted) 40%, transparent) !important;
+  font-style: italic;
+}
+.ag-header-upcoming .ag-header-cell-text {
+  color: var(--color-muted-foreground);
+  font-weight: 400;
+}

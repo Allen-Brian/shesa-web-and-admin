@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+dist/
+build/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+pnpm-lock.yaml
+*.tsbuildinfo
+*.gen.ts
+supabase/.temp/
+supabase/.branches/
+supabase/.docker/
+
+# Emitted by scripts/gen-deno-mirrors.mjs — only the generator writes it,
+# so reformatting here would show up as drift in check:deno-mirrors.
+supabase/functions/_shared/*.generated.ts

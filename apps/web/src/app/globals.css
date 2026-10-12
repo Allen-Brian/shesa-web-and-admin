@@ -1,0 +1,279 @@
+/**
+ * Web app global styles. Pulls in the shared @shesa/ui token layer and
+ * layers on web-app-only bits: display + script fonts, forced light
+ * mode (public site is light-only per product decision), and Lenis
+ * html/scrollbar treatment.
+ *
+ * Fonts are self-hosted from public/fonts (see fonts.css) rather than
+ * loaded via next/font/google — Google Fonts fetch failures at build
+ * time were silently dropping Anton + Caveat, so the site fell back
+ * to system fonts. Self-hosting removes the network dependency and
+ * makes the font layer offline-reproducible.
+ */
+
+@import '@shesa/ui/styles/tokens.css';
+@import './fonts.css';
+
+@theme {
+  /* Body + Headings share the Montserrat family — headings run at
+   * weight 100 (`font-thin`) for the sleek editorial look, body runs
+   * lighter (300) by default so paragraphs feel airy but readable. */
+  --font-sans:
+    'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-heading:
+    'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Extra-small radius (2px). Buttons + cards across the site use
+   * `rounded-xs` for a sharp, editorial silhouette. */
+  --radius-xs: 0.125rem;
+  /* Display — Anton. Reserved for the hero backdrop wordmark + site
+   * wordmark. Bold, condensed, unmistakable. */
+  --font-display: 'Anton', 'Impact', 'Arial Narrow Bold', sans-serif;
+  /* Script — reserved for occasional accent (hero overlay, callouts). */
+  --font-script: 'Caveat', 'Comic Sans MS', cursive;
+}
+
+html {
+  color-scheme: light only;
+}
+
+html,
+body {
+  height: 100%;
+  background: #ffffff;
+  color: #000000;
+  font-family: var(--font-sans);
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Lenis smooth-scroll hook — set on <html> when the JS provider mounts. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+
+/* Font utility classes. Tailwind v4 auto-generates these from the
+ * @theme block, but we alias them here so arbitrary weight combos
+ * (e.g. `font-heading font-thin`) still resolve during scanning. */
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-script {
+  font-family: var(--font-script);
+}
+
+/* Selection uses the brand primary for a small, coherent flourish. */
+::selection {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+/* Animated conic-gradient border ("beam") for feature cards.
+ * Registering `--beam-angle` as a proper CSS angle lets the browser
+ * interpolate it inside a keyframe animation — otherwise custom
+ * properties can't be smoothly animated. */
+@property --beam-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes beam-rotate {
+  to {
+    --beam-angle: 360deg;
+  }
+}
+
+.border-beam {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--beam-angle, 0deg),
+    transparent 0deg,
+    transparent 110deg,
+    color-mix(in srgb, var(--color-primary) 70%, transparent) 135deg,
+    var(--color-primary) 160deg,
+    #ffffff 180deg,
+    var(--color-primary) 200deg,
+    color-mix(in srgb, var(--color-primary) 70%, transparent) 225deg,
+    transparent 250deg,
+    transparent 360deg
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: beam-rotate 2.8s linear infinite;
+}
+
+/* Gallery carousel pagination pill — a burgundy bar fills the active
+ * pill over the auto-advance interval, giving visible feedback that
+ * the carousel is auto-scrolling. Consumed via inline `animation`
+ * with the interval as `duration`. */
+@keyframes carousel-progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* Marquee — horizontal auto-scroll for the Events + Projects
+ * carousels. The `.marquee-track` holds a doubled copy of the items,
+ * so translating by -50% seamlessly loops. Pauses on hover; disabled
+ * when the user asks for reduced motion. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee var(--marquee-duration, 45s) linear infinite;
+}
+
+/* Right-travelling rail, used when two rails run against each other. */
+.marquee-track-reverse {
+  animation-direction: reverse;
+}
+
+.marquee-viewport:hover .marquee-track,
+.marquee-viewport:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}
+
+/* Halo behind the beamed button — a soft burgundy glow that pulses
+ * with the beam so the CTA has real presence. */
+.border-beam-halo {
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  background: conic-gradient(
+    from var(--beam-angle, 0deg),
+    transparent 0deg,
+    transparent 110deg,
+    color-mix(in srgb, var(--color-primary) 45%, transparent) 160deg,
+    #ffffff 180deg,
+    color-mix(in srgb, var(--color-primary) 45%, transparent) 200deg,
+    transparent 250deg,
+    transparent 360deg
+  );
+  filter: blur(10px);
+  opacity: 0.7;
+  animation: beam-rotate 2.8s linear infinite;
+}
+
+/* ---------------------------------------------------------------------
+ * News article body — typography for HTML content produced by the CMS
+ * Quill editor. We render `contentHtml` verbatim, so headings, lists,
+ * links, and inline images need styles here rather than at markup time.
+ * ------------------------------------------------------------------ */
+.news-article-body > * + * {
+  margin-top: 1.25em;
+}
+.news-article-body p {
+  margin: 0;
+}
+.news-article-body h1,
+.news-article-body h2,
+.news-article-body h3,
+.news-article-body h4 {
+  font-family: var(--font-heading, inherit);
+  color: #000;
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin-top: 2em;
+}
+.news-article-body h1 {
+  font-size: 1.9rem;
+}
+.news-article-body h2 {
+  font-size: 1.55rem;
+}
+.news-article-body h3 {
+  font-size: 1.25rem;
+}
+.news-article-body h4 {
+  font-size: 1.05rem;
+}
+.news-article-body a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.news-article-body a:hover {
+  text-decoration-thickness: 2px;
+}
+.news-article-body ul,
+.news-article-body ol {
+  margin: 0;
+  padding-left: 1.25em;
+}
+.news-article-body li + li {
+  margin-top: 0.35em;
+}
+.news-article-body blockquote {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 1rem;
+  margin: 1.25em 0;
+  font-style: italic;
+  color: rgba(0, 0, 0, 0.7);
+}
+.news-article-body img {
+  border-radius: 0.125rem;
+  max-width: 100%;
+  height: auto;
+  margin: 1.75em 0;
+}
+.news-article-body pre,
+.news-article-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 0.15em 0.4em;
+  border-radius: 0.15rem;
+  font-size: 0.9em;
+}
+.news-article-body pre {
+  padding: 1rem;
+  overflow-x: auto;
+}

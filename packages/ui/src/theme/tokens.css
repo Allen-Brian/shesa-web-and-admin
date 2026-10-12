@@ -1,0 +1,256 @@
+/**
+ * Shesa design tokens — Tailwind v4 `@theme` block.
+ *
+ * Imported once at each app's root layout via
+ *   @import '@shesa/ui/styles/tokens.css';
+ * AFTER `@import 'tailwindcss'` so its @theme wins over v4's defaults.
+ *
+ * Brand: burgundy. Neutral surfaces stay near-white (light) / near-black
+ * (dark) so the burgundy primary carries the identity without competing
+ * for attention against every button and pill.
+ *
+ * v4 behavior: values in `@theme` auto-generate matching utility classes
+ * (`--color-primary` → `bg-primary`, `text-primary`, `border-primary`,
+ * etc.). Overrides for dark mode go in `.dark { ... }` — Tailwind v4
+ * reads whichever `var()` resolves at the DOM node.
+ *
+ * @source pulls the ui package's own components into utility scanning so
+ * classes referenced inside `packages/ui/src/**` get emitted even though
+ * apps only lint their own `src/`.
+ */
+
+@import 'tailwindcss';
+
+@source "..";
+
+/* Class-based dark mode — theme-provider toggles `.dark` on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Surfaces */
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(0 0% 9%);
+
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(0 0% 9%);
+
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(0 0% 9%);
+
+  --color-muted: hsl(0 0% 96%);
+  --color-muted-foreground: hsl(0 0% 45%);
+
+  --color-secondary: hsl(0 0% 96%);
+  --color-secondary-foreground: hsl(0 0% 9%);
+
+  --color-border: hsl(0 0% 90%);
+  --color-input: hsl(0 0% 90%);
+
+  /* Brand — burgundy (~#8A1533). Rich, warm, unmistakably "wine". */
+  --color-primary: hsl(345 80% 40%);
+  --color-primary-foreground: hsl(0 0% 100%);
+
+  --color-accent: hsl(345 78% 46%);
+  --color-accent-foreground: hsl(0 0% 100%);
+
+  --color-ring: hsl(345 80% 40%);
+
+  /* Semantic state — status pills, validation banners, callouts.
+   * Same hue in light + dark; opacity modifiers handle the soft-background
+   * variants. */
+  --color-success: #31b768;
+  --color-success-foreground: hsl(0 0% 100%);
+  --color-warning: #ff8c42;
+  --color-warning-foreground: hsl(0 0% 100%);
+  --color-danger: #d93a4d;
+  --color-danger-foreground: hsl(0 0% 100%);
+  --color-destructive: hsl(0 84% 60%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+
+  /* Sidebar surfaces — subtly off-background for depth. */
+  --color-sidebar: hsl(0 0% 95%);
+  --color-sidebar-foreground: hsl(0 0% 9%);
+  --color-sidebar-primary: hsl(345 80% 30%);
+  --color-sidebar-primary-foreground: hsl(0 0% 100%);
+  --color-sidebar-accent: hsl(0 0% 96%);
+  --color-sidebar-accent-foreground: hsl(0 0% 9%);
+  --color-sidebar-border: hsl(0 0% 90%);
+  --color-sidebar-ring: hsl(345 80% 30%);
+
+  /* Radii */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+
+  /* Typography */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'Cascadia Code', Menlo, Monaco, monospace;
+
+  /* Font-scale — apps can flip --font-scale via a runtime setting. */
+  --font-scale-small: 0.9;
+  --font-scale-normal: 1;
+  --font-scale-large: 1.1;
+  --font-scale-extra-large: 1.2;
+
+  /* Layout constants */
+  --spacing-control-height: 44px;
+  --spacing-row-height-table: 65px;
+}
+
+:root {
+  --font-scale: var(--font-scale-normal);
+
+  /* Legacy `--radius` alias — some ported shadcn components read this. */
+  --radius: 0.5rem;
+
+  /* Adaptive near-black (light) / near-white (dark) used for gradient text. */
+  --color-a7: #09090a;
+
+  /* Gradient primary — used for hero surfaces (auth pane, dashboards,
+   * side-nav help card). */
+  --gradient-primary: linear-gradient(
+    0deg,
+    var(--color-primary) -45%,
+    var(--color-primary) 18.74%,
+    color-mix(in srgb, var(--color-primary) 80%, white) 100%
+  );
+
+  /* Input focus system — inputs rest on the neutral border; only hover +
+   * focus surface the brand primary. Earlier we used a 35% primary mix
+   * at rest, which made every input on a form look "active" and
+   * competed with the actual focused field. */
+  --input-border: var(--color-border);
+  --input-border-hover: var(--color-primary);
+  /* Fields sit on a tint rather than the page colour, so a form reads as
+   * a set of things to fill in rather than a run of outlined boxes. */
+  --input-bg: #f8fafc;
+  --input-ring: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  --input-focus-shadow: 0 0 0 3px var(--input-ring);
+}
+
+:root.dark,
+.dark {
+  --color-a7: #eeeeee;
+
+  --color-background: hsl(0 0% 4%);
+  --color-foreground: hsl(0 0% 96%);
+  --color-card: hsl(0 0% 7%);
+  --color-card-foreground: hsl(0 0% 96%);
+  --color-popover: hsl(0 0% 7%);
+  --color-popover-foreground: hsl(0 0% 96%);
+  --color-muted: hsl(0 0% 14%);
+  --color-muted-foreground: hsl(0 0% 62%);
+  --color-secondary: hsl(0 0% 14%);
+  --color-secondary-foreground: hsl(0 0% 96%);
+  --color-border: hsl(0 0% 16%);
+  --color-input: hsl(0 0% 16%);
+
+  /* Burgundy keeps its identity in dark mode — same hue, higher L so it
+   * pops against the near-black background. */
+  --color-primary: hsl(345 75% 45%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-accent: hsl(345 72% 50%);
+  --color-accent-foreground: hsl(0 0% 100%);
+  --color-ring: hsl(345 75% 45%);
+
+  --color-destructive: hsl(0 63% 45%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+
+  --color-sidebar: hsl(0 0% 7%);
+  --color-sidebar-foreground: hsl(0 0% 96%);
+  --color-sidebar-primary: hsl(345 75% 50%);
+  --color-sidebar-primary-foreground: hsl(0 0% 100%);
+  --color-sidebar-accent: hsl(0 0% 14%);
+  --color-sidebar-accent-foreground: hsl(0 0% 96%);
+  --color-sidebar-border: hsl(0 0% 16%);
+  --color-sidebar-ring: hsl(345 75% 50%);
+
+  --input-bg: #1c1b1c;
+}
+
+html,
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  font-size: calc(1rem * var(--font-scale));
+}
+
+/* Default border color for every element — MUST be in @layer base so
+ * Tailwind utility classes (higher cascade priority) can override. */
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+}
+
+/* Autofill: Chrome/Safari paint a pale blue/yellow behind autofilled
+ * inputs via `background-color`. Cover it with an inset shadow at the
+ * surface color, then re-tint the text. The 999999s transition trick
+ * keeps the browser from ever painting the color again on state change. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-background) inset;
+  box-shadow: 0 0 0 1000px var(--color-background) inset;
+  -webkit-text-fill-color: var(--color-foreground);
+  caret-color: var(--color-foreground);
+  transition: background-color 999999s ease-in-out 0s;
+}
+
+/* AG Grid: match the browser's `:focus-visible` behavior on our tables.
+ * Without this, a mouse click on a checkbox (or header/cell) leaves a
+ * persistent primary-colored ring — the checkbox holds :focus until the
+ * user clicks somewhere else. Keyboard focus (`:focus-visible`) is
+ * preserved. */
+.ag-checkbox-input-wrapper:focus:not(:focus-visible),
+.ag-checkbox-input-wrapper.ag-focused:not(:focus-visible) {
+  box-shadow: none;
+  border-color: var(--color-border);
+}
+
+.ag-header-cell:focus:not(:focus-visible),
+.ag-header-cell.ag-focused:not(:focus-visible),
+.ag-cell:focus:not(:focus-visible),
+.ag-cell.ag-focused:not(:focus-visible) {
+  outline: none;
+}
+
+/* AG Grid: keep overlong cell text inside its column.
+ *
+ * Every admin table sets `display:flex` on its cells so multi-line
+ * renderers centre vertically. That has a side effect: a flex container
+ * is not a block container, so AG Grid's own `text-overflow: ellipsis`
+ * stops applying and a name wider than its column is simply cut off
+ * mid-character with nothing to say it was cut.
+ *
+ * Restoring it on the value wrapper fixes the plain-text columns, and
+ * `min-width: 0` lets renderers that already use `truncate` actually
+ * shrink — a flex item refuses to go below its content width without
+ * it, so those were overflowing rather than ellipsing.
+ *
+ * Columns that opt into `wrapText` are excluded: they asked for the
+ * text to run onto a second line, which is the opposite of this. */
+.ag-cell > .ag-cell-value,
+.ag-cell > .ag-cell-wrapper > .ag-cell-value {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ag-cell:not(.ag-cell-wrap-text) > .ag-cell-value,
+.ag-cell:not(.ag-cell-wrap-text) > .ag-cell-wrapper > .ag-cell-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Header labels get the same treatment — a truncated column heading is
+ * better than one that overlaps its neighbour. */
+.ag-header-cell-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

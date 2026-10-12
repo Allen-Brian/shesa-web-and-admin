@@ -1,0 +1,122 @@
+# docker-compose.dev.yml — local development stack for Shesa.
+#
+# WHAT THIS GIVES YOU
+#   - Every Shesa app running in a Linux container (same OS as prod) so
+#     "works on my machine" bugs surface at first dev commit, not at
+#     first staging deploy.
+#   - Caddy as the local reverse proxy on :80, routing
+#     `*.shesa.test` → the corresponding app's container port. Without
+#     Caddy each app would be on a different localhost port and the
+#     apex-scoped Supabase Auth cookie wouldn't be shareable across
+#     subdomains (browsers treat per-port localhost variants as
+#     separate sites).
+#
+# WHAT'S NOT IN HERE
+#   - Supabase. The Supabase CLI (`pnpm db:start`) runs its own Docker
+#     stack on its own ports — keeping it separate means `db:reset` /
+#     `db:start` work the same whether or not this compose stack is up.
+#     Containers reach Supabase at `host.docker.internal:54321`;
+#     browsers reach it at `127.0.0.1:54321` (NEXT_PUBLIC_* values).
+#
+# PREREQUISITES (one-time)
+#   1. Add to /etc/hosts:
+#        127.0.0.1 web.shesa.test admin.shesa.test
+#   2. `pnpm db:start` to bring up local Supabase.
+#   3. `pnpm env:init` to write .env.local at the repo root.
+#
+# Post-pivot (ADR-0040): two apps only — web + admin. The retired
+# auth/exco/finance services were dropped in the same migration.
+#
+# USAGE
+#   docker compose -f infra/docker-compose.dev.yml up           (foreground)
+#   docker compose -f infra/docker-compose.dev.yml up -d        (detached)
+#   docker compose -f infra/docker-compose.dev.yml logs -f auth (tail one)
+#   docker compose -f infra/docker-compose.dev.yml down         (stop+rm)
+
+name: shesa-dev
+
+services:
+  # Caddy dev reverse-proxy is deferred until we actually need
+  # cross-subdomain testing between web and admin. Each service
+  # publishes its port directly to the host in the meantime.
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile.next.dev
+      args:
+        APP_DIR: web
+        APP_PORT: 3000
+    container_name: shesa-web
+    restart: unless-stopped
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    env_file:
+      - path: ../.env.local
+        required: false
+    environment:
+      SUPABASE_URL: http://host.docker.internal:54321
+      SUPABASE_DB_URL: postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      HOSTNAME: 0.0.0.0
+    ports:
+      - '3000:3000'
+    volumes:
+      - ../:/app:cached
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/apps/web/.next
+      - /app/packages/config/node_modules
+      - /app/packages/domain/node_modules
+      - /app/packages/supabase/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/ui/node_modules
+      - pnpm-store:/pnpm/store
+    networks:
+      - shesa
+
+  admin:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile.next.dev
+      args:
+        APP_DIR: admin
+        APP_PORT: 3002
+    container_name: shesa-admin
+    restart: unless-stopped
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    env_file:
+      - path: ../.env.local
+        required: false
+    environment:
+      SUPABASE_URL: http://host.docker.internal:54321
+      SUPABASE_DB_URL: postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      HOSTNAME: 0.0.0.0
+    ports:
+      - '3002:3002'
+    volumes:
+      - ../:/app:cached
+      - /app/node_modules
+      - /app/apps/admin/node_modules
+      - /app/apps/admin/.next
+      - /app/packages/config/node_modules
+      - /app/packages/domain/node_modules
+      - /app/packages/supabase/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/ui/node_modules
+      - pnpm-store:/pnpm/store
+    networks:
+      - shesa
+
+networks:
+  # Explicit network name so it shows up readably in `docker network ls`.
+  shesa:
+    name: shesa-dev
+
+volumes:
+  pnpm-store:
+    name: shesa-pnpm-store
+  caddy-data:
+    name: shesa-caddy-data
+  caddy-config:
+    name: shesa-caddy-config

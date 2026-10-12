@@ -1,0 +1,219 @@
+name: Deploy — staging
+
+# On every push to develop, once BOTH `CI` and `DB test (pgTAP)` have
+# completed successfully for the same head SHA:
+#   1. Apply pending supabase migrations to the STAGING supabase project
+#   2. Build + push per-app docker images to ghcr.io
+#   3. Ssh to the staging contabo vps and docker-stack-deploy the new
+#      versions
+#
+# Won't run end-to-end until the staging secrets + vps are provisioned
+# (list of required secrets at the bottom of this file).
+
+on:
+  workflow_run:
+    workflows: [CI, 'DB test (pgTAP)']
+    types: [completed]
+    branches: [develop]
+
+concurrency:
+  # One deploy in flight at a time — cancelling deploys mid-flight can
+  # leave the swarm stack in an unhealthy state, so `cancel-in-progress`
+  # stays FALSE. Newer runs queue behind the current one.
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  ENVIRONMENT: staging
+
+jobs:
+  # Gate: workflow_run fires per sibling workflow completion. We only
+  # want to deploy when BOTH have succeeded on the SAME head SHA — this
+  # job resolves that check by asking the API about the other workflow's
+  # status at the current SHA. First success fires only ONE workflow_run;
+  # the gate keeps the deploy from running until the second finishes.
+  gate:
+    name: gate
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - name: Verify both required workflows succeeded for this SHA
+        id: check
+        uses: actions/github-script@v7
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        with:
+          script: |
+            const required = ['CI', 'DB test (pgTAP)'];
+            const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head_sha: process.env.HEAD_SHA,
+              status: 'completed',
+            });
+            const passed = new Set(
+              data.workflow_runs
+                .filter(r => r.conclusion === 'success')
+                .map(r => r.name)
+            );
+            const missing = required.filter(n => !passed.has(n));
+            if (missing.length) {
+              core.info(`Waiting on: ${missing.join(', ')}`);
+              core.setOutput('ready', 'false');
+            } else {
+              core.setOutput('ready', 'true');
+            }
+
+  # Apply pending SQL migrations to the STAGING Supabase project. Runs
+  # BEFORE the app deploy so the containers come up against a compatible
+  # schema, not against a schema they've outpaced.
+  migrate:
+    name: apply migrations to staging Supabase
+    needs: gate
+    if: needs.gate.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.108.0
+
+      - name: Link Supabase project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
+
+      - name: Push migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        # `db push` is idempotent — already-applied migrations are skipped.
+        run: supabase db push
+
+  # Build + push per-app docker images to ghcr.io, then ssh to the vps
+  # and `docker stack deploy`. The prod dockerfile (E14) is a multi-stage
+  # build separate from infra/docker/Dockerfile.next.dev.
+  deploy:
+    name: build images + docker stack deploy
+    needs: [gate, migrate]
+    if: needs.gate.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Post-pivot (ADR-0040): two apps — web + admin. One build job each,
+      # tagged with both the branch and the SHA so rollbacks can pin.
+      # NEXT_PUBLIC_* build args are inlined into the client bundle at
+      # build time (Next.js), so they MUST match the env's real
+      # hostnames — a runtime env var would come too late.
+      - name: Build + push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile.next.prod
+          build-args: |
+            APP_DIR=web
+            APP_PORT=3000
+            NEXT_PUBLIC_APP_ENV=staging
+            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
+            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
+            NEXT_PUBLIC_ADMIN_APP_URL=https://${{ vars.ADMIN_DOMAIN }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/shesa-web:staging
+            ghcr.io/${{ github.repository_owner }}/shesa-web:staging-${{ github.sha }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build + push admin image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile.next.prod
+          build-args: |
+            APP_DIR=admin
+            APP_PORT=3002
+            NEXT_PUBLIC_APP_ENV=staging
+            NEXT_PUBLIC_APP_BASE_DOMAIN=${{ vars.APP_BASE_DOMAIN }}
+            NEXT_PUBLIC_WEB_APP_URL=https://${{ vars.WEB_DOMAIN }}
+            NEXT_PUBLIC_ADMIN_APP_URL=https://${{ vars.ADMIN_DOMAIN }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/shesa-admin:staging
+            ghcr.io/${{ github.repository_owner }}/shesa-admin:staging-${{ github.sha }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Docker swarm deploy over ssh. The vps is set up as a
+      # single-node swarm; `docker stack deploy` is idempotent and does a
+      # rolling update per service. The `env:` block below is what the
+      # ssh-action injects into the remote shell — the compose file reads
+      # these via ${VAR} interpolation.
+      - name: Deploy stack to staging VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          envs: SHESA_ENV,SHESA_IMAGE_TAG,GHCR_OWNER,APP_BASE_DOMAIN,WEB_DOMAIN,ADMIN_DOMAIN,LETSENCRYPT_EMAIL,GHCR_TOKEN,GHCR_ACTOR
+          script: |
+            set -euo pipefail
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_ACTOR" --password-stdin
+            cd /opt/shesa
+            git fetch origin develop
+            git reset --hard origin/develop
+            docker stack deploy -c infra/swarm/docker-compose.prod.yml shesa
+        env:
+          SHESA_ENV: staging
+          SHESA_IMAGE_TAG: staging-${{ github.sha }}
+          GHCR_OWNER: ${{ github.repository_owner }}
+          APP_BASE_DOMAIN: ${{ vars.APP_BASE_DOMAIN }}
+          WEB_DOMAIN: ${{ vars.WEB_DOMAIN }}
+          ADMIN_DOMAIN: ${{ vars.ADMIN_DOMAIN }}
+          LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_ACTOR: ${{ github.actor }}
+
+# ─────────────────────────────────────────────────────────────────────
+# REQUIRED SECRETS (staging environment)
+# ─────────────────────────────────────────────────────────────────────
+# Configured under Settings → Environments → staging → Secrets. The
+# `environment: staging` on each job scopes access to these values.
+#
+#   SSH_HOST                 — Contabo VPS IP or DNS
+#   SSH_USER                 — dedicated deploy user with docker group
+#   SSH_PRIVATE_KEY          — matching ~/.ssh/authorized_keys entry
+#   SUPABASE_ACCESS_TOKEN    — personal access token from
+#                              https://supabase.com/dashboard/account/tokens
+#   SUPABASE_DB_PASSWORD     — Postgres password for `supabase db push`
+#
+# REQUIRED VARIABLES (staging environment, non-secret)
+#
+#   SUPABASE_PROJECT_REF     — the staging project's ref (e.g. `abcd1234`)
+#   APP_BASE_DOMAIN          — cookie base domain (e.g. `shesaconnect.com`)
+#   WEB_DOMAIN               — e.g. `staging.shesaconnect.com`
+#   ADMIN_DOMAIN             — e.g. `staging-admin.shesaconnect.com`
+#   LETSENCRYPT_EMAIL        — inbox that gets ACME expiry notices
+#
+# The staging VPS + these secrets aren't in place yet. When they are,
+# this workflow starts firing green.
