@@ -1,5 +1,6 @@
-'use client';
+﻿'use client';
 
+import Link from 'next/link';
 import { motion, type Variants } from 'framer-motion';
 
 import { sponsorTiers, sponsors } from './sponsors-content';
@@ -19,6 +20,7 @@ const fadeUp: Variants = {
  * Roll-of-honour list, sponsors grouped by tier. Feels like the
  * printed brochure back-cover. Each name is a plain text line (no
  * links) because the source-of-truth is the printed programme.
+ * Sponsors with an `href` field are rendered as links (e.g. DIRA).
  */
 export function RollOfHonour() {
   return (
@@ -84,13 +86,32 @@ export function RollOfHonour() {
                       custom={i}
                       className="flex items-baseline justify-between gap-4 border-b border-black/8 pb-2 leading-tight"
                     >
-                      <span
-                        className="font-heading text-[14.5px] font-light text-black"
-                        style={{ letterSpacing: '-0.005em' }}
-                      >
-                        {s.name}
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        {s.href ? (
+                          <Link
+                            href={s.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-heading text-[14.5px] font-light text-black transition-colors duration-300 hover:text-primary"
+                            style={{ letterSpacing: '-0.005em' }}
+                          >
+                            {s.name}
+                          </Link>
+                        ) : (
+                          <span
+                            className="font-heading text-[14.5px] font-light text-black"
+                            style={{ letterSpacing: '-0.005em' }}
+                          >
+                            {s.name}
+                          </span>
+                        )}
+                        {s.category && (
+                          <span className="text-[10px] uppercase tracking-[0.18em] text-primary/70">
+                            {s.category}
+                          </span>
+                        )}
                       </span>
-                      <span className="text-[10.5px] uppercase tracking-[0.2em] text-black/45">
+                      <span className="shrink-0 text-[10.5px] uppercase tracking-[0.2em] text-black/45">
                         {s.city}
                       </span>
                     </motion.li>

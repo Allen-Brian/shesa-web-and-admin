@@ -1,5 +1,5 @@
--- =============================================================================
--- Shesa Connect — bootstrap seed
+﻿-- =============================================================================
+-- Shesa Connect â€” bootstrap seed
 -- =============================================================================
 --
 -- The authoritative cold-start seed. Safe to run against production, and the
@@ -8,43 +8,43 @@
 --
 -- What it populates:
 --   1. The mainstream scope (root of the tree) + its capabilities.
---   2. The RBAC catalogue: 6 system roles, 42 permissions, role → permission
+--   2. The RBAC catalogue: 6 system roles, 42 permissions, role â†’ permission
 --      bundles.
---   3. All batches (1953 → 2026) + the four Houses.
---   4. Three human users — admin@ / finance@ / editor@shesaconnect.com — with
+--   3. All batches (1953 â†’ 2026) + the four Houses.
+--   4. Three human users â€” admin@ / finance@ / editor@shesaconnect.com â€” with
 --      auth rows, identities, profiles and global (NULL-scope) role grants.
 --   5. The `AGM 2026` finance group + its charges. The event runs to
 --      15 November 2026, so this stays in the production bootstrap.
---   6. The five founding branches: Yaoundé, Douala, Buea, Tiko, Bamenda.
+--   6. The five founding branches: YaoundÃ©, Douala, Buea, Tiko, Bamenda.
 --
--- ── Public-website content is NOT here ──────────────────────────────────────
+-- â”€â”€ Public-website content is NOT here â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- Leadership, articles, projects, gallery, organs and songs used to arrive as
 -- seven `*_seed.sql` MIGRATIONS, so they shipped to every database whether
 -- wanted or not. Their own headers describe them as the "placeholder arrays"
--- and "static data" the web app carried before it read from `cms` — and
+-- and "static data" the web app carried before it read from `cms` â€” and
 -- production bears that out: the content was seeded by those migrations and
 -- then deleted by hand, leaving a single editor-made sector behind.
 --
 -- It therefore lives in seed-demo.sql. Production starts with an empty CMS and
 -- the Editor persona fills it, which is the state the team already chose.
 --
---   8. The four launch networks: Legal, Santé, Tech, Education.
+--   8. The four launch networks: Legal, SantÃ©, Tech, Education.
 --
--- ── NOT seeded, by decision ─────────────────────────────────────────────────
+-- â”€â”€ NOT seeded, by decision â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- Chapters are created through the Admin portal.
 --
 -- Members, memberships, payments, expenses, obligations, transfers,
--- announcements and events are all left empty — the apps populate those.
+-- announcements and events are all left empty â€” the apps populate those.
 -- For a populated local environment, run `supabase/seed-demo.sql` afterwards.
 --
--- ── Idempotency ─────────────────────────────────────────────────────────────
+-- â”€â”€ Idempotency â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- Every insert uses a stable hand-picked UUID with ON CONFLICT DO NOTHING.
 -- Re-running is safe: rows that already exist stay put, and nothing an admin
 -- changed in the app gets clobbered.
 --
--- ── ⚠ Credentials ───────────────────────────────────────────────────────────
+-- â”€â”€ âš  Credentials â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- The auth.users passwords are literal in this file. That is a deliberate,
--- accepted decision — the three seeded accounts change their own passwords if
+-- accepted decision â€” the three seeded accounts change their own passwords if
 -- and when they choose. Be aware that repo history and any log surface that
 -- captures this file therefore contain them.
 
@@ -52,7 +52,7 @@
 -- Section 1. Mainstream scope + capabilities
 -- =============================================================================
 --
--- Single mainstream node — the root of the org tree. Every other scope
+-- Single mainstream node â€” the root of the org tree. Every other scope
 -- (branches, chapters, batches, houses, networks, sectors) hangs off this.
 
 INSERT INTO core.scopes (id, name, slug, scope_type, parent_scope_id, currency_code)
@@ -82,11 +82,11 @@ ON CONFLICT (scope_id) DO NOTHING;
 
 
 -- =============================================================================
--- Section 2. RBAC catalogue — roles, permissions, role → permission bundles
+-- Section 2. RBAC catalogue â€” roles, permissions, role â†’ permission bundles
 -- =============================================================================
 --
 -- The seven system roles + the full permission catalogue + the default
--- role → permission bundles. Keys mirror @shesa/types ROLE_KEYS and
+-- role â†’ permission bundles. Keys mirror @shesa/types ROLE_KEYS and
 -- PERMISSION_KEYS. Editing this section without editing @shesa/types
 -- (or vice versa) will fail TypeScript compilation in the apps.
 
@@ -102,7 +102,7 @@ INSERT INTO core.roles (id, key, name, description) VALUES
   ('11111111-0000-0000-0000-000000000004', 'finance', 'Finance',
    'Read+write on finance. Treasury, charges, payments, reports.'),
   ('11111111-0000-0000-0000-000000000005', 'editor', 'Editor',
-   'CMS editor — drafts, edits, publishes website + branch-page content.'),
+   'CMS editor â€” drafts, edits, publishes website + branch-page content.'),
   ('11111111-0000-0000-0000-000000000006', 'recruiter', 'Recruiter',
    'Posts jobs on Connect; submitted postings still need approval before publish.'),
   ('11111111-0000-0000-0000-000000000007', 'announcer', 'Announcer',
@@ -117,7 +117,7 @@ ON CONFLICT (key) DO NOTHING;
 -- The old seed listed 42 permissions. The database had 70: the finance-grain
 -- keys (treasury.read, payment.record, charge.create, expense.approve and 24
 -- more) were added by MIGRATIONS rather than the seed, so a seed-only reading
--- of the catalogue was missing 28 of them — and so was
+-- of the catalogue was missing 28 of them â€” and so was
 -- packages/types/src/permission-key.ts, which means those keys were untyped
 -- everywhere they were used. Both are now complete and agree.
 --
@@ -125,17 +125,17 @@ ON CONFLICT (key) DO NOTHING;
 -- corrected without another migration, and the catalogue is not schema.
 
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000015', 'scope.update', 'Edit an existing scope: name, geography, currency (until finance exists), metadata.', '2026-09-02 20:11:28.232845+00') ON CONFLICT DO NOTHING;
-INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000016', 'scope.change_autonomy', 'Flip a chapter''s autonomy (autonomous ↔ grouping). Distinct permission from scope.update because the effect on membership + capabilities is severe.', '2026-09-02 20:11:28.232845+00') ON CONFLICT DO NOTHING;
+INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000016', 'scope.change_autonomy', 'Flip a chapter''s autonomy (autonomous â†” grouping). Distinct permission from scope.update because the effect on membership + capabilities is severe.', '2026-09-02 20:11:28.232845+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000017', 'member.create', 'Create a new member (via UI, import, or admin form).', '2026-09-02 20:11:28.241426+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000019', 'member.import', 'Upload and confirm Excel member-import batches. Distinct from member.create because import operates on many members at once with duplicate-detection review.', '2026-09-02 20:11:28.253271+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000020', 'membership.approve', 'Approve a join request into a geographic body.', '2026-09-02 20:11:28.26835+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000021', 'membership.reject', 'Reject a join request into a geographic body.', '2026-09-02 20:11:28.26835+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000022', 'membership.transfer', 'Initiate, approve, or reject a member transfer between geographic bodies.', '2026-09-02 20:11:28.26835+00') ON CONFLICT DO NOTHING;
-INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000023', 'membership.mark_passive', 'Flip a membership between active and passive (§2.16 — geographic-body admin only).', '2026-09-02 20:11:28.26835+00') ON CONFLICT DO NOTHING;
-INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000024', 'registration.mark_paid', 'Mark a member''s registration fee as paid (§2.13; non-gating searchable flag).', '2026-09-02 20:11:28.26835+00') ON CONFLICT DO NOTHING;
+INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000023', 'membership.mark_passive', 'Flip a membership between active and passive (Â§2.16 â€” geographic-body admin only).', '2026-09-02 20:11:28.26835+00') ON CONFLICT DO NOTHING;
+INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000024', 'registration.mark_paid', 'Mark a member''s registration fee as paid (Â§2.13; non-gating searchable flag).', '2026-09-02 20:11:28.26835+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000025', 'scope.manage_capabilities', 'Flip capability flags on a scope (treasury, dues, forum, active/passive labelling).', '2026-09-02 20:11:28.274481+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000026', 'member.export', 'Export the member directory as CSV or Excel. Distinct from member.read because exports carry data outside the RLS boundary.', '2026-09-02 20:11:28.274481+00') ON CONFLICT DO NOTHING;
-INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000027', 'position.assign', 'Assign a position (badge) to a member at a scope. Distinct from role.grant — positions are titles, not authority.', '2026-09-02 20:11:28.281704+00') ON CONFLICT DO NOTHING;
+INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000027', 'position.assign', 'Assign a position (badge) to a member at a scope. Distinct from role.grant â€” positions are titles, not authority.', '2026-09-02 20:11:28.281704+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000028', 'position.remove', 'Remove an active position assignment.', '2026-09-02 20:11:28.281704+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000029', 'registration.waive', 'Waive a member''s registration fee. Distinct from mark_paid because the audit action is different.', '2026-09-02 20:11:28.291776+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000030', 'event.create', 'Create a governance event (Meeting, AGM, Convention, etc.) at a scope.', '2026-09-02 20:11:28.291776+00') ON CONFLICT DO NOTHING;
@@ -154,7 +154,7 @@ INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000018', 'me
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000040', 'member.bulk_action', 'Run a bulk action (invite, export, assign network, mark left, etc.) over a selected member list.', '2026-09-02 20:11:28.291776+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000014', 'scope.create', 'Create a new scope (Branch, Chapter, Network, Batch). Includes setting parent + initial capabilities.', '2026-09-02 20:11:28.232845+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000043', 'membership.engagement.set', 'Set / promote / demote the manual engagement tier on a membership (dormant / normal / engaged / committed).', '2026-09-02 20:11:28.335842+00') ON CONFLICT DO NOTHING;
-INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000044', 'membership.remove', 'Remove a member from a scope (ends the membership row). Its own key — not shared with membership.approve.', '2026-09-02 20:11:28.335842+00') ON CONFLICT DO NOTHING;
+INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000044', 'membership.remove', 'Remove a member from a scope (ends the membership row). Its own key â€” not shared with membership.approve.', '2026-09-02 20:11:28.335842+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000046', 'registration.pay_on_behalf', 'Record that someone paid a member''s registration fee on their behalf (records paid_on_behalf_at / paid_on_behalf_by / paid_on_behalf_note).', '2026-09-02 20:11:28.335842+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000047', 'charge.create', 'Create a charge (dues / levy) or contribution (goal / open / ticketed / fixed) at a finance-bearing scope.', '2026-09-02 20:11:28.397169+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000048', 'charge.update', 'Edit a draft or paused charge (name, description, target filter, dates).', '2026-09-02 20:11:28.397169+00') ON CONFLICT DO NOTHING;
@@ -166,9 +166,9 @@ INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000053', 'pa
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000054', 'payment.record_on_behalf', 'Record a payment on behalf of a member (payer is not the member; Finance or Admin uses this).', '2026-09-02 20:11:28.397169+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000055', 'payment.reverse', 'Issue a reversing payment (reverses_payment_id + reason). The original row is untouched.', '2026-09-02 20:11:28.397169+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000056', 'obligation.cancel', 'Cancel an obligation that should never have existed (created-in-error). Sets status=cancelled.', '2026-09-02 20:11:28.397169+00') ON CONFLICT DO NOTHING;
-INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000057', 'obligation.forgive', 'Forgive an obligation (write-off; hardship, president''s relief). Sensitive — grant explicitly per person, do not bundle by default.', '2026-09-02 20:11:28.397169+00') ON CONFLICT DO NOTHING;
+INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000057', 'obligation.forgive', 'Forgive an obligation (write-off; hardship, president''s relief). Sensitive â€” grant explicitly per person, do not bundle by default.', '2026-09-02 20:11:28.397169+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000058', 'exception.create', 'Create a charge exception (relative / fixed / senior tier). Individual overrides use exception.apply_individual.', '2026-09-02 20:11:28.397169+00') ON CONFLICT DO NOTHING;
-INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000059', 'exception.apply_individual', 'Apply an individual-form exception targeting one named member. Sensitive — grant explicitly per person.', '2026-09-02 20:11:28.397169+00') ON CONFLICT DO NOTHING;
+INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000059', 'exception.apply_individual', 'Apply an individual-form exception targeting one named member. Sensitive â€” grant explicitly per person.', '2026-09-02 20:11:28.397169+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000060', 'expense.record', 'Record an expense (money out of a treasury). Below the body''s threshold hits the ledger; above enters pending_approval.', '2026-09-02 20:11:28.397169+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000061', 'expense.approve', 'Approve a pending_approval expense (Admin''s tier; per-body approval threshold gate).', '2026-09-02 20:11:28.397169+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000062', 'expense.reverse', 'Issue a reversing expense (reverses_expense_id + reason). The original row is untouched.', '2026-09-02 20:11:28.397169+00') ON CONFLICT DO NOTHING;
@@ -193,7 +193,7 @@ INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000009', 'cm
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000010', 'connect.announce', 'Publish announcements to Connect forums.', '2026-09-02 20:11:28.556705+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000011', 'connect.poll', 'Create polls in Connect.', '2026-09-02 20:11:28.556705+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000012', 'connect.job.approve', 'Approve and publish Recruiter-submitted job postings.', '2026-09-02 20:11:28.556705+00') ON CONFLICT DO NOTHING;
-INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000013', 'audit.read', 'Read audit_entries — full event log per scope.', '2026-09-02 20:11:28.556705+00') ON CONFLICT DO NOTHING;
+INSERT INTO core.permissions VALUES ('22222222-0000-0000-0000-000000000013', 'audit.read', 'Read audit_entries â€” full event log per scope.', '2026-09-02 20:11:28.556705+00') ON CONFLICT DO NOTHING;
 
 INSERT INTO core.role_permissions VALUES ('11111111-0000-0000-0000-000000000001', '22222222-0000-0000-0000-000000000015', '2026-09-02 20:11:28.556705+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.role_permissions VALUES ('11111111-0000-0000-0000-000000000001', '22222222-0000-0000-0000-000000000016', '2026-09-02 20:11:28.556705+00') ON CONFLICT DO NOTHING;
@@ -343,7 +343,7 @@ INSERT INTO core.role_permissions VALUES ('11111111-0000-0000-0000-000000000007'
 -- 2.4 Governance position catalogue
 -------------------------------------------------------------------------------
 -- The named offices a member can hold at each scope type (President,
--- Secretary, Treasurer, …). Also migration-supplied reference data.
+-- Secretary, Treasurer, â€¦). Also migration-supplied reference data.
 
 INSERT INTO core.position_catalog VALUES ('73866f2d-d224-4828-954e-e67d104579d1', 'mainstream', 'President', 'Chief executive of Mainstream.', 10, true, '2026-09-02 20:11:28.275941+00', '2026-09-02 20:11:28.275941+00') ON CONFLICT DO NOTHING;
 INSERT INTO core.position_catalog VALUES ('57321be5-ae0b-40d0-994c-1717a33f2eea', 'mainstream', 'Vice President', 'Deputy to the President.', 20, true, '2026-09-02 20:11:28.275941+00', '2026-09-02 20:11:28.275941+00') ON CONFLICT DO NOTHING;
@@ -399,11 +399,11 @@ INSERT INTO finance.expense_categories VALUES ('3262fcac-837c-4524-aa57-a1c928e9
 
 
 -- =============================================================================
--- Section 3. Batches (1953–2026) + Houses (4)
+-- Section 3. Batches (1953â€“2026) + Houses (4)
 -- =============================================================================
 
 -------------------------------------------------------------------------------
--- 3.1 Batches — every intake year 1953 through 2026
+-- 3.1 Batches â€” every intake year 1953 through 2026
 -------------------------------------------------------------------------------
 -- Adding a batch year: bump the upper bound in generate_series and rerun
 -- this file. Phase 2 ships a `create-next-year-batch` Edge Function
@@ -430,10 +430,10 @@ SELECT id FROM core.scopes WHERE scope_type = 'batch'
 ON CONFLICT (scope_id) DO NOTHING;
 
 -------------------------------------------------------------------------------
--- 3.2 Houses — the four canonical houses
+-- 3.2 Houses â€” the four canonical houses
 -------------------------------------------------------------------------------
 -- Two rows per house: the scope spine + the detail row (colour + hex +
--- display order). Houses are view-only in the app — never created,
+-- display order). Houses are view-only in the app â€” never created,
 -- edited, or deleted through the UI.
 
 INSERT INTO core.scopes (
@@ -458,16 +458,16 @@ ON CONFLICT (scope_id) DO NOTHING;
 
 
 -- =============================================================================
--- Section 4. Human users — auth + identities + profiles
+-- Section 4. Human users â€” auth + identities + profiles
 -- =============================================================================
 --
 -- Three admin humans, one per portal:
---   admin@shesaconnect.com     → Mainstream Admin  (exco persona)
---   finance@shesaconnect.com   → Finance           (finance persona)
---   editor@shesaconnect.com    → Editor            (editor persona)
+--   admin@shesaconnect.com     â†’ Mainstream Admin  (exco persona)
+--   finance@shesaconnect.com   â†’ Finance           (finance persona)
+--   editor@shesaconnect.com    â†’ Editor            (editor persona)
 --
 -- Passwords are literal in this file. ROTATE EACH via Supabase Auth
--- (Users → “…” → Send password reset) immediately after first login.
+-- (Users â†’ â€œâ€¦â€ â†’ Send password reset) immediately after first login.
 -- Chat logs, PR reviews, and Git history are NOT a safe place for
 -- prod credentials.
 --
@@ -547,7 +547,7 @@ INSERT INTO auth.users (
 ON CONFLICT (id) DO NOTHING;
 
 -------------------------------------------------------------------------------
--- 4.2 auth.identities — required by GoTrue's email-provider lookup
+-- 4.2 auth.identities â€” required by GoTrue's email-provider lookup
 -------------------------------------------------------------------------------
 -- `provider_id` is the identity's stable id from the provider. For the
 -- email provider it's the user id itself (there's no external OAuth sub).
@@ -592,7 +592,7 @@ INSERT INTO auth.identities (
 ON CONFLICT (provider, provider_id) DO NOTHING;
 
 -------------------------------------------------------------------------------
--- 4.3 core.profiles — 1:1 mirrors with auth.users
+-- 4.3 core.profiles â€” 1:1 mirrors with auth.users
 -------------------------------------------------------------------------------
 
 INSERT INTO core.profiles (id, display_name, email, preferred_persona)
@@ -603,7 +603,7 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -------------------------------------------------------------------------------
--- 4.4 core.role_assignments — global (NULL-scope) grants
+-- 4.4 core.role_assignments â€” global (NULL-scope) grants
 -------------------------------------------------------------------------------
 -- All three admins get their role globally so their reach is
 -- unconditional. Scoped grants would clip on the autonomy walk in
@@ -638,9 +638,9 @@ ON CONFLICT DO NOTHING;
 -- =============================================================================
 --
 -- The public /agm-2026 page has three form flows that hit finance:
---   • Registration   — `Ticket` charge (ticketed, 20 000 XAF per head)
---   • Attire         — `Attire` charge (ticketed, 50 000 XAF per piece)
---   • Funding        — donation-shape charges keyed by tier
+--   â€¢ Registration   â€” `Ticket` charge (ticketed, 20 000 XAF per head)
+--   â€¢ Attire         â€” `Attire` charge (ticketed, 50 000 XAF per piece)
+--   â€¢ Funding        â€” donation-shape charges keyed by tier
 --                      (Bronze / Silver / Gold / Platinum) + a
 --                      default `AGM 2026` catch-all for tier-less gifts.
 --
@@ -659,7 +659,7 @@ VALUES
   ('88888888-2026-0000-0000-000000000001',
    'agm-2026',
    'AGM 2026',
-   'Annual General Meeting 2026 — tickets, attire orders, and funding tiers all roll up here.',
+   'Annual General Meeting 2026 â€” tickets, attire orders, and funding tiers all roll up here.',
    DATE '2026-11-13',
    DATE '2026-11-15',
    'active', TRUE,
@@ -669,10 +669,10 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -------------------------------------------------------------------------------
--- 5.2 Charges — default donation + Ticket + Attire + 4 funding tiers
+-- 5.2 Charges â€” default donation + Ticket + Attire + 4 funding tiers
 -------------------------------------------------------------------------------
 
--- Default catch-all donation campaign — "donate to AGM 2026" without a tier.
+-- Default catch-all donation campaign â€” "donate to AGM 2026" without a tier.
 INSERT INTO finance.charges
   (id, scope_id, shape, name, description, currency, target_filter,
    lifecycle, open_date, close_date, status, group_id,
@@ -691,7 +691,7 @@ VALUES
    NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
--- Ticket — 20 000 XAF flat entry.
+-- Ticket â€” 20 000 XAF flat entry.
 INSERT INTO finance.charges
   (id, scope_id, shape, name, description, base_amount, currency,
    target_filter, target_party_type, lifecycle, open_date, close_date,
@@ -700,17 +700,39 @@ VALUES
   ('88888888-2026-1111-0000-000000000002',
    '00000000-0000-0000-0000-000000000001',
    'ticketed', 'Ticket',
-   'AGM 2026 entry ticket — 20 000 XAF per head.',
+   'AGM 2026 entry ticket â€” 20 000 XAF per head.',
    20000, 'XAF', '{}'::jsonb, 'member',
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
    TIMESTAMPTZ '2026-11-15 23:59:59+00',
    'active', '88888888-2026-0000-0000-000000000001',
    '55555555-0000-0000-0000-000000000002',
-   NOW(), NOW())
+    NOW(), NOW()),
+    ('88888888-2026-1111-0000-000000000004',
+     '00000000-0000-0000-0000-000000000001',
+     'ticketed', 'Ticket (Batch 2017)',
+     'AGM 2026 entry ticket - Batch 2017 at 10 000 XAF per head.',
+     10000, 'XAF', '{}'::jsonb, 'member',
+     'open',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     TIMESTAMPTZ '2026-11-15 23:59:59+00',
+     'active', '88888888-2026-0000-0000-000000000001',
+     '55555555-0000-0000-0000-000000000002',
+     NOW(), NOW()),
+    ('88888888-2026-1111-0000-000000000005',
+     '00000000-0000-0000-0000-000000000001',
+     'ticketed', 'Ticket (Batch 2018-2019)',
+     'AGM 2026 entry ticket - Recent Alumni (Batch 2018-2019) at 5 000 XAF per head.',
+     5000, 'XAF', '{}'::jsonb, 'member',
+     'open',
+     TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     TIMESTAMPTZ '2026-11-15 23:59:59+00',
+     'active', '88888888-2026-0000-0000-000000000001',
+     '55555555-0000-0000-0000-000000000002',
+     NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
--- Attire — 50 000 XAF custom-tailored piece; measurements ride in
+-- Attire â€” 50 000 XAF custom-tailored piece; measurements ride in
 -- payments.metadata.
 INSERT INTO finance.charges
   (id, scope_id, shape, name, description, base_amount, currency,
@@ -720,7 +742,7 @@ VALUES
   ('88888888-2026-1111-0000-000000000003',
    '00000000-0000-0000-0000-000000000001',
    'ticketed', 'Attire',
-   'AGM 2026 attire order — 55 000 XAF. Measurements captured at purchase.',
+   'AGM 2026 attire order â€” 55 000 XAF. Measurements captured at purchase.',
    55000, 'XAF', '{}'::jsonb, 'member',
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
@@ -730,15 +752,15 @@ VALUES
    NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
--- Funding tiers — donation-shape charges. The public site derives the
+-- Funding tiers â€” donation-shape charges. The public site derives the
 -- tier from the donor's amount (see `tierForAmount()` in
--- apps/web/src/components/agm/data.ts): Bronze catches 1 – 50 000,
--- Silver 50 001 – 250 000, Gold 250 001 – 1 000 000, Platinum
+-- apps/web/src/components/agm/data.ts): Bronze catches 1 â€“ 50 000,
+-- Silver 50 001 â€“ 250 000, Gold 250 001 â€“ 1 000 000, Platinum
 -- 1 000 001 and above (5 000 000 is the suggested Platinum headline
 -- but the tier is unbounded).
 --
 -- `min_amount` on each charge mirrors the tier's LOWER BOUND, not its
--- headline amount — anything below that floor is a different tier's
+-- headline amount â€” anything below that floor is a different tier's
 -- gift and lands on that tier's campaign instead.
 INSERT INTO finance.charges
   (id, scope_id, shape, name, description, currency, min_amount,
@@ -748,7 +770,7 @@ VALUES
   ('88888888-2026-1111-0000-000000000010',
    '00000000-0000-0000-0000-000000000001',
    'donation', 'Bronze Funding',
-   'AGM 2026 funding tier — Bronze. Range 1 – 50 000 XAF.',
+   'AGM 2026 funding tier â€” Bronze. Range 1 â€“ 50 000 XAF.',
    'XAF', 1, '{}'::jsonb,
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
@@ -759,7 +781,7 @@ VALUES
   ('88888888-2026-1111-0000-000000000011',
    '00000000-0000-0000-0000-000000000001',
    'donation', 'Silver Funding',
-   'AGM 2026 funding tier — Silver. Range 50 001 – 250 000 XAF.',
+   'AGM 2026 funding tier â€” Silver. Range 50 001 â€“ 250 000 XAF.',
    'XAF', 50001, '{}'::jsonb,
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
@@ -770,7 +792,7 @@ VALUES
   ('88888888-2026-1111-0000-000000000012',
    '00000000-0000-0000-0000-000000000001',
    'donation', 'Gold Funding',
-   'AGM 2026 funding tier — Gold. Range 250 001 – 1 000 000 XAF.',
+   'AGM 2026 funding tier â€” Gold. Range 250 001 â€“ 1 000 000 XAF.',
    'XAF', 250001, '{}'::jsonb,
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
@@ -781,7 +803,7 @@ VALUES
   ('88888888-2026-1111-0000-000000000013',
    '00000000-0000-0000-0000-000000000001',
    'donation', 'Platinum Funding',
-   'AGM 2026 funding tier — Platinum. Range 1 000 001 XAF and above (suggested headline 5 000 000 XAF).',
+   'AGM 2026 funding tier â€” Platinum. Range 1 000 001 XAF and above (suggested headline 5 000 000 XAF).',
    'XAF', 1000001, '{}'::jsonb,
    'open',
    TIMESTAMPTZ '2026-01-01 00:00:00+00',
@@ -808,15 +830,15 @@ ON CONFLICT (id) DO NOTHING;
 -- admin can change their own via Settings; this is only the starting value.
 --
 -- Buea and Douala deliberately reuse the UUIDs they held before the
--- 2026-09-02 squash (…010 and …011). Their slugs already existed, so a new
+-- 2026-09-02 squash (â€¦010 and â€¦011). Their slugs already existed, so a new
 -- id would have collided on the unique slug while leaving every fixture and
--- test that references the old id dangling. Yaoundé, Tiko and Bamenda are new.
+-- test that references the old id dangling. YaoundÃ©, Tiko and Bamenda are new.
 
 INSERT INTO core.scopes
   (id, name, slug, scope_type, parent_scope_id, currency_code, country, region_state, city, status, created_at, updated_at)
 VALUES
-  ('00000000-0000-0000-0000-00000000b001', 'Shesa Yaoundé',  'shesa-yaounde',  'branch',
-   '00000000-0000-0000-0000-000000000001', 'XAF', 'CM', 'Centre',      'Yaoundé',  'active', NOW(), NOW()),
+  ('00000000-0000-0000-0000-00000000b001', 'Shesa YaoundÃ©',  'shesa-yaounde',  'branch',
+   '00000000-0000-0000-0000-000000000001', 'XAF', 'CM', 'Centre',      'YaoundÃ©',  'active', NOW(), NOW()),
   ('00000000-0000-0000-0000-000000000011', 'Shesa Douala',   'shesa-douala',   'branch',
    '00000000-0000-0000-0000-000000000001', 'XAF', 'CM', 'Littoral',    'Douala',   'active', NOW(), NOW()),
   ('00000000-0000-0000-0000-000000000010', 'Shesa Buea',     'shesa-buea',     'branch',
@@ -831,22 +853,22 @@ INSERT INTO core.branches
   (scope_id, country_code, region, city, registration_fee_required, registration_fee_amount,
    registration_fee_currency, contact_email, created_at, updated_at)
 VALUES
-  ('00000000-0000-0000-0000-00000000b001', 'CM', 'Centre',     'Yaoundé', TRUE, 5000.00, 'XAF', 'yaounde@shesaconnect.com', NOW(), NOW()),
+  ('00000000-0000-0000-0000-00000000b001', 'CM', 'Centre',     'YaoundÃ©', TRUE, 5000.00, 'XAF', 'yaounde@shesaconnect.com', NOW(), NOW()),
   ('00000000-0000-0000-0000-000000000011', 'CM', 'Littoral',   'Douala',  TRUE, 5000.00, 'XAF', 'douala@shesaconnect.com',  NOW(), NOW()),
   ('00000000-0000-0000-0000-000000000010', 'CM', 'South-West', 'Buea',    TRUE, 5000.00, 'XAF', 'buea@shesaconnect.com',    NOW(), NOW()),
   ('00000000-0000-0000-0000-00000000b004', 'CM', 'South-West', 'Tiko',    TRUE, 5000.00, 'XAF', 'tiko@shesaconnect.com',    NOW(), NOW()),
   ('00000000-0000-0000-0000-00000000b005', 'CM', 'North-West', 'Bamenda', TRUE, 5000.00, 'XAF', 'bamenda@shesaconnect.com', NOW(), NOW())
 ON CONFLICT (scope_id) DO NOTHING;
 
--- ── Networks ────────────────────────────────────────────────────────────────
+-- â”€â”€ Networks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- The four professional networks that go live with production. A network is a
--- mainstream-parented scope, like a batch or a house — a membership dimension,
+-- mainstream-parented scope, like a batch or a house â€” a membership dimension,
 -- not a place.
 --
 -- These are seeded rather than left to the portal because
 -- `core.members.network_scope_id` is REQUIRED: a trigger rejects any member
 -- row without one. A database with no networks cannot hold a single member,
--- by any route — not the admin form, not the spreadsheet import. Seeding them
+-- by any route â€” not the admin form, not the spreadsheet import. Seeding them
 -- is what makes the system usable from first login.
 --
 -- Shesa Gov exists too but is not part of the initial four; it is in
@@ -857,7 +879,7 @@ INSERT INTO core.scopes (
 ) VALUES
   ('44444444-0000-0000-0000-000000000001', 'Shesa Legal',     'shesa-legal',
    'network', '00000000-0000-0000-0000-000000000001', 'XAF'),
-  ('44444444-0000-0000-0000-000000000002', 'Shesa Santé',     'shesa-sante',
+  ('44444444-0000-0000-0000-000000000002', 'Shesa SantÃ©',     'shesa-sante',
    'network', '00000000-0000-0000-0000-000000000001', 'XAF'),
   ('44444444-0000-0000-0000-000000000003', 'Shesa Tech',      'shesa-tech',
    'network', '00000000-0000-0000-0000-000000000001', 'XAF'),
@@ -871,7 +893,7 @@ INSERT INTO core.networks (
   ('44444444-0000-0000-0000-000000000001', 'Legal',
    'Barristers, solicitors, magistrates and legal scholars.',
    'Scale',         '#7C3AED', 1),
-  ('44444444-0000-0000-0000-000000000002', 'Santé',
+  ('44444444-0000-0000-0000-000000000002', 'SantÃ©',
    'Doctors, nurses, pharmacists and health workers.',
    'Stethoscope',   '#E11D48', 2),
   ('44444444-0000-0000-0000-000000000003', 'Tech',
@@ -882,7 +904,7 @@ INSERT INTO core.networks (
    'GraduationCap', '#D97706', 5)
 ON CONFLICT (scope_id) DO NOTHING;
 
--- Capabilities. A branch with none of these flags is inert — it cannot hold
+-- Capabilities. A branch with none of these flags is inert â€” it cannot hold
 -- members, run a treasury or levy dues, and the UI hides its sections. All
 -- five open with the full set; a Mainstream admin narrows them per branch
 -- from Settings if a body should not, say, collect binding dues.
@@ -901,12 +923,12 @@ ON CONFLICT (scope_id) DO NOTHING;
 -- =============================================================================
 -- End of bootstrap seed
 -- =============================================================================
---   • 1 mainstream scope + capabilities
---   • 6 system roles + 42 permissions + full role → permission bundles
---   • 74 batches (1953 → 2026) + 4 houses
---   • 3 human users with auth rows, identities, profiles and global grants
---   • 1 finance group (AGM 2026) + 7 charges
---   • 5 founding branches + 4 networks
+--   â€¢ 1 mainstream scope + capabilities
+--   â€¢ 6 system roles + 42 permissions + full role â†’ permission bundles
+--   â€¢ 74 batches (1953 â†’ 2026) + 4 houses
+--   â€¢ 3 human users with auth rows, identities, profiles and global grants
+--   â€¢ 1 finance group (AGM 2026) + 7 charges
+--   â€¢ 5 founding branches + 4 networks
 --
 -- Deliberately empty: chapters, all CMS content, members, memberships,
 -- payments, expenses, obligations, transfers, announcements, events.

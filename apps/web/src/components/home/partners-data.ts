@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Partner boards, shared by every partner-strip variant so the four
  * designs are compared on identical content.
  *
@@ -10,7 +10,7 @@
  *
  * Pamol and betPawa have no logo on Commons and fall back to a wordmark
  * in the brand colour. To finish them, drop an official file into
- * `public/partners/` and set `logo` below — from the company's own
+ * `public/partners/` and set `logo` below â€” from the company's own
  * brand/press page, not an image search, since usage terms travel with
  * the asset.
  *
@@ -18,7 +18,7 @@
  * descriptions of what the business does, standing in until the real
  * wording arrives from each partner. They are marked below.
  *
- * There is no partners table yet — when one lands, load these server
+ * There is no partners table yet â€” when one lands, load these server
  * side and pass them in the way Events / Projects do.
  */
 
@@ -26,11 +26,11 @@ export interface Partner {
   readonly name: string;
   /**
    * Path under `public/partners/`, e.g. `/partners/mtn.svg`. Leave unset
-   * until the file is actually there — a path to a missing file renders
+   * until the file is actually there â€” a path to a missing file renders
    * a broken image, the wordmark fallback does not.
    */
   readonly logo?: string;
-  /** Small tag above the message — product line, campaign, or sector. */
+  /** Small tag above the message â€” product line, campaign, or sector. */
   readonly tag: string;
   /** The partner's own message on the board. */
   readonly message: string;
@@ -48,6 +48,17 @@ export interface Partner {
 
 export const partners: readonly Partner[] = [
   {
+    name: 'DIRA',
+    logo: '/partners/DIRA.png',
+    tag: 'IT Conglomerate',
+    message: 'Empowering Africa with next-generation software solutions.',
+    bg: '#0a1628',
+    fg: '#ffffff',
+    chip: '#3b82f6',
+    plate: '#0a1628',
+    href: 'https://diracmr.com',
+  },
+  {
     name: 'MTN',
     logo: '/partners/mtn.png',
     // The 2022 mark is monochrome and is laid on the brand's yellow.
@@ -63,7 +74,7 @@ export const partners: readonly Partner[] = [
     name: 'CAMTEL',
     logo: '/partners/camtel.png',
     tag: 'Telecommunications',
-    // PLACEHOLDER — factual description, not CAMTEL's own wording.
+    // PLACEHOLDER â€” factual description, not CAMTEL's own wording.
     message: "Cameroon's national telecommunications operator.",
     // White board: the mark is cyan and now prints straight onto the
     // board rather than onto a plate, so the board has to be its ground.
@@ -74,7 +85,7 @@ export const partners: readonly Partner[] = [
   {
     name: 'Pamol',
     tag: 'Agro-industry',
-    // PLACEHOLDER — factual description, not Pamol's own wording.
+    // PLACEHOLDER â€” factual description, not Pamol's own wording.
     message: 'Palm oil grown and milled in the South West.',
     bg: '#0E5B34',
     fg: '#ffffff',
@@ -83,7 +94,7 @@ export const partners: readonly Partner[] = [
   {
     name: 'betPawa',
     tag: 'Sports betting',
-    // PLACEHOLDER — factual description, not betPawa's own wording.
+    // PLACEHOLDER â€” factual description, not betPawa's own wording.
     message: 'Sports betting across Africa.',
     bg: '#1B7A3E',
     fg: '#ffffff',

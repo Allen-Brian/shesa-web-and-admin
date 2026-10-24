@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+﻿import type { ReactNode } from 'react';
 
 import { ThemeToggle } from '@shesa/ui';
 
@@ -20,7 +20,26 @@ export default function AuthLayout({ children }: { readonly children: ReactNode 
       </div>
 
       <footer className="flex items-center justify-between border-t border-border/40 px-4 py-4 text-xs text-muted-foreground sm:px-8">
-        <span>© {new Date().getFullYear()} Shesa. All rights reserved.</span>
+        <span>
+          © {new Date().getFullYear()} Shesa. All rights reserved. Built by{' '}
+          <a
+            href="https://diracmr.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium underline underline-offset-4 hover:text-foreground"
+          >
+            DIRA
+          </a>
+          .
+        </span>
+        <a
+          href="https://diracmr.com/about"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-foreground"
+        >
+          About the Developer
+        </a>
       </footer>
     </div>
   );

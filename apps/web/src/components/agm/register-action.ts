@@ -1,11 +1,11 @@
-'use server';
+﻿'use server';
 
 import { redirect } from 'next/navigation';
 
-import { AGM_CHARGE_IDS, openAgmCheckout } from '@/lib/agm-checkout';
+import { openAgmCheckout, resolveAgmTicketChargeId } from '@/lib/agm-checkout';
 import { submitAgmRegistration, type AgmRegistrationResult } from '@/lib/agm-registration';
 
-import { AGM_TICKET_UNIT_PRICE_XAF, PAYMENT_OPTIONS, type PaymentOption } from './agm-content';
+import { getAgmTicketUnitPrice, PAYMENT_OPTIONS, type PaymentOption } from './agm-content';
 
 export interface RegisterInput {
   readonly fullName: string;
@@ -56,7 +56,7 @@ export async function registerForAgm(input: RegisterInput): Promise<RegisterResu
     email: input.email,
     phone: input.phone,
     quantity,
-    amountXaf: AGM_TICKET_UNIT_PRICE_XAF * quantity,
+    amountXaf: getAgmTicketUnitPrice(batch) * quantity,
     paymentMethod: input.paymentOption,
     // Recorded in the note, which is the only free-text the registration
     // RPC takes. A dedicated column would be better for reporting on
@@ -66,7 +66,8 @@ export async function registerForAgm(input: RegisterInput): Promise<RegisterResu
   if (!recorded.ok) return recorded;
 
   const checkout = await openAgmCheckout({
-    chargeId: AGM_CHARGE_IDS.ticket,
+    chargeId: resolveAgmTicketChargeId(batch),
+    amountXaf: getAgmTicketUnitPrice(batch) * quantity,
     quantity,
     fullName: input.fullName,
     email: input.email,

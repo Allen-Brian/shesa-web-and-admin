@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Image from 'next/image';
 
@@ -45,7 +45,7 @@ export function PartnerLogo({
           alt={partner.name}
           fill
           sizes="256px"
-          className="object-contain p-1.5"
+          className={`object-contain ${partner.name === 'DIRA' ? 'p-0.5 scale-110' : 'p-1.5'}`}
         />
       ) : (
         <span

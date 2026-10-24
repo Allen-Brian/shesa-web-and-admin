@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import * as React from 'react';
-import { format, parseISO, isValid } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { cn } from '../lib/cn';
@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './popover';
 
 function toDate(value?: string): Date | undefined {
   if (!value) return undefined;
-  const d = parseISO(value);
+  const d = new Date(value);
   return isValid(d) ? d : undefined;
 }
 
