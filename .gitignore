@@ -67,3 +67,7 @@ supabase/seed-overrides.sql
 
 # Pre-cutover database exports — contain live data, never commit.
 backup-*/
+
+# Untouched source media for the trailer archive, kept while the
+# compressed versions are being judged. Safe to delete once happy.
+apps/web/.cup-media-originals/
