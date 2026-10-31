@@ -1,7 +1,6 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { useEffect, useRef } from 'react';
 
 /**
  * The football vocabulary the trailer draws from.
@@ -310,54 +309,6 @@ export function SparkBurst({
 }
 
 /**
- * Split-flap digits, as a departure board or an old scoreboard.
- *
- * Each character flips in on its own beat. Used for the kick-off time,
- * where the mechanism is half the message: a time that clatters into
- * place reads as a fixture, where a time that fades in reads as a
- * caption.
- */
-export function FlipDigits({
-  value,
-  delay = 0,
-  className,
-}: {
-  readonly value: string;
-  readonly delay?: number;
-  readonly className?: string;
-}) {
-  const reduced = useReducedMotion() ?? false;
-
-  return (
-    <span className={`inline-flex items-center ${className ?? ''}`}>
-      {value.split('').map((char, i) => {
-        const separator = char === ':' || char === '.';
-        return (
-          <motion.span
-            key={`${char}-${i}`}
-            initial={reduced ? { opacity: 0 } : { rotateX: -90, opacity: 0 }}
-            animate={{ rotateX: 0, opacity: 1 }}
-            transition={{
-              duration: reduced ? 0.25 : 0.5,
-              ease: [0.22, 1, 0.36, 1],
-              delay: delay + i * 0.11,
-            }}
-            style={{ transformOrigin: 'bottom center', transformStyle: 'preserve-3d' }}
-            className={
-              separator
-                ? 'px-1 text-primary'
-                : 'mx-0.5 rounded-sm border border-white/12 bg-white/[0.04] px-2.5 tabular-nums md:px-4'
-            }
-          >
-            {char}
-          </motion.span>
-        );
-      })}
-    </span>
-  );
-}
-
-/**
  * A crowd, as a silhouette of heads along the foot of a slide.
  *
  * Generated rather than photographed, because a real crowd photograph
@@ -488,48 +439,6 @@ export function TravellingLight({
 }
 
 /**
- * The centre circle and the halfway line, drawing themselves.
- *
- * Specifically a kick-off mark rather than general pitch markings —
- * `PitchBackdrop` already does the whole pitch. This is the shot a
- * broadcast cuts to a second before the whistle, so it belongs on the
- * slide that carries the kick-off time and nowhere else.
- */
-export function CentreCircle({ delay = 0 }: { readonly delay?: number }) {
-  const reduced = useReducedMotion() ?? false;
-
-  const draw = (at: number, duration: number) => ({
-    initial: reduced ? { pathLength: 1, opacity: 0 } : { pathLength: 0, opacity: 1 },
-    animate: { pathLength: 1, opacity: 1 },
-    transition: { duration: reduced ? 0.01 : duration, ease: EASE, delay: delay + at },
-  });
-
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 400 400"
-      className="pointer-events-none absolute left-1/2 top-1/2 h-[112vmin] w-[112vmin] -translate-x-1/2 -translate-y-1/2"
-    >
-      <g fill="none" strokeWidth={1.5} className="stroke-white/12">
-        <motion.line x1="0" y1="200" x2="400" y2="200" {...draw(0, 0.9)} />
-        <motion.circle cx="200" cy="200" r="96" {...draw(0.25, 1.1)} />
-      </g>
-      {/* The spot. Solid, so there is something for the ball to sit on. */}
-      <motion.circle
-        cx="200"
-        cy="200"
-        r="3.5"
-        className="fill-primary"
-        initial={{ opacity: 0, scale: 0.4 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: reduced ? 0.2 : 0.4, ease: EASE, delay: delay + 0.9 }}
-        style={{ transformOrigin: '200px 200px' }}
-      />
-    </svg>
-  );
-}
-
-/**
  * The cut between two slides, dressed.
  *
  * ─── Why this exists ──────────────────────────────────────────────────
@@ -631,115 +540,6 @@ export function LightLeak({ delay = 0 }: { readonly delay?: number }) {
 }
 
 /**
- * Digits that roll into place, the way a cash counter does.
- *
- * ─── Why a third mechanism ────────────────────────────────────────────
- * Three slides in this trailer are a single number held large: the
- * prize, the date and the kick-off. They are the three things a viewer
- * has to leave remembering, so each gets its own way of arriving
- * rather than all three counting up and reading as one idea told
- * three times.
- *
- * The prize rolls, because an odometer is what money does. The date
- * stamps. The kick-off clatters on split-flaps, which is what a
- * departure board does and therefore what a kick-off time should.
- *
- * ─── How ──────────────────────────────────────────────────────────────
- * Each column is a strip of 0-9 translated vertically by whole units
- * of its own height, so nothing has to measure anything and it is
- * correct at any font size. `translateY` on a percentage is relative
- * to the element, which is the one thing that makes this cheap.
- *
- * Digits settle left to right with a small stagger, so the figure
- * lands the way you read it instead of all at once.
- */
-export function Odometer({
-  value,
-  delay = 0,
-  duration = 1.1,
-  className,
-  onLanded,
-}: {
-  readonly value: string;
-  readonly delay?: number;
-  readonly duration?: number;
-  readonly className?: string;
-  readonly onLanded?: () => void;
-}) {
-  const reduced = useReducedMotion() ?? false;
-  const chars = [...value];
-
-  // Fired off the last column rather than a guessed total, so a longer
-  // figure does not drift out of step with whatever lands on it.
-  const lastDigit = chars.reduce((last, c, i) => (/\d/.test(c) ? i : last), -1);
-
-  const landedRef = useRef(onLanded);
-  landedRef.current = onLanded;
-
-  useEffect(() => {
-    if (!reduced) return;
-    landedRef.current?.();
-  }, [reduced]);
-
-  return (
-    <span className={`inline-flex items-stretch ${className ?? ''}`} aria-label={value}>
-      {chars.map((char, i) => {
-        if (!/\d/.test(char)) {
-          // Separators do not roll; they fade in with the column to
-          // their left so the grouping appears as the figure forms.
-          return (
-            <motion.span
-              key={`${char}-${i}`}
-              aria-hidden
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3, delay: delay + i * 0.05 }}
-              className="text-primary"
-            >
-              {char}
-            </motion.span>
-          );
-        }
-
-        const target = Number(char);
-        return (
-          <span key={`${char}-${i}`} aria-hidden className="relative overflow-hidden">
-            {/* An invisible copy sets the column's width and height, so
-                the strip inside can be positioned against something
-                real without a measurement pass. */}
-            <span className="invisible block tabular-nums">0</span>
-            <motion.span
-              className="absolute inset-x-0 top-0 flex flex-col tabular-nums"
-              initial={{ y: reduced ? `${-target * 100}%` : '0%' }}
-              animate={{ y: `${-target * 100}%` }}
-              transition={
-                reduced
-                  ? { duration: 0 }
-                  : {
-                      duration,
-                      delay: delay + i * 0.06,
-                      ease: [0.16, 1, 0.3, 1],
-                      onComplete: i === lastDigit ? () => landedRef.current?.() : undefined,
-                    }
-              }
-            >
-              {/* Two full turns before the answer, so the column has
-                  something to spin through rather than sliding one
-                  digit. */}
-              {Array.from({ length: 30 }, (_, n) => (
-                <span key={n} className="block text-center">
-                  {n % 10}
-                </span>
-              ))}
-            </motion.span>
-          </span>
-        );
-      })}
-    </span>
-  );
-}
-
-/**
  * A rubber stamp coming down: an overshoot, a settle, and a ring.
  *
  * Used for the date, because a date is the one thing on the page that
@@ -773,46 +573,5 @@ export function StampIn({
     >
       {children}
     </motion.span>
-  );
-}
-
-/**
- * An arc that sweeps round like a second hand and completes on a beat.
- *
- * Drawn with `pathLength`, so it is one composited property and the
- * arc genuinely draws rather than being revealed by a mask.
- */
-export function SweepArc({
-  delay = 0,
-  duration = 1.2,
-  size = '46vmin',
-}: {
-  readonly delay?: number;
-  readonly duration?: number;
-  readonly size?: string;
-}) {
-  const reduced = useReducedMotion() ?? false;
-  if (reduced) return null;
-
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 100 100"
-      className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-90"
-      style={{ width: size, height: size }}
-    >
-      <motion.circle
-        cx="50"
-        cy="50"
-        r="46"
-        fill="none"
-        strokeWidth="1"
-        strokeLinecap="round"
-        className="stroke-primary"
-        initial={{ pathLength: 0, opacity: 0.9 }}
-        animate={{ pathLength: 1, opacity: 0.25 }}
-        transition={{ duration, delay, ease: 'easeInOut' }}
-      />
-    </svg>
   );
 }

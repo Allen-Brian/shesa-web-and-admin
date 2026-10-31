@@ -18,21 +18,17 @@ import {
 import type { ArchiveItem, Zone } from './cup-content';
 import type { TimedSlide } from './cup-slides';
 import {
-  CentreCircle,
   ChalkSweep,
   CrowdSilhouette,
   EdgeVignette,
-  FlipDigits,
   Floodlights,
   Grain,
-  Odometer,
   PitchBackdrop,
   PulseRing,
   Shine,
   SparkBurst,
   SpinningBall,
   StampIn,
-  SweepArc,
   TravellingLight,
 } from './cup-graphics';
 import { PlayerReel } from './player-reel';
@@ -263,99 +259,185 @@ function PrizeSlide() {
   const narrow = useIsNarrow();
   const [landed, setLanded] = useState(false);
 
+  const amount = formatPrize(CUP.prize.winner);
+  // Digits land one at a time; the last one triggers everything else.
+  const digits = [...amount];
+  const PER = 0.085;
+  const lastAt = 0.35 + (digits.length - 1) * PER;
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setLanded(true), reduced ? 0 : (lastAt + 0.3) * 1000);
+    return () => window.clearTimeout(id);
+  }, [reduced, lastAt]);
+
   return (
-    <Stage>
-      <EdgeVignette />
+    /* ─── The one slide that inverts ──────────────────────────────────
+       Every other slide in the trailer is white on black. This one is
+       white on burgundy, and that is the whole rebrand: the money slide
+       should be the single frame you could identify from across a room
+       with the sound off. A new animation on a black screen would have
+       been another variation; a colour block is a different object.
+
+       It also solves the mobile problem the old version had. The figure
+       is seven characters, and on a 390px screen it was competing with
+       a bloom, a ring and a currency chip for the same space. On a flat
+       field there is nothing to compete with, so the number can simply
+       be as large as the screen allows. */
+    <section className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-primary px-5 text-center">
+      {/* Depth, kept subtle: a darker vignette so the edges do not
+          read as flat printed card. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(120% 90% at 50% 45%, rgba(255,255,255,0.14) 0%, transparent 55%), radial-gradient(130% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.45) 100%)',
+        }}
+      />
       <Grain />
 
-      {/* The bloom flares on the landing rather than sitting static. */}
-      <motion.div
-        aria-hidden
-        animate={
-          reduced
-            ? { opacity: 0.5, scale: 1 }
-            : { opacity: landed ? [0.35, 0.95, 0.5] : 0.28, scale: landed ? [1, 1.3, 1.1] : 1 }
-        }
-        transition={{ duration: 0.9, ease: 'easeOut' }}
-        className="pointer-events-none absolute h-[46vmin] w-[46vmin] rounded-full bg-primary/30 blur-[90px]"
-      />
-
       <motion.p
-        initial={{ opacity: 0, y: 14 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: EASE }}
-        className="relative font-heading text-[11px] font-semibold uppercase tracking-[0.5em] text-white/60"
+        transition={{ duration: 0.45, ease: EASE }}
+        className="relative font-heading text-[clamp(9px,2.6vw,11px)] font-semibold uppercase tracking-[0.5em] text-white/70"
       >
         Winner takes
       </motion.p>
 
-      {/* ─── The figure, on an odometer ──────────────────────────────
-          It used to count up, which is what the date did too. A roll
-          is what a counter of money does, and giving each of the three
-          number slides its own mechanism stops them reading as one
-          idea repeated.
+      {/* ─── The figure, dealt out ───────────────────────────────────
+          Each character drops in on its own beat rather than the whole
+          number arriving at once, so the eye reads the magnitude being
+          built — which is the point of a seven-figure prize. The
+          commas drop with the digit to their left, so the grouping
+          appears as the number forms. */}
+      <p
+        aria-label={`${amount} ${CUP.prize.currency}`}
+        className="relative mt-3 flex items-baseline justify-center font-heading text-[clamp(3.4rem,21vw,11rem)] font-bold leading-[0.85] tabular-nums text-white"
+      >
+        {digits.map((char, i) => (
+          <motion.span
+            key={`${char}-${i}`}
+            aria-hidden
+            initial={reduced ? { opacity: 0 } : { opacity: 0, y: '-55%', scale: 1.35 }}
+            animate={{ opacity: 1, y: '0%', scale: 1 }}
+            transition={
+              reduced
+                ? { duration: 0.25 }
+                : { type: 'spring', duration: 0.5, bounce: 0.3, delay: 0.35 + i * PER }
+            }
+            className={char === ',' ? 'mx-[0.04em] text-white/55' : undefined}
+          >
+            {char}
+          </motion.span>
+        ))}
+      </p>
 
-          Stacked on a phone: a seven-character figure and a currency
-          beside it cannot both be large at 390px, and the figure is
-          the point. On a wide screen they sit on one line. */}
-      <div className="relative mt-5 flex flex-col items-center gap-1 md:mt-6 md:flex-row md:items-baseline md:gap-4">
-        <Odometer
-          value={formatPrize(CUP.prize.winner)}
-          delay={0.25}
-          duration={1.25}
-          onLanded={() => setLanded(true)}
-          // The only bold type in the trailer.
-          className="font-heading text-[clamp(3.2rem,17vw,9rem)] font-bold leading-[0.9] text-white"
-        />
-        <motion.span
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: EASE, delay: 0.9 }}
-          className="font-heading text-[clamp(1rem,4vw,2rem)] font-semibold tracking-[0.3em] text-primary"
-        >
-          {CUP.prize.currency}
-        </motion.span>
-      </div>
+      <motion.p
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: EASE, delay: lastAt }}
+        className="relative mt-1 font-heading text-[clamp(1rem,5vw,2.2rem)] font-semibold tracking-[0.42em] text-white/80"
+      >
+        {CUP.prize.currency}
+      </motion.p>
 
-      {/* Everything that fires on the frame the last column stops. */}
-      {landed && (
+      {/* White on burgundy, so the impact is white too — a burgundy
+          spark on a burgundy field is invisible. */}
+      {landed && !reduced && (
         <>
-          <PulseRing count={2} size={narrow ? '40vmin' : '34vmin'} />
-          <SparkBurst count={16} />
+          <motion.span
+            aria-hidden
+            initial={{ scale: 0.3, opacity: 0.55 }}
+            animate={{ scale: 2.8, opacity: 0 }}
+            transition={{ duration: 1.1, ease: 'easeOut' }}
+            className="pointer-events-none absolute rounded-full border-2 border-white"
+            style={{ width: narrow ? '44vmin' : '34vmin', height: narrow ? '44vmin' : '34vmin' }}
+          />
+          <motion.span
+            aria-hidden
+            initial={{ opacity: 0.5 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="pointer-events-none absolute inset-0 bg-white"
+          />
         </>
       )}
 
-      <ChalkSweep delay={1.5} className="relative mt-6 w-56 md:w-80" />
+      <motion.div
+        initial={{ opacity: 0, scaleX: 0 }}
+        animate={{ opacity: 1, scaleX: 1 }}
+        transition={{ duration: 0.6, ease: EASE, delay: lastAt + 0.15 }}
+        className="relative mt-7 h-px w-40 bg-white/50 md:w-64"
+      />
 
       <motion.p
         initial={{ opacity: 0 }}
-        animate={{ opacity: landed ? 1 : 0 }}
-        transition={{ duration: 0.5, delay: 0.15 }}
-        className="relative mt-4 font-heading text-[clamp(11px,3vw,13px)] font-semibold uppercase tracking-[0.34em] text-primary"
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.55, delay: lastAt + 0.3 }}
+        className="relative mt-4 font-heading text-[clamp(10px,3.2vw,13px)] font-semibold uppercase tracking-[0.4em] text-white"
       >
-        <Shine delay={1.9}>Winner takes all</Shine>
+        Winner takes all
       </motion.p>
-    </Stage>
+
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.55, delay: lastAt + 0.45 }}
+        className="relative mt-2 font-heading text-[clamp(9px,2.6vw,10.5px)] uppercase tracking-[0.3em] text-white/55"
+      >
+        No runner-up purse
+      </motion.p>
+    </section>
   );
 }
 
+/**
+ * A zone, announced.
+ *
+ * ─── What this needed ─────────────────────────────────────────────────
+ * It was a label, a name, a rule and a line of regions — correct, and
+ * completely flat. Four of these run back to back in the middle of the
+ * trailer, so a thin card is not a one-slide problem, it is twelve
+ * seconds of the running time with nothing happening in it.
+ *
+ * Three changes. The draw number is now a Roman numeral set enormous
+ * behind the name, so each of the four is instantly distinguishable
+ * from the others even at a glance — that is the thing a run of
+ * near-identical cards most needs. The regions became chips rather
+ * than a run-on line, which is what they are: a list of places, not a
+ * sentence. And the captaincy moved to a footer rule, so the card has
+ * a top, a middle and a bottom instead of four stacked centred lines.
+ *
+ * It holds for three seconds, so the whole build lands inside 1.4s and
+ * the rest is the wash settling.
+ */
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'] as const;
+
 function ZoneSlide({ zone }: { readonly zone: Zone }) {
+  const reduced = useReducedMotion() ?? false;
+  const index = CUP.zones.findIndex((z) => z.name === zone.name);
+  const numeral = ROMAN[index] ?? String(index + 1);
+
   return (
     <Stage>
-      <PitchBackdrop delay={0.1} />
-      <motion.p
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: EASE }}
-        className="relative font-heading text-[10px] font-semibold uppercase tracking-[0.42em] text-primary"
-      >
-        The draw
-      </motion.p>
+      <PitchBackdrop delay={0.05} />
+      <EdgeVignette />
+      <Grain />
 
-      {/* A burgundy swell behind the name, timed to land with it. The
-          zone cards are three seconds each and come four to a trailer,
-          so they need to feel like arrivals without costing anything
-          the eye has to re-read. */}
+      {/* The draw number, huge and nearly invisible. The one element
+          that differs sharply between the four cards. */}
+      <motion.span
+        aria-hidden
+        initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 1.25 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: reduced ? 0.3 : 1.1, ease: EASE }}
+        className="pointer-events-none absolute select-none font-heading text-[46vh] font-light leading-none text-white/[0.055]"
+      >
+        {numeral}
+      </motion.span>
+
+      {/* A wash timed to land with the name. */}
       <motion.span
         aria-hidden
         initial={{ opacity: 0, scale: 0.8 }}
@@ -364,44 +446,51 @@ function ZoneSlide({ zone }: { readonly zone: Zone }) {
         className="pointer-events-none absolute h-[48vmin] w-[48vmin] rounded-full bg-primary/20 blur-[90px]"
       />
 
-      <motion.h2
-        initial={{ opacity: 0, y: 24 }}
+      <motion.p
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.75, ease: EASE, delay: 0.08 }}
-        className="relative mt-4 font-heading text-[clamp(2rem,9vw,5.4rem)] font-light uppercase leading-[0.98] text-white"
+        transition={{ duration: 0.5, ease: EASE }}
+        className="relative font-heading text-[10px] font-semibold uppercase tracking-[0.42em] text-primary"
       >
-        <Shine delay={0.5}>{zone.name}</Shine>
+        {zone.designation}
+      </motion.p>
+
+      <motion.h2
+        initial={reduced ? { opacity: 0 } : { opacity: 0, y: 26 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: reduced ? 0.3 : 0.75, ease: EASE, delay: 0.1 }}
+        className="relative mt-3 font-heading text-[clamp(2.2rem,11vw,6rem)] font-light uppercase leading-[0.92] text-white"
+      >
+        <Shine delay={0.6}>{zone.name}</Shine>
       </motion.h2>
 
-      <SparkBurst delay={0.3} count={10} />
-      <ChalkSweep delay={0.42} className="relative mt-4 w-48 md:w-72" />
+      <SparkBurst delay={0.35} count={10} />
+      <ChalkSweep delay={0.5} className="relative mt-5 w-40 md:w-64" />
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.7, ease: EASE, delay: 0.24 }}
-        className="mt-7 flex flex-wrap items-center justify-center gap-x-4 gap-y-2"
-      >
+      {/* Regions as chips. They are a list of places, and a list reads
+          as a list — not as a middot-separated sentence. */}
+      <div className="relative mt-6 flex flex-wrap items-center justify-center gap-2">
         {zone.regions.map((region, i) => (
           <motion.span
             key={region}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: EASE, delay: 0.3 + i * 0.1 }}
-            className="font-heading text-[clamp(0.85rem,2.4vw,1.25rem)] uppercase tracking-[0.2em] text-white/70"
+            initial={reduced ? { opacity: 0 } : { opacity: 0, y: 14, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: reduced ? 0.25 : 0.5, ease: EASE, delay: 0.55 + i * 0.09 }}
+            className="rounded-full border border-white/20 bg-white/[0.04] px-3.5 py-1.5 font-heading text-[clamp(0.68rem,3vw,0.85rem)] font-semibold uppercase tracking-[0.18em] text-white/80"
           >
             {region}
           </motion.span>
         ))}
-      </motion.div>
+      </div>
 
       <motion.p
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: EASE, delay: 0.5 }}
-        className="relative mt-9 font-heading text-sm uppercase tracking-[0.3em] text-primary"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.95 }}
+        className="relative mt-8 font-heading text-[clamp(9px,2.8vw,11px)] font-semibold uppercase tracking-[0.3em] text-white/45"
       >
-        {zone.designation} · Captaincy {zone.captaincy}
+        Captaincy
+        <span className="ml-2 text-primary">{zone.captaincy}</span>
       </motion.p>
     </Stage>
   );
@@ -864,81 +953,115 @@ function DateSlide() {
 }
 
 /**
- * Kick-off, staged as the shot before the whistle.
+ * Kick-off, as two halves meeting.
  *
- * The centre circle draws itself, the ball drops onto the spot, the
- * time clatters in on split-flaps and the whole thing lands together
- * on a pulse — which is as close to a kick-off as a slide with no
- * sound of its own can get.
+ * ─── Why this was redone ──────────────────────────────────────────────
+ * It used to clatter in on split-flaps over a drawn centre circle. The
+ * flaps were the right idea for a departure board and the wrong one
+ * here: they made the time read as a schedule entry, and the circle
+ * behind them was a second thing competing for the middle of the
+ * screen at exactly the size the digits wanted.
  *
- * ─── The one loop that earns it ───────────────────────────────────────
- * Three and a half seconds is long enough that a frame frozen at 1.2s
- * reads as a page that has stopped. The floodlight bloom behind the
- * digits breathes on a four-second cycle, which is slower than the
- * slide and therefore never completes a visible loop — it reads as
- * light, not as a repeat.
+ * Now the hour comes in from the left and the minutes from the right
+ * and they meet at the colon, which pulses on the frame they arrive.
+ * That is the same collision the fixtures slide uses for two sides
+ * meeting at a ball, which is deliberate — it is the trailer's one
+ * recurring gesture, and a kick-off is the moment two halves meet.
+ *
+ * The digits are enormous and nothing sits behind them, which is what
+ * makes it work on a phone.
  */
 function TimeSlide() {
   const reduced = useReducedMotion() ?? false;
   const narrow = useIsNarrow();
   const kickOff = venueTime({ hour: '2-digit', minute: '2-digit' });
+  const [hour = '', minute = ''] = kickOff.split(':');
+  const MEET = 0.75;
+
+  const half = (from: string) => ({
+    initial: reduced ? { opacity: 0 } : { opacity: 0, x: from },
+    animate: { opacity: 1, x: 0 },
+    transition: reduced
+      ? { duration: 0.3, delay: 0.2 }
+      : { type: 'spring' as const, duration: 0.7, bounce: 0.18, delay: 0.25 },
+  });
 
   return (
     <Stage>
-      <CentreCircle delay={0.05} />
       <EdgeVignette />
+      <Grain />
 
-      {/* Bloom behind the type. One blurred element rather than the
-          four `Floodlights` uses, because a phone paying for four
-          70px blurs under a split-flap animation drops frames. */}
+      {/* A single bloom behind the meeting point, swelling as they
+          arrive. One blurred element, not four — a phone paying for
+          four 70px blurs under a spring drops frames. */}
       <motion.span
         aria-hidden
-        initial={{ opacity: 0, scale: 0.8 }}
+        initial={{ opacity: 0, scale: 0.7 }}
         animate={
-          reduced
-            ? { opacity: 0.3, scale: 1 }
-            : { opacity: [0, 0.45, 0.3, 0.42], scale: [0.8, 1.08, 1, 1.05] }
+          reduced ? { opacity: 0.3, scale: 1 } : { opacity: [0, 0.5, 0.3], scale: [0.7, 1.15, 1] }
         }
-        transition={{ duration: 4, ease: 'easeInOut', times: [0, 0.25, 0.6, 1] }}
-        className="pointer-events-none absolute h-[42vmin] w-[42vmin] rounded-full bg-primary/40 blur-[60px]"
+        transition={{ duration: 2.4, ease: 'easeOut', times: [0, 0.35, 1], delay: 0.2 }}
+        className="pointer-events-none absolute h-[46vmin] w-[46vmin] rounded-full bg-primary/40 blur-[70px]"
       />
 
       <motion.p
-        initial={{ opacity: 0, y: 14 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, ease: EASE }}
+        transition={{ duration: 0.45, ease: EASE }}
         className="relative font-heading text-[10px] font-semibold uppercase tracking-[0.42em] text-primary"
       >
         Kick-off
       </motion.p>
 
-      {/* An arc closing on the kick-off, like a hand coming round to
-          the hour. It finishes on the same frame as the last flap. */}
-      <SweepArc delay={0.2} duration={1.1} size={narrow ? '62vmin' : '44vmin'} />
+      <p
+        aria-label={`Kick-off ${kickOff}`}
+        className="relative mt-4 flex items-center justify-center font-heading text-[clamp(4rem,23vw,11rem)] font-light leading-[0.85] tabular-nums text-white"
+      >
+        <motion.span aria-hidden {...half('-60%')}>
+          {hour}
+        </motion.span>
+        <motion.span
+          aria-hidden
+          // The colon is the meeting point, so it is the one thing
+          // that reacts rather than arrives.
+          initial={{ opacity: 0, scale: 0.4 }}
+          animate={{ opacity: 1, scale: reduced ? 1 : [0.4, 1.5, 1] }}
+          transition={{ duration: reduced ? 0.3 : 0.5, ease: EASE, delay: MEET }}
+          className="mx-[0.06em] text-primary"
+        >
+          :
+        </motion.span>
+        <motion.span aria-hidden {...half('60%')}>
+          {minute}
+        </motion.span>
+      </p>
 
-      <FlipDigits
-        value={kickOff}
-        delay={0.35}
-        className="relative mt-6 font-heading text-[clamp(2.9rem,16vw,7rem)] font-light leading-none text-white"
-      />
+      {/* Fired on the frame they meet. */}
+      <PulseRing delay={MEET} count={2} size="38vmin" />
+      <SparkBurst delay={MEET} count={16} />
 
-      {/* The flaps finish at delay + (chars - 1) * 0.11 + 0.5, which is
-          1.29s for "15:00". The impact goes on that frame. */}
-      <PulseRing delay={1.29} count={2} size="34vmin" />
-      <SparkBurst delay={1.29} count={16} />
-
-      {/* The ball drops onto the spot as the time lands. It is the only
-          thing on the slide that moves after the build, and it moves
-          because a ball on a centre spot always does. */}
+      {/* The ball dropping onto the spot. The trailer's one recurring
+          football mark, and this is the moment it belongs to. */}
       <motion.span
         aria-hidden
-        initial={reduced ? { opacity: 0 } : { opacity: 0, y: -40, scale: 0.6 }}
+        initial={reduced ? { opacity: 0 } : { opacity: 0, y: -44, scale: 0.5 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: reduced ? 0.3 : 0.55, ease: EASE, delay: 1.2 }}
-        className="relative mt-7"
+        transition={
+          reduced
+            ? { duration: 0.3, delay: MEET }
+            : { type: 'spring', duration: 0.6, bounce: 0.35, delay: MEET + 0.05 }
+        }
+        className="relative mt-6"
       >
-        <SpinningBall size={narrow ? 24 : 34} />
+        <SpinningBall size={narrow ? 26 : 34} />
       </motion.span>
+
+      <motion.div
+        initial={{ opacity: 0, scaleX: 0 }}
+        animate={{ opacity: 1, scaleX: 1 }}
+        transition={{ duration: 0.7, ease: EASE, delay: MEET + 0.15 }}
+        className="relative mt-7 h-px w-36 bg-gradient-to-r from-transparent via-primary to-transparent md:w-56"
+      />
 
       {/* Labelled, because this link travels. Left to the browser, a
           member in Sydney would read a different time and a different
@@ -946,8 +1069,8 @@ function TimeSlide() {
       <motion.p
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: EASE, delay: 1.45 }}
-        className="relative mt-5 font-heading text-sm font-semibold uppercase tracking-[0.3em] text-white/55"
+        transition={{ duration: 0.6, ease: EASE, delay: MEET + 0.3 }}
+        className="relative mt-4 font-heading text-[clamp(0.75rem,3.2vw,0.95rem)] font-semibold uppercase tracking-[0.34em] text-white/60"
       >
         {CUP.venue.city} time
       </motion.p>
@@ -1101,27 +1224,30 @@ function AmbianceSlide({ card }: { readonly card: (typeof AMBIANCE)[number] }) {
 }
 
 /**
- * The three matches, built as a team sheet going up on a wall.
+ * The night's three matches, as a match-day board.
  *
- * ─── What changed and why ─────────────────────────────────────────────
- * The slide holds for eight and a half seconds and the old build was
- * finished at two, so it spent three quarters of its life as a still
- * image. The work here is all about those last six seconds.
+ * ─── The rebrand ──────────────────────────────────────────────────────
+ * This was three bordered rows with a ball in the middle of each and a
+ * burgundy bar wiping across them. It worked, but it read as three
+ * identical widgets stacked up — nothing said *schedule*, and nothing
+ * distinguished the final from the semis except a slightly brighter
+ * border.
  *
- * Each row now arrives behind a wipe — a burgundy bar that crosses the
- * row and leaves the fixture behind it, the way a result gets painted
- * onto a board — and the kick-off times clatter in on the same
- * split-flaps the kick-off slide uses, which ties the two together.
+ * It is now laid out the way a ground actually posts its fixtures: a
+ * kick-off time in a chip on the left, the two sides to the right of
+ * it, and the final inverted into a solid burgundy block so the shape
+ * of the evening is legible before you read a word of it.
  *
- * Then the final row takes over: once both semis are up it gets a
- * shine, a spark and a glow that breathes for the rest of the hold.
- * The eye has somewhere to go instead of re-reading the same names.
+ * ─── The order it builds in ───────────────────────────────────────────
+ * Time first, then the sides. That is the order the information
+ * matters in — somebody reading this wants to know when to be there
+ * before they want to know who is playing — and it gives each row an
+ * internal beat rather than everything arriving together.
  *
  * ─── On a phone ───────────────────────────────────────────────────────
- * The label and the time used to share one line with the fixture
- * underneath, which at 390px put "SEMI-FINAL ONE · 15:00" into about
- * nine pixels of type. The time now sits in its own column beside the
- * row on wide screens and above it on narrow, so neither has to shrink.
+ * The chip sits above the fixture instead of beside it, and the two
+ * sides stack either side of a centred "v". Three columns in 350px was
+ * what forced the old version's type down to nine pixels.
  */
 function FixturesSlide() {
   const reduced = useReducedMotion() ?? false;
@@ -1134,51 +1260,34 @@ function FixturesSlide() {
       <EdgeVignette />
       <Grain />
 
-      <div className="relative w-full max-w-4xl">
+      <div className="relative w-full max-w-3xl">
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: EASE }}
+          transition={{ duration: 0.5, ease: EASE }}
           className="text-center font-heading text-[10px] font-semibold uppercase tracking-[0.42em] text-primary"
         >
-          One night, three matches
+          The card
         </motion.p>
-        <ChalkSweep delay={0.3} className="mx-auto mt-3 w-2/3" />
+        <motion.h2
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.65, ease: EASE, delay: 0.08 }}
+          className="mt-2 text-center font-heading text-[clamp(1.3rem,6vw,2.6rem)] font-light uppercase leading-tight text-white"
+        >
+          <Shine delay={0.7}>One night, three matches</Shine>
+        </motion.h2>
 
-        {/* ─── The rail ────────────────────────────────────────────
-            A line drawn down the left of the card as the three
-            fixtures arrive, so the slide reads as an evening running
-            from top to bottom rather than three separate rows. It is
-            `scaleY` from a top origin, which is one composited
-            property, and it is timed to reach the final exactly as
-            the final lands.
-
-            Hidden on a phone: at 390px the rail would be sitting in
-            the 16px gutter, and the rows are already stacked. */}
-        <div className="relative mt-6 md:mt-8">
-          {!reduced && (
-            <motion.span
-              aria-hidden
-              initial={{ scaleY: 0 }}
-              animate={{ scaleY: 1 }}
-              transition={{ duration: 2.1, ease: 'linear', delay: 0.5 }}
-              style={{ originY: 0 }}
-              className="absolute -left-5 top-2 hidden h-[calc(100%-1rem)] w-px bg-gradient-to-b from-primary via-primary/50 to-transparent md:block"
+        <div className="mt-6 flex flex-col gap-3 md:mt-9 md:gap-4">
+          {FIXTURES.map((fixture, i) => (
+            <FixtureRow
+              key={fixture.label}
+              fixture={fixture}
+              at={0.6 + i * 0.75}
+              isFinal={i === FIXTURES.length - 1}
+              reduced={reduced}
             />
-          )}
-
-          <div className="flex flex-col gap-5 md:gap-7">
-            {FIXTURES.map((fixture, i) => (
-              <FixtureRow
-                key={fixture.label}
-                fixture={fixture}
-                at={0.5 + i * 0.7}
-                isFinal={i === FIXTURES.length - 1}
-                reduced={reduced}
-                narrow={narrow}
-              />
-            ))}
-          </div>
+          ))}
         </div>
       </div>
     </section>
@@ -1190,135 +1299,93 @@ function FixtureRow({
   at,
   isFinal,
   reduced,
-  narrow,
 }: {
   readonly fixture: (typeof FIXTURES)[number];
   readonly at: number;
   readonly isFinal: boolean;
   readonly reduced: boolean;
-  readonly narrow: boolean;
 }) {
+  const side =
+    'min-w-0 flex-1 truncate font-heading text-[clamp(0.9rem,4vw,1.45rem)] font-light uppercase tracking-[0.03em]';
+
   return (
-    <div className="relative">
-      {/* The node on the rail for this fixture. */}
-      {!reduced && (
+    <motion.div
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: reduced ? 0.25 : 0.6, ease: EASE, delay: at - 0.2 }}
+      className={`relative flex flex-col gap-2.5 overflow-hidden rounded-sm px-4 py-3.5 md:flex-row md:items-center md:gap-5 md:px-5 md:py-4 ${
+        isFinal ? 'bg-primary text-white' : 'border border-white/12 bg-white/[0.03] text-white'
+      }`}
+    >
+      {/* Time first: when to be there matters before who is playing. */}
+      <div className="flex items-center gap-3 md:shrink-0">
         <motion.span
-          aria-hidden
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.4, ease: EASE, delay: at }}
-          className={`absolute -left-[1.42rem] top-1 hidden h-2 w-2 rounded-full md:block ${
-            isFinal ? 'bg-primary' : 'bg-white/40'
-          }`}
-        />
-      )}
-
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4, delay: at - 0.18 }}
-        className="mb-2 text-center font-heading text-[9.5px] font-semibold uppercase tracking-[0.34em] text-white/40 md:text-left"
-      >
-        {fixture.label}
-      </motion.p>
-
-      <div className="flex flex-col items-stretch gap-2 md:flex-row md:items-center md:gap-4">
-        <div
-          className={`relative flex flex-1 items-center gap-2 overflow-hidden rounded-sm border px-3 py-3.5 md:gap-5 md:px-6 md:py-5 ${
-            isFinal ? 'border-primary/50 bg-primary/8' : 'border-white/12 bg-white/2'
+          initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.75 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: reduced ? 0.2 : 0.45, ease: EASE, delay: at }}
+          className={`rounded-sm px-2.5 py-1 font-heading text-[clamp(0.85rem,3.6vw,1.15rem)] font-semibold tabular-nums ${
+            isFinal ? 'bg-white text-primary' : 'bg-primary text-white'
           }`}
         >
-          {/* The wipe. A bar crosses the row once and leaves the
-              fixture behind it; `scaleX` from a left origin, so it is
-              one composited transform rather than a width animation. */}
-          {!reduced && (
-            <motion.span
-              aria-hidden
-              initial={{ scaleX: 0, originX: 0 }}
-              animate={{ scaleX: [0, 1, 1, 0], originX: [0, 0, 1, 1] }}
-              transition={{
-                duration: 0.85,
-                ease: EASE,
-                delay: at - 0.1,
-                times: [0, 0.45, 0.5, 1],
-              }}
-              className="absolute inset-0 z-10 bg-primary"
-            />
-          )}
-
-          {/* Home from the left, away from the right. They meet at the
-              ball, which is the point of the shot. */}
-          <motion.span
-            initial={reduced ? { opacity: 0 } : { opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: reduced ? 0.25 : 0.6, ease: EASE, delay: at + 0.26 }}
-            className="min-w-0 flex-1 truncate text-left font-heading text-[clamp(0.82rem,3.4vw,1.6rem)] font-light uppercase tracking-[0.04em] text-white"
-          >
-            {fixture.home}
-          </motion.span>
-
-          <motion.span
-            initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.4 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{
-              duration: reduced ? 0.25 : 0.5,
-              ease: EASE,
-              delay: at + 0.38,
-            }}
-            className="shrink-0"
-          >
-            <SpinningBall size={isFinal ? (narrow ? 26 : 34) : narrow ? 20 : 26} />
-          </motion.span>
-
-          <motion.span
-            initial={reduced ? { opacity: 0 } : { opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: reduced ? 0.25 : 0.6, ease: EASE, delay: at + 0.26 }}
-            className="min-w-0 flex-1 truncate text-right font-heading text-[clamp(0.82rem,3.4vw,1.6rem)] font-light uppercase tracking-[0.04em] text-white"
-          >
-            {fixture.away}
-          </motion.span>
-
-          {/* The final is the payoff, so it gets the light. */}
-          {isFinal && !reduced && (
-            <motion.span
-              aria-hidden
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0, 0.5, 0.18, 0.44, 0.2] }}
-              transition={{
-                duration: 5.2,
-                ease: 'easeInOut',
-                delay: at + 0.9,
-                times: [0, 0.18, 0.45, 0.72, 1],
-              }}
-              className="pointer-events-none absolute inset-0 bg-primary/30 blur-xl"
-            />
-          )}
-        </div>
-
-        {/* The kick-off, on the same split-flaps as the kick-off slide. */}
-        <FlipDigits
-          value={fixture.kickOff}
-          delay={at + 0.45}
-          className={`shrink-0 justify-center font-heading font-light tabular-nums md:justify-start ${
-            isFinal ? 'text-primary' : 'text-white/70'
-          } text-[clamp(0.85rem,3.6vw,1.35rem)]`}
-        />
+          {fixture.kickOff}
+        </motion.span>
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: at + 0.08 }}
+          className={`font-heading text-[9.5px] font-semibold uppercase tracking-[0.3em] ${
+            isFinal ? 'text-white/80' : 'text-white/40'
+          }`}
+        >
+          {fixture.label}
+        </motion.span>
       </div>
 
+      {/* The two sides, meeting at a "v". Same collision the kick-off
+          slide uses for the hour and the minutes. */}
+      <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-4">
+        <motion.span
+          initial={reduced ? { opacity: 0 } : { opacity: 0, x: -34 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: reduced ? 0.25 : 0.55, ease: EASE, delay: at + 0.2 }}
+          className={`${side} text-left`}
+        >
+          {fixture.home}
+        </motion.span>
+
+        <motion.span
+          initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.4 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: reduced ? 0.2 : 0.4, ease: EASE, delay: at + 0.32 }}
+          className={`shrink-0 font-heading text-[10px] font-semibold uppercase tracking-[0.2em] ${
+            isFinal ? 'text-white/70' : 'text-primary'
+          }`}
+        >
+          v
+        </motion.span>
+
+        <motion.span
+          initial={reduced ? { opacity: 0 } : { opacity: 0, x: 34 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: reduced ? 0.25 : 0.55, ease: EASE, delay: at + 0.2 }}
+          className={`${side} text-right`}
+        >
+          {fixture.away}
+        </motion.span>
+      </div>
+
+      {/* The final is the payoff, so it gets the light — once, as it
+          lands, rather than a loop running under the type. */}
       {isFinal && !reduced && (
-        <>
-          <SparkBurst delay={at + 0.85} count={14} />
-          <motion.span
-            aria-hidden
-            initial={{ opacity: 0, x: '-120%' }}
-            animate={{ opacity: [0, 1, 0], x: '120%' }}
-            transition={{ duration: 1.3, ease: 'easeInOut', delay: at + 0.95 }}
-            className="pointer-events-none absolute inset-y-0 w-1/4 bg-gradient-to-r from-transparent via-white/35 to-transparent mix-blend-overlay"
-          />
-        </>
+        <motion.span
+          aria-hidden
+          initial={{ opacity: 0, x: '-110%' }}
+          animate={{ opacity: [0, 1, 0], x: '110%' }}
+          transition={{ duration: 1.2, ease: 'easeInOut', delay: at + 0.5 }}
+          className="pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent"
+        />
       )}
-    </div>
+    </motion.div>
   );
 }
 
