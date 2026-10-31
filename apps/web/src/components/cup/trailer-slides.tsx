@@ -311,9 +311,19 @@ function PrizeSlide() {
           built — which is the point of a seven-figure prize. The
           commas drop with the digit to their left, so the grouping
           appears as the number forms. */}
+      {/* ─── Sizing, the arithmetic rather than a guess ─────────────
+          "1,000,000" is nine characters. In Montserrat a tabular digit
+          advances about 0.6em and a comma about 0.3em, so the figure
+          is roughly 4.8em wide whatever the font size. At 21vw on a
+          390px phone that is 82px a character and about 400px of
+          number inside 358px of usable width — it ran off both edges.
+
+          15vw keeps it to roughly 280px there, and the `max-w-full`
+          plus `whitespace-nowrap` means that if a longer prize is ever
+          set, it shrinks to fit instead of overflowing again. */}
       <p
         aria-label={`${amount} ${CUP.prize.currency}`}
-        className="relative mt-3 flex items-baseline justify-center font-heading text-[clamp(3.4rem,21vw,11rem)] font-bold leading-[0.85] tabular-nums text-white"
+        className="relative mt-3 flex max-w-full items-baseline justify-center whitespace-nowrap font-heading text-[clamp(2.1rem,15vw,8rem)] font-bold leading-[0.85] tabular-nums text-white"
       >
         {digits.map((char, i) => (
           <motion.span
@@ -337,7 +347,7 @@ function PrizeSlide() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: EASE, delay: lastAt }}
-        className="relative mt-1 font-heading text-[clamp(1rem,5vw,2.2rem)] font-semibold tracking-[0.42em] text-white/80"
+        className="relative mt-2 font-heading text-[clamp(0.85rem,4vw,1.6rem)] font-semibold tracking-[0.42em] text-white/80"
       >
         {CUP.prize.currency}
       </motion.p>
@@ -719,6 +729,8 @@ function GallerySlide({ paused }: { readonly paused: boolean }) {
   }, []);
 
   const item = reel[index];
+  // The one after it, prefetched below so the cut does not stall.
+  const next = reel.length > 0 ? reel[(index + 1) % reel.length] : undefined;
 
   // Fixed holds, not shares of the slide: a clip runs its declared
   // five seconds and a still three quarters of one, which is what
@@ -840,6 +852,35 @@ function GallerySlide({ paused }: { readonly paused: boolean }) {
         >
           <Shine delay={0.9}>We have done this before</Shine>
         </motion.h2>
+
+        {/* ─── Prefetching the next item ───────────────────────────────
+          Each clip used to begin downloading only when it mounted,
+          which on a Cameroonian mobile connection is most of a second
+          of black before the first frame — eleven times over, in a
+          montage whose whole job is to flow.
+
+          So the next item in the reel is mounted here, invisible and
+          never played, purely so the browser has it buffered by the
+          time it is shown. `preload="auto"` on a hidden element is the
+          cheapest prefetch there is: no second request, no cache
+          plumbing, and it is already warm when the real element asks
+          for the same URL.
+
+          Only one ahead. Two would have three clips in flight at once
+          and on a thin connection that makes the clip being watched
+          worse, not better. */}
+        {next && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
+          >
+            {next.kind === 'video' ? (
+              <video src={next.src} muted playsInline preload="auto" tabIndex={-1} />
+            ) : (
+              <Image src={next.src} alt="" width={16} height={16} quality={75} />
+            )}
+          </span>
+        )}
 
         {/* Twenty ticks now, so they are narrower than they were and
             allowed to wrap: a strip wide enough for the whole reel
@@ -1139,7 +1180,7 @@ function ContactsSlide() {
                 {line.phone ? (
                   <a
                     href={`tel:${line.phone.replace(/\s+/g, '')}`}
-                    className="-my-2 shrink-0 py-2 font-heading text-[clamp(0.85rem,3vw,1rem)] tabular-nums text-white/75 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                    className="relative z-[35] -my-2 shrink-0 py-2 font-heading text-[clamp(0.85rem,3vw,1rem)] tabular-nums text-white/75 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   >
                     {line.phone}
                   </a>
@@ -1284,6 +1325,7 @@ function FixturesSlide() {
               key={fixture.label}
               fixture={fixture}
               at={0.6 + i * 0.75}
+              index={i}
               isFinal={i === FIXTURES.length - 1}
               reduced={reduced}
             />
@@ -1297,81 +1339,105 @@ function FixturesSlide() {
 function FixtureRow({
   fixture,
   at,
+  index,
   isFinal,
   reduced,
 }: {
   readonly fixture: (typeof FIXTURES)[number];
   readonly at: number;
+  readonly index: number;
   readonly isFinal: boolean;
   readonly reduced: boolean;
 }) {
   const side =
-    'min-w-0 flex-1 truncate font-heading text-[clamp(0.9rem,4vw,1.45rem)] font-light uppercase tracking-[0.03em]';
+    'min-w-0 flex-1 truncate font-heading text-[clamp(0.9rem,4.2vw,1.5rem)] font-light uppercase tracking-[0.03em]';
 
   return (
     <motion.div
-      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 18 }}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: reduced ? 0.25 : 0.6, ease: EASE, delay: at - 0.2 }}
-      className={`relative flex flex-col gap-2.5 overflow-hidden rounded-sm px-4 py-3.5 md:flex-row md:items-center md:gap-5 md:px-5 md:py-4 ${
+      className={`relative flex items-stretch overflow-hidden rounded-sm ${
         isFinal ? 'bg-primary text-white' : 'border border-white/12 bg-white/[0.03] text-white'
       }`}
     >
-      {/* Time first: when to be there matters before who is playing. */}
-      <div className="flex items-center gap-3 md:shrink-0">
+      {/* ─── The number column ───────────────────────────────────────
+          The match index set large down the left, with the kick-off
+          under it. This is what makes the three rows read as an order
+          of play rather than three equivalent widgets: the eye gets a
+          01 / 02 / 03 to travel down, and the time it actually needs
+          is attached to it rather than buried in a label. */}
+      <div
+        className={`flex shrink-0 flex-col items-center justify-center px-3 py-3 md:px-5 ${
+          isFinal ? 'bg-white/15' : 'bg-white/[0.04]'
+        }`}
+      >
         <motion.span
-          initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.75 }}
+          initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 1.3 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: reduced ? 0.2 : 0.45, ease: EASE, delay: at }}
-          className={`rounded-sm px-2.5 py-1 font-heading text-[clamp(0.85rem,3.6vw,1.15rem)] font-semibold tabular-nums ${
-            isFinal ? 'bg-white text-primary' : 'bg-primary text-white'
+          transition={{ duration: reduced ? 0.2 : 0.5, ease: EASE, delay: at }}
+          className={`font-heading text-[clamp(1.5rem,7vw,2.6rem)] font-light leading-none tabular-nums ${
+            isFinal ? 'text-white' : 'text-white/35'
           }`}
         >
-          {fixture.kickOff}
+          {String(index + 1).padStart(2, '0')}
         </motion.span>
         <motion.span
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: at + 0.08 }}
-          className={`font-heading text-[9.5px] font-semibold uppercase tracking-[0.3em] ${
-            isFinal ? 'text-white/80' : 'text-white/40'
+          transition={{ duration: 0.4, delay: at + 0.1 }}
+          className={`mt-1 font-heading text-[clamp(0.7rem,3vw,0.9rem)] font-semibold tabular-nums ${
+            isFinal ? 'text-white' : 'text-primary'
+          }`}
+        >
+          {fixture.kickOff}
+        </motion.span>
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 px-3 py-3 md:px-5">
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: at + 0.05 }}
+          className={`font-heading text-[9px] font-semibold uppercase tracking-[0.3em] ${
+            isFinal ? 'text-white/75' : 'text-white/35'
           }`}
         >
           {fixture.label}
         </motion.span>
-      </div>
 
-      {/* The two sides, meeting at a "v". Same collision the kick-off
-          slide uses for the hour and the minutes. */}
-      <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-4">
-        <motion.span
-          initial={reduced ? { opacity: 0 } : { opacity: 0, x: -34 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: reduced ? 0.25 : 0.55, ease: EASE, delay: at + 0.2 }}
-          className={`${side} text-left`}
-        >
-          {fixture.home}
-        </motion.span>
+        {/* The two sides meeting at a "v" — the same collision the
+            kick-off slide uses for the hour and the minutes. */}
+        <div className="flex min-w-0 items-center gap-2 md:gap-3">
+          <motion.span
+            initial={reduced ? { opacity: 0 } : { opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: reduced ? 0.25 : 0.55, ease: EASE, delay: at + 0.2 }}
+            className={`${side} text-left`}
+          >
+            {fixture.home}
+          </motion.span>
 
-        <motion.span
-          initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.4 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: reduced ? 0.2 : 0.4, ease: EASE, delay: at + 0.32 }}
-          className={`shrink-0 font-heading text-[10px] font-semibold uppercase tracking-[0.2em] ${
-            isFinal ? 'text-white/70' : 'text-primary'
-          }`}
-        >
-          v
-        </motion.span>
+          <motion.span
+            initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.4 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: reduced ? 0.2 : 0.4, ease: EASE, delay: at + 0.32 }}
+            className={`shrink-0 font-heading text-[10px] font-semibold uppercase tracking-[0.2em] ${
+              isFinal ? 'text-white/70' : 'text-primary'
+            }`}
+          >
+            v
+          </motion.span>
 
-        <motion.span
-          initial={reduced ? { opacity: 0 } : { opacity: 0, x: 34 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: reduced ? 0.25 : 0.55, ease: EASE, delay: at + 0.2 }}
-          className={`${side} text-right`}
-        >
-          {fixture.away}
-        </motion.span>
+          <motion.span
+            initial={reduced ? { opacity: 0 } : { opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: reduced ? 0.25 : 0.55, ease: EASE, delay: at + 0.2 }}
+            className={`${side} text-right`}
+          >
+            {fixture.away}
+          </motion.span>
+        </div>
       </div>
 
       {/* The final is the payoff, so it gets the light — once, as it
@@ -1888,7 +1954,17 @@ function FinaleSlide({ card }: { readonly card: (typeof AMBIANCE)[number] }) {
           Who lifts it?
         </motion.h2>
 
-        <div className="mt-5 flex flex-col gap-2">
+        {/* ─── Above the tap zones ─────────────────────────────────
+            `TapZones` in `cup-trailer` is a full-screen z-30 overlay
+            of two navigation buttons, so anything interactive inside a
+            slide is unreachable by default — every tap on a bar was
+            landing on "forward" and advancing the trailer instead of
+            voting. The vote was never broken; it was never called.
+
+            z-35 clears the tap zones and still sits under the controls
+            and progress bar at z-40, so replay and mute keep working
+            over the top of the poll. */}
+        <div className="relative z-[35] mt-5 flex flex-col gap-2">
           {zones.map((zone, i) => {
             const votes = counts[zone] ?? 0;
             const share = total > 0 ? (votes / total) * 100 : 0;
