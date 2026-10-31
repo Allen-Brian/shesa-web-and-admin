@@ -29,6 +29,10 @@ export default function robots(): MetadataRoute.Robots {
           // page. This stops it turning up in a search result, which is the
           // realistic way such a link escapes.
           '/awards/exco/',
+          // Campaign trailers are shared by link and unlisted until the
+          // tournament is announced. Unguessable is not the point here;
+          // keeping an unfinished advert out of search results is.
+          '/cup/',
         ],
       },
     ],

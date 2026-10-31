@@ -1,12 +1,10 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
-import { SiteFooter } from '@/components/footer/site-footer';
 import { Analytics } from '@vercel/analytics/next';
 
+import { SiteChrome } from '@/components/chrome/site-chrome';
 import { LenisProvider } from '@/components/lenis-provider';
-import { SiteNav } from '@/components/nav/site-nav';
-import { PromoFlyer } from '@/components/promo/promo-flyer';
 import { clientEnv } from '@shesa/config/env.client';
 
 import { siteConfig } from '@/lib/site-config';
@@ -96,10 +94,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="en">
       <body className="min-h-screen bg-white text-black antialiased">
         <LenisProvider>
-          <SiteNav />
-          <main>{children}</main>
-          <SiteFooter />
-          <PromoFlyer />
+          {/* Nav, footer and flyer, except on full-bleed campaign
+              routes that have to own the screen. See SiteChrome. */}
+          <SiteChrome>{children}</SiteChrome>
         </LenisProvider>
 
         {/* Vercel Web Analytics — visitors and page views.
