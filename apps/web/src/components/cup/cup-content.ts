@@ -525,6 +525,7 @@ const ARCHIVE_STILLS: readonly ArchiveItem[] = [
   { kind: 'image', src: '/cup/archive/8.jpg', focus: '38% 40%' }, // the stand, hands on head
   { kind: 'image', src: '/cup/archive/9.jpg', focus: '45% 45%' }, // the sliding challenge
   { kind: 'image', src: '/cup/archive/12.jpg', focus: '52% 45%' }, // running onto it
+  { kind: 'image', src: '/cup/archive/13.jpeg', focus: '45% 72%' }, // wide, players low
 ];
 
 /** How long a still holds. Short on purpose: the stills are a burst. */
@@ -589,12 +590,12 @@ export const RUNTIME_MS = 150_000;
 /**
  * Seconds each marquee player holds the open panel.
  *
- * At 1.4s the reel is a flick-through rather than a read: you catch a
+ * At 1.65s the reel is a flick-through rather than a read: you catch a
  * face, a nickname and a shape, and the detail is there for anyone who
  * taps a panel to hold it. That is a deliberate trade — twenty players
  * at a readable pace would be most of the trailer.
  */
-export const SECONDS_PER_PLAYER = 1.4;
+export const SECONDS_PER_PLAYER = 1.65;
 
 /**
  * The night's schedule. Four teams means two semi-finals and a final,
