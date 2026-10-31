@@ -90,10 +90,28 @@ export const CUP = {
   /** The tournament opens the AGM; see components/agm/agm-content.ts. */
   occasion: '2026 SHESA AGM',
 
-  /** Winner takes all. There is no runner-up purse. */
+  /**
+   * The prize.
+   *
+   * ─── The figure is deliberately not on screen ─────────────────────
+   * The slide used to hold "1,000,000 XAF" in the largest type in the
+   * trailer. It says `headline` and `tail` instead now: an advert
+   * that tells you the number has answered the only question it had
+   * to make you ask, and the point of the slide is that somebody
+   * leaves with everything and nobody else leaves with anything.
+   *
+   * The amount stays here because it is a fact about the tournament
+   * and the copy is downstream of it. Put it back on screen by
+   * rendering `formatPrize(winner)` in `PrizeSlide`.
+   *
+   * `tail` is plural on purpose. Four sides enter and three of them
+   * go home with nothing, so "the loser" would be wrong.
+   */
   prize: {
     winner: 1_000_000,
     currency: 'XAF',
+    headline: ['Winner', 'takes', 'all'],
+    tail: 'The rest go home empty',
   },
 
   /** Friday 13 November, matching the AGM programme's opening day. */
@@ -729,7 +747,14 @@ export const SHARE_DESCRIPTION =
  */
 export const MUSIC_SRC = '/cup-sound.m4a';
 
-/** `1000000` → `'1,000,000'`. */
+/**
+ * `1000000` → `'1,000,000'`.
+ *
+ * Nothing calls this at the moment: the prize slide states the stake
+ * rather than the figure. Kept because the figure is still a fact
+ * about the tournament and putting it back on screen should be one
+ * line, not a re-implementation — see the note on `CUP.prize`.
+ */
 export function formatPrize(value: number): string {
   return new Intl.NumberFormat('en-GB').format(Math.round(value));
 }
