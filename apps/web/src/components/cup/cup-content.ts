@@ -106,16 +106,24 @@ export const CUP = {
     country: 'Cameroon',
   },
 
-  /** Pitch photography. Real, and carrying no identifiable faces. */
+  /**
+   * Pitch photography. Real, and carrying no identifiable faces.
+   *
+   * Four of the eight on disk. The folder holds the same ground shot
+   * from eight similar angles, and the slide cross-dissolves through
+   * whatever is listed here — at eight plates that was 0.56s each,
+   * which is a flicker rather than a walk round the ground.
+   *
+   * These four are the ones that carry different information: the
+   * stand against the hills, the floodlight pylons for scale, the
+   * clean pitch, and the one with the paving running diagonally out
+   * of frame for depth. The other four are re-framings of these.
+   */
   stadium: [
     '/cup/stadium/stadium-01.jpg',
-    '/cup/stadium/stadium-02.jpg',
     '/cup/stadium/stadium-03.jpg',
-    '/cup/stadium/stadium-04.jpg',
-    '/cup/stadium/stadium-05.jpg',
     '/cup/stadium/stadium-06.jpg',
     '/cup/stadium/stadium-07.jpg',
-    '/cup/stadium/stadium-08.jpg',
   ],
 
   crest: '/shesa.png',
@@ -567,15 +575,14 @@ export function buildArchiveReel(random = true): ArchiveItem[] {
 /**
  * One pass of the reel, in seconds.
  *
- * Currently 40.00 against the montage's 40s slot — eleven clips at
- * 37.0 and four stills at 3.0. Exactly full: everything plays once
- * and the slide cuts away as the last still ends, so there is no
- * wrap to see.
+ * Currently 56.46 against the montage's 56.3s slot, so it overruns
+ * by 0.16s — the final still holds 0.59s instead of 0.75s, which is
+ * four frames and not worth chasing.
  *
- * Keep it that way. The slot is `gallery` in `cup-slides.ts`, and
- * the weights there are tuned to sum to exactly 150 — so taking more
- * for the montage means taking it off another slide, and letting the
- * pass overrun means the tail of the stills burst stops playing.
+ * That half second went to the stadium slide, which needed it more:
+ * eight plates at 0.56s each was a flicker, and four at 1.25s is a
+ * walk round the ground. The montage is still 56.3s of a 150s
+ * trailer, which is the largest single block in it by some way.
  */
 export function archiveSeconds(): number {
   return [...ARCHIVE_CLIPS, ...ARCHIVE_STILLS].reduce(

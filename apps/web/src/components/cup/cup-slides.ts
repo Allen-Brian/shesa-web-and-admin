@@ -97,7 +97,7 @@ const SECONDS = {
    * added together, so merging them cost the running order nothing.
    */
   finale: 6.0,
-  stadium: 4.5,
+  stadium: 5.0,
   date: 3.5,
   time: 4.0,
   /**
@@ -117,10 +117,10 @@ const SECONDS = {
    * each gave some back. `prize` and `name` were left alone: they are
    * the two the trailer is built around.
    *
-   * ⚠ `stadium` is now 4.5s across eight photographs, which is 0.56s
-   * each — below the point where a cross-dissolve reads as anything
-   * but a flicker. Either cut that list to four plates in
-   * `cup-content.ts`, or take the time back off the montage.
+   * `stadium` was 4.5s across eight photographs — 0.56s each, which
+   * is a flicker rather than a walk round the ground. Its list is now
+   * four plates at 1.25s each, and the extra half second came off the
+   * montage, which had the most to spare.
    *
    * ─── This was wrong for a while ─────────────────────────────────────
    * As clips and players were added the table drifted to 162s. The
@@ -135,7 +135,7 @@ const SECONDS = {
    * collage on a rolling cycle, so it plays for however long it is
    * given with however many photographs exist.
    */
-  gallery: 56.8,
+  gallery: 56.3,
   contacts: 3.5,
 } as const;
 
