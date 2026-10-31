@@ -12,7 +12,6 @@ import {
   FIXTURES,
   buildArchiveReel,
   capitalise,
-  formatPrize,
   numberWord,
 } from './cup-content';
 import type { ArchiveItem, Zone } from './cup-content';
@@ -259,33 +258,32 @@ function PrizeSlide() {
   const narrow = useIsNarrow();
   const [landed, setLanded] = useState(false);
 
-  const amount = formatPrize(CUP.prize.winner);
-  // Digits land one at a time; the last one triggers everything else.
-  const digits = [...amount];
-  const PER = 0.085;
-  const lastAt = 0.35 + (digits.length - 1) * PER;
+  const words = CUP.prize.headline;
+  const PER = 0.26;
+  const lastAt = 0.3 + (words.length - 1) * PER;
 
   useEffect(() => {
-    const id = window.setTimeout(() => setLanded(true), reduced ? 0 : (lastAt + 0.3) * 1000);
+    const id = window.setTimeout(() => setLanded(true), reduced ? 0 : (lastAt + 0.35) * 1000);
     return () => window.clearTimeout(id);
   }, [reduced, lastAt]);
 
   return (
     /* ─── The one slide that inverts ──────────────────────────────────
-       Every other slide in the trailer is white on black. This one is
-       white on burgundy, and that is the whole rebrand: the money slide
-       should be the single frame you could identify from across a room
-       with the sound off. A new animation on a black screen would have
-       been another variation; a colour block is a different object.
+       Every other slide is white on black. This one is white on
+       burgundy, so it is the single frame you could identify from
+       across a room with the sound off.
 
-       It also solves the mobile problem the old version had. The figure
-       is seven characters, and on a 390px screen it was competing with
-       a bloom, a ring and a currency chip for the same space. On a flat
-       field there is nothing to compete with, so the number can simply
-       be as large as the screen allows. */
-    <section className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-primary px-5 text-center">
-      {/* Depth, kept subtle: a darker vignette so the edges do not
-          read as flat printed card. */}
+       ─── And no number on it ────────────────────────────────────────
+       It used to be the prize figure in the largest type in the
+       trailer. An advert that tells you the number has answered the
+       only question it had to make you ask — so the slide now states
+       the stake instead, and the amount lives in `cup-content.ts`
+       without being rendered.
+
+       That also retires the overflow this slide kept having. Three
+       short words stack and wrap on any screen; a seven-character
+       figure had to be measured against the viewport every time. */
+    <section className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-primary px-6 text-center">
       <span
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -302,55 +300,30 @@ function PrizeSlide() {
         transition={{ duration: 0.45, ease: EASE }}
         className="relative font-heading text-[clamp(9px,2.6vw,11px)] font-semibold uppercase tracking-[0.5em] text-white/70"
       >
-        Winner takes
+        One prize
       </motion.p>
 
-      {/* ─── The figure, dealt out ───────────────────────────────────
-          Each character drops in on its own beat rather than the whole
-          number arriving at once, so the eye reads the magnitude being
-          built — which is the point of a seven-figure prize. The
-          commas drop with the digit to their left, so the grouping
-          appears as the number forms. */}
-      {/* ─── Sizing, the arithmetic rather than a guess ─────────────
-          "1,000,000" is nine characters. In Montserrat a tabular digit
-          advances about 0.6em and a comma about 0.3em, so the figure
-          is roughly 4.8em wide whatever the font size. At 21vw on a
-          390px phone that is 82px a character and about 400px of
-          number inside 358px of usable width — it ran off both edges.
-
-          15vw keeps it to roughly 280px there, and the `max-w-full`
-          plus `whitespace-nowrap` means that if a longer prize is ever
-          set, it shrinks to fit instead of overflowing again. */}
-      <p
-        aria-label={`${amount} ${CUP.prize.currency}`}
-        className="relative mt-3 flex max-w-full items-baseline justify-center whitespace-nowrap font-heading text-[clamp(2.1rem,15vw,8rem)] font-bold leading-[0.85] tabular-nums text-white"
-      >
-        {digits.map((char, i) => (
+      {/* One word per line, each landing on its own beat. Stacked
+          rather than set as a sentence because the three words are
+          the three beats — and because stacked words cannot overflow
+          a phone the way a long line can. */}
+      <h2 className="relative mt-4 flex flex-col items-center gap-0.5">
+        {words.map((word, i) => (
           <motion.span
-            key={`${char}-${i}`}
-            aria-hidden
-            initial={reduced ? { opacity: 0 } : { opacity: 0, y: '-55%', scale: 1.35 }}
+            key={word}
+            initial={reduced ? { opacity: 0 } : { opacity: 0, y: '45%', scale: 1.12 }}
             animate={{ opacity: 1, y: '0%', scale: 1 }}
             transition={
               reduced
-                ? { duration: 0.25 }
-                : { type: 'spring', duration: 0.5, bounce: 0.3, delay: 0.35 + i * PER }
+                ? { duration: 0.25, delay: i * 0.08 }
+                : { type: 'spring', duration: 0.6, bounce: 0.24, delay: 0.3 + i * PER }
             }
-            className={char === ',' ? 'mx-[0.04em] text-white/55' : undefined}
+            className="font-heading text-[clamp(2.6rem,17vw,8rem)] font-bold uppercase leading-[0.86] text-white"
           >
-            {char}
+            {word}
           </motion.span>
         ))}
-      </p>
-
-      <motion.p
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: EASE, delay: lastAt }}
-        className="relative mt-2 font-heading text-[clamp(0.85rem,4vw,1.6rem)] font-semibold tracking-[0.42em] text-white/80"
-      >
-        {CUP.prize.currency}
-      </motion.p>
+      </h2>
 
       {/* White on burgundy, so the impact is white too — a burgundy
           spark on a burgundy field is invisible. */}
@@ -358,17 +331,17 @@ function PrizeSlide() {
         <>
           <motion.span
             aria-hidden
-            initial={{ scale: 0.3, opacity: 0.55 }}
+            initial={{ scale: 0.3, opacity: 0.5 }}
             animate={{ scale: 2.8, opacity: 0 }}
             transition={{ duration: 1.1, ease: 'easeOut' }}
             className="pointer-events-none absolute rounded-full border-2 border-white"
-            style={{ width: narrow ? '44vmin' : '34vmin', height: narrow ? '44vmin' : '34vmin' }}
+            style={{ width: narrow ? '48vmin' : '36vmin', height: narrow ? '48vmin' : '36vmin' }}
           />
           <motion.span
             aria-hidden
-            initial={{ opacity: 0.5 }}
+            initial={{ opacity: 0.4 }}
             animate={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
             className="pointer-events-none absolute inset-0 bg-white"
           />
         </>
@@ -377,26 +350,17 @@ function PrizeSlide() {
       <motion.div
         initial={{ opacity: 0, scaleX: 0 }}
         animate={{ opacity: 1, scaleX: 1 }}
-        transition={{ duration: 0.6, ease: EASE, delay: lastAt + 0.15 }}
-        className="relative mt-7 h-px w-40 bg-white/50 md:w-64"
+        transition={{ duration: 0.6, ease: EASE, delay: lastAt + 0.2 }}
+        className="relative mt-7 h-px w-36 bg-white/50 md:w-60"
       />
 
       <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.55, delay: lastAt + 0.3 }}
-        className="relative mt-4 font-heading text-[clamp(10px,3.2vw,13px)] font-semibold uppercase tracking-[0.4em] text-white"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: EASE, delay: lastAt + 0.35 }}
+        className="relative mt-4 font-heading text-[clamp(0.78rem,3.6vw,1.1rem)] font-semibold uppercase tracking-[0.3em] text-white/85"
       >
-        Winner takes all
-      </motion.p>
-
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.55, delay: lastAt + 0.45 }}
-        className="relative mt-2 font-heading text-[clamp(9px,2.6vw,10.5px)] uppercase tracking-[0.3em] text-white/55"
-      >
-        No runner-up purse
+        {CUP.prize.tail}
       </motion.p>
     </section>
   );
