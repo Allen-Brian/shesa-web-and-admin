@@ -447,15 +447,21 @@ export const ARCHIVE_DEFAULT_FOCUS = '50% 45%';
  * `7.mp4`. The pair has survived three renumberings now — delete one
  * of them and this comment can go.
  *
- * ─── Why the holds vary ───────────────────────────────────────────────
- * Eleven clips at five seconds each would be 55s against a 40s
- * montage, so the holds are graded by what each clip carries. The
- * walk-out leads at 4.5s; the anthem and the line-up get 3.75; the
- * rest sit between 2.5 and 3.5. That is shorter than this reel used
- * to run, and it is the right trade — eleven clips is a lot of
- * footage for forty seconds, and a montage that lingers stops being
- * a montage. One clip cannot reach any house figure at all and is
- * marked as the exception it is.
+ * ─── One rule now ─────────────────────────────────────────────────────
+ * Five seconds, or the clip's whole length if it is shorter than
+ * five. Nothing is graded by how good the footage is any more; the
+ * three short clips — 5, 10 and 11 — simply run out and hand over.
+ *
+ * Letting a hold equal a clip's exact length is only safe because
+ * `advanceFrom` in `GallerySlide` is idempotent: `onEnded` and the
+ * hold timer land on the same frame and whichever arrives first
+ * moves the reel. That guard was added after `1.mp4`'s hold equalled
+ * its length and the reel advanced twice, skipping the clip after
+ * it. Check it still exists before trusting this rule.
+ *
+ * The cost is the montage: eleven clips this way is 52.71s of
+ * footage, and with the stills it needs 55.71s of a 150s trailer.
+ * `cup-slides.ts` was re-cut to pay for that.
  *
  * Each `focus` was read off a frame of the clip rather than guessed —
  * several of these were shot on a phone held upright and are mostly
@@ -463,23 +469,23 @@ export const ARCHIVE_DEFAULT_FOCUS = '50% 45%';
  */
 const ARCHIVE_CLIPS: readonly ArchiveItem[] = [
   // 10.67s, 360x640 upright. Teams walking out, stand behind.
-  { kind: 'video', src: '/cup/archive/1.mp4', seconds: 4, focus: '50% 45%' },
+  { kind: 'video', src: '/cup/archive/1.mp4', seconds: 5, focus: '50% 45%' },
   // 5.93s, 576x1024 upright. Match play from the stand, action
   // centre-right. Carries a burned-in story caption across the top.
-  { kind: 'video', src: '/cup/archive/2.mp4', seconds: 3, focus: '58% 55%' },
+  { kind: 'video', src: '/cup/archive/2.mp4', seconds: 5, focus: '58% 55%' },
   // 6.27s, 1024x576. The side lined up arm in arm, full width.
-  { kind: 'video', src: '/cup/archive/3.mp4', seconds: 3.75, focus: '50% 42%' },
+  { kind: 'video', src: '/cup/archive/3.mp4', seconds: 5, focus: '50% 42%' },
   // 5.47s, 576x1024 upright. Indoor pitch, the shot being struck.
-  { kind: 'video', src: '/cup/archive/4.mp4', seconds: 3.25, focus: '52% 54%' },
+  { kind: 'video', src: '/cup/archive/4.mp4', seconds: 5, focus: '52% 54%' },
   // 4.58s, 832x464. Players running across a dry pitch, spread wide.
-  { kind: 'video', src: '/cup/archive/5.mp4', seconds: 2.75, focus: '48% 55%' },
+  { kind: 'video', src: '/cup/archive/5.mp4', seconds: 4.58, focus: '48% 55%' },
   // 7.67s, 576x1024 upright. Half the frame is sky, so sit low.
-  { kind: 'video', src: '/cup/archive/6.mp4', seconds: 3.25, focus: '50% 62%' },
+  { kind: 'video', src: '/cup/archive/6.mp4', seconds: 5, focus: '50% 62%' },
   // 8.17s, 1024x576. The anthem. A head fills the right of frame, so
   // the crop favours the line of players.
-  { kind: 'video', src: '/cup/archive/7.mp4', seconds: 3.75, focus: '45% 45%' },
+  { kind: 'video', src: '/cup/archive/7.mp4', seconds: 5, focus: '45% 45%' },
   // 5.23s, 576x1024 upright. Same story caption as 2.
-  { kind: 'video', src: '/cup/archive/8.mp4', seconds: 3.25, focus: '48% 58%' },
+  { kind: 'video', src: '/cup/archive/8.mp4', seconds: 5, focus: '48% 58%' },
   // ⚠ 3.20s, and the one clip allowed to run all the way out. Every
   // other hold here is a trim that stops short of the clip's end; this
   // one is the clip's full length, so `onEnded` and the hold timer
@@ -494,11 +500,11 @@ const ARCHIVE_CLIPS: readonly ArchiveItem[] = [
   // 480x848 upright, two players duelling for the ball centre-left.
   { kind: 'video', src: '/cup/archive/10.mp4', seconds: 3.2, focus: '32% 42%' },
   // 4.93s, 1280x720. Dust kicking up on a dry pitch, action centre-right.
-  { kind: 'video', src: '/cup/archive/11.mp4', seconds: 3.25, focus: '58% 52%' },
+  { kind: 'video', src: '/cup/archive/11.mp4', seconds: 4.93, focus: '58% 52%' },
   // 5.74s, 832x464. A night match under the lights, play centre-right
   // and low in the frame. The only floodlit footage in the reel, and
   // the last thing the montage shows.
-  { kind: 'video', src: '/cup/archive/12.mp4', seconds: 3.5, focus: '58% 58%' },
+  { kind: 'video', src: '/cup/archive/12.mp4', seconds: 5, focus: '58% 58%' },
 ];
 
 /**
@@ -583,12 +589,12 @@ export const RUNTIME_MS = 150_000;
 /**
  * Seconds each marquee player holds the open panel.
  *
- * At 1.5s the reel is a flick-through rather than a read: you catch a
+ * At 1.4s the reel is a flick-through rather than a read: you catch a
  * face, a nickname and a shape, and the detail is there for anyone who
  * taps a panel to hold it. That is a deliberate trade — twenty players
  * at a readable pace would be most of the trailer.
  */
-export const SECONDS_PER_PLAYER = 1.5;
+export const SECONDS_PER_PLAYER = 1.4;
 
 /**
  * The night's schedule. Four teams means two semi-finals and a final,

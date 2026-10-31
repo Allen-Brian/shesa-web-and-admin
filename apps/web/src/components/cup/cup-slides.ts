@@ -67,13 +67,13 @@ const MIN_SLIDE_MS = 1200;
  * seconds a face was an explicit decision, not a by-product.
  */
 const SECONDS = {
-  coldOpenCard: 2.25,
+  coldOpenCard: 2.0,
   name: 2.5,
   prize: 4.5,
-  ambiance: 2.75,
-  fixtures: 8.5,
-  road: 9.5,
-  zone: 3,
+  ambiance: 2.0,
+  fixtures: 7.5,
+  road: 8.0,
+  zone: 2.5,
   /**
    * The run of cards between the last squad and the stadium. Shorter
    * than the single card after the bracket, because they arrive four
@@ -81,7 +81,7 @@ const SECONDS = {
    * at 1.5s it reads as one accelerating build, which is what a run of
    * cards back to back is for.
    */
-  ambianceRun: 3.0,
+  ambianceRun: 2.0,
   /**
    * The closing card, which also carries the poll.
    *
@@ -96,10 +96,10 @@ const SECONDS = {
    * The eight seconds are the old sign-off and the old poll slide
    * added together, so merging them cost the running order nothing.
    */
-  finale: 8.0,
-  stadium: 7.0,
-  date: 3.5,
-  time: 4.0,
+  finale: 7.0,
+  stadium: 6.0,
+  date: 2.75,
+  time: 3.25,
   /**
    * The archive montage carries the slack.
    *
@@ -122,8 +122,8 @@ const SECONDS = {
    * collage on a rolling cycle, so it plays for however long it is
    * given with however many photographs exist.
    */
-  gallery: 40.0,
-  contacts: 5.0,
+  gallery: 56.1,
+  contacts: 4.0,
 } as const;
 
 /**
