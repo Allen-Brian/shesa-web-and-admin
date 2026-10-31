@@ -463,10 +463,10 @@ export const ARCHIVE_DEFAULT_FOCUS = '50% 45%';
  */
 const ARCHIVE_CLIPS: readonly ArchiveItem[] = [
   // 10.67s, 360x640 upright. Teams walking out, stand behind.
-  { kind: 'video', src: '/cup/archive/1.mp4', seconds: 4.5, focus: '50% 45%' },
+  { kind: 'video', src: '/cup/archive/1.mp4', seconds: 4, focus: '50% 45%' },
   // 5.93s, 576x1024 upright. Match play from the stand, action
   // centre-right. Carries a burned-in story caption across the top.
-  { kind: 'video', src: '/cup/archive/2.mp4', seconds: 3.25, focus: '58% 55%' },
+  { kind: 'video', src: '/cup/archive/2.mp4', seconds: 3, focus: '58% 55%' },
   // 6.27s, 1024x576. The side lined up arm in arm, full width.
   { kind: 'video', src: '/cup/archive/3.mp4', seconds: 3.75, focus: '50% 42%' },
   // 5.47s, 576x1024 upright. Indoor pitch, the shot being struck.
@@ -480,14 +480,19 @@ const ARCHIVE_CLIPS: readonly ArchiveItem[] = [
   { kind: 'video', src: '/cup/archive/7.mp4', seconds: 3.75, focus: '45% 45%' },
   // 5.23s, 576x1024 upright. Same story caption as 2.
   { kind: 'video', src: '/cup/archive/8.mp4', seconds: 3.25, focus: '48% 58%' },
-  // ⚠ 3.20s — the exception. Every other clip clears the house hold
-  // with room; this one cannot, so it takes 2.5s and the margin is
-  // 0.7s. Do not raise it without re-checking the clip is still this
-  // short: at or above its real length the clip ends, `onEnded`
-  // fires, and the reel double-advances past the next one.
+  // ⚠ 3.20s, and the one clip allowed to run all the way out. Every
+  // other hold here is a trim that stops short of the clip's end; this
+  // one is the clip's full length, so `onEnded` and the hold timer
+  // land on the same frame.
+  //
+  // That is safe only because `advanceFrom` in `GallerySlide` is
+  // idempotent — whichever fires first moves the reel and the second
+  // is a no-op. It was not always: when `1.mp4`'s hold equalled its
+  // length the reel advanced twice and skipped the clip after it.
+  // Re-check that guard before giving any other clip its full length.
   //
   // 480x848 upright, two players duelling for the ball centre-left.
-  { kind: 'video', src: '/cup/archive/10.mp4', seconds: 2.5, focus: '32% 42%' },
+  { kind: 'video', src: '/cup/archive/10.mp4', seconds: 3.2, focus: '32% 42%' },
   // 4.93s, 1280x720. Dust kicking up on a dry pitch, action centre-right.
   { kind: 'video', src: '/cup/archive/11.mp4', seconds: 3.25, focus: '58% 52%' },
   // 5.74s, 832x464. A night match under the lights, play centre-right
