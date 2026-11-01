@@ -477,13 +477,13 @@ export const ARCHIVE_DEFAULT_FOCUS = '50% 45%';
  * These were five seconds each for a while. They are not any more:
  * the cold open, the atmosphere cards and the zone cards were all
  * given more room, and the 15.2s that cost came off this slide. The
- * montage now gets 44.85s, which is 41.1s of clips once the stills
+ * montage now gets 46.6s, which is 42.85s of clips once the stills
  * have their 3.75s.
  *
  * So every clip was re-cut to fit rather than leaving the holds at
  * five and letting the back of the reel stop playing. The order of
  * preference shows in the numbers: the walk-out is back to a full
- * five seconds, the anthem and the line-up take 4.25, and the rest
+ * five seconds, the anthem and the line-up take 4.5, and the rest
  * sit between three and four.
  *
  * Every hold is now a trim, so none of them reaches a clip's end and
@@ -499,20 +499,20 @@ const ARCHIVE_CLIPS: readonly ArchiveItem[] = [
   { kind: 'video', src: '/cup/archive/1.mp4', seconds: 5, focus: '50% 45%' },
   // 5.93s, 576x1024 upright. Match play from the stand, action
   // centre-right. Carries a burned-in story caption across the top.
-  { kind: 'video', src: '/cup/archive/2.mp4', seconds: 3.75, focus: '58% 55%' },
+  { kind: 'video', src: '/cup/archive/2.mp4', seconds: 4, focus: '58% 55%' },
   // 6.27s, 1024x576. The side lined up arm in arm, full width.
-  { kind: 'video', src: '/cup/archive/3.mp4', seconds: 4.25, focus: '50% 42%' },
+  { kind: 'video', src: '/cup/archive/3.mp4', seconds: 4.5, focus: '50% 42%' },
   // 5.47s, 576x1024 upright. Indoor pitch, the shot being struck.
-  { kind: 'video', src: '/cup/archive/4.mp4', seconds: 3.75, focus: '52% 54%' },
+  { kind: 'video', src: '/cup/archive/4.mp4', seconds: 4, focus: '52% 54%' },
   // 4.58s, 832x464. Players running across a dry pitch, spread wide.
-  { kind: 'video', src: '/cup/archive/5.mp4', seconds: 3.25, focus: '48% 55%' },
+  { kind: 'video', src: '/cup/archive/5.mp4', seconds: 3.5, focus: '48% 55%' },
   // 7.67s, 576x1024 upright. Half the frame is sky, so sit low.
-  { kind: 'video', src: '/cup/archive/6.mp4', seconds: 3.5, focus: '50% 62%' },
+  { kind: 'video', src: '/cup/archive/6.mp4', seconds: 3.75, focus: '50% 62%' },
   // 8.17s, 1024x576. The anthem. A head fills the right of frame, so
   // the crop favours the line of players.
-  { kind: 'video', src: '/cup/archive/7.mp4', seconds: 4.25, focus: '45% 45%' },
+  { kind: 'video', src: '/cup/archive/7.mp4', seconds: 4.5, focus: '45% 45%' },
   // 5.23s, 576x1024 upright. Same story caption as 2.
-  { kind: 'video', src: '/cup/archive/8.mp4', seconds: 3.75, focus: '48% 58%' },
+  { kind: 'video', src: '/cup/archive/8.mp4', seconds: 4, focus: '48% 58%' },
   // ⚠ 3.20s, and the one clip allowed to run all the way out. Every
   // other hold here is a trim that stops short of the clip's end; this
   // one is the clip's full length, so `onEnded` and the hold timer
