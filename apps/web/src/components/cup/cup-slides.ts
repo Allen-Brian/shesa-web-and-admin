@@ -98,8 +98,8 @@ const SECONDS = {
    */
   finale: 6.0,
   stadium: 5.0,
-  date: 3.5,
-  time: 4.0,
+  date: 2.75,
+  time: 3.25,
   /**
    * The archive montage carries the slack.
    *
@@ -142,8 +142,8 @@ const SECONDS = {
    * collage on a rolling cycle, so it plays for however long it is
    * given with however many photographs exist.
    */
-  gallery: 42.6,
-  contacts: 3.5,
+  gallery: 44.85,
+  contacts: 2.75,
 } as const;
 
 /**
