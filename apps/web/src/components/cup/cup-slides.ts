@@ -73,7 +73,7 @@ const SECONDS = {
   ambiance: 3.0,
   fixtures: 6.5,
   road: 7.0,
-  zone: 4.0,
+  zone: 3.0,
   /**
    * The run of cards between the last squad and the stadium. Shorter
    * than the single card after the bracket, because they arrive four
@@ -98,8 +98,8 @@ const SECONDS = {
    */
   finale: 6.0,
   stadium: 5.0,
-  date: 2.75,
-  time: 3.25,
+  date: 3.5,
+  time: 4.0,
   /**
    * The archive montage carries the slack.
    *
@@ -110,10 +110,10 @@ const SECONDS = {
    * given.
    *
    * ─── The montage paid for the rest of the trailer ───────────────────
-   * The cold open went to 2.5s a card, the atmosphere cards to 3s,
-   * and each zone to 4s. That is 13.7s, and all of it came off
-   * `gallery`, which dropped from 56.3 to 42.6 and from 38% of the
-   * trailer to 28%. The clips were re-cut to fit rather than letting the tail of
+   * The cold open went to 2.5s a card and the atmosphere cards to 3s.
+   * The zone cards went to 4s and then back to 3s, which is where
+   * they started. All of it came off `gallery`, which dropped from
+   * 56.3 to 46.6 and from 38% of the trailer to 31%. The clips were re-cut to fit rather than letting the tail of
    * the reel stop playing — see `ARCHIVE_CLIPS`.
    *
    * ─── Where the time went the round before ───────────────────────────
@@ -142,8 +142,8 @@ const SECONDS = {
    * collage on a rolling cycle, so it plays for however long it is
    * given with however many photographs exist.
    */
-  gallery: 44.85,
-  contacts: 2.75,
+  gallery: 46.6,
+  contacts: 3.5,
 } as const;
 
 /**
