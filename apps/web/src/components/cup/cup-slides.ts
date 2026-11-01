@@ -67,13 +67,13 @@ const MIN_SLIDE_MS = 1200;
  * seconds a face was an explicit decision, not a by-product.
  */
 const SECONDS = {
-  coldOpenCard: 1.6,
+  coldOpenCard: 2.5,
   name: 2.5,
   prize: 4.5,
-  ambiance: 1.6,
+  ambiance: 3.0,
   fixtures: 6.5,
   road: 7.0,
-  zone: 3.0,
+  zone: 4.0,
   /**
    * The run of cards between the last squad and the stadium. Shorter
    * than the single card after the bracket, because they arrive four
@@ -81,7 +81,7 @@ const SECONDS = {
    * at 1.5s it reads as one accelerating build, which is what a run of
    * cards back to back is for.
    */
-  ambianceRun: 1.6,
+  ambianceRun: 3.0,
   /**
    * The closing card, which also carries the poll.
    *
@@ -109,7 +109,14 @@ const SECONDS = {
    * rather than each other slide being nudged off the figure it was
    * given.
    *
-   * ─── Where the time went this round ─────────────────────────────────
+   * ─── The montage paid for the rest of the trailer ───────────────────
+   * The cold open went to 2.5s a card, the atmosphere cards to 3s,
+   * and each zone to 4s. That is 13.7s, and all of it came off
+   * `gallery`, which dropped from 56.3 to 42.6 and from 38% of the
+   * trailer to 28%. The clips were re-cut to fit rather than letting the tail of
+   * the reel stop playing — see `ARCHIVE_CLIPS`.
+   *
+   * ─── Where the time went the round before ───────────────────────────
    * The zone cards, the player reel, the date and the kick-off were
    * all given more room, which cost 7.86s that had to come out of
    * everything else. The cold open, the atmosphere cards, the
@@ -135,7 +142,7 @@ const SECONDS = {
    * collage on a rolling cycle, so it plays for however long it is
    * given with however many photographs exist.
    */
-  gallery: 56.3,
+  gallery: 42.6,
   contacts: 3.5,
 } as const;
 
