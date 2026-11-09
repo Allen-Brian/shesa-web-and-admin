@@ -17,9 +17,11 @@
  *
  * ─── What is real and what is a preview ───────────────────────────────
  * The website, EXCO portal, admin console and Finance App are shown
- * with real screenshots of the running code (`/platforms/shots`). The
+ * with real screenshots of the running code (`/platforms/shots`). Most
  * admin screens were captured against the repository's demo seed, so
  * the member counts and names on them are fixtures, not SHESA's data.
+ * The exception is `finance-transactions-live.jpg`, taken from the live
+ * Finance portal with payer names hidden by the page's own toggle.
  *
  * SHESA Connect and the store are not in this repository, so they are
  * drawn in code and carry a "Design preview" tag on screen. Replace
@@ -101,7 +103,7 @@ export const PLATFORMS: readonly Platform[] = [
     ],
     venueLine: ['YOUR OFFICERS.', 'YOUR STORY.'],
     url: 'admin.shesaconnect.com/editor',
-    status: 'Built',
+    status: 'Live',
     device: 'browser',
     browserShots: [
       { src: '/platforms/shots/exco-dashboard.jpg', motion: 'still' },
@@ -124,7 +126,7 @@ export const PLATFORMS: readonly Platform[] = [
     ],
     venueLine: ['EVERY BRANCH.', 'ONE DASHBOARD.'],
     url: 'admin.shesaconnect.com/exco',
-    status: 'Built',
+    status: 'Live',
     device: 'browser',
     browserShots: [
       { src: '/platforms/shots/admin-dashboard.jpg', motion: 'still' },
@@ -165,9 +167,11 @@ export const PLATFORMS: readonly Platform[] = [
     ],
     venueLine: ['EVERY FRANC.', 'ACCOUNTED FOR.'],
     url: 'admin.shesaconnect.com/finance',
-    status: 'Built · demo tested',
+    status: 'Live',
     device: 'browser',
     browserShots: [
+      // Live production data (9 Nov 2026), captured with "Hide names" on.
+      { src: '/platforms/shots/finance-transactions-live.jpg', motion: 'still' },
       { src: '/platforms/shots/finance-contributions.jpg', motion: 'still' },
       { src: '/platforms/shots/finance-reports.jpg', motion: 'still' },
     ],
