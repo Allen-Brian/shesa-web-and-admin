@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Check, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 
-import { EdgeVignette, Grain, PulseRing, Shine } from '@/components/cup/cup-graphics';
+import { EdgeVignette, Grain, PulseRing } from '@/components/cup/cup-graphics';
 
 import {
   BrowserFrame,
@@ -244,9 +244,7 @@ function TitleScene({ big }: SceneProps) {
           big ? 'text-[clamp(2.6rem,10vw,12rem)]' : 'text-[clamp(2.4rem,8.5vw,8.5rem)]'
         }`}
       >
-        <Shine delay={1.6}>
-          SHESA <span className="text-primary">Digital</span>
-        </Shine>
+        SHESA <span className="text-primary">Digital</span>
       </motion.h1>
       <Kicker delay={1.2} big={big} className="mt-[2.4vmin] text-center">
         Six platforms · One digital institution
