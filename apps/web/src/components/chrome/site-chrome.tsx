@@ -20,7 +20,7 @@ import { PromoFlyer } from '@/components/promo/promo-flyer';
  * Prefix matching, so `/cup/2027` and any later edition are covered by
  * one entry.
  */
-const BARE_ROUTES = ['/cup'] as const;
+const BARE_ROUTES = ['/cup', '/platforms'] as const;
 
 export function SiteChrome({ children }: { readonly children: ReactNode }) {
   const pathname = usePathname();

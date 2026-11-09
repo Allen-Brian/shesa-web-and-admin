@@ -33,6 +33,9 @@ export default function robots(): MetadataRoute.Robots {
           // tournament is announced. Unguessable is not the point here;
           // keeping an unfinished advert out of search results is.
           '/cup/',
+          // The platforms pitch carries the engagement's figures, and the
+          // venue loop is for the screens in the hall, not for search.
+          '/platforms/',
         ],
       },
     ],
