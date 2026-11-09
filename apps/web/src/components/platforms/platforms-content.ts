@@ -4,8 +4,9 @@
  *
  * Two reels are built from it:
  *
- *   /platforms/pitch   For EXCO and funders. Voiceover-driven, with the
- *                      investment, revenue model and KPIs. ~4.5 minutes.
+ *   /platforms/pitch   For EXCO and funders. Voiceover-driven: what is
+ *                      already live, the six platforms, traction, the
+ *                      revenue model and the investment. ~5 minutes.
  *   /platforms/screen  For the giant screens at the venue. No figures,
  *                      bigger type, music bed, loops forever. ~2 minutes.
  *
@@ -13,7 +14,8 @@
  * The pitch deck "SHESA Digital Platforms" (DIRA, May 2026) and the
  * store addendum DIRA-ADDENDUM-2026-SHESA-001 (October 2026). Where the
  * two disagree, the addendum wins, because it is later: the ecosystem
- * is six platforms, and the engagement is 18,750,000 XAF.
+ * is six platforms. The Phase I engagement is stated as ~20,000,000 XAF,
+ * as instructed by DIRA (the contract sum is 18,750,000 XAF).
  *
  * ─── What is real and what is a preview ───────────────────────────────
  * The website, EXCO portal, admin console and Finance App are shown
@@ -161,7 +163,7 @@ export const PLATFORMS: readonly Platform[] = [
     tagline: 'Every franc visible, approved and auditable.',
     features: [
       'Contributions, charges and donations by branch',
-      'Mobile money captured the moment it lands',
+      'MoMo and card payments integrated, live',
       'Expenses behind an approval chain',
       'One-click reports for the AGM and auditors',
     ],
@@ -261,15 +263,20 @@ export const FLOWS = [
   { from: 'EXCO Portal', what: 'News & events', to: 'Public Website' },
 ] as const;
 
+/**
+ * What the platforms can do, stated as capabilities. Vendor and framework
+ * names are deliberately left off: the audience is buying outcomes, and
+ * a stack list invites the wrong conversation.
+ */
 export const TECH = [
-  { name: 'Next.js', role: 'Websites & portals' },
-  { name: 'React Native', role: 'Android + iOS' },
-  { name: 'Supabase', role: 'Postgres, row-level security' },
-  { name: 'Cloudflare', role: 'CDN & protection' },
-  { name: 'MoMo · Orange', role: 'Mobile money' },
-  { name: 'Stripe', role: 'Diaspora cards' },
-  { name: 'Firebase', role: 'Push notifications' },
-  { name: 'Sentry · PostHog', role: 'Health & analytics' },
+  { name: 'MTN MoMo · Orange Money', role: 'Mobile money' },
+  { name: 'Visa · Mastercard', role: 'Card payments for the diaspora' },
+  { name: 'Android + iOS', role: 'One app, both stores' },
+  { name: 'Bank-grade security', role: 'Encrypted, access-controlled' },
+  { name: 'Fast everywhere', role: 'Global delivery network' },
+  { name: 'Daily backups', role: 'Data owned by SHESA' },
+  { name: 'Push notifications', role: 'Reach every member' },
+  { name: 'Health monitoring', role: 'Problems caught early' },
 ] as const;
 
 /** Revenue model, from the deck's projection. Millions of XAF. */
@@ -297,19 +304,57 @@ export const REVENUE = {
 export const INVESTMENT = {
   rows: [
     {
-      label: 'Five core platforms',
+      label: 'Six integrated platforms',
       detail:
-        'Website · EXCO Portal · Admin · Connect · Finance — incl. 3-year infrastructure reserve',
-      amount: 13_750_000,
-    },
-    {
-      label: 'SHESA Store',
-      detail: 'Addendum DIRA-ADDENDUM-2026-SHESA-001 · 3 milestones',
-      amount: 5_000_000,
+        'Website · EXCO Portal · Admin Console · SHESA Connect · Finance App · SHESA Store — incl. 3-year infrastructure reserve',
     },
   ],
-  total: 18_750_000,
-  benchmark: 'International quotes for the core scope: USD 88,000 – 293,000',
+  /** Rounded on purpose, and shown with a tilde. */
+  total: 20_000_000,
+  label: 'Total Phase I engagement',
+  benchmark: 'International quotes for equivalent scope: USD 88,000 – 293,000',
+} as const;
+
+/**
+ * What is already running in production. ⚠ Keep this honest: it is the
+ * scene a funder will check.
+ */
+export const LIVE_NOW = [
+  {
+    name: 'Public Website',
+    where: 'shesaconnect.com',
+    points: [
+      'AGM registration & tickets',
+      'Awards nominations & voting',
+      'News, events, leadership',
+    ],
+  },
+  {
+    name: 'Admin Console',
+    where: 'admin.shesaconnect.com',
+    points: ['Branches, batches & houses', 'Members & events', 'Every change audited'],
+  },
+  {
+    name: 'Finance App',
+    where: 'admin.shesaconnect.com/finance',
+    points: [
+      'MoMo & card payments integrated',
+      'Real payments clearing daily',
+      'Reports on demand',
+    ],
+  },
+] as const;
+
+/**
+ * The projection said Year 1 brings in nothing; the pilot already moved
+ * real money. `actual` is money collected through the platforms (the
+ * Finance App's "Net collected" was 766K XAF on 9 Nov 2026), not
+ * platform-fee revenue — the copy says "collected" for that reason.
+ */
+export const TRACTION = {
+  projected: 0,
+  actual: 800_000,
+  window: 'within two months of pilot launch',
 } as const;
 
 export const PROTECTIONS = [
@@ -317,7 +362,7 @@ export const PROTECTIONS = [
   { title: '90-day warranty', body: 'On every phase delivered.' },
   { title: 'SHESA owns it', body: 'Code, accounts, data, all in SHESA’s name.' },
   { title: 'No lock-in', body: 'Any competent developer can take over.' },
-  { title: 'Data protected', body: 'Row-level security and daily backups.' },
+  { title: 'Data protected', body: 'Access controls and daily backups.' },
   { title: 'No scope creep', body: 'Changes only by written change order.' },
 ] as const;
 
@@ -343,11 +388,11 @@ export const CREDITS = {
 export const VENUE_URL = 'https://www.shesaconnect.com';
 
 /**
- * Music bed. Drop a track at `public/platforms/bed.m4a`. Until one is
- * there, the reel falls back to the cup trailer's soundtrack, and if
- * that is missing too it simply runs silent.
+ * Music bed: an original, calm, forward-moving loop composed for these
+ * reels (`public/platforms/bed.m4a`, ~64s, loops seamlessly). Replace the
+ * file to change the music; if it is missing the reels run silent.
  */
-export const MUSIC_SOURCES = ['/platforms/bed.m4a', '/cup-sound.m4a'] as const;
+export const MUSIC_SOURCES = ['/platforms/bed.m4a'] as const;
 
 export const VO_DIR = '/platforms/vo';
 
@@ -360,6 +405,8 @@ export type SceneKind =
   | 'problems'
   | 'proof'
   | 'ecosystem'
+  | 'live'
+  | 'traction'
   | 'platform'
   | 'record'
   | 'integration'
@@ -422,80 +469,90 @@ export const PITCH_SCENES: readonly Scene[] = [
     vo: 'So we built one. Six platforms, on one shared foundation, around one member record.',
   },
   {
-    id: '07-website',
+    id: '07-live-today',
+    kind: 'live',
+    vo: 'And this is not a promise. Three of the six are already live. The public website is serving members today. The admin console is running branches, members and events. And the Finance App is clearing real payments, with mobile money and card payments fully integrated.',
+  },
+  {
+    id: '08-website',
     kind: 'platform',
     platform: 'website',
     vo: "First, the public website, SHESA's face to the world. News, events, leadership and projects. AGM registration, ticket payments and awards voting, all live today at shesaconnect dot com. It is the first thing every partner and funder sees.",
   },
   {
-    id: '08-exco-portal',
+    id: '09-exco-portal',
     kind: 'platform',
     platform: 'exco',
     vo: 'Behind it, the EXCO portal. Verified officers publish news, events, galleries, leadership pages and award ballots themselves, with role-based access and a full audit trail. No developer required.',
   },
   {
-    id: '09-admin-console',
+    id: '10-admin-console',
     kind: 'platform',
     platform: 'admin',
     vo: 'The admin console is the nerve centre. Branches, chapters, batches and houses. Memberships, events and settings. Every branch on one dashboard, and every change logged.',
   },
   {
-    id: '10-connect',
+    id: '11-connect',
     kind: 'platform',
     platform: 'connect',
-    vo: 'SHESA Connect is the app every Shesan installs, on Android and iOS. A verified profile on a unique matricule. Messaging, mentorship and a job board. Events and official announcements. Dues and donations paid in the app, by MTN MoMo, Orange Money or card. And it keeps working offline.',
+    vo: 'SHESA Connect is the app every Shesan installs, on Android and iOS. A verified profile on a unique matricule. Messaging, mentorship and a job board. Events and official announcements. Dues and donations paid in the app, by mobile money or card. And it keeps working offline.',
   },
   {
-    id: '11-finance',
+    id: '12-finance',
     kind: 'platform',
     platform: 'finance',
-    vo: 'The Finance App makes the money visible. Contributions, charges and donations for every branch. Mobile money captured the moment it lands. Expenses behind an approval chain. And audit-ready reports in one click.',
+    vo: 'The Finance App makes the money visible, and it is live. Contributions, charges and donations for every branch. MoMo and card payments integrated, landing in real time. Expenses behind an approval chain. And audit-ready reports in one click.',
   },
   {
-    id: '12-store',
+    id: '13-store',
     kind: 'platform',
     platform: 'store',
-    vo: 'And the sixth platform: the SHESA online store. Official merchandise, from clothing to publications, for buyers at home and in the diaspora. Checkout by MoMo, Orange Money or international card, and every order tracked to the door.',
+    vo: 'And the sixth platform: the SHESA online store. Official merchandise, from clothing to publications, for buyers at home and in the diaspora. Checkout by mobile money or international card, and every order tracked to the door.',
   },
   {
-    id: '13-member-record',
+    id: '14-member-record',
     kind: 'record',
     vo: 'Underneath it all is one record per Shesan. A unique matricule. Year in and year out at Sacred Heart. Every branch feeding one national register, every change logged, and an interface ready for the college’s own records. Governments pay billions for systems like this. SHESA gets it as part of the platform.',
   },
   {
-    id: '14-integration',
+    id: '15-integration',
     kind: 'integration',
     vo: 'And the platforms talk to each other. A donation in Connect lands in the Finance ledger. A store order settles through the same books. An announcement from the console reaches every phone. One ecosystem, with no gaps to reconcile.',
   },
   {
-    id: '15-technology',
+    id: '16-capabilities',
     kind: 'tech',
-    vo: 'It runs on production-grade infrastructure: the same tools behind platforms that serve millions, delivered at a Cameroonian cost.',
+    vo: 'It is built to production grade. Mobile money and card payments. One app for Android and iOS. Bank-grade security, daily backups, and data that SHESA owns outright.',
   },
   {
-    id: '16-revenue',
+    id: '17-revenue',
     kind: 'revenue',
-    vo: 'And it pays for itself. Year one is free, to build the network. From year two, light fees on dues, events and announcements. From year three, eight revenue streams, plus merchandise sales. A net surplus of thirteen million francs in year three, and over twenty-one million in year four.',
+    vo: 'And it pays for itself. Our model keeps year one free, to build the network. From year two, light fees on dues, events and announcements. From year three, eight revenue streams, plus merchandise sales. A net surplus of thirteen million francs in year three, and over twenty-one million in year four.',
   },
   {
-    id: '17-investment',
+    id: '18-ahead-of-plan',
+    kind: 'traction',
+    vo: 'Those projections turned out to be cautious. They assumed nothing coming in during year one. Within two months of the pilot launch, close to eight hundred thousand francs has already been collected through the platform.',
+  },
+  {
+    id: '19-investment',
     kind: 'investment',
-    vo: 'The investment: thirteen point seven five million francs for the five core platforms, including a three-year infrastructure reserve, and five million for the store. Eighteen point seven five million in all, paid against delivered milestones, for work international firms price at many times that.',
+    vo: 'The investment: around twenty million francs for Phase One. All six platforms, including a three-year infrastructure reserve, paid against delivered milestones, for work international firms price at many times that.',
   },
   {
-    id: '18-protection',
+    id: '20-protection',
     kind: 'protection',
     vo: 'SHESA is protected at every step. Payment only on delivered milestones. A ninety-day warranty on every phase. And on full payment, SHESA owns every line of code, every account and every record.',
   },
   {
-    id: '19-kpis',
+    id: '21-kpis',
     kind: 'kpis',
     vo: 'Every KPI in the 2026 to 2030 Strategy that needs a database, a platform or a digital system is delivered here.',
   },
   {
-    id: '20-close',
+    id: '22-close',
     kind: 'close',
-    vo: 'One Shesan. One record. One institution. SHESA Digital: built by Shesans, for Shesans.',
+    vo: 'One Shesan. One record. One institution. One SHESA, one dream. SHESA Digital: built by Shesans, for Shesans.',
   },
 ];
 

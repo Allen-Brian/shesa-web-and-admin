@@ -267,6 +267,11 @@ export function ReelPlayer({ mode, qrSvg }: { readonly mode: Mode; readonly qrSv
           <SlideCut accent={cutAccent(scene)} cutKey={`${scene.id}-${loop}`} />
           <LightLeak delay={1.5} />
 
+          {/* The builder's mark: present on every scene, never competing. */}
+          <p className="pointer-events-none absolute bottom-3 right-4 z-20 font-heading text-[clamp(8px,0.7vw,0.8rem)] font-semibold uppercase tracking-[0.3em] text-white/30 md:bottom-5 md:right-6">
+            Built by <span className="text-white/50">DIRA</span>
+          </p>
+
           {!isScreen && (
             <ProgressBar
               durations={durations}

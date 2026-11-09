@@ -16,10 +16,10 @@ import {
   useStep,
 } from './devices';
 import {
-  CREDITS,
   FLOWS,
   INVESTMENT,
   KPIS,
+  LIVE_NOW,
   MEMBER_RECORD,
   PILLARS,
   PLATFORMS,
@@ -27,6 +27,7 @@ import {
   PROTECTIONS,
   REVENUE,
   TECH,
+  TRACTION,
   formatXaf,
   platform as getPlatform,
   type Platform,
@@ -74,6 +75,10 @@ export function SceneBody(props: SceneProps) {
       return <ProofScene {...props} />;
     case 'ecosystem':
       return <EcosystemScene {...props} />;
+    case 'live':
+      return <LiveScene {...props} />;
+    case 'traction':
+      return <TractionScene {...props} />;
     case 'platform':
       return <PlatformScene {...props} platform={getPlatform(scene.platform ?? 'website')} />;
     case 'record':
@@ -811,7 +816,7 @@ function IntegrationScene({ seconds }: SceneProps) {
 function TechScene({ seconds }: SceneProps) {
   return (
     <Stage>
-      <Kicker>The technology</Kicker>
+      <Kicker>Capabilities</Kicker>
       <Headline className="mt-3 text-center text-[clamp(1.4rem,3.6vw,3.4rem)]">
         Production-grade. <span className="text-primary">Not a prototype.</span>
       </Headline>
@@ -920,42 +925,38 @@ function RevenueScene({ seconds }: SceneProps) {
 }
 
 function InvestmentScene({ seconds }: SceneProps) {
-  const total = useCountUp(INVESTMENT.total, 2200, Math.round(seconds * 450));
+  const total = useCountUp(INVESTMENT.total, 2400, Math.round(seconds * 380));
   return (
     <Stage>
       <Kicker>The investment</Kicker>
       <div className="mt-[4vmin] flex w-full max-w-5xl flex-col">
-        {INVESTMENT.rows.map((r, i) => (
+        {INVESTMENT.rows.map((r) => (
           <motion.div
             key={r.label}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.6 + i * seconds * 0.18, ease: EASE }}
-            className="flex items-end justify-between gap-6 border-b border-white/15 py-[2.2vmin]"
+            transition={{ duration: 0.7, delay: 0.6, ease: EASE }}
+            className="border-b border-white/15 pb-[2.4vmin]"
           >
-            <div>
-              <p className="font-heading text-[clamp(1rem,2.2vw,2.2rem)] font-light uppercase text-white">
-                {r.label}
-              </p>
-              <p className="mt-1 font-sans text-[clamp(0.7rem,1vw,1rem)] font-light text-white/50">
-                {r.detail}
-              </p>
-            </div>
-            <p className="shrink-0 font-heading text-[clamp(1rem,2.4vw,2.4rem)] font-light tabular-nums text-white">
-              {formatXaf(r.amount)} <span className="text-[0.55em] text-white/50">XAF</span>
+            <p className="font-heading text-[clamp(1.2rem,2.8vw,2.8rem)] font-light uppercase text-white">
+              {r.label}
+            </p>
+            <p className="mt-2 font-sans text-[clamp(0.75rem,1.15vw,1.15rem)] font-light text-white/55">
+              {r.detail}
             </p>
           </motion.div>
         ))}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: seconds * 0.45 }}
-          className="relative flex items-end justify-between gap-6 pt-[3vmin]"
+          transition={{ delay: seconds * 0.3 }}
+          className="relative flex flex-wrap items-end justify-between gap-6 pt-[4vmin]"
         >
           <p className="font-heading text-[clamp(10px,1.1vw,1.05rem)] font-semibold uppercase tracking-[0.35em] text-primary">
-            Total engagement
+            {INVESTMENT.label}
           </p>
-          <p className="font-heading text-[clamp(2.2rem,6.5vw,6.5rem)] font-light leading-none tabular-nums text-white">
+          <p className="font-heading text-[clamp(2.4rem,7.5vw,7.5rem)] font-light leading-none tabular-nums text-white">
+            <span className="text-white/45">~</span>
             {formatXaf(total)}
             <span className="ml-2 text-[0.3em] text-white/55">XAF</span>
           </p>
@@ -963,13 +964,137 @@ function InvestmentScene({ seconds }: SceneProps) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: seconds * 0.65, duration: 0.8 }}
-          className="mt-[3vmin] flex flex-wrap justify-between gap-3 font-heading text-[clamp(8px,0.9vw,0.85rem)] uppercase tracking-[0.22em] text-white/55"
+          transition={{ delay: seconds * 0.6, duration: 0.8 }}
+          className="mt-[4vmin] flex flex-wrap justify-between gap-3 font-heading text-[clamp(8px,0.9vw,0.85rem)] uppercase tracking-[0.22em] text-white/55"
         >
           <span>Paid against delivered milestones</span>
           <span>{INVESTMENT.benchmark}</span>
         </motion.div>
       </div>
+    </Stage>
+  );
+}
+
+function LiveScene({ seconds }: SceneProps) {
+  return (
+    <Stage>
+      <Kicker>Not a promise</Kicker>
+      <Headline className="mt-3 text-center text-[clamp(1.6rem,4vw,4rem)]">
+        Already <span className="text-primary">live</span>
+      </Headline>
+      <div className="mt-[5vmin] grid w-full max-w-[1500px] gap-4 md:grid-cols-3 md:gap-6">
+        {LIVE_NOW.map((p, i) => {
+          const d = stagger(i, LIVE_NOW.length, seconds, 1, 0.55);
+          return (
+            <motion.div
+              key={p.name}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: d, ease: EASE }}
+              className="relative overflow-hidden border border-white/10 bg-white/[0.04] p-5 md:p-[3vmin]"
+            >
+              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/50 bg-emerald-400/10 px-3 py-1 font-heading text-[clamp(9px,0.85vw,0.8rem)] font-semibold uppercase tracking-[0.25em] text-emerald-300">
+                <motion.span
+                  animate={{ opacity: [1, 0.25, 1] }}
+                  transition={{ duration: 1.6, repeat: Infinity }}
+                  className="h-2 w-2 rounded-full bg-emerald-400"
+                />
+                Live
+              </span>
+              <p className="mt-[2.4vmin] font-heading text-[clamp(1.2rem,2.4vw,2.4rem)] font-light uppercase leading-tight text-white">
+                {p.name}
+              </p>
+              <p className="mt-1 font-sans text-[clamp(0.7rem,1vw,1rem)] text-white/45">
+                {p.where}
+              </p>
+              <ul className="mt-[2.4vmin] flex flex-col gap-[1vmin]">
+                {p.points.map((pt, k) => (
+                  <motion.li
+                    key={pt}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: d + 0.6 + k * 0.25 }}
+                    className="flex items-start gap-2 font-sans text-[clamp(0.8rem,1.2vw,1.2rem)] font-light text-white/85"
+                  >
+                    <Check
+                      className="mt-[0.2em] h-[1.05em] w-[1.05em] shrink-0 text-primary"
+                      aria-hidden
+                    />
+                    {pt}
+                  </motion.li>
+                ))}
+              </ul>
+            </motion.div>
+          );
+        })}
+      </div>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: seconds * 0.7, duration: 1 }}
+        className="mt-[4vmin] text-center font-heading text-[clamp(10px,1.05vw,1rem)] uppercase tracking-[0.3em] text-white/55"
+      >
+        3 of 6 platforms in production · real members · real payments
+      </motion.p>
+    </Stage>
+  );
+}
+
+function TractionScene({ seconds }: SceneProps) {
+  const actual = useCountUp(TRACTION.actual, 2600, Math.round(seconds * 350));
+  return (
+    <Stage>
+      <Kicker>Ahead of plan</Kicker>
+      <Headline className="mt-3 text-center text-[clamp(1.4rem,3.4vw,3.4rem)]">
+        Our projections were <span className="text-primary">too cautious</span>
+      </Headline>
+      <div className="mt-[6vmin] grid w-full max-w-[1500px] items-end gap-8 md:grid-cols-[0.7fr_1.3fr] md:gap-[4vw]">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.9, ease: EASE }}
+          className="text-center"
+        >
+          <p className="font-heading text-[clamp(10px,1.05vw,1rem)] font-semibold uppercase tracking-[0.3em] text-white/50">
+            Projected · Year 1
+          </p>
+          <p className="relative mt-3 inline-block font-heading text-[clamp(3rem,9vw,9rem)] font-light leading-none tabular-nums text-white/40">
+            {TRACTION.projected}
+            <span className="ml-2 text-[0.3em]">XAF</span>
+            <motion.span
+              aria-hidden
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 0.5, delay: seconds * 0.3, ease: EASE }}
+              className="absolute left-[-6%] top-1/2 h-[3px] w-[112%] origin-left bg-primary"
+            />
+          </p>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: seconds * 0.32, ease: EASE }}
+          className="relative text-center"
+        >
+          <PulseRing delay={seconds * 0.35 + 2.4} count={2} size="30vmin" />
+          <p className="font-heading text-[clamp(10px,1.05vw,1rem)] font-semibold uppercase tracking-[0.3em] text-primary">
+            Actual · first two months
+          </p>
+          <p className="mt-3 font-heading text-[clamp(2.6rem,7.4vw,8rem)] whitespace-nowrap font-light leading-none tabular-nums text-white">
+            <span className="text-white/45">~</span>
+            {formatXaf(actual)}
+            <span className="ml-2 text-[0.3em] text-white/55">XAF</span>
+          </p>
+        </motion.div>
+      </div>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: seconds * 0.62, duration: 1 }}
+        className="mt-[5vmin] max-w-3xl text-center font-sans text-[clamp(0.85rem,1.4vw,1.4rem)] font-light text-white/75"
+      >
+        Collected through the platform {TRACTION.window}, by mobile money and card.
+      </motion.p>
     </Stage>
   );
 }
@@ -1139,6 +1264,7 @@ function CtaScene({ qrSvg }: SceneProps) {
 function CloseScene({ seconds, big }: SceneProps) {
   const lines = ['One Shesan.', 'One record.', 'One institution.'];
   const size = big ? 'text-[clamp(1.8rem,5.4vw,7rem)]' : 'text-[clamp(1.6rem,4.6vw,4.8rem)]';
+  const step = Math.min(1.1, seconds * 0.12);
   return (
     <Stage>
       {lines.map((l, i) => (
@@ -1146,7 +1272,7 @@ function CloseScene({ seconds, big }: SceneProps) {
           key={l}
           initial={{ opacity: 0, y: 20, filter: 'blur(6px)' }}
           animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ duration: 0.9, delay: 0.3 + i * Math.min(1.1, seconds * 0.12), ease: EASE }}
+          transition={{ duration: 0.9, delay: 0.3 + i * step, ease: EASE }}
           className={`text-center font-heading font-light uppercase leading-[1.05] ${
             i === 2 ? 'text-primary' : 'text-white'
           } ${size}`}
@@ -1154,18 +1280,29 @@ function CloseScene({ seconds, big }: SceneProps) {
           {l}
         </motion.p>
       ))}
+      {/* The association's own motto, in the website hero's script. */}
+      <motion.p
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1, delay: 0.5 + 3 * step, ease: EASE }}
+        className={`mt-[2vmin] text-center font-script leading-none text-white/90 ${
+          big ? 'text-[clamp(2rem,5vw,6.5rem)]' : 'text-[clamp(1.8rem,4vw,4.4rem)]'
+        }`}
+      >
+        One SHESA, <span className="text-primary">One Dream</span>
+      </motion.p>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: Math.min(4, seconds * 0.5), duration: 1 }}
-        className="mt-[5vmin] flex flex-col items-center gap-2"
+        transition={{ delay: Math.min(4.5, seconds * 0.55), duration: 1 }}
+        className="mt-[4vmin] flex flex-col items-center gap-2"
       >
-        <img src="/shesa.png" alt="" className="h-[9vmin] w-[9vmin] object-contain" />
+        <img src="/shesa.png" alt="" className="h-[8vmin] w-[8vmin] object-contain" />
         <p className="font-heading text-[clamp(10px,1.2vw,1.2rem)] font-semibold uppercase tracking-[0.4em] text-white">
           SHESA Digital
         </p>
         <p className="font-heading text-[clamp(8px,0.85vw,0.85rem)] uppercase tracking-[0.3em] text-white/45">
-          Built by Shesans, for Shesans · {CREDITS.builder} · {CREDITS.site}
+          Built by Shesans, for Shesans
         </p>
       </motion.div>
     </Stage>
