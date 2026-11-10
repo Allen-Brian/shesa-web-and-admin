@@ -311,7 +311,9 @@ export const INVESTMENT = {
   ],
   /** Rounded on purpose, and shown with a tilde. */
   total: 20_000_000,
-  label: 'Total Phase I engagement',
+  label: 'Total engagement',
+  /** Set large beside the figure. */
+  phase: 'Phase I',
   benchmark: 'International quotes for equivalent scope: USD 88,000 – 293,000',
 } as const;
 

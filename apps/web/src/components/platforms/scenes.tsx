@@ -929,7 +929,7 @@ function InvestmentScene({ seconds }: SceneProps) {
   return (
     <Stage>
       <Kicker>The investment</Kicker>
-      <div className="mt-[4vmin] flex w-full max-w-5xl flex-col">
+      <div className="mt-[4vmin] flex w-full max-w-6xl flex-col">
         {INVESTMENT.rows.map((r) => (
           <motion.div
             key={r.label}
@@ -950,12 +950,17 @@ function InvestmentScene({ seconds }: SceneProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: seconds * 0.3 }}
-          className="relative flex flex-wrap items-end justify-between gap-6 pt-[4vmin]"
+          className="relative flex flex-wrap items-end justify-between gap-6 pt-[4vmin] md:flex-nowrap"
         >
-          <p className="font-heading text-[clamp(10px,1.1vw,1.05rem)] font-semibold uppercase tracking-[0.35em] text-primary">
-            {INVESTMENT.label}
-          </p>
-          <p className="font-heading text-[clamp(2.4rem,7.5vw,7.5rem)] font-light leading-none tabular-nums text-white">
+          <div>
+            <p className="font-heading text-[clamp(10px,1.1vw,1.05rem)] font-semibold uppercase tracking-[0.35em] text-primary">
+              {INVESTMENT.label}
+            </p>
+            <p className="mt-2 font-heading text-[clamp(2rem,5vw,5rem)] font-light uppercase leading-none tracking-[0.06em] text-white">
+              {INVESTMENT.phase}
+            </p>
+          </div>
+          <p className="font-heading text-[clamp(2.4rem,6.2vw,7rem)] font-light leading-none tabular-nums whitespace-nowrap text-white">
             <span className="text-white/45">~</span>
             {formatXaf(total)}
             <span className="ml-2 text-[0.3em] text-white/55">XAF</span>
