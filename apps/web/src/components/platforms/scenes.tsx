@@ -1086,8 +1086,14 @@ function TractionScene({ seconds }: SceneProps) {
             Actual · first two months
           </p>
           <p className="mt-3 font-heading text-[clamp(2.6rem,7.4vw,8rem)] whitespace-nowrap font-light leading-none tabular-nums text-white">
-            <span className="text-white/45">~</span>
             {formatXaf(actual)}
+            <span
+              className={`text-primary transition-opacity duration-500 ${
+                actual >= TRACTION.actual ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              +
+            </span>
             <span className="ml-2 text-[0.3em] text-white/55">XAF</span>
           </p>
         </motion.div>
