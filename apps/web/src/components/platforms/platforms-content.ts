@@ -172,7 +172,7 @@ export const PLATFORMS: readonly Platform[] = [
     status: 'Live',
     device: 'browser',
     browserShots: [
-      // Live production data (9 Nov 2026), captured with "Hide names" on.
+      // Live production data (10 Nov 2026, 846K XAF collected), captured with "Hide names" on.
       { src: '/platforms/shots/finance-transactions-live.jpg', motion: 'still' },
       { src: '/platforms/shots/finance-contributions.jpg', motion: 'still' },
       { src: '/platforms/shots/finance-reports.jpg', motion: 'still' },
@@ -350,12 +350,14 @@ export const LIVE_NOW = [
 /**
  * The projection said Year 1 brings in nothing; the pilot already moved
  * real money. `actual` is money collected through the platforms (the
- * Finance App's "Net collected" was 766K XAF on 9 Nov 2026), not
+ * Finance App's "Net collected" was 846K XAF on 10 Nov 2026), not
  * platform-fee revenue — the copy says "collected" for that reason.
  */
 export const TRACTION = {
   projected: 0,
-  actual: 800_000,
+  /** Shown as "1,000,000+": the Finance App read 846K on 10 Nov 2026 and
+   * is expected past a million by pitch day. */
+  actual: 1_000_000,
   window: 'within two months of pilot launch',
 } as const;
 
@@ -534,7 +536,7 @@ export const PITCH_SCENES: readonly Scene[] = [
   {
     id: '18-ahead-of-plan',
     kind: 'traction',
-    vo: 'Those projections turned out to be cautious. They assumed nothing coming in during year one. Within two months of the pilot launch, close to eight hundred thousand francs has already been collected through the platform.',
+    vo: 'Those projections turned out to be cautious. They assumed nothing coming in during year one. Within two months of the pilot launch, over a million francs has already been collected through the platform.',
   },
   {
     id: '19-investment',

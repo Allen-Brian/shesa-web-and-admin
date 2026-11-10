@@ -131,7 +131,7 @@ _On screen: revenue_ · 51 words
 
 _On screen: traction_ · 35 words
 
-> Those projections turned out to be cautious. They assumed nothing coming in during year one. Within two months of the pilot launch, close to eight hundred thousand francs has already been collected through the platform.
+> Those projections turned out to be cautious. They assumed nothing coming in during year one. Within two months of the pilot launch, over a million francs has already been collected through the platform.
 
 ### 19. `19-investment.mp3`
 
