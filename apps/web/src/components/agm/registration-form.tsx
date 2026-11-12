@@ -1,10 +1,15 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
-import { AGM_TICKET_UNIT_PRICE_XAF, type PaymentOption } from './agm-content';
+import {
+  AGM_TICKET_UNIT_PRICE_XAF,
+  getAgmTicketUnitPrice,
+  getAgmTicketBatchTierLabel,
+  type PaymentOption,
+} from './agm-content';
 import { registerForAgm } from './register-action';
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -35,7 +40,9 @@ export function RegistrationForm({ initialError }: Props) {
   const paymentOption: PaymentOption = 'pay-now';
   const [error, setError] = useState(initialError ?? '');
 
-  const total = AGM_TICKET_UNIT_PRICE_XAF * Math.max(1, quantity);
+  const unitPrice = getAgmTicketUnitPrice(batch);
+  const total = unitPrice * Math.max(1, quantity);
+  const tierLabel = getAgmTicketBatchTierLabel(batch);
 
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -96,8 +103,9 @@ export function RegistrationForm({ initialError }: Props) {
           Fill it in. Get your ticket.
         </h3>
         <p className="mt-3 max-w-lg text-[14.5px] leading-[1.7] text-black/60">
-          Tickets are a flat {AGM_TICKET_UNIT_PRICE_XAF.toLocaleString()} XAF per head. Register
-          here and the secretariat will be in touch on your phone number to arrange payment.
+          Tickets are standard {AGM_TICKET_UNIT_PRICE_XAF.toLocaleString()} XAF (subsidized for
+          Batch 2017 at 10,000 XAF and Batches 2018-2019 at 5,000 XAF). Register here and the
+          secretariat will be in touch on your phone number to arrange payment.
         </p>
       </div>
 
@@ -151,11 +159,12 @@ export function RegistrationForm({ initialError }: Props) {
         <input
           value={batch}
           onChange={(e) => setBatch(e.target.value)}
-          placeholder="e.g. 1998"
+          placeholder="e.g. 1998, 2017, 2018, 2019"
           maxLength={60}
           required
           className="rounded-xs border border-black/12 bg-white px-4 py-3 text-[15px] text-black focus:border-primary focus:outline-none"
         />
+        {tierLabel && <span className="text-[12px] font-medium text-primary">{tierLabel}</span>}
       </label>
 
       <label className="flex flex-col gap-1.5">
@@ -181,6 +190,11 @@ export function RegistrationForm({ initialError }: Props) {
       <div className="flex flex-col gap-3 md:col-span-2 md:flex-row md:items-center md:justify-between">
         <p className="text-[12.5px] text-black/50">
           Total due: <span className="font-heading text-black">{total.toLocaleString()} XAF</span>
+          {quantity > 1 && (
+            <span className="ml-1 text-black/40">
+              ({unitPrice.toLocaleString()} XAF &times; {quantity})
+            </span>
+          )}
         </p>
         <button
           type="submit"

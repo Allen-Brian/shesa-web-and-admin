@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Static sponsor content. Kept in-repo (not CMS), sponsors are
  * curated by hand and change rarely.
  */
@@ -16,6 +16,10 @@ export interface Sponsor {
   readonly name: string;
   readonly tier: SponsorTier['slug'];
   readonly city: string;
+  /** Industry / sector label shown alongside the name in the Roll of Honour. */
+  readonly category?: string;
+  /** Optional link to the sponsor's website. */
+  readonly href?: string;
   readonly note?: string;
 }
 
@@ -82,15 +86,26 @@ export const sponsorTiers: readonly SponsorTier[] = [
  * brochure and the Sponsors page alike.
  */
 export const sponsors: readonly Sponsor[] = [
+  // --- Platinum ---
+  {
+    name: 'DIRA',
+    tier: 'platinum',
+    city: 'Yaounde',
+    category: 'IT Conglomerate',
+    href: 'https://diracmr.com',
+  },
   { name: 'Ecobank Cameroon', tier: 'platinum', city: 'Douala' },
-  { name: 'MTN Foundation', tier: 'platinum', city: 'Yaoundé' },
+  { name: 'MTN Foundation', tier: 'platinum', city: 'Yaounde' },
+  // --- Gold ---
   { name: 'Orange Cameroun', tier: 'gold', city: 'Douala' },
   { name: 'Guinness Cameroon', tier: 'gold', city: 'Douala' },
-  { name: 'Alucam', tier: 'gold', city: 'Edéa' },
+  { name: 'Alucam', tier: 'gold', city: 'Edea' },
+  // --- Silver ---
   { name: 'Bocom Petroleum', tier: 'silver', city: 'Douala' },
   { name: 'SABC', tier: 'silver', city: 'Douala' },
   { name: 'Bicec', tier: 'silver', city: 'Douala' },
-  { name: 'Nachtigal Hydro Power', tier: 'silver', city: 'Yaoundé' },
+  { name: 'Nachtigal Hydro Power', tier: 'silver', city: 'Yaounde' },
+  // --- Bronze ---
   { name: 'Mansfeld Enterprises', tier: 'bronze', city: 'Bamenda' },
   { name: 'Sacred Heart Alumni Bamenda', tier: 'bronze', city: 'Bamenda' },
   { name: 'Cameroon Airlines Corporation', tier: 'bronze', city: 'Douala' },

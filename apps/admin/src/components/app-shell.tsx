@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import * as React from 'react';
 
@@ -105,6 +105,28 @@ export function AppShell({
         <SidebarInset>
           <Topbar userEmail={userEmail} userName={userName} avatarUrl={avatarUrl} />
           <main className="flex min-h-0 flex-1 flex-col px-6 py-6">{children}</main>
+          <footer className="mt-auto flex items-center justify-between border-t border-border/40 px-6 py-4 text-xs text-muted-foreground">
+            <span>
+              &copy; {new Date().getFullYear()} Shesa. All rights reserved. Built by{' '}
+              <a
+                href="https://diracmr.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium underline underline-offset-4 hover:text-foreground"
+              >
+                DIRA
+              </a>
+              .
+            </span>
+            <a
+              href="https://diracmr.com/about"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground"
+            >
+              About the Developer
+            </a>
+          </footer>
         </SidebarInset>
       </SidebarProvider>
     </BreadcrumbProvider>

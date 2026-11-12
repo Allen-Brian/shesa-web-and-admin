@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Image from 'next/image';
 import Link from 'next/link';
@@ -186,8 +186,29 @@ export function SiteFooter() {
           custom={5}
           className="mt-16 flex flex-col gap-6 border-t border-white/10 py-8 text-[13px] text-white/50 md:flex-row md:items-center md:justify-between md:py-10"
         >
-          <p>© {year} SHESA Alumni. All rights reserved.</p>
+          <p>
+            &copy; {year} SHESA Alumni. All rights reserved. Built by{' '}
+            <a
+              href="https://diracmr.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-white/80 transition-colors hover:text-white underline underline-offset-4 decoration-primary/60"
+            >
+              DIRA
+            </a>
+            .
+          </p>
           <ul className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <li>
+              <a
+                href="https://diracmr.com/about"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors hover:text-white"
+              >
+                About the Developer
+              </a>
+            </li>
             <li>
               <Link href="/privacy" className="transition-colors hover:text-white">
                 Privacy

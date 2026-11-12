@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Handing an AGM submission over to the payment gateway.
  *
  * The registration is recorded first, in `cms.agm_registrations`, and is
@@ -22,10 +22,13 @@ import { serverEnv } from '@shesa/config/env.server';
 import { createServiceRoleClient } from '@shesa/supabase/service-role';
 
 import { getServerClient } from './supabase-server';
+import { getAgmTicketUnitPrice } from '@/components/agm/agm-content';
 
 /** Charges seeded by `supabase/seed.sql`, section 5.2. */
 export const AGM_CHARGE_IDS = {
   ticket: '88888888-2026-1111-0000-000000000002',
+  ticket_2017: '88888888-2026-1111-0000-000000000004',
+  ticket_2018_2019: '88888888-2026-1111-0000-000000000005',
   attire: '88888888-2026-1111-0000-000000000003',
   bronze: '88888888-2026-1111-0000-000000000010',
   silver: '88888888-2026-1111-0000-000000000011',
@@ -34,6 +37,16 @@ export const AGM_CHARGE_IDS = {
   /** Catch-all campaign for a gift that matches no tier. */
   general: '88888888-2026-1111-0000-000000000001',
 } as const;
+
+/**
+ * Resolves the appropriate AGM ticket charge ID based on the user's leaving batch.
+ */
+export function resolveAgmTicketChargeId(batch: string | number | null | undefined): string {
+  const price = getAgmTicketUnitPrice(batch);
+  if (price === 5000) return AGM_CHARGE_IDS.ticket_2018_2019;
+  if (price === 10000) return AGM_CHARGE_IDS.ticket_2017;
+  return AGM_CHARGE_IDS.ticket;
+}
 
 /**
  * The one option that never reaches the gateway. "Pay on arrival" means

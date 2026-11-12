@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Static content for the AGM 2026 landing page. The page is temporary
  * (removed after the event) so we deliberately keep the content here
  * in-repo rather than in the CMS.
@@ -152,6 +152,61 @@ export const AGM_SCHEDULE: readonly AgmScheduleItem[] = [
  * copy all read the same number. Multiple tickets scale linearly.
  */
 export const AGM_TICKET_UNIT_PRICE_XAF = 20_000;
+
+/**
+ * Ticket unit prices based on graduation batch:
+ * - Batches 2018 & 2019: 5 000 XAF (Recent Alumni)
+ * - Batch 2017: 10 000 XAF (Young Alumni)
+ * - Below 2017 / Standard: 20 000 XAF
+ */
+export const AGM_TICKET_PRICES_BY_TIER = {
+  standard: 20_000,
+  batch_2017: 10_000,
+  batch_recent: 5_000,
+} as const;
+
+/**
+ * Resolves the AGM ticket unit price in XAF for a given batch string or number.
+ * Parses 4-digit years from strings like "2019", "Batch 2018", "Class of 2017", etc.
+ */
+export function getAgmTicketUnitPrice(batch: string | number | null | undefined): number {
+  if (!batch) return AGM_TICKET_PRICES_BY_TIER.standard;
+  const match = String(batch).match(/\b(19\d{2}|20\d{2})\b/);
+  if (!match) return AGM_TICKET_PRICES_BY_TIER.standard;
+
+  const rawYear = match[1];
+  if (!rawYear) return AGM_TICKET_PRICES_BY_TIER.standard;
+
+  const year = Number.parseInt(rawYear, 10);
+  if (year === 2018 || year === 2019) {
+    return AGM_TICKET_PRICES_BY_TIER.batch_recent;
+  }
+  if (year === 2017) {
+    return AGM_TICKET_PRICES_BY_TIER.batch_2017;
+  }
+  return AGM_TICKET_PRICES_BY_TIER.standard;
+}
+
+/**
+ * Human-readable label for the ticket rate applied to a batch.
+ */
+export function getAgmTicketBatchTierLabel(
+  batch: string | number | null | undefined,
+): string | null {
+  if (!batch) return null;
+  const price = getAgmTicketUnitPrice(batch);
+  if (price === AGM_TICKET_PRICES_BY_TIER.batch_recent) {
+    return 'Recent alumni rate (Batches 2018–2019): 5,000 XAF / ticket';
+  }
+  if (price === AGM_TICKET_PRICES_BY_TIER.batch_2017) {
+    return 'Batch 2017 rate: 10,000 XAF / ticket';
+  }
+  const match = String(batch).match(/\b(19\d{2}|20\d{2})\b/);
+  if (match) {
+    return 'Standard rate: 20,000 XAF / ticket';
+  }
+  return null;
+}
 
 /**
  * Attire package price, a custom-tailored piece the buyer specifies
