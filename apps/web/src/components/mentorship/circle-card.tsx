@@ -1,7 +1,20 @@
 'use client';
 
 import { motion, type Variants } from 'framer-motion';
-import { Briefcase, Cpu, Megaphone, Scale, Stethoscope, type LucideIcon } from 'lucide-react';
+import {
+  Banknote,
+  Briefcase,
+  Cpu,
+  GraduationCap,
+  HandHeart,
+  HardHat,
+  Landmark,
+  Megaphone,
+  Scale,
+  Shield,
+  Stethoscope,
+  type LucideIcon,
+} from 'lucide-react';
 
 import type { MentorshipCircle } from './mentorship-content';
 
@@ -22,6 +35,12 @@ const ICONS: Record<MentorshipCircle['icon'], LucideIcon> = {
   cpu: Cpu,
   scale: Scale,
   megaphone: Megaphone,
+  'hand-heart': HandHeart,
+  banknote: Banknote,
+  'graduation-cap': GraduationCap,
+  landmark: Landmark,
+  shield: Shield,
+  'hard-hat': HardHat,
 };
 
 export function CircleCard({
