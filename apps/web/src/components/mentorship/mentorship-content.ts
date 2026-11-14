@@ -28,7 +28,7 @@
 export interface MentorshipCircle {
   /** Stable key, used for the anchor link and as the React key. */
   readonly slug: string;
-  /** The group's own name, as the Exco writes it. */
+  /** The group's name: capitals, one word, as the Exco writes it. */
   readonly name: string;
   /** What the room is about, in two or three words. */
   readonly field: string;
@@ -39,13 +39,13 @@ export interface MentorshipCircle {
   /** The clean invite link, no tracking tail. */
   readonly invite: string;
   /** Lucide icon name, resolved in `circle-card.tsx`. */
-  readonly icon: 'briefcase' | 'stethoscope' | 'cpu' | 'scale';
+  readonly icon: 'briefcase' | 'stethoscope' | 'cpu' | 'scale' | 'megaphone';
 }
 
 export const CIRCLES: readonly MentorshipCircle[] = [
   {
     slug: 'biz',
-    name: 'ShesaBIZ',
+    name: 'SHESABIZ',
     field: 'Business and enterprise',
     blurb:
       'For ex-students building or running something of their own, and for anyone who wants to.',
@@ -55,7 +55,7 @@ export const CIRCLES: readonly MentorshipCircle[] = [
   },
   {
     slug: 'sante',
-    name: 'Shesante',
+    name: 'SHESANTÉ',
     field: 'Health and medicine',
     blurb:
       'Doctors, nurses, pharmacists, students and everybody else working in or heading toward health.',
@@ -65,7 +65,7 @@ export const CIRCLES: readonly MentorshipCircle[] = [
   },
   {
     slug: 'tech',
-    name: 'Shesatech',
+    name: 'SHESATECH',
     field: 'Technology and engineering',
     blurb:
       'Software, hardware, data and engineering, from people doing it for a living to people learning it.',
@@ -79,13 +79,27 @@ export const CIRCLES: readonly MentorshipCircle[] = [
   },
   {
     slug: 'legal',
-    name: 'Shesalegal',
+    name: 'SHESALEGAL',
     field: 'Law and policy',
     blurb:
       'Lawyers, students of law, and anyone who needs to understand what the law actually says.',
     forYouIf: ['You practise law', 'You are at law school', 'You need to know where to start'],
     invite: 'https://chat.whatsapp.com/IvtIqxZVFfbHyy8ouCwj5f',
     icon: 'scale',
+  },
+  {
+    slug: 'media',
+    name: 'SHESAMEDIA',
+    field: 'Media and communications',
+    blurb:
+      'Journalists, broadcasters, creators, designers and communicators, and anyone telling stories for a living.',
+    forYouIf: [
+      'You work in media or comms',
+      'You create content',
+      'You want to break into the industry',
+    ],
+    invite: 'https://chat.whatsapp.com/DjsYdHEH6LF0x5K0FU65Sr',
+    icon: 'megaphone',
   },
 ];
 

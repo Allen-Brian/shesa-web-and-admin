@@ -63,7 +63,7 @@ export function CircleGrid() {
           </motion.p>
         </div>
 
-        <div className="mt-12 grid grid-cols-1 gap-5 md:mt-16 md:grid-cols-2 md:gap-6 xl:grid-cols-4">
+        <div className="mt-12 grid grid-cols-1 gap-5 md:mt-16 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
           {CIRCLES.map((circle, i) => (
             <CircleCard key={circle.slug} circle={circle} index={i} />
           ))}

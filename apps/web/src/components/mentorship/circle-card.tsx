@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, type Variants } from 'framer-motion';
-import { Briefcase, Cpu, Scale, Stethoscope, type LucideIcon } from 'lucide-react';
+import { Briefcase, Cpu, Megaphone, Scale, Stethoscope, type LucideIcon } from 'lucide-react';
 
 import type { MentorshipCircle } from './mentorship-content';
 
@@ -21,6 +21,7 @@ const ICONS: Record<MentorshipCircle['icon'], LucideIcon> = {
   stethoscope: Stethoscope,
   cpu: Cpu,
   scale: Scale,
+  megaphone: Megaphone,
 };
 
 export function CircleCard({
@@ -63,7 +64,7 @@ export function CircleCard({
 
       {/* The deciding information. Somebody scanning four cards wants to
           recognise themselves in one of them, not read four paragraphs. */}
-      <ul className="mt-5 flex flex-col gap-2">
+      <ul className="mt-5 flex flex-1 flex-col gap-2">
         {circle.forYouIf.map((line) => (
           <li
             key={line}
