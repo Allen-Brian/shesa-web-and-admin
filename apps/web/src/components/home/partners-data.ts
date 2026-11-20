@@ -1,36 +1,34 @@
-﻿/**
- * Partner boards, shared by every partner-strip variant so the four
- * designs are compared on identical content.
+/**
+ * Partner boards, shared by every partner-strip variant.
  *
- * ARTWORK: MTN and CAMTEL carry their real logos, both taken from
- * Wikimedia Commons files marked public domain (simple shapes and text
- * are below the threshold of copyright). That covers the *file*; the
- * marks themselves are registered trademarks, so displaying a company
- * as a partner still needs that company's permission.
+ * The roster follows the AGM 2026 sponsors flyer: DIRA and MTN, plus the
+ * Investment Promotion Agency, Hope Circle Foundation, STV, CRTV, Vista
+ * Print, St Mary's International College University and MDDT.
  *
- * Pamol and betPawa have no logo on Commons and fall back to a wordmark
- * in the brand colour. To finish them, drop an official file into
- * `public/partners/` and set `logo` below â€” from the company's own
- * brand/press page, not an image search, since usage terms travel with
- * the asset.
+ * ARTWORK: every logo except CRTV's is in `public/partners/`. IPA, St
+ * Mary's and Vista Print were cropped from the official sponsors flyer;
+ * Hope Circle, STV and MDDT came as files from the Exco. CRTV has no file
+ * yet and falls back to a wordmark in its brand colour: drop the
+ * official logo into `public/partners/` and set `logo` below.
  *
- * TAGLINES: only MTN's is the company's own. The other three are plain
- * descriptions of what the business does, standing in until the real
- * wording arrives from each partner. They are marked below.
+ * MESSAGES: MTN's ("Everywhere you go"), Vista Print's ("Quality matters
+ * here") and St Mary's motto are the partners' own words, taken from
+ * their marks. The rest are plain descriptions standing in until each
+ * partner sends its own line; they are marked PLACEHOLDER.
  *
- * There is no partners table yet â€” when one lands, load these server
- * side and pass them in the way Events / Projects do.
+ * There is no partners table yet. When one lands, load these server side
+ * and pass them in the way Events / Projects do.
  */
 
 export interface Partner {
   readonly name: string;
   /**
    * Path under `public/partners/`, e.g. `/partners/mtn.svg`. Leave unset
-   * until the file is actually there â€” a path to a missing file renders
+   * until the file is actually there — a path to a missing file renders
    * a broken image, the wordmark fallback does not.
    */
   readonly logo?: string;
-  /** Small tag above the message â€” product line, campaign, or sector. */
+  /** Small tag above the message — product line, campaign, or sector. */
   readonly tag: string;
   /** The partner's own message on the board. */
   readonly message: string;
@@ -71,33 +69,73 @@ export const partners: readonly Partner[] = [
     chip: '#0b0b0b',
   },
   {
-    name: 'CAMTEL',
-    logo: '/partners/camtel.png',
-    tag: 'Telecommunications',
-    // PLACEHOLDER â€” factual description, not CAMTEL's own wording.
-    message: "Cameroon's national telecommunications operator.",
-    // White board: the mark is cyan and now prints straight onto the
-    // board rather than onto a plate, so the board has to be its ground.
-    bg: '#ffffff',
-    fg: '#0b2a3a',
-    chip: '#0079A8',
+    name: 'IPA',
+    logo: '/partners/ipa.png',
+    tag: 'Investment Promotion Agency',
+    // PLACEHOLDER: factual description, not IPA's own wording.
+    message: 'Bringing investment to Cameroon.',
+    bg: '#232f72',
+    fg: '#ffffff',
+    chip: '#232f72',
   },
   {
-    name: 'Pamol',
-    tag: 'Agro-industry',
-    // PLACEHOLDER â€” factual description, not Pamol's own wording.
-    message: 'Palm oil grown and milled in the South West.',
-    bg: '#0E5B34',
-    fg: '#ffffff',
-    chip: '#0E5B34',
+    name: 'Hope Circle Foundation',
+    logo: '/partners/hope-circle.png',
+    tag: 'Foundation',
+    // PLACEHOLDER: factual description, not the foundation's own wording.
+    message: 'Community care and support, in good hands.',
+    bg: '#a99cf0',
+    fg: '#1f1f29',
+    chip: '#26262f',
   },
   {
-    name: 'betPawa',
-    tag: 'Sports betting',
-    // PLACEHOLDER â€” factual description, not betPawa's own wording.
-    message: 'Sports betting across Africa.',
-    bg: '#1B7A3E',
+    name: 'STV',
+    logo: '/partners/stv.png',
+    tag: 'Television',
+    // PLACEHOLDER: factual description, not STV's own wording.
+    message: 'Private television, broadcasting across Cameroon.',
+    bg: '#1f6fb5',
     fg: '#ffffff',
-    chip: '#1B7A3E',
+    chip: '#1f6fb5',
+  },
+  {
+    name: 'CRTV',
+    tag: 'Public broadcaster',
+    // PLACEHOLDER: factual description, not CRTV's own wording.
+    message: 'Cameroon Radio Television, the national broadcaster.',
+    bg: '#0b3c8c',
+    fg: '#ffffff',
+    chip: '#0b3c8c',
+  },
+  {
+    name: 'Vista Print',
+    logo: '/partners/vista.png',
+    tag: 'Printing',
+    // Vista Print's own line, from its logo.
+    message: 'Quality matters here.',
+    bg: '#1d3c96',
+    fg: '#ffffff',
+    chip: '#f26722',
+  },
+  {
+    name: "St Mary's",
+    logo: '/partners/stmarys.png',
+    tag: 'International College University',
+    // The university's motto, from its crest: "source of learning and of
+    // character".
+    message: 'Fons studiorum et morum.',
+    bg: '#7a1f2b',
+    fg: '#ffffff',
+    chip: '#7a1f2b',
+  },
+  {
+    name: 'MDDT',
+    logo: '/partners/mddt.png',
+    tag: 'Civil society',
+    // The movement's own name, spelled out from its mark.
+    message: 'Movement for Democracy, Development & Transparency.',
+    bg: '#1d7a3c',
+    fg: '#ffffff',
+    chip: '#1d7a3c',
   },
 ] as const;

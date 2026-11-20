@@ -1,15 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { AnimatePresence, motion, type Variants } from 'framer-motion';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { motion, type Variants } from 'framer-motion';
+import { useMemo, type ReactNode } from 'react';
 
-// AGM 2026, Assembly Day is Saturday 14 November 2026 at Palais des
-// Congrès, Yaoundé. Countdown anchors to the start of that day in
-// Yaoundé local time (WAT, UTC+1). Friday 13 hosts the regional
-// football tournament + batch meetings; Sunday 15 closes with the
-// thanksgiving mass.
-const AGM_TARGET = new Date('2026-11-14T00:00:00+01:00');
+// AGM 2026 ran 13–15 November 2026 at Palais des Congrès, Yaoundé.
+// The countdown that stood here is retired: the section now looks
+// forward to the recap, and links to its home on /agm-2026.
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -68,104 +65,10 @@ const highlights: readonly Highlight[] = [
   },
 ];
 
-type Countdown = {
-  readonly weeks: number;
-  readonly days: number;
-  readonly hours: number;
-  readonly minutes: number;
-};
-
-function useCountdown(target: Date): Countdown | null {
-  const [now, setNow] = useState<number | null>(null);
-
-  useEffect(() => {
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
-
-  if (now === null) return null;
-
-  const diff = Math.max(0, target.getTime() - now);
-  const totalMinutes = Math.floor(diff / 60_000);
-  const totalHours = Math.floor(totalMinutes / 60);
-  const totalDays = Math.floor(totalHours / 24);
-
-  return {
-    weeks: Math.floor(totalDays / 7),
-    days: totalDays % 7,
-    hours: totalHours % 24,
-    minutes: totalMinutes % 60,
-  };
-}
-
-function saveToCalendar() {
-  if (typeof window === 'undefined') return;
-
-  const stamp = new Date()
-    .toISOString()
-    .replace(/[-:]/g, '')
-    .replace(/\.\d{3}/, '');
-
-  // Anchored to Yaoundé local time (WAT, UTC+1). Friday tournament
-  // kick-off through Sunday's thanksgiving mass, a single calendar
-  // block so add-to-calendar reserves the whole weekend.
-  const ics = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//SHESA Alumni//AGM 2026//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    'BEGIN:VEVENT',
-    'UID:agm-2026@shesaconnect.com',
-    `DTSTAMP:${stamp}`,
-    'DTSTART;TZID=Africa/Douala:20261113T150000',
-    'DTEND;TZID=Africa/Douala:20261115T130000',
-    'SUMMARY:SHESA AGM 2026, Yaoundé',
-    'LOCATION:Palais des Congrès\\, Yaoundé\\, Cameroon',
-    'DESCRIPTION:Fri 13 Nov, Regional football tournament + batch meetings. Sat 14 Nov, Assembly Day at Palais des Congrès (opening ceremony\\, AGM\\, gala night). Sun 15 Nov, Thanksgiving mass. https://shesaconnect.com/agm-2026',
-    'URL:https://shesaconnect.com/agm-2026',
-    'END:VEVENT',
-    'END:VCALENDAR',
-  ].join('\r\n');
-
-  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'shesa-agm-2026.ics';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+/** What the recap will carry, one card each where the countdown was. */
+const recapCards = ['Photos', 'Film', 'Resolutions', 'Winners'] as const;
 
 export function AgmCta() {
-  const countdown = useCountdown(AGM_TARGET);
-
-  const cards = countdown
-    ? [
-        { key: 'weeks', value: countdown.weeks, label: 'Weeks' },
-        { key: 'days', value: countdown.days, label: 'Days' },
-        { key: 'hours', value: countdown.hours, label: 'Hours' },
-        { key: 'minutes', value: countdown.minutes, label: 'Minutes' },
-      ]
-    : [];
-  const visibleCards = (() => {
-    const out: typeof cards = [];
-    let started = false;
-    for (const c of cards) {
-      if (started || c.value > 0) {
-        started = true;
-        out.push(c);
-      }
-    }
-    if (out.length === 0 && countdown) {
-      return [{ key: 'minutes', value: countdown.minutes, label: 'Minutes' }];
-    }
-    return out;
-  })();
-
   return (
     <section
       data-nav-dark
@@ -202,7 +105,7 @@ export function AgmCta() {
             className="mt-6 font-heading text-[11px] font-medium uppercase text-white/70 md:text-xs"
             style={{ letterSpacing: '0.5em' }}
           >
-            Save the Date
+            Thank you, Yaoundé
           </motion.p>
 
           <motion.h2
@@ -219,7 +122,7 @@ export function AgmCta() {
           >
             <span className="block overflow-hidden pb-1 md:pb-2">
               <motion.span variants={revealLine} className="block">
-                All roads lead to
+                All roads led to
               </motion.span>
             </span>
           </motion.h2>
@@ -261,28 +164,10 @@ export function AgmCta() {
             transition={{ duration: 0.9, delay: 0.7, ease }}
             className="mt-14 w-full md:mt-16"
           >
-            <div
-              className={`mx-auto grid gap-3 md:gap-5 ${
-                visibleCards.length === 4
-                  ? 'max-w-4xl grid-cols-2 md:grid-cols-4'
-                  : visibleCards.length === 3
-                    ? 'max-w-3xl grid-cols-3'
-                    : visibleCards.length === 2
-                      ? 'max-w-md grid-cols-2'
-                      : 'max-w-xs grid-cols-1'
-              }`}
-              aria-label="Time remaining until AGM 2026 begins"
-            >
-              <AnimatePresence mode="popLayout">
-                {visibleCards.map((card, i) => (
-                  <CountdownCard
-                    key={card.key}
-                    value={card.value}
-                    label={card.label}
-                    delay={0.8 + i * 0.08}
-                  />
-                ))}
-              </AnimatePresence>
+            <div className="mx-auto grid max-w-4xl grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
+              {recapCards.map((card, i) => (
+                <RecapCard key={card} label={card} delay={0.8 + i * 0.08} />
+              ))}
             </div>
           </motion.div>
 
@@ -295,7 +180,7 @@ export function AgmCta() {
             className="mt-12 font-script text-white/85 md:mt-14"
             style={{ fontSize: 'clamp(1.5rem, 2.4vw, 2.25rem)', lineHeight: 1 }}
           >
-            An AGM like never before.
+            The recap is on its way.
           </motion.p>
 
           <motion.div
@@ -306,8 +191,8 @@ export function AgmCta() {
             custom={12}
             className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:gap-5"
           >
-            <SupportButton />
-            <SaveToCalendarButton />
+            <RecapButton />
+            <MentorshipButton />
           </motion.div>
         </div>
 
@@ -332,7 +217,7 @@ function Highlights() {
           className="font-heading text-[11px] font-medium uppercase text-white/60 md:text-xs"
           style={{ letterSpacing: '0.5em' }}
         >
-          What Awaits
+          How it unfolded
         </p>
         <span className="h-px w-8 bg-white/25 md:w-12" />
       </motion.div>
@@ -391,12 +276,12 @@ function Highlights() {
   );
 }
 
-function SupportButton() {
+function RecapButton() {
   return (
     <div className="relative rounded-xs">
       <span className="border-beam-halo" aria-hidden />
       <Link
-        href="/agm-2026"
+        href="/agm-2026#recap"
         className="group relative inline-flex items-center gap-3 overflow-hidden rounded-xs bg-primary px-10 py-5 text-sm font-medium tracking-wide text-primary-foreground shadow-[0_20px_60px_-15px_rgba(139,21,51,0.6)] transition-transform duration-500 hover:-translate-y-0.5 md:px-12 md:py-5 md:text-base"
       >
         <span className="border-beam" aria-hidden />
@@ -404,7 +289,7 @@ function SupportButton() {
           aria-hidden
           className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/35 to-transparent transition-transform duration-1000 group-hover:translate-x-full"
         />
-        <span className="relative">Support The Movement</span>
+        <span className="relative">See what&apos;s coming</span>
         <span
           aria-hidden
           className="relative grid h-7 w-7 place-items-center rounded-xs bg-white/20 transition-transform duration-500 group-hover:translate-x-1"
@@ -416,58 +301,27 @@ function SupportButton() {
   );
 }
 
-function SaveToCalendarButton() {
+function MentorshipButton() {
   return (
-    <button
-      type="button"
-      onClick={saveToCalendar}
+    <Link
+      href="/mentorship"
       className="group relative inline-flex items-center gap-3 overflow-hidden rounded-xs border border-white/25 bg-white/3 px-10 py-5 text-sm font-medium tracking-wide text-white backdrop-blur-sm transition-all duration-500 hover:-translate-y-0.5 hover:border-white hover:bg-white hover:text-black md:px-12 md:py-5 md:text-base"
     >
-      <svg
-        viewBox="0 0 24 24"
-        className="relative h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden
-      >
-        <rect x="3" y="4" width="18" height="18" rx="1.5" />
-        <path d="M16 2v4M8 2v4M3 10h18" />
-      </svg>
-      <span className="relative">Save to Calendar</span>
-    </button>
+      <span className="relative">Join a mentorship circle</span>
+    </Link>
   );
 }
 
-function CountdownCard({
-  value,
-  label,
-  delay,
-}: {
-  readonly value: number;
-  readonly label: string;
-  readonly delay: number;
-}) {
+function RecapCard({ label, delay }: { readonly label: string; readonly delay: number }) {
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 20, rotateX: -15 }}
-      animate={{ opacity: 1, y: 0, rotateX: 0 }}
-      exit={{ opacity: 0, y: -12, rotateX: 15 }}
+      whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+      viewport={{ once: true, amount: 0.4 }}
       transition={{ duration: 0.7, delay, ease }}
       className="group relative overflow-hidden rounded-xs border border-white/10 bg-white/4 p-5 backdrop-blur-sm transition-colors duration-500 hover:border-primary/60 md:p-8"
       style={{ transformStyle: 'preserve-3d' }}
     >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-xs opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-        style={{
-          background:
-            'radial-gradient(80% 60% at 50% 0%, color-mix(in srgb, var(--color-primary) 20%, transparent), transparent 70%)',
-        }}
-      />
       <motion.span
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px"
@@ -479,24 +333,23 @@ function CountdownCard({
         transition={{ duration: 4, repeat: Infinity, ease: 'linear', delay }}
       />
       <div className="relative">
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.div
-            key={value}
-            initial={{ y: 12, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -12, opacity: 0 }}
-            transition={{ duration: 0.5, ease }}
-            className="font-heading font-medium leading-none tracking-tight tabular-nums text-white"
-            style={{
-              fontSize: 'clamp(2.25rem, 4.4vw, 3.75rem)',
-              textShadow: '0 4px 30px rgba(139,21,51,0.35)',
-            }}
-          >
-            {value.toString().padStart(2, '0')}
-          </motion.div>
-        </AnimatePresence>
-        <p className="mt-3 text-[10px] font-medium uppercase tracking-[0.28em] text-white/60 md:text-xs">
+        <p
+          className="font-heading font-light leading-none tracking-tight text-white"
+          style={{
+            fontSize: 'clamp(1.25rem, 2.2vw, 1.85rem)',
+            textShadow: '0 4px 30px rgba(139,21,51,0.35)',
+          }}
+        >
           {label}
+        </p>
+        <p className="mt-3 inline-flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.28em] text-white/60 md:text-xs">
+          <motion.span
+            aria-hidden
+            animate={{ opacity: [1, 0.3, 1] }}
+            transition={{ duration: 1.8, repeat: Infinity, delay }}
+            className="h-1.5 w-1.5 rounded-full bg-primary"
+          />
+          Coming soon
         </p>
       </div>
     </motion.div>

@@ -43,7 +43,8 @@ export interface PromoCampaign {
 
 export const ACTIVE_PROMO: PromoCampaign = {
   id: 'agm-2026',
-  active: true,
+  // The AGM is over (13–15 Nov 2026); the registration pop-up is retired.
+  active: false,
   ribbon: 'Registration open',
   eyebrow: 'SHESA presents',
   title: 'AGM 2026',

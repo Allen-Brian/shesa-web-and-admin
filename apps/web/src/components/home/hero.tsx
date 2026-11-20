@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
-import { HandHeart, Shirt, Ticket, type LucideIcon } from 'lucide-react';
+import { Camera, Handshake, Users, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import { CrestBadge } from './crest-badge';
@@ -15,34 +15,34 @@ interface HeroAction {
   readonly kicker: string;
   readonly label: string;
   readonly body: string;
-  /** Deep link into the matching form on the AGM 2026 page. */
+  /** Where the card leads. */
   readonly href: string;
-  /** The one card carrying the beam — ticket sales lead everything else. */
+  /** The one card carrying the beam — the AGM recap leads everything else. */
   readonly primary?: boolean;
 }
 
 const heroActions: readonly HeroAction[] = [
   {
-    icon: Ticket,
+    icon: Camera,
     kicker: 'AGM 2026',
-    label: 'Get your ticket',
-    body: 'Register and pay for your seat in Yaoundé.',
-    href: '/agm-2026#register',
+    label: 'The recap is coming',
+    body: 'Photos, video and resolutions from Yaoundé.',
+    href: '/agm-2026#recap',
     primary: true,
   },
   {
-    icon: Shirt,
-    kicker: 'Uniform',
-    label: 'Order SHESA attire',
-    body: 'The new colours, sized and paid for online.',
-    href: '/agm-2026#attire',
+    icon: Users,
+    kicker: 'Mentorship',
+    label: 'Find your circle',
+    body: 'Eleven rooms, split by field. Join yours.',
+    href: '/mentorship',
   },
   {
-    icon: HandHeart,
-    kicker: 'Give',
-    label: 'Sponsor or support',
-    body: 'Back the assembly at the tier that suits you.',
-    href: '/agm-2026#funding',
+    icon: Handshake,
+    kicker: 'Partner',
+    label: 'Partner with SHESA',
+    body: 'Put your name before an alumni network that moves.',
+    href: '/agm-2026/sponsor',
   },
 ] as const;
 
@@ -97,9 +97,8 @@ export function Hero() {
 }
 
 /**
- * Hero call-to-action card. Each one deep-links to a form section on
- * the AGM 2026 page (`#register`, `#attire`, `#funding`) so the hero
- * lands people inside the flow rather than at the top of the page.
+ * Hero call-to-action card. Each one deep-links to where the action is:
+ * the AGM recap, the mentorship circles, or the partnership page.
  *
  * The primary card carries the rotating beam + halo used by the AGM
  * support button, so the ticket action reads as the loudest thing on

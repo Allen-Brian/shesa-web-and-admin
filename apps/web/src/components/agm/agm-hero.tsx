@@ -140,10 +140,10 @@ export function AgmHero() {
           className="mt-12 flex flex-wrap items-center justify-center gap-3"
         >
           <Link
-            href="#register"
+            href="#recap"
             className="group inline-flex items-center gap-3 rounded-xs bg-primary px-8 py-4 text-sm font-medium tracking-wide text-white transition-all duration-500 hover:-translate-y-0.5 hover:bg-white hover:text-primary"
           >
-            Register &amp; get your ticket
+            See what&apos;s in the recap
             <span
               aria-hidden
               className="grid h-6 w-6 place-items-center rounded-xs bg-white/15 transition-transform group-hover:translate-x-1 group-hover:bg-primary/10"
@@ -155,7 +155,7 @@ export function AgmHero() {
             href="#programme"
             className="inline-flex items-center gap-2 rounded-xs border border-white/20 bg-white/5 px-6 py-4 text-sm font-medium tracking-wide text-white transition-colors hover:border-white/60"
           >
-            See the programme
+            Relive the programme
           </Link>
         </motion.div>
       </div>
