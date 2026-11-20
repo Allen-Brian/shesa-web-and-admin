@@ -8,10 +8,10 @@ export const AGM_META = {
   edition: '2026',
   themeLine: 'The Yaoundé Assembly',
   tagline: 'Three days. One tournament, one assembly, one grand celebration.',
-  dates: 'Fri 13, Sun 15 November 2026',
+  dates: 'Fri 13 – Sun 15 November 2026',
   city: 'Yaoundé, Cameroon',
   venue: 'Palais des Congrès · Yaoundé',
-  registrationOpens: 'Registration is open',
+  registrationOpens: 'Concluded · recap coming soon',
   earlyBird: 'Early bird tickets until 30 September 2026',
 } as const;
 

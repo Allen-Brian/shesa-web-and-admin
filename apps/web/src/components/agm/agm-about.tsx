@@ -67,7 +67,7 @@ export function AgmAbout() {
             className="max-w-md text-[15px] leading-[1.7] text-black/60 md:col-span-4"
           >
             The AGM 2026 is where the SHESA family gathers to decide, celebrate, and pass the torch.
-            This year the assembly comes to Yaoundé.
+            This year the assembly came to Yaoundé.
           </motion.p>
         </div>
 
